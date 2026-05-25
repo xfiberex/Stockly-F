@@ -1,0 +1,45 @@
+import { Outlet, NavLink } from "react-router-dom";
+import { CubeIcon } from "@heroicons/react/24/outline";
+import { cn } from "@/lib/cn";
+
+function App() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <nav className="sticky top-0 z-40 border-b border-gray-200 bg-white">
+        <div className="max-w-7xl mx-auto px-6 flex h-14 items-center gap-6">
+          <div className="flex items-center gap-2 font-bold text-gray-900">
+            <CubeIcon className="h-5 w-5 text-blue-600" />
+            Stockly
+          </div>
+          <div className="flex gap-1">
+            {[
+              { to: "/", label: "Dashboard" },
+              { to: "/products", label: "Productos" },
+            ].map(({ to, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end
+                className={({ isActive }) =>
+                  cn(
+                    "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-600 hover:bg-gray-100"
+                  )
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </nav>
+      <main>
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
+export default App;
