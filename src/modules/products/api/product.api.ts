@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import api from "@/shared/api/axios";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
 import type {Product, CreateProductDto, UpdateProductDto, ProductQuery } from "../types/product.types";
 
