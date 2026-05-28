@@ -1,0 +1,51 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { Select } from "@/shared/components/Select";
+
+const options = [
+    { value: "opt1", label: "Opción 1" },
+    { value: "opt2", label: "Opción 2" },
+    { value: "opt3", label: "Opción 3" },
+];
+
+describe("Select", () => {
+    it("renderiza el elemento select", () => {
+        render(<Select options={options} />);
+        expect(screen.getByRole("combobox")).toBeInTheDocument();
+    });
+
+    it("renderiza todas las opciones", () => {
+        render(<Select options={options} />);
+        expect(screen.getAllByRole("option")).toHaveLength(options.length);
+    });
+
+    it("renderiza placeholder como primera opción vacía", () => {
+        render(<Select options={options} placeholder="Elige uno..." />);
+        const opts = screen.getAllByRole("option");
+        expect(opts[0]).toHaveTextContent("Elige uno...");
+        expect(opts[0]).toHaveValue("");
+    });
+
+    it("renderiza la etiqueta con asociación por id", () => {
+        render(<Select id="categoria" label="Categoría" options={options} />);
+        expect(screen.getByLabelText("Categoría")).toBeInTheDocument();
+    });
+
+    it("muestra el mensaje de error", () => {
+        render(<Select options={options} error="Obligatorio" />);
+        expect(screen.getByText("Obligatorio")).toBeInTheDocument();
+    });
+
+    it("aplica clase de error al select cuando hay error", () => {
+        render(<Select options={options} error="Error" />);
+        expect(screen.getByRole("combobox")).toHaveClass("border-red-500");
+    });
+
+    it("dispara onChange al seleccionar una opción", async () => {
+        const user = userEvent.setup();
+        const handleChange = vi.fn();
+        render(<Select options={options} onChange={handleChange} />);
+        await user.selectOptions(screen.getByRole("combobox"), "opt2");
+        expect(handleChange).toHaveBeenCalledTimes(1);
+    });
+});
