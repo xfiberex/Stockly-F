@@ -1,16 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { updateProduct } from "../api/product.api";
-import { PRODUCTS_KEY } from "./useProducts";
+import { queryKeys } from "@/shared/constants/queryKeys";
 
-// Hook para actualizar un producto existente
 export const useUpdateProduct = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: updateProduct,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.product });
             toast.success("Producto actualizado correctamente");
         },
         onError: (error: Error) => {

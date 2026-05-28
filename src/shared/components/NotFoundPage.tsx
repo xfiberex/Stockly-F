@@ -10,12 +10,8 @@ export default function NotFoundPage() {
             </div>
             <div className="text-center">
                 <p className="text-6xl font-black text-gray-200">404</p>
-                <h1 className="mt-2 text-xl font-semibold text-gray-800">
-                    Página no encontrada
-                </h1>
-                <p className="mt-1 text-sm text-gray-500">
-                    La ruta que buscas no existe.
-                </p>
+                <h1 className="mt-2 text-xl font-semibold text-gray-800">Página no encontrada</h1>
+                <p className="mt-1 text-sm text-gray-500">La ruta que buscas no existe.</p>
             </div>
             <Link
                 to="/"

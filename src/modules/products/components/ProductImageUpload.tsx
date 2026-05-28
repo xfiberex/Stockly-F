@@ -1,8 +1,7 @@
 import { useRef, useState } from "react";
 import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { cn } from "@/lib/cn";
+import { cn } from "@/shared/lib/cn";
 
-// Interface para el componente de subida de imagen de producto
 interface ProductImageUploadProps {
     currentImageUrl?: string;
     onChange: (file: File | undefined) => void;
@@ -10,20 +9,10 @@ interface ProductImageUploadProps {
     error?: string;
 }
 
-// Componente para subir imagen de producto con vista previa
-export function ProductImageUpload({
-    currentImageUrl,
-    onChange,
-    onRemoveExisting,
-    error,
-}: ProductImageUploadProps) {
-    // Referencia al input de archivo para poder abrir el diálogo de selección
+export function ProductImageUpload({ currentImageUrl, onChange, onRemoveExisting, error }: ProductImageUploadProps) {
     const inputRef = useRef<HTMLInputElement>(null);
-
-    // Estado para almacenar la URL de vista previa de la imagen seleccionada
     const [preview, setPreview] = useState<string | null>(null);
 
-    // Maneja el cambio de archivo, actualiza la vista previa y llama al callback onChange
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -31,20 +20,18 @@ export function ProductImageUpload({
         setPreview(URL.createObjectURL(file));
     };
 
-    // Maneja la eliminación de la imagen seleccionada, resetea el estado y el input
     const handleRemove = () => {
         if (preview) {
-            // Había un archivo nuevo seleccionado — solo limpia el preview
+            // Archivo nuevo seleccionado — limpia solo el preview local
             onChange(undefined);
             setPreview(null);
             if (inputRef.current) inputRef.current.value = "";
         } else {
-            // Era la imagen guardada en el servidor — avisa al padre
+            // Imagen guardada en servidor — avisa al padre para marcar removeImage=true
             onRemoveExisting?.();
         }
     };
 
-    // Determina qué imagen mostrar: la vista previa de la nueva imagen o la imagen actual del producto
     const displayed = preview ?? currentImageUrl;
 
     return (
@@ -53,11 +40,7 @@ export function ProductImageUpload({
 
             {displayed ? (
                 <div className="relative w-full h-40 rounded-lg overflow-hidden border border-gray-200">
-                    <img
-                        src={displayed}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                    />
+                    <img src={displayed} alt="Preview" className="w-full h-full object-cover" />
                     <button
                         type="button"
                         onClick={handleRemove}
@@ -72,7 +55,7 @@ export function ProductImageUpload({
                     onClick={() => inputRef.current?.click()}
                     className={cn(
                         "flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-8 text-sm text-gray-400 transition hover:border-blue-400 hover:text-blue-500",
-                        error && "border-red-400"
+                        error && "border-red-400",
                     )}
                 >
                     <PhotoIcon className="h-8 w-8" />

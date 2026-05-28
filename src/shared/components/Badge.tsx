@@ -1,13 +1,11 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/shared/lib/cn";
 
-// Componente de insignia reutilizable con variantes de estilo para diferentes propósitos.
 interface BadgeProps {
     children: React.ReactNode;
     variant?: "default" | "success" | "danger" | "blue" | "purple" | "orange" | "teal";
     className?: string;
 }
 
-// Definición de estilos para cada variante de insignia.
 const variants = {
     default: "bg-gray-100 text-gray-700",
     success: "bg-green-100 text-green-700",
@@ -18,14 +16,13 @@ const variants = {
     teal: "bg-teal-100 text-teal-700",
 };
 
-// Componente de insignia que acepta variantes de estilo y otras propiedades HTML estándar.
 export function Badge({ children, variant = "default", className }: BadgeProps) {
     return (
         <span
             className={cn(
                 "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
                 variants[variant],
-                className
+                className,
             )}
         >
             {children}

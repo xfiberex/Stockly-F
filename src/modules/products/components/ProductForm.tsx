@@ -12,17 +12,14 @@ import { useUpdateProduct } from "@/modules/products/hooks/useUpdateProduct";
 import type { Product } from "@/modules/products/types/product.types";
 import type { Resolver } from "react-hook-form";
 
-// Interface para el formulario de creación/edición de producto
 interface ProductFormProps {
     isOpen: boolean;
     onClose: () => void;
     product?: Product;
 }
 
-// Opciones de categorías para el select, incluyendo una opción para "seleccionar"
 const categoryOptions = VALID_CATEGORIES.map((c) => ({ value: c, label: c }));
 
-// Componente de formulario para crear o editar un producto
 export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
     const isEditing = !!product;
     const createMutation = useCreateProduct();
@@ -30,21 +27,10 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
     const isPending = createMutation.isPending || updateMutation.isPending;
     const [removeImage, setRemoveImage] = useState(false);
 
-    // Configuración del formulario con react-hook-form y validación con Zod
-    const {
-        register,
-        handleSubmit,
-        reset,
-        setValue,
-        formState: { errors },
-    } = useForm<CreateProductFormData>({
-        resolver:
-            zodResolver(isEditing ?
-                updateProductSchema :
-                createProductSchema) as Resolver<CreateProductFormData>,
+    const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateProductFormData>({
+        resolver: zodResolver(isEditing ? updateProductSchema : createProductSchema) as Resolver<CreateProductFormData>,
     });
 
-    // Efecto para cargar los datos del producto en el formulario cuando se abre en modo edición
     useEffect(() => {
         if (product) {
             reset({
@@ -59,12 +45,11 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
         }
     }, [product, reset]);
 
-    // Función para manejar el envío del formulario, llama a la mutación correspondiente según si es creación o edición
     const onSubmit = (formData: CreateProductFormData) => {
         if (isEditing) {
             updateMutation.mutate(
                 { id: product.id, dto: { ...formData, removeImage } },
-                { onSuccess: () => { onClose(); reset({}); setRemoveImage(false); } }
+                { onSuccess: () => { onClose(); reset({}); setRemoveImage(false); } },
             );
         } else {
             createMutation.mutate(formData, {
@@ -74,12 +59,7 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
     };
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={isEditing ? "Editar producto" : "Nuevo producto"}
-            className="max-w-xl"
-        >
+        <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? "Editar producto" : "Nuevo producto"} className="max-w-xl">
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <Input
                     id="name"
@@ -88,7 +68,6 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                     error={errors.name?.message}
                     {...register("name")}
                 />
-
                 <Input
                     id="description"
                     label="Descripción"
@@ -96,7 +75,6 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                     error={errors.description?.message}
                     {...register("description")}
                 />
-
                 <div className="grid grid-cols-2 gap-3">
                     <Input
                         id="price"
@@ -116,7 +94,6 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                         {...register("stock")}
                     />
                 </div>
-
                 <Select
                     id="category"
                     label="Categoría *"
@@ -125,14 +102,12 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                     error={errors.category?.message}
                     {...register("category")}
                 />
-
                 <ProductImageUpload
                     currentImageUrl={removeImage ? undefined : product?.imageUrl}
                     onChange={(file) => setValue("image", file)}
                     onRemoveExisting={() => setRemoveImage(true)}
                     error={errors.image?.message}
                 />
-
                 <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
                     <Button type="button" variant="secondary" onClick={onClose}>
                         Cancelar

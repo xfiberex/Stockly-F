@@ -1,7 +1,6 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/shared/lib/cn";
 import { forwardRef, type SelectHTMLAttributes } from "react";
 
-// Componente de selección reutilizable con soporte para etiquetas, errores, opciones y estilos personalizados.
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
     label?: string;
     error?: string;
@@ -9,7 +8,6 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
     options: { value: string; label: string }[];
 }
 
-// Componente de selección que acepta una etiqueta, mensaje de error, opciones y otras propiedades HTML estándar.
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     ({ label, error, placeholder, options, className, id, ...props }, ref) => {
         return (
@@ -26,13 +24,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                         "rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition bg-white",
                         "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
                         error && "border-red-500 focus:border-red-500 focus:ring-red-500/20",
-                        className
+                        className,
                     )}
                     {...props}
                 >
-                    {placeholder && (
-                        <option value="">{placeholder}</option>
-                    )}
+                    {placeholder && <option value="">{placeholder}</option>}
                     {options.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                             {opt.label}
@@ -42,7 +38,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 {error && <p className="text-xs text-red-500">{error}</p>}
             </div>
         );
-    }
+    },
 );
 
 Select.displayName = "Select";

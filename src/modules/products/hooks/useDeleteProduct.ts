@@ -1,16 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { deleteProduct } from "../api/product.api";
-import { PRODUCTS_KEY } from "./useProducts";
+import { queryKeys } from "@/shared/constants/queryKeys";
 
-// Hook para eliminar un producto existente
 export const useDeleteProduct = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: deleteProduct,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.product });
             toast.success("Producto eliminado");
         },
         onError: (error: Error) => {
