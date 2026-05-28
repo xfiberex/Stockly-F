@@ -4,7 +4,6 @@ import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useEffect, useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
-// Componente de filtros para productos
 interface ProductFiltersProps {
     onFilterChange: (filters: {
         search?: string;
@@ -13,13 +12,11 @@ interface ProductFiltersProps {
     }) => void;
 }
 
-// Opciones de categorías para el select, incluyendo una opción para "todas"
 const categoryOptions = [
     { value: "", label: "Todas las categorías" },
     ...VALID_CATEGORIES.map((c) => ({ value: c, label: c })),
 ];
 
-// Componente de filtros para productos
 export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("");

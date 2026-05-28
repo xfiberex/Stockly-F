@@ -1,16 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { restoreProduct } from "../api/product.api";
-import { PRODUCTS_KEY } from "./useProducts";
+import { queryKeys } from "@/shared/constants/queryKeys";
 
-// Hook para restaurar un producto eliminado
 export const useRestoreProduct = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: restoreProduct,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.product });
             toast.success("Producto restaurado correctamente");
         },
         onError: (error: Error) => {

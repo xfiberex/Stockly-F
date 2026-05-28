@@ -6,7 +6,6 @@ import { useRestoreProduct } from "@/modules/products/hooks/useRestoreProduct";
 import type { Product } from "@/modules/products/types/product.types";
 import { PencilIcon, TrashIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 
-// Mapeo de categorías a variantes de badge para estilos consistentes
 const CATEGORY_VARIANTS: Record<string, "blue" | "purple" | "teal" | "orange" | "default" | "success"> = {
     Electrónica: "blue",
     Periféricos: "purple",
@@ -16,19 +15,16 @@ const CATEGORY_VARIANTS: Record<string, "blue" | "purple" | "teal" | "orange" | 
     Otros: "default",
 };
 
-// Interface para la tabla de productos
 interface ProductTableProps {
     products: Product[];
     isLoading: boolean;
     onEdit: (product: Product) => void;
 }
 
-// Componente de tabla para mostrar productos con acciones de edición, eliminación y restauración
 export function ProductTable({ products, isLoading, onEdit }: ProductTableProps) {
     const deleteMutation = useDeleteProduct();
     const restoreMutation = useRestoreProduct();
 
-    // Muestra un spinner mientras se cargan los productos
     if (isLoading) {
         return (
             <div className="flex justify-center py-16">
@@ -37,16 +33,12 @@ export function ProductTable({ products, isLoading, onEdit }: ProductTableProps)
         );
     }
 
-    // Muestra un mensaje si no se encontraron productos
     if (products.length === 0) {
         return (
-            <div className="py-16 text-center text-sm text-gray-400">
-                No se encontraron productos
-            </div>
+            <div className="py-16 text-center text-sm text-gray-400">No se encontraron productos</div>
         );
     }
 
-    // Renderiza la tabla de productos con sus detalles y acciones
     return (
         <div className="overflow-x-auto rounded-xl border border-gray-200">
             <table className="w-full text-sm">
@@ -107,11 +99,7 @@ export function ProductTable({ products, isLoading, onEdit }: ProductTableProps)
                                 <div className="flex justify-end gap-1">
                                     {product.isActive ? (
                                         <>
-                                            <Button
-                                                variant="ghost"
-                                                onClick={() => onEdit(product)}
-                                                title="Editar"
-                                            >
+                                            <Button variant="ghost" onClick={() => onEdit(product)} title="Editar">
                                                 <PencilIcon className="h-4 w-4" />
                                             </Button>
                                             <Button
