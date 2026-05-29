@@ -1,6 +1,14 @@
 import api from "@/shared/api/axios";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
-import type { Product, CreateProductDto, UpdateProductDto, ProductQuery } from "../types/product.types";
+import type {
+    Product,
+    CreateProductDto,
+    UpdateProductDto,
+    ProductQuery,
+    ImportProductDto,
+    ExportedProduct,
+    ImportResult,
+} from "../types/product.types";
 
 const toFormData = (dto: CreateProductDto | UpdateProductDto): FormData => {
     const form = new FormData();
@@ -44,4 +52,14 @@ export const deleteProduct = async (id: string) => {
 export const restoreProduct = async (id: string) => {
     const { data } = await api.patch<ApiResponse<Product>>(`/products/${id}/restore`);
     return data;
+};
+
+export const exportProducts = async (): Promise<ExportedProduct[]> => {
+    const { data } = await api.get<ApiResponse<ExportedProduct[]>>("/products/export");
+    return data.data!;
+};
+
+export const importProducts = async (products: ImportProductDto[]): Promise<ImportResult> => {
+    const { data } = await api.post<ApiResponse<ImportResult>>("/products/import", { products });
+    return data.data!;
 };

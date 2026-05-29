@@ -45,23 +45,27 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
                 />
             </div>
 
-            <Select
-                options={categoryOptions}
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="min-w-44"
-            />
+            <div className="flex-1 min-w-40">
+                <Select
+                    options={categoryOptions}
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full"
+                />
+            </div>
 
-            <Select
-                options={[
-                    { value: "true", label: "Solo activos" },
-                    { value: "false", label: "Solo inactivos" },
-                    { value: "", label: "Todos" },
-                ]}
-                value={activeFilter}
-                onChange={(e) => setActiveFilter(e.target.value as "true" | "false" | "")}
-                className="min-w-40"
-            />
+            <div className="flex-1 min-w-36">
+                <Select
+                    options={[
+                        { value: "true", label: "Solo activos" },
+                        { value: "false", label: "Solo inactivos" },
+                        { value: "", label: "Todos" },
+                    ]}
+                    value={activeFilter}
+                    onChange={(e) => setActiveFilter(e.target.value as "true" | "false" | "")}
+                    className="w-full"
+                />
+            </div>
         </div>
     );
 }

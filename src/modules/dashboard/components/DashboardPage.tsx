@@ -43,15 +43,15 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500 mt-1">Resumen general del inventario</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map(({ label, value, bg, text, Icon }) => (
-                    <div key={label} className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
-                        <div className={`rounded-lg p-2.5 ${bg}`}>
-                            <Icon className={`h-6 w-6 ${text}`} />
+                    <div key={label} className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5 flex items-center gap-3 sm:gap-4">
+                        <div className={`rounded-lg p-2 sm:p-2.5 shrink-0 ${bg}`}>
+                            <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${text}`} />
                         </div>
-                        <div>
-                            <p className="text-2xl font-bold text-gray-900">{value}</p>
-                            <p className="text-sm text-gray-500">{label}</p>
+                        <div className="min-w-0">
+                            <p className="text-xl sm:text-2xl font-bold text-gray-900">{value}</p>
+                            <p className="text-xs sm:text-sm text-gray-500 leading-tight">{label}</p>
                         </div>
                     </div>
                 ))}

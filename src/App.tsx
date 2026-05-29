@@ -1,4 +1,4 @@
-import { Outlet, NavLink } from "react-router-dom";
+import { Outlet, NavLink, Link } from "react-router-dom";
 import { CubeIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
@@ -41,7 +41,12 @@ function App() {
                     </div>
                     <div className="flex items-center gap-3">
                         {user && (
-                            <span className="text-sm text-gray-600 hidden sm:block">{user.name}</span>
+                            <Link
+                                to="/profile"
+                                className="text-sm text-gray-600 hover:text-blue-600 hidden sm:block transition-colors"
+                            >
+                                {user.name}
+                            </Link>
                         )}
                         <Button
                             variant="ghost"
