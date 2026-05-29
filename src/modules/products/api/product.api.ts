@@ -8,6 +8,7 @@ import type {
     ImportProductDto,
     ExportedProduct,
     ImportResult,
+    MovementsResponse,
 } from "../types/product.types";
 
 const toFormData = (dto: CreateProductDto | UpdateProductDto): FormData => {
@@ -61,5 +62,10 @@ export const exportProducts = async (): Promise<ExportedProduct[]> => {
 
 export const importProducts = async (products: ImportProductDto[]): Promise<ImportResult> => {
     const { data } = await api.post<ApiResponse<ImportResult>>("/products/import", { products });
+    return data.data!;
+};
+
+export const getProductMovements = async (productId: string): Promise<MovementsResponse> => {
+    const { data } = await api.get<ApiResponse<MovementsResponse>>(`/products/${productId}/movements`);
     return data.data!;
 };

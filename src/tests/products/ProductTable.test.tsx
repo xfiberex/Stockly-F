@@ -10,9 +10,15 @@ vi.mock("@/modules/products/hooks/useDeleteProduct", () => ({
 vi.mock("@/modules/products/hooks/useRestoreProduct", () => ({
     useRestoreProduct: vi.fn(),
 }));
+vi.mock("@/modules/auth/hooks/useMe", () => ({
+    useAuth: vi.fn(),
+}));
 
 import { useDeleteProduct } from "@/modules/products/hooks/useDeleteProduct";
 import { useRestoreProduct } from "@/modules/products/hooks/useRestoreProduct";
+import { useAuth } from "@/modules/auth/hooks/useMe";
+
+const mockAdmin = { id: "u1", name: "Admin", email: "admin@test.com", role: "ADMIN", isVerified: true, createdAt: "" };
 
 const mockDeleteMutate = vi.fn();
 const mockRestoreMutate = vi.fn();
@@ -26,6 +32,11 @@ beforeEach(() => {
         mutate: mockRestoreMutate,
         isPending: false,
     } as unknown as ReturnType<typeof useRestoreProduct>);
+    vi.mocked(useAuth).mockReturnValue({
+        user: mockAdmin,
+        isLoading: false,
+        isError: false,
+    } as unknown as ReturnType<typeof useAuth>);
 });
 
 const makeProduct = (overrides: Partial<Product> = {}): Product => ({

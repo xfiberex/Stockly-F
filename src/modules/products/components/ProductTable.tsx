@@ -1,10 +1,12 @@
+import { Link } from "react-router-dom";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Spinner } from "@/shared/components/Spinner";
 import { useDeleteProduct } from "@/modules/products/hooks/useDeleteProduct";
 import { useRestoreProduct } from "@/modules/products/hooks/useRestoreProduct";
+import { useAuth } from "@/modules/auth/hooks/useMe";
 import type { Product } from "@/modules/products/types/product.types";
-import { PencilIcon, TrashIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { PencilIcon, TrashIcon, ArrowPathIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 
 const CATEGORY_VARIANTS: Record<string, "blue" | "purple" | "teal" | "orange" | "default" | "success"> = {
     Electrónica: "blue",
@@ -24,6 +26,8 @@ interface ProductTableProps {
 export function ProductTable({ products, isLoading, onEdit }: ProductTableProps) {
     const deleteMutation = useDeleteProduct();
     const restoreMutation = useRestoreProduct();
+    const { user } = useAuth();
+    const isAdmin = user?.role === "ADMIN";
 
     if (isLoading) {
         return (
@@ -70,7 +74,12 @@ export function ProductTable({ products, isLoading, onEdit }: ProductTableProps)
                                 )}
                             </td>
                             <td className="px-4 py-3">
-                                <div className="font-medium text-gray-900">{product.name}</div>
+                                <Link
+                                    to={`/products/${product.id}/movements`}
+                                    className="font-medium text-gray-900 hover:text-blue-600 transition-colors"
+                                >
+                                    {product.name}
+                                </Link>
                                 {product.description && (
                                     <div className="text-xs text-gray-400 truncate max-w-48">
                                         {product.description}
@@ -97,7 +106,12 @@ export function ProductTable({ products, isLoading, onEdit }: ProductTableProps)
                             </td>
                             <td className="px-4 py-3">
                                 <div className="flex justify-end gap-1">
-                                    {product.isActive ? (
+                                    <Link to={`/products/${product.id}/movements`}>
+                                        <Button variant="ghost" title="Historial de movimientos" type="button">
+                                            <ChartBarIcon className="h-4 w-4 text-blue-500" />
+                                        </Button>
+                                    </Link>
+                                    {isAdmin && product.isActive && (
                                         <>
                                             <Button variant="ghost" onClick={() => onEdit(product)} title="Editar">
                                                 <PencilIcon className="h-4 w-4" />
@@ -111,7 +125,8 @@ export function ProductTable({ products, isLoading, onEdit }: ProductTableProps)
                                                 <TrashIcon className="h-4 w-4 text-red-500" />
                                             </Button>
                                         </>
-                                    ) : (
+                                    )}
+                                    {isAdmin && !product.isActive && (
                                         <Button
                                             variant="ghost"
                                             isLoading={restoreMutation.isPending}
