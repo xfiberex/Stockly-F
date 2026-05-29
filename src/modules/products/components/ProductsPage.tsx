@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/Button";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { useProducts } from "@/modules/products/hooks/useProducts";
 import { useImportProducts } from "@/modules/products/hooks/useImportProducts";
+import { useAuth } from "@/modules/auth/hooks/useMe";
 import { exportProducts } from "@/modules/products/api/product.api";
 import { toCsv, downloadBlob, parseCsv } from "@/modules/products/utils/importExport";
 import type { Product, ImportProductDto } from "@/modules/products/types/product.types";
@@ -33,6 +34,8 @@ export default function ProductsPage() {
 
     const { data, isLoading } = useProducts({ ...filters, page, limit: 10 });
     const importMutation = useImportProducts();
+    const { user } = useAuth();
+    const isAdmin = user?.role === "ADMIN";
 
     const handleFilterChange = useCallback((newFilters: Filters) => {
         setFilters(newFilters);
@@ -127,19 +130,23 @@ export default function ProductsPage() {
                             { label: "Exportar CSV", onClick: () => handleExport("csv") },
                         ]}
                     />
-                    <DropdownButton
-                        label="Importar"
-                        icon={ArrowUpTrayIcon}
-                        disabled={importMutation.isPending}
-                        items={[
-                            { label: "Importar JSON", onClick: () => handleImportClick("json") },
-                            { label: "Importar CSV", onClick: () => handleImportClick("csv") },
-                        ]}
-                    />
-                    <Button onClick={() => setIsFormOpen(true)}>
-                        <PlusIcon className="h-4 w-4" />
-                        Nuevo producto
-                    </Button>
+                    {isAdmin && (
+                        <>
+                            <DropdownButton
+                                label="Importar"
+                                icon={ArrowUpTrayIcon}
+                                disabled={importMutation.isPending}
+                                items={[
+                                    { label: "Importar JSON", onClick: () => handleImportClick("json") },
+                                    { label: "Importar CSV", onClick: () => handleImportClick("csv") },
+                                ]}
+                            />
+                            <Button onClick={() => setIsFormOpen(true)}>
+                                <PlusIcon className="h-4 w-4" />
+                                Nuevo producto
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
 

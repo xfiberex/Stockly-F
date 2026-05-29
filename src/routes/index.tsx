@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "@/App";
 import DashboardPage from "@/modules/dashboard/components/DashboardPage";
 import ProductsPage from "@/modules/products/components/ProductsPage";
+import StockMovementsPage from "@/modules/products/components/StockMovementsPage";
 import ProfilePage from "@/modules/auth/components/ProfilePage";
 import NotFoundPage from "@/shared/components/NotFoundPage";
 import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
         children: [
             { index: true, element: <DashboardPage /> },
             { path: "products", element: <ProductsPage /> },
+            { path: "products/:id/movements", element: <StockMovementsPage /> },
             { path: "profile", element: <ProfilePage /> },
             { path: "*", element: <NotFoundPage /> },
         ],

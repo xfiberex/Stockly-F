@@ -46,6 +46,7 @@ export const userSchema = z.object({
     id: z.string(),
     email: z.string().email(),
     name: z.string(),
+    role: z.string(),
     isVerified: z.boolean(),
     createdAt: z.string(),
 });
