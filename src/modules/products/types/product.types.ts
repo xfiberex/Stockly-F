@@ -38,3 +38,26 @@ export interface ProductQuery {
     category?: string;
     isActive?: boolean;
 }
+
+export interface ImportProductDto {
+    name: string;
+    description?: string;
+    price: number | string;
+    stock?: number | string;
+    category: string;
+    isActive?: boolean | string;
+}
+
+export interface ExportedProduct {
+    name: string;
+    description: string | null;
+    price: number;
+    stock: number;
+    category: string;
+    isActive: boolean;
+}
+
+export interface ImportResult {
+    created: number;
+    errors: Array<{ row: number; error: string }>;
+}

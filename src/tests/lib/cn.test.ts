@@ -6,7 +6,7 @@ describe("cn — utilidad de clases CSS", () => {
     });
 
     it("ignora valores falsy (false, undefined, null)", () => {
-        expect(cn("base", false && "no-aparece", undefined, null as unknown as string)).toBe("base");
+        expect(cn("base", false, undefined, null)).toBe("base");
     });
 
     it("resuelve conflictos de Tailwind conservando la última clase", () => {
