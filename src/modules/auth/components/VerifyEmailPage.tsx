@@ -38,7 +38,13 @@ export default function VerifyEmailPage() {
             {status === "error" && (
                 <>
                     <p className="text-red-600 font-medium">{message || "El enlace es inválido o expiró."}</p>
-                    <Link to="/auth/login" className="text-blue-600 hover:underline text-sm">
+                    <Link
+                        to="/auth/resend-verification"
+                        className="text-blue-600 hover:underline text-sm"
+                    >
+                        Solicitar nuevo enlace de verificación
+                    </Link>
+                    <Link to="/auth/login" className="text-gray-500 hover:underline text-sm">
                         Volver al inicio de sesión
                     </Link>
                 </>
