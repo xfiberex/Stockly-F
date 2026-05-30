@@ -11,6 +11,7 @@ import RegisterPage from "@/modules/auth/components/RegisterPage";
 import ForgotPasswordPage from "@/modules/auth/components/ForgotPasswordPage";
 import ResetPasswordPage from "@/modules/auth/components/ResetPasswordPage";
 import VerifyEmailPage from "@/modules/auth/components/VerifyEmailPage";
+import ResendVerificationPage from "@/modules/auth/components/ResendVerificationPage";
 
 export const router = createBrowserRouter([
     {
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
             { path: "forgot-password", element: <ForgotPasswordPage /> },
             { path: "reset-password", element: <ResetPasswordPage /> },
             { path: "confirm-account", element: <VerifyEmailPage /> },
+            { path: "resend-verification", element: <ResendVerificationPage /> },
             { index: true, element: <Navigate to="/auth/login" replace /> },
         ],
     },

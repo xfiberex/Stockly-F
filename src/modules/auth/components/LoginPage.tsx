@@ -57,6 +57,13 @@ export default function LoginPage() {
                         Regístrate
                     </Link>
                 </p>
+
+                <p className="text-center text-xs text-gray-400">
+                    ¿No recibiste el correo de verificación?{" "}
+                    <Link to="/auth/resend-verification" className="text-blue-500 hover:underline">
+                        Reenvíalo
+                    </Link>
+                </p>
             </div>
         </div>
     );
