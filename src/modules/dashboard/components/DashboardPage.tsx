@@ -37,11 +37,19 @@ export default function DashboardPage() {
         };
     });
 
-    const stats = [
-        { label: "Total productos", value: total, bg: "bg-blue-50", text: "text-blue-600", Icon: CubeIcon },
-        { label: "Productos activos", value: activeCount, bg: "bg-green-50", text: "text-green-600", Icon: CheckCircleIcon },
-        { label: "Stock bajo", value: lowStockCount, bg: "bg-orange-50", text: "text-orange-600", Icon: ExclamationTriangleIcon },
-        { label: "Categorías", value: categories.length, bg: "bg-purple-50", text: "text-purple-600", Icon: TagIcon },
+    const stats: {
+        label: string;
+        value: number;
+        bg: string;
+        text: string;
+        Icon: React.ElementType;
+        to: string;
+        highlight?: boolean;
+    }[] = [
+        { label: "Total productos", value: total, bg: "bg-blue-50", text: "text-blue-600", Icon: CubeIcon, to: "/catalog/products" },
+        { label: "Productos activos", value: activeCount, bg: "bg-green-50", text: "text-green-600", Icon: CheckCircleIcon, to: "/catalog/products" },
+        { label: "Stock bajo", value: lowStockCount, bg: "bg-orange-50", text: "text-orange-600", Icon: ExclamationTriangleIcon, to: "/reports", highlight: lowStockCount > 0 },
+        { label: "Categorías", value: categories.length, bg: "bg-purple-50", text: "text-purple-600", Icon: TagIcon, to: "/catalog/categories" },
     ];
 
     return (
@@ -53,16 +61,24 @@ export default function DashboardPage() {
 
             {/* Stats cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {stats.map(({ label, value, bg, text, Icon }) => (
-                    <div key={label} className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5 flex items-center gap-3 sm:gap-4">
+                {stats.map(({ label, value, bg, text, Icon, to, highlight }) => (
+                    <Link
+                        key={label}
+                        to={to}
+                        className={`bg-white rounded-xl border p-3 sm:p-5 flex items-center gap-3 sm:gap-4 hover:shadow-sm transition-shadow ${
+                            highlight
+                                ? "border-orange-200 bg-orange-50/30"
+                                : "border-gray-200"
+                        }`}
+                    >
                         <div className={`rounded-lg p-2 sm:p-2.5 shrink-0 ${bg}`}>
                             <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${text}`} />
                         </div>
                         <div className="min-w-0">
-                            <p className="text-xl sm:text-2xl font-bold text-gray-900">{value}</p>
+                            <p className={`text-xl sm:text-2xl font-bold ${highlight ? "text-orange-700" : "text-gray-900"}`}>{value}</p>
                             <p className="text-xs sm:text-sm text-gray-500 leading-tight">{label}</p>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
 
@@ -128,13 +144,13 @@ export default function DashboardPage() {
                                     >
                                         {p.name}
                                     </Link>
-                                    <span className="text-orange-600 font-semibold">
-                                        {p.stock} / mín {p.minStock}
+                                    <span className="text-orange-600 font-semibold tabular-nums">
+                                        {p.stock} uds. — mín. {p.minStock}
                                     </span>
                                 </div>
                             ))}
                         {lowStockCount > 5 && (
-                            <Link to="/catalog/products" className="text-xs text-orange-600 hover:underline">
+                            <Link to="/reports" className="text-xs text-orange-600 hover:underline">
                                 Ver {lowStockCount - 5} más →
                             </Link>
                         )}

@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
+import { CubeIcon } from "@heroicons/react/24/outline";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
 import { loginFormSchema, type LoginForm } from "@/modules/auth/schemas/auth.schema";
@@ -16,6 +17,12 @@ export default function LoginPage() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
             <div className="w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-sm p-8 space-y-6">
                 <div className="text-center">
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                        <div className="rounded-xl bg-blue-600 p-2">
+                            <CubeIcon className="h-6 w-6 text-white" />
+                        </div>
+                        <span className="text-2xl font-bold text-gray-900">Stockly</span>
+                    </div>
                     <h1 className="text-xl font-bold text-gray-900">Iniciar sesión</h1>
                     <p className="text-sm text-gray-500 mt-1">Accede a tu cuenta Stockly</p>
                 </div>
