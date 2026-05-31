@@ -8,7 +8,7 @@ import { useDeleteProduct } from "@/modules/products/hooks/useDeleteProduct";
 import { useRestoreProduct } from "@/modules/products/hooks/useRestoreProduct";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import type { Product } from "@/modules/products/types/product.types";
-import { PencilIcon, TrashIcon, ArrowPathIcon, ChartBarIcon, ExclamationTriangleIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { PencilIcon, TrashIcon, ArrowPathIcon, ChartBarIcon, ExclamationTriangleIcon, EyeIcon, CubeIcon } from "@heroicons/react/24/outline";
 
 interface ProductTableProps {
     products: Product[];
@@ -53,7 +53,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                         <th className="px-4 py-3">Categoría</th>
                         <th className="px-4 py-3">Marca</th>
                         <th className="px-4 py-3">Precio</th>
-                        <th className="px-4 py-3">Stock</th>
+                        <th className="px-4 py-3">Stock / Mín</th>
                         <th className="px-4 py-3">Estado</th>
                         <th className="px-4 py-3 text-right">Acciones</th>
                     </tr>
@@ -84,8 +84,8 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                             className="h-10 w-10 rounded-lg object-cover"
                                         />
                                     ) : (
-                                        <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 text-xs">
-                                            N/A
+                                        <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300">
+                                            <CubeIcon className="h-5 w-5" />
                                         </div>
                                     )}
                                 </td>
@@ -119,8 +119,8 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                         <span className="text-xs text-gray-400">—</span>
                                     )}
                                 </td>
-                                <td className="px-4 py-3 text-gray-700">
-                                    ${Number(product.price).toFixed(2)}
+                                <td className="px-4 py-3 text-gray-700 tabular-nums">
+                                    ${Number(product.price).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-1.5">

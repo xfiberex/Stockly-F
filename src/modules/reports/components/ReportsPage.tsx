@@ -31,12 +31,17 @@ export default function ReportsPage() {
     const { totals, stockByCategory, topByValue, movementsByMonth, lowStockProducts } = data;
 
     // Consolidar movimientos por mes para el chart
+    const fmtMonth = (m: string) => {
+        const [y, mo] = m.split("-");
+        return new Date(+y, +mo - 1, 1).toLocaleDateString("es-MX", { month: "short", year: "2-digit" });
+    };
+
     const months = [...new Set(movementsByMonth.map((m) => m.month))].sort();
     const movementsChartData = months.map((month) => {
         const ins = movementsByMonth.find((m) => m.month === month && m.type === "IN")?.total ?? 0;
         const outs = movementsByMonth.find((m) => m.month === month && m.type === "OUT")?.total ?? 0;
         const adj = movementsByMonth.find((m) => m.month === month && m.type === "ADJUSTMENT")?.total ?? 0;
-        return { month: month.slice(5), entradas: ins, salidas: outs, ajustes: adj };
+        return { month: fmtMonth(month), entradas: ins, salidas: outs, ajustes: adj };
     });
 
     return (

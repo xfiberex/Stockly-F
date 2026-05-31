@@ -110,7 +110,7 @@ export default function ProfilePage() {
                         {...passwordForm.register("passwordConfirmation")}
                     />
                     <div className="flex justify-end">
-                        <Button type="submit" variant="danger" isLoading={updatePassword.isPending}>
+                        <Button type="submit" isLoading={updatePassword.isPending}>
                             Cambiar contraseña
                         </Button>
                     </div>
