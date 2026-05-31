@@ -17,8 +17,10 @@ export interface Product {
     id: string;
     name: string;
     description?: string;
+    sku?: string | null;
     price: number;
     stock: number;
+    minStock: number;
     category: CategoryRef | null;
     brand: BrandRef | null;
     supplier: SupplierRef | null;
@@ -32,8 +34,10 @@ export interface Product {
 export interface CreateProductDto {
     name: string;
     description?: string;
+    sku?: string;
     price: number;
     stock?: number;
+    minStock?: number;
     categoryId?: string;
     brandId?: string;
     supplierId?: string;
@@ -43,8 +47,10 @@ export interface CreateProductDto {
 export interface UpdateProductDto {
     name?: string;
     description?: string;
+    sku?: string;
     price?: number;
     stock?: number;
+    minStock?: number;
     categoryId?: string;
     brandId?: string;
     supplierId?: string;
@@ -103,4 +109,34 @@ export interface StockMovement {
 export interface MovementsResponse {
     product: Product;
     movements: StockMovement[];
+}
+
+export interface PriceHistoryEntry {
+    id: string;
+    productId: string;
+    oldPrice: number;
+    newPrice: number;
+    createdAt: string;
+}
+
+export interface PriceHistoryResponse {
+    product: Product;
+    history: PriceHistoryEntry[];
+}
+
+export interface CreateManualMovementDto {
+    type: "IN" | "OUT" | "ADJUSTMENT";
+    quantity: number;
+    reason: string;
+    note?: string;
+}
+
+export interface BulkStockItem {
+    productId: string;
+    stock: number;
+}
+
+export interface BulkStockDto {
+    items: BulkStockItem[];
+    reason?: string;
 }

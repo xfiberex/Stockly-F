@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
+import { SparklesIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
@@ -45,17 +46,48 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
         ...suppliers.map((s) => ({ value: s.id, label: s.name })),
     ];
 
-    const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateProductFormData>({
+    const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<CreateProductFormData>({
         resolver: zodResolver(isEditing ? updateProductSchema : createProductSchema) as Resolver<CreateProductFormData>,
     });
+
+    const watchedName       = useWatch({ control, name: "name",       defaultValue: "" });
+    const watchedCategoryId = useWatch({ control, name: "categoryId", defaultValue: "" });
+    const watchedBrandId    = useWatch({ control, name: "brandId",    defaultValue: "" });
+
+    const handleGenerateSku = () => {
+        const removeDiacritics = (s: string) =>
+            s.normalize("NFD").replace(/\p{Mn}/gu, "").toUpperCase();
+
+        const category = categories.find((c) => c.id === watchedCategoryId);
+        const brand    = brands.find((b) => b.id === watchedBrandId);
+        const name     = watchedName ?? "";
+
+        const catPrefix   = category ? removeDiacritics(category.name).replace(/[^A-Z]/g, "").slice(0, 3) : "GEN";
+        const brandPrefix = brand    ? removeDiacritics(brand.name).replace(/[^A-Z]/g, "").slice(0, 3)    : "GEN";
+
+        const STOP = new Set(["DE", "LA", "EL", "LOS", "LAS", "CON", "PARA", "Y", "E", "O", "A", "EN", "UN", "UNA", "THE", "WITH", "AND", "FOR", "GB", "TB", "MB"]);
+
+        let cleanName = removeDiacritics(name);
+        if (brand) cleanName = cleanName.replace(new RegExp(removeDiacritics(brand.name).replace(/[^A-Z]/g, ".?"), "g"), " ");
+
+        const numbers  = name.match(/\d+/g) ?? [];
+        const words    = cleanName.split(/[^A-Z]+/).filter((w) => w.length > 1 && !STOP.has(w));
+        const wordPart = (words[0] ?? "").slice(0, 4);
+        const numPart  = (numbers[0] ?? "").slice(0, 4);
+        const code     = (wordPart + numPart).slice(0, 8) || "001";
+
+        setValue("sku", `${catPrefix}-${brandPrefix}-${code}`, { shouldValidate: true });
+    };
 
     useEffect(() => {
         if (product) {
             reset({
                 name: product.name,
                 description: product.description ?? "",
+                sku: product.sku ?? "",
                 price: product.price,
                 stock: product.stock,
+                minStock: product.minStock ?? 0,
                 categoryId: product.category?.id ?? "",
                 brandId: product.brand?.id ?? "",
                 supplierId: product.supplier?.id ?? "",
@@ -66,9 +98,9 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
     }, [product, reset]);
 
     const onSubmit = (formData: CreateProductFormData) => {
-        // Normalizar strings vacíos a undefined para que el backend los ignore
         const normalized = {
             ...formData,
+            sku: formData.sku || undefined,
             categoryId: formData.categoryId || undefined,
             brandId: formData.brandId || undefined,
             supplierId: formData.supplierId || undefined,
@@ -103,6 +135,27 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                     error={errors.description?.message}
                     {...register("description")}
                 />
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="sku" className="text-sm font-medium text-gray-700">
+                            SKU / Código interno
+                        </label>
+                        <button
+                            type="button"
+                            onClick={handleGenerateSku}
+                            className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                        >
+                            <SparklesIcon className="h-3.5 w-3.5" />
+                            Generar
+                        </button>
+                    </div>
+                    <Input
+                        id="sku"
+                        placeholder="Ej: ELE-SAM-A54"
+                        error={errors.sku?.message}
+                        {...register("sku")}
+                    />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                     <Input
                         id="price"
@@ -115,13 +168,21 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                     />
                     <Input
                         id="stock"
-                        label="Stock"
+                        label="Stock inicial"
                         type="number"
                         placeholder="0"
                         error={errors.stock?.message}
                         {...register("stock")}
                     />
                 </div>
+                <Input
+                    id="minStock"
+                    label="Stock mínimo (alerta)"
+                    type="number"
+                    placeholder="0"
+                    error={errors.minStock?.message}
+                    {...register("minStock")}
+                />
                 <div className="grid grid-cols-2 gap-3">
                     <Select
                         id="categoryId"
