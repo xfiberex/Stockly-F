@@ -2,16 +2,16 @@ import { toCsv, parseCsv, downloadBlob } from "@/modules/products/utils/importEx
 import type { ExportedProduct } from "@/modules/products/types/product.types";
 
 const PRODUCTS: ExportedProduct[] = [
-    { name: "Laptop Pro 15", description: "High performance", price: 1299.99, stock: 15, category: "Electrónica", isActive: true },
-    { name: "Mouse Gamer", description: null, price: 45.00, stock: 50, category: "Periféricos", isActive: false },
-    { name: 'Monitor 27"', description: 'Pantalla, HD', price: 299.99, stock: 8, category: "Electrónica", isActive: true },
+    { name: "Laptop Pro 15", description: "High performance", price: 1299.99, stock: 15, categoryName: "Electrónica", brandName: "LG", supplierName: null, isActive: true },
+    { name: "Mouse Gamer", description: null, price: 45.00, stock: 50, categoryName: "Periféricos", brandName: null, supplierName: null, isActive: false },
+    { name: 'Monitor 27"', description: 'Pantalla, HD', price: 299.99, stock: 8, categoryName: "Electrónica", brandName: null, supplierName: "TechDist", isActive: true },
 ];
 
 describe("toCsv", () => {
     it("genera encabezados correctos", () => {
         const csv = toCsv(PRODUCTS);
         const firstLine = csv.split("\n")[0];
-        expect(firstLine).toBe("name,description,price,stock,category,isActive");
+        expect(firstLine).toBe("name,description,price,stock,categoryName,brandName,supplierName,isActive");
     });
 
     it("genera una fila por producto", () => {
@@ -39,45 +39,45 @@ describe("toCsv", () => {
 
 describe("parseCsv", () => {
     it("parsea un CSV simple correctamente", () => {
-        const csv = "name,price,stock,category\nLaptop,999.99,10,Electrónica";
+        const csv = "name,price,stock,categoryName\nLaptop,999.99,10,Electrónica";
         const result = parseCsv(csv);
         expect(result).toHaveLength(1);
-        expect(result[0]).toMatchObject({ name: "Laptop", price: 999.99, stock: 10, category: "Electrónica" });
+        expect(result[0]).toMatchObject({ name: "Laptop", price: 999.99, stock: 10, categoryName: "Electrónica" });
     });
 
     it("maneja campos con comillas y comas", () => {
-        const csv = 'name,description,price,stock,category\n"Monitor, HD","Pantalla, Full HD",299.99,8,Electrónica';
+        const csv = 'name,description,price,stock,categoryName\n"Monitor, HD","Pantalla, Full HD",299.99,8,Electrónica';
         const result = parseCsv(csv);
         expect(result[0].name).toBe("Monitor, HD");
         expect(result[0].description).toBe("Pantalla, Full HD");
     });
 
     it("convierte description vacía a undefined", () => {
-        const csv = "name,description,price,stock,category\nMouse,,45,50,Periféricos";
+        const csv = "name,description,price,stock,categoryName\nMouse,,45,50,Periféricos";
         const result = parseCsv(csv);
         expect(result[0].description).toBeUndefined();
     });
 
     it("parsea isActive como booleano", () => {
-        const csv = "name,price,stock,category,isActive\nProducto,10,5,Audio,false";
+        const csv = "name,price,stock,isActive\nProducto,10,5,false";
         const result = parseCsv(csv);
         expect(result[0].isActive).toBe(false);
     });
 
     it("trata isActive=true correctamente", () => {
-        const csv = "name,price,stock,category,isActive\nProducto,10,5,Audio,true";
+        const csv = "name,price,stock,isActive\nProducto,10,5,true";
         const result = parseCsv(csv);
         expect(result[0].isActive).toBe(true);
     });
 
     it("omite isActive cuando la columna no existe", () => {
-        const csv = "name,price,stock,category\nProducto,10,5,Audio";
+        const csv = "name,price,stock\nProducto,10,5";
         const result = parseCsv(csv);
         expect(result[0].isActive).toBeUndefined();
     });
 
     it("lanza error si solo hay encabezado sin datos", () => {
-        const csv = "name,price,category";
+        const csv = "name,price,categoryName";
         expect(() => parseCsv(csv)).toThrow();
     });
 
@@ -87,7 +87,7 @@ describe("parseCsv", () => {
         expect(parsed).toHaveLength(PRODUCTS.length);
         expect(parsed[0].name).toBe(PRODUCTS[0].name);
         expect(parsed[0].price).toBe(PRODUCTS[0].price);
-        expect(parsed[0].category).toBe(PRODUCTS[0].category);
+        expect(parsed[0].categoryName).toBe(PRODUCTS[0].categoryName);
     });
 });
 

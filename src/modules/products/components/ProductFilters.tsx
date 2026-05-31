@@ -1,5 +1,5 @@
 import { Select } from "@/shared/components/Select";
-import { VALID_CATEGORIES } from "@/modules/products/schemas/product.schema";
+import { useCategories } from "@/modules/catalog/hooks/useCategories";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useEffect, useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
@@ -7,30 +7,31 @@ import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 interface ProductFiltersProps {
     onFilterChange: (filters: {
         search?: string;
-        category?: string;
+        categoryId?: string;
         isActive?: boolean;
     }) => void;
 }
 
-const categoryOptions = [
-    { value: "", label: "Todas las categorías" },
-    ...VALID_CATEGORIES.map((c) => ({ value: c, label: c })),
-];
-
 export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     const [search, setSearch] = useState("");
-    const [category, setCategory] = useState("");
+    const [categoryId, setCategoryId] = useState("");
     const [activeFilter, setActiveFilter] = useState<"true" | "false" | "">("true");
 
     const debouncedSearch = useDebounce(search, 400);
+    const { data: categories = [] } = useCategories();
+
+    const categoryOptions = [
+        { value: "", label: "Todas las categorías" },
+        ...categories.map((c) => ({ value: c.id, label: c.name })),
+    ];
 
     useEffect(() => {
         onFilterChange({
             search: debouncedSearch || undefined,
-            category: category || undefined,
+            categoryId: categoryId || undefined,
             isActive: activeFilter === "true" ? true : activeFilter === "false" ? false : undefined,
         });
-    }, [debouncedSearch, category, activeFilter, onFilterChange]);
+    }, [debouncedSearch, categoryId, activeFilter, onFilterChange]);
 
     return (
         <div className="flex flex-wrap items-end gap-3">
@@ -48,8 +49,8 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
             <div className="flex-1 min-w-40">
                 <Select
                     options={categoryOptions}
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
                     className="w-full"
                 />
             </div>

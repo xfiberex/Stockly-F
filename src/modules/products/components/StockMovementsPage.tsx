@@ -46,7 +46,7 @@ export default function StockMovementsPage() {
         return (
             <div className="max-w-4xl mx-auto px-6 py-8">
                 <p className="text-red-600">No se pudo cargar el historial de movimientos.</p>
-                <Link to="/products" className="text-blue-600 text-sm hover:underline mt-2 inline-block">
+                <Link to="/catalog/products" className="text-blue-600 text-sm hover:underline mt-2 inline-block">
                     ← Volver a productos
                 </Link>
             </div>
@@ -66,7 +66,7 @@ export default function StockMovementsPage() {
             {/* Header */}
             <div>
                 <Link
-                    to="/products"
+                    to="/catalog/products"
                     className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 transition-colors mb-4"
                 >
                     <ArrowLeftIcon className="h-4 w-4" />

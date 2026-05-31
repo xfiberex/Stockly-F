@@ -1,10 +1,27 @@
+export interface CategoryRef {
+    id: string;
+    name: string;
+}
+
+export interface BrandRef {
+    id: string;
+    name: string;
+}
+
+export interface SupplierRef {
+    id: string;
+    name: string;
+}
+
 export interface Product {
     id: string;
     name: string;
     description?: string;
     price: number;
     stock: number;
-    category: string;
+    category: CategoryRef | null;
+    brand: BrandRef | null;
+    supplier: SupplierRef | null;
     imageUrl?: string;
     imagePublicId?: string;
     isActive: boolean;
@@ -17,7 +34,9 @@ export interface CreateProductDto {
     description?: string;
     price: number;
     stock?: number;
-    category: string;
+    categoryId?: string;
+    brandId?: string;
+    supplierId?: string;
     image?: File;
 }
 
@@ -26,7 +45,9 @@ export interface UpdateProductDto {
     description?: string;
     price?: number;
     stock?: number;
-    category?: string;
+    categoryId?: string;
+    brandId?: string;
+    supplierId?: string;
     image?: File;
     removeImage?: boolean;
 }
@@ -35,7 +56,9 @@ export interface ProductQuery {
     page?: number;
     limit?: number;
     search?: string;
-    category?: string;
+    categoryId?: string;
+    brandId?: string;
+    supplierId?: string;
     isActive?: boolean;
 }
 
@@ -44,7 +67,8 @@ export interface ImportProductDto {
     description?: string;
     price: number | string;
     stock?: number | string;
-    category: string;
+    categoryName?: string;
+    brandName?: string;
     isActive?: boolean | string;
 }
 
@@ -53,7 +77,9 @@ export interface ExportedProduct {
     description: string | null;
     price: number;
     stock: number;
-    category: string;
+    categoryName: string | null;
+    brandName: string | null;
+    supplierName: string | null;
     isActive: boolean;
 }
 

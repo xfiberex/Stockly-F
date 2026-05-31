@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
+import axios from "axios";
 import { Spinner } from "@/shared/components/Spinner";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
 
@@ -12,16 +13,29 @@ export default function VerifyEmailPage() {
     const [message, setMessage] = useState(token ? "" : "Token no proporcionado.");
 
     useEffect(() => {
-        if (!token) {
-            return;
-        }
+        if (!token) return;
+
+        // Flag para evitar el doble efecto de React StrictMode en desarrollo:
+        // si el componente se desmonta antes de que la promesa resuelva, ignoramos el resultado.
+        let mounted = true;
 
         AuthAPI.verifyEmail(token)
-            .then(() => setStatus("success"))
-            .catch((e: Error) => {
+            .then(() => {
+                if (mounted) setStatus("success");
+            })
+            .catch((e) => {
+                if (!mounted) return;
                 setStatus("error");
-                setMessage(e.message);
+                // Extraer el mensaje real de la API en vez del genérico de Axios
+                const apiMessage = axios.isAxiosError(e)
+                    ? (e.response?.data?.message as string | undefined)
+                    : undefined;
+                setMessage(apiMessage || "El enlace es inválido o expiró.");
             });
+
+        return () => {
+            mounted = false;
+        };
     }, [token]);
 
     return (
@@ -37,7 +51,7 @@ export default function VerifyEmailPage() {
             )}
             {status === "error" && (
                 <>
-                    <p className="text-red-600 font-medium">{message || "El enlace es inválido o expiró."}</p>
+                    <p className="text-red-600 font-medium">{message}</p>
                     <Link
                         to="/auth/resend-verification"
                         className="text-blue-600 hover:underline text-sm"

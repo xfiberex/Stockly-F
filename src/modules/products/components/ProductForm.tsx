@@ -6,9 +6,12 @@ import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
 import { ProductImageUpload } from "./ProductImageUpload";
-import { createProductSchema, updateProductSchema, VALID_CATEGORIES, type CreateProductFormData } from "@/modules/products/schemas/product.schema";
+import { createProductSchema, updateProductSchema, type CreateProductFormData } from "@/modules/products/schemas/product.schema";
 import { useCreateProduct } from "@/modules/products/hooks/useCreateProduct";
 import { useUpdateProduct } from "@/modules/products/hooks/useUpdateProduct";
+import { useCategories } from "@/modules/catalog/hooks/useCategories";
+import { useBrands } from "@/modules/catalog/hooks/useBrands";
+import { useSuppliers } from "@/modules/suppliers/hooks/useSuppliers";
 import type { Product } from "@/modules/products/types/product.types";
 import type { Resolver } from "react-hook-form";
 
@@ -18,14 +21,29 @@ interface ProductFormProps {
     product?: Product;
 }
 
-const categoryOptions = VALID_CATEGORIES.map((c) => ({ value: c, label: c }));
-
 export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
     const isEditing = !!product;
     const createMutation = useCreateProduct();
     const updateMutation = useUpdateProduct();
     const isPending = createMutation.isPending || updateMutation.isPending;
     const [removeImage, setRemoveImage] = useState(false);
+
+    const { data: categories = [] } = useCategories();
+    const { data: brands = [] } = useBrands();
+    const { data: suppliers = [] } = useSuppliers();
+
+    const categoryOptions = [
+        { value: "", label: "Sin categoría" },
+        ...categories.map((c) => ({ value: c.id, label: c.name })),
+    ];
+    const brandOptions = [
+        { value: "", label: "Sin marca" },
+        ...brands.map((b) => ({ value: b.id, label: b.name })),
+    ];
+    const supplierOptions = [
+        { value: "", label: "Sin proveedor" },
+        ...suppliers.map((s) => ({ value: s.id, label: s.name })),
+    ];
 
     const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateProductFormData>({
         resolver: zodResolver(isEditing ? updateProductSchema : createProductSchema) as Resolver<CreateProductFormData>,
@@ -38,7 +56,9 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                 description: product.description ?? "",
                 price: product.price,
                 stock: product.stock,
-                category: product.category as typeof VALID_CATEGORIES[number],
+                categoryId: product.category?.id ?? "",
+                brandId: product.brand?.id ?? "",
+                supplierId: product.supplier?.id ?? "",
             });
         } else {
             reset({});
@@ -46,13 +66,21 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
     }, [product, reset]);
 
     const onSubmit = (formData: CreateProductFormData) => {
+        // Normalizar strings vacíos a undefined para que el backend los ignore
+        const normalized = {
+            ...formData,
+            categoryId: formData.categoryId || undefined,
+            brandId: formData.brandId || undefined,
+            supplierId: formData.supplierId || undefined,
+        };
+
         if (isEditing) {
             updateMutation.mutate(
-                { id: product.id, dto: { ...formData, removeImage } },
+                { id: product.id, dto: { ...normalized, removeImage } },
                 { onSuccess: () => { onClose(); reset({}); setRemoveImage(false); } },
             );
         } else {
-            createMutation.mutate(formData, {
+            createMutation.mutate(normalized, {
                 onSuccess: () => { onClose(); reset({}); },
             });
         }
@@ -94,13 +122,28 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                         {...register("stock")}
                     />
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <Select
+                        id="categoryId"
+                        label="Categoría"
+                        options={categoryOptions}
+                        error={errors.categoryId?.message}
+                        {...register("categoryId")}
+                    />
+                    <Select
+                        id="brandId"
+                        label="Marca"
+                        options={brandOptions}
+                        error={errors.brandId?.message}
+                        {...register("brandId")}
+                    />
+                </div>
                 <Select
-                    id="category"
-                    label="Categoría *"
-                    options={categoryOptions}
-                    placeholder="Selecciona una categoría"
-                    error={errors.category?.message}
-                    {...register("category")}
+                    id="supplierId"
+                    label="Proveedor"
+                    options={supplierOptions}
+                    error={errors.supplierId?.message}
+                    {...register("supplierId")}
                 />
                 <ProductImageUpload
                     currentImageUrl={removeImage ? undefined : product?.imageUrl}

@@ -7,7 +7,9 @@ const EXPORT_HEADERS: (keyof ExportedProduct)[] = [
     "description",
     "price",
     "stock",
-    "category",
+    "categoryName",
+    "brandName",
+    "supplierName",
     "isActive",
 ];
 
@@ -71,19 +73,16 @@ export function parseCsv(text: string): ImportProductDto[] {
     return lines.slice(1).map((line) => {
         const values = parseCsvLine(line);
         const row: Record<string, string> = {};
-        headers.forEach((h, i) => {
-            row[h] = values[i] ?? "";
-        });
+        headers.forEach((h, i) => { row[h] = values[i] ?? ""; });
 
         return {
             name: row["name"] ?? "",
             description: row["description"] || undefined,
             price: parseFloat(row["price"]) || 0,
             stock: row["stock"] !== undefined && row["stock"] !== "" ? parseInt(row["stock"], 10) : undefined,
-            category: row["category"] ?? "",
-            isActive: row["isactive"] !== undefined
-                ? row["isactive"].toLowerCase() !== "false"
-                : undefined,
+            categoryName: row["categoryname"] || undefined,
+            brandName: row["brandname"] || undefined,
+            isActive: row["isactive"] !== undefined ? row["isactive"].toLowerCase() !== "false" : undefined,
         } satisfies ImportProductDto;
     });
 }

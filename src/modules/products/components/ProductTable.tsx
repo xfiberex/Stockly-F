@@ -8,15 +8,6 @@ import { useAuth } from "@/modules/auth/hooks/useMe";
 import type { Product } from "@/modules/products/types/product.types";
 import { PencilIcon, TrashIcon, ArrowPathIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 
-const CATEGORY_VARIANTS: Record<string, "blue" | "purple" | "teal" | "orange" | "default" | "success"> = {
-    Electrónica: "blue",
-    Periféricos: "purple",
-    Audio: "teal",
-    Accesorios: "orange",
-    Muebles: "default",
-    Otros: "default",
-};
-
 interface ProductTableProps {
     products: Product[];
     isLoading: boolean;
@@ -51,6 +42,7 @@ export function ProductTable({ products, isLoading, onEdit }: ProductTableProps)
                         <th className="px-4 py-3">Imagen</th>
                         <th className="px-4 py-3">Nombre</th>
                         <th className="px-4 py-3">Categoría</th>
+                        <th className="px-4 py-3">Marca</th>
                         <th className="px-4 py-3">Precio</th>
                         <th className="px-4 py-3">Stock</th>
                         <th className="px-4 py-3">Estado</th>
@@ -75,7 +67,7 @@ export function ProductTable({ products, isLoading, onEdit }: ProductTableProps)
                             </td>
                             <td className="px-4 py-3">
                                 <Link
-                                    to={`/products/${product.id}/movements`}
+                                    to={`/catalog/products/${product.id}/movements`}
                                     className="font-medium text-gray-900 hover:text-blue-600 transition-colors"
                                 >
                                     {product.name}
@@ -87,9 +79,18 @@ export function ProductTable({ products, isLoading, onEdit }: ProductTableProps)
                                 )}
                             </td>
                             <td className="px-4 py-3">
-                                <Badge variant={CATEGORY_VARIANTS[product.category] ?? "default"}>
-                                    {product.category}
-                                </Badge>
+                                {product.category ? (
+                                    <Badge variant="blue">{product.category.name}</Badge>
+                                ) : (
+                                    <span className="text-xs text-gray-400">—</span>
+                                )}
+                            </td>
+                            <td className="px-4 py-3">
+                                {product.brand ? (
+                                    <span className="text-sm text-gray-700">{product.brand.name}</span>
+                                ) : (
+                                    <span className="text-xs text-gray-400">—</span>
+                                )}
                             </td>
                             <td className="px-4 py-3 text-gray-700">
                                 ${Number(product.price).toFixed(2)}
@@ -106,7 +107,7 @@ export function ProductTable({ products, isLoading, onEdit }: ProductTableProps)
                             </td>
                             <td className="px-4 py-3">
                                 <div className="flex justify-end gap-1">
-                                    <Link to={`/products/${product.id}/movements`}>
+                                    <Link to={`/catalog/products/${product.id}/movements`}>
                                         <Button variant="ghost" title="Historial de movimientos" type="button">
                                             <ChartBarIcon className="h-4 w-4 text-blue-500" />
                                         </Button>

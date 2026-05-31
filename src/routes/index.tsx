@@ -4,6 +4,10 @@ import DashboardPage from "@/modules/dashboard/components/DashboardPage";
 import ProductsPage from "@/modules/products/components/ProductsPage";
 import StockMovementsPage from "@/modules/products/components/StockMovementsPage";
 import ProfilePage from "@/modules/auth/components/ProfilePage";
+import CatalogPage from "@/modules/catalog/components/CatalogPage";
+import CategoriesPage from "@/modules/catalog/components/CategoriesPage";
+import BrandsPage from "@/modules/catalog/components/BrandsPage";
+import SuppliersPage from "@/modules/suppliers/components/SuppliersPage";
 import NotFoundPage from "@/shared/components/NotFoundPage";
 import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
 import LoginPage from "@/modules/auth/components/LoginPage";
@@ -35,9 +39,19 @@ export const router = createBrowserRouter([
         ),
         children: [
             { index: true, element: <DashboardPage /> },
-            { path: "products", element: <ProductsPage /> },
-            { path: "products/:id/movements", element: <StockMovementsPage /> },
             { path: "profile", element: <ProfilePage /> },
+            {
+                path: "catalog",
+                element: <CatalogPage />,
+                children: [
+                    { index: true, element: <Navigate to="/catalog/products" replace /> },
+                    { path: "products", element: <ProductsPage /> },
+                    { path: "products/:id/movements", element: <StockMovementsPage /> },
+                    { path: "categories", element: <CategoriesPage /> },
+                    { path: "brands", element: <BrandsPage /> },
+                    { path: "suppliers", element: <SuppliersPage /> },
+                ],
+            },
             { path: "*", element: <NotFoundPage /> },
         ],
     },
