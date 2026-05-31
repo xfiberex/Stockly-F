@@ -1,11 +1,17 @@
+import { useState, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
+    AreaChart, Area,
 } from "recharts";
 import { Spinner } from "@/shared/components/Spinner";
 import { Badge } from "@/shared/components/Badge";
+import { Button } from "@/shared/components/Button";
+import { Select } from "@/shared/components/Select";
 import { useStockMovements } from "@/modules/products/hooks/useStockMovements";
+import { usePriceHistory } from "@/modules/products/hooks/usePriceHistory";
+import { downloadBlob } from "@/modules/products/utils/importExport";
 import type { StockMovementType } from "@/modules/products/types/product.types";
 
 const TYPE_LABELS: Record<StockMovementType, string> = {
@@ -30,9 +36,39 @@ function formatDateShort(iso: string) {
     return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
 }
 
+function exportMovementsCsv(
+    productName: string,
+    movements: Array<{ createdAt: string; type: string; delta: number; stockAfter: number; note?: string | null }>,
+) {
+    const header = "Fecha,Tipo,Cambio,Stock resultante,Nota";
+    const rows = movements.map((m) =>
+        [formatDate(m.createdAt), TYPE_LABELS[m.type as StockMovementType] ?? m.type, m.delta, m.stockAfter, m.note ?? ""].join(","),
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const date = new Date().toISOString().split("T")[0];
+    downloadBlob(blob, `movimientos-${productName.replace(/\s+/g, "-").toLowerCase()}-${date}.csv`);
+}
+
 export default function StockMovementsPage() {
     const { id } = useParams<{ id: string }>();
     const { data, isLoading, isError } = useStockMovements(id!);
+    const { data: priceData } = usePriceHistory(id!);
+
+    const [typeFilter, setTypeFilter] = useState<string>("");
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
+    const [activeTab, setActiveTab] = useState<"movements" | "prices">("movements");
+
+    const filteredMovements = useMemo(() => {
+        if (!data) return [];
+        return data.movements.filter((m) => {
+            if (typeFilter && m.type !== typeFilter) return false;
+            if (dateFrom && new Date(m.createdAt) < new Date(dateFrom)) return false;
+            if (dateTo && new Date(m.createdAt) > new Date(dateTo + "T23:59:59")) return false;
+            return true;
+        });
+    }, [data, typeFilter, dateFrom, dateTo]);
 
     if (isLoading) {
         return (
@@ -54,12 +90,20 @@ export default function StockMovementsPage() {
     }
 
     const { product, movements } = data;
+    const priceHistory = priceData?.history ?? [];
 
     const chartData = movements.map((m) => ({
         date: formatDateShort(m.createdAt),
         stock: m.stockAfter,
         type: m.type,
     }));
+
+    const priceChartData = priceHistory.map((h) => ({
+        date: formatDateShort(h.createdAt),
+        precio: Number(h.newPrice),
+    }));
+
+    const isLowStock = product.stock <= (product.minStock ?? 0);
 
     return (
         <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
@@ -75,94 +119,267 @@ export default function StockMovementsPage() {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+                        {product.sku && (
+                            <p className="text-xs text-gray-400 font-mono mt-0.5">{product.sku}</p>
+                        )}
                         <p className="text-sm text-gray-500 mt-1">Historial de movimientos de stock</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                         <div className="text-right">
-                            <p className="text-2xl font-bold text-gray-900">{product.stock}</p>
-                            <p className="text-xs text-gray-500">Stock actual</p>
+                            <p className={`text-2xl font-bold ${isLowStock ? "text-orange-600" : "text-gray-900"}`}>
+                                {product.stock}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                Stock actual {product.minStock > 0 ? `(mín: ${product.minStock})` : ""}
+                            </p>
                         </div>
                         <Badge variant={product.isActive ? "success" : "danger"}>
                             {product.isActive ? "Activo" : "Inactivo"}
                         </Badge>
+                        {movements.length > 0 && (
+                            <Button
+                                variant="secondary"
+                                onClick={() => exportMovementsCsv(product.name, movements)}
+                            >
+                                <ArrowDownTrayIcon className="h-4 w-4" />
+                                Exportar CSV
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Gráfico */}
-            {movements.length > 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h2 className="text-base font-semibold text-gray-900 mb-6">Evolución del stock</h2>
-                    <ResponsiveContainer width="100%" height={260}>
-                        <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                            <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                            <Tooltip
-                                contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 13 }}
-                                formatter={(value: number) => [`${value} unidades`, "Stock"]}
-                            />
-                            <ReferenceLine y={3} stroke="#f97316" strokeDasharray="4 4" label={{ value: "Mín", position: "right", fontSize: 11 }} />
-                            <Line
-                                type="stepAfter"
-                                dataKey="stock"
-                                stroke="#3b82f6"
-                                strokeWidth={2}
-                                dot={{ r: 4, fill: "#3b82f6" }}
-                                activeDot={{ r: 6 }}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-            ) : (
-                <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
-                    Aún no hay movimientos registrados para este producto.
-                </div>
+            {/* Tabs */}
+            <div className="flex gap-1 border-b border-gray-200">
+                {(["movements", "prices"] as const).map((tab) => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                            activeTab === tab
+                                ? "border-blue-600 text-blue-700"
+                                : "border-transparent text-gray-500 hover:text-gray-700"
+                        }`}
+                    >
+                        {tab === "movements" ? `Movimientos (${movements.length})` : `Historial de precios (${priceHistory.length})`}
+                    </button>
+                ))}
+            </div>
+
+            {activeTab === "movements" && (
+                <>
+                    {/* Gráfico de stock */}
+                    {movements.length > 0 && (
+                        <div className="bg-white rounded-xl border border-gray-200 p-6">
+                            <h2 className="text-base font-semibold text-gray-900 mb-6">Evolución del stock</h2>
+                            <ResponsiveContainer width="100%" height={260}>
+                                <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                    <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 13 }}
+                                        formatter={(value) => [`${Number(value)} unidades`, "Stock"]}
+                                    />
+                                    {(product.minStock ?? 0) > 0 && (
+                                        <ReferenceLine
+                                            y={product.minStock}
+                                            stroke="#f97316"
+                                            strokeDasharray="4 4"
+                                            label={{ value: `Mín (${product.minStock})`, position: "right", fontSize: 11 }}
+                                        />
+                                    )}
+                                    <Line
+                                        type="stepAfter"
+                                        dataKey="stock"
+                                        stroke="#3b82f6"
+                                        strokeWidth={2}
+                                        dot={{ r: 4, fill: "#3b82f6" }}
+                                        activeDot={{ r: 6 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
+
+                    {/* Filtros */}
+                    {movements.length > 0 && (
+                        <div className="flex flex-wrap gap-3 items-end">
+                            <div className="min-w-36">
+                                <Select
+                                    options={[
+                                        { value: "", label: "Todos los tipos" },
+                                        { value: "IN", label: "Entrada" },
+                                        { value: "OUT", label: "Salida" },
+                                        { value: "ADJUSTMENT", label: "Ajuste" },
+                                        { value: "IMPORT", label: "Importación" },
+                                    ]}
+                                    value={typeFilter}
+                                    onChange={(e) => setTypeFilter(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs text-gray-500 whitespace-nowrap">Desde</label>
+                                <input
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(e) => setDateFrom(e.target.value)}
+                                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs text-gray-500 whitespace-nowrap">Hasta</label>
+                                <input
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(e) => setDateTo(e.target.value)}
+                                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                />
+                            </div>
+                            {(typeFilter || dateFrom || dateTo) && (
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => { setTypeFilter(""); setDateFrom(""); setDateTo(""); }}
+                                >
+                                    Limpiar filtros
+                                </Button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Tabla de movimientos */}
+                    {filteredMovements.length > 0 ? (
+                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                                <h2 className="text-base font-semibold text-gray-900">
+                                    Movimientos ({filteredMovements.length}
+                                    {filteredMovements.length !== movements.length && ` de ${movements.length}`})
+                                </h2>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                                        <tr>
+                                            <th className="px-6 py-3">Fecha</th>
+                                            <th className="px-6 py-3">Tipo</th>
+                                            <th className="px-6 py-3">Cambio</th>
+                                            <th className="px-6 py-3">Stock resultante</th>
+                                            <th className="px-6 py-3">Nota</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {[...filteredMovements].reverse().map((m) => (
+                                            <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
+                                                    {formatDate(m.createdAt)}
+                                                </td>
+                                                <td className="px-6 py-3">
+                                                    <Badge variant={TYPE_VARIANTS[m.type as StockMovementType]}>
+                                                        {TYPE_LABELS[m.type as StockMovementType] ?? m.type}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-6 py-3 font-medium">
+                                                    <span className={m.delta >= 0 ? "text-green-600" : "text-red-600"}>
+                                                        {m.delta >= 0 ? `+${m.delta}` : m.delta}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-3 text-gray-700">{m.stockAfter}</td>
+                                                <td className="px-6 py-3 text-gray-400 text-xs">{m.note ?? "—"}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
+                            {movements.length === 0
+                                ? "Aún no hay movimientos registrados para este producto."
+                                : "No hay movimientos que coincidan con los filtros aplicados."}
+                        </div>
+                    )}
+                </>
             )}
 
-            {/* Tabla de movimientos */}
-            {movements.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100">
-                        <h2 className="text-base font-semibold text-gray-900">
-                            Movimientos ({movements.length})
-                        </h2>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                                <tr>
-                                    <th className="px-6 py-3">Fecha</th>
-                                    <th className="px-6 py-3">Tipo</th>
-                                    <th className="px-6 py-3">Cambio</th>
-                                    <th className="px-6 py-3">Stock resultante</th>
-                                    <th className="px-6 py-3">Nota</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {[...movements].reverse().map((m) => (
-                                    <tr key={m.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
-                                            {formatDate(m.createdAt)}
-                                        </td>
-                                        <td className="px-6 py-3">
-                                            <Badge variant={TYPE_VARIANTS[m.type as StockMovementType]}>
-                                                {TYPE_LABELS[m.type as StockMovementType] ?? m.type}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-3 font-medium">
-                                            <span className={m.delta >= 0 ? "text-green-600" : "text-red-600"}>
-                                                {m.delta >= 0 ? `+${m.delta}` : m.delta}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-3 text-gray-700">{m.stockAfter}</td>
-                                        <td className="px-6 py-3 text-gray-400 text-xs">{m.note ?? "—"}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            {activeTab === "prices" && (
+                <>
+                    {priceHistory.length > 0 ? (
+                        <>
+                            <div className="bg-white rounded-xl border border-gray-200 p-6">
+                                <h2 className="text-base font-semibold text-gray-900 mb-6">Evolución del precio</h2>
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <AreaChart data={priceChartData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
+                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                                        <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                        <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 13 }}
+                                            formatter={(value) => [`$${Number(value).toFixed(2)}`, "Precio"]}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="precio"
+                                            stroke="#6366f1"
+                                            strokeWidth={2}
+                                            fill="url(#priceGradient)"
+                                            dot={{ r: 4, fill: "#6366f1" }}
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                <div className="px-6 py-4 border-b border-gray-100">
+                                    <h2 className="text-base font-semibold text-gray-900">Cambios de precio ({priceHistory.length})</h2>
+                                </div>
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                                        <tr>
+                                            <th className="px-6 py-3">Fecha</th>
+                                            <th className="px-6 py-3">Precio anterior</th>
+                                            <th className="px-6 py-3">Precio nuevo</th>
+                                            <th className="px-6 py-3">Variación</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {[...priceHistory].reverse().map((h) => {
+                                            const diff = Number(h.newPrice) - Number(h.oldPrice);
+                                            const pct = Number(h.oldPrice) > 0 ? (diff / Number(h.oldPrice)) * 100 : 0;
+                                            return (
+                                                <tr key={h.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
+                                                        {formatDate(h.createdAt)}
+                                                    </td>
+                                                    <td className="px-6 py-3 text-gray-600">
+                                                        ${Number(h.oldPrice).toFixed(2)}
+                                                    </td>
+                                                    <td className="px-6 py-3 font-medium text-gray-900">
+                                                        ${Number(h.newPrice).toFixed(2)}
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <span className={diff >= 0 ? "text-red-600" : "text-green-600"}>
+                                                            {diff >= 0 ? "+" : ""}{diff.toFixed(2)} ({pct.toFixed(1)}%)
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
+                            Aún no hay cambios de precio registrados para este producto.
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

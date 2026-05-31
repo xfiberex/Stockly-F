@@ -54,7 +54,7 @@ describe("ProtectedRoute", () => {
 
     it("renderiza los children cuando el usuario está autenticado", () => {
         vi.mocked(useAuth).mockReturnValue({
-            user: { id: "1", email: "user@test.com", name: "Test", isVerified: true, createdAt: "2024-01-01" },
+            user: { id: "1", email: "user@test.com", name: "Test", role: "USER", isVerified: true, createdAt: "2024-01-01" },
             isLoading: false,
             isError: false,
         });

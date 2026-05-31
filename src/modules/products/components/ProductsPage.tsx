@@ -3,6 +3,8 @@ import { toast } from "react-toastify";
 import { ProductFilters } from "@/modules/products/components/ProductFilters";
 import { ProductTable } from "@/modules/products/components/ProductTable";
 import { ProductForm } from "@/modules/products/components/ProductForm";
+import { ManualMovementModal } from "@/modules/products/components/ManualMovementModal";
+import { BulkStockModal } from "@/modules/products/components/BulkStockModal";
 import { Button } from "@/shared/components/Button";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { useProducts } from "@/modules/products/hooks/useProducts";
@@ -15,6 +17,8 @@ import {
     PlusIcon,
     ArrowDownTrayIcon,
     ArrowUpTrayIcon,
+    AdjustmentsHorizontalIcon,
+    BoltIcon,
 } from "@heroicons/react/24/outline";
 
 interface Filters {
@@ -29,6 +33,9 @@ export default function ProductsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>();
     const [isExporting, setIsExporting] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [movementProduct, setMovementProduct] = useState<Product | undefined>();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const importFormatRef = useRef<"json" | "csv">("json");
 
@@ -40,6 +47,7 @@ export default function ProductsPage() {
     const handleFilterChange = useCallback((newFilters: Filters) => {
         setFilters(newFilters);
         setPage(1);
+        setSelectedIds(new Set());
     }, []);
 
     const handleEdit = (product: Product) => {
@@ -50,6 +58,15 @@ export default function ProductsPage() {
     const handleCloseForm = () => {
         setIsFormOpen(false);
         setEditingProduct(undefined);
+    };
+
+    const handleToggleSelect = (id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
     };
 
     const handleExport = async (format: "json" | "csv") => {
@@ -112,6 +129,7 @@ export default function ProductsPage() {
     };
 
     const totalPages = data?.meta.totalPages ?? 1;
+    const allProducts = data?.data ?? [];
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
@@ -150,7 +168,30 @@ export default function ProductsPage() {
                 </div>
             </div>
 
-            {/* Input oculto para selección de archivo */}
+            {/* Barra de acciones masivas */}
+            {isAdmin && selectedIds.size > 0 && (
+                <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-xl border border-blue-200">
+                    <span className="text-sm font-medium text-blue-700">
+                        {selectedIds.size} producto{selectedIds.size !== 1 ? "s" : ""} seleccionado{selectedIds.size !== 1 ? "s" : ""}
+                    </span>
+                    <div className="flex gap-2 ml-auto">
+                        <Button
+                            variant="secondary"
+                            onClick={() => setIsBulkModalOpen(true)}
+                        >
+                            <AdjustmentsHorizontalIcon className="h-4 w-4" />
+                            Ajuste masivo de stock
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            onClick={() => setSelectedIds(new Set())}
+                        >
+                            Deseleccionar
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             <input
                 ref={fileInputRef}
                 type="file"
@@ -161,7 +202,39 @@ export default function ProductsPage() {
 
             <ProductFilters onFilterChange={handleFilterChange} />
 
-            <ProductTable products={data?.data ?? []} isLoading={isLoading} onEdit={handleEdit} />
+            <ProductTable
+                products={allProducts}
+                isLoading={isLoading}
+                onEdit={handleEdit}
+                selectedIds={isAdmin ? selectedIds : undefined}
+                onToggleSelect={isAdmin ? handleToggleSelect : undefined}
+            />
+
+            {/* Botón movimiento rápido para producto individual (visible en hover via contexto) */}
+            {movementProduct && (
+                <ManualMovementModal
+                    isOpen={!!movementProduct}
+                    onClose={() => setMovementProduct(undefined)}
+                    product={movementProduct}
+                />
+            )}
+
+            {/* Acceso rápido: botón flotante de movimiento manual para el primero seleccionado */}
+            {isAdmin && selectedIds.size === 1 && (
+                <div className="fixed bottom-6 right-6 z-50">
+                    <Button
+                        onClick={() => {
+                            const id = [...selectedIds][0];
+                            const product = allProducts.find((p) => p.id === id);
+                            if (product) setMovementProduct(product);
+                        }}
+                        className="shadow-lg"
+                    >
+                        <BoltIcon className="h-4 w-4" />
+                        Movimiento manual
+                    </Button>
+                </div>
+            )}
 
             {totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm text-gray-600">
@@ -182,6 +255,13 @@ export default function ProductsPage() {
                 isOpen={isFormOpen}
                 onClose={handleCloseForm}
                 product={editingProduct}
+            />
+
+            <BulkStockModal
+                isOpen={isBulkModalOpen}
+                onClose={() => { setIsBulkModalOpen(false); setSelectedIds(new Set()); }}
+                products={allProducts}
+                selectedIds={selectedIds}
             />
         </div>
     );

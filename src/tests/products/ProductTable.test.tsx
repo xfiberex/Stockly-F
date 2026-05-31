@@ -45,7 +45,10 @@ const makeProduct = (overrides: Partial<Product> = {}): Product => ({
     description: "27 pulgadas",
     price: 299.99,
     stock: 10,
-    category: "Electrónica",
+    minStock: 0,
+    category: { id: "cat-1", name: "Electrónica" },
+    brand: null,
+    supplier: null,
     isActive: true,
     createdAt: "2024-01-01T00:00:00Z",
     updatedAt: "2024-01-01T00:00:00Z",
@@ -137,18 +140,18 @@ describe("ProductTable", () => {
         expect(mockRestoreMutate).toHaveBeenCalledWith("prod-xyz");
     });
 
-    it("aplica texto rojo cuando stock es menor o igual a 3", () => {
+    it("aplica estilo de alerta cuando stock es menor o igual al stock mínimo", () => {
         renderWithProviders(
-            <ProductTable products={[makeProduct({ stock: 2 })]} isLoading={false} onEdit={vi.fn()} />,
+            <ProductTable products={[makeProduct({ stock: 2, minStock: 5 })]} isLoading={false} onEdit={vi.fn()} />,
         );
-        expect(screen.getByText("2")).toHaveClass("text-red-600");
+        expect(screen.getByText("2")).toHaveClass("text-orange-600");
     });
 
-    it("no aplica texto rojo cuando stock es mayor a 3", () => {
+    it("no aplica estilo de alerta cuando stock es mayor al stock mínimo", () => {
         renderWithProviders(
-            <ProductTable products={[makeProduct({ stock: 10 })]} isLoading={false} onEdit={vi.fn()} />,
+            <ProductTable products={[makeProduct({ stock: 10, minStock: 3 })]} isLoading={false} onEdit={vi.fn()} />,
         );
-        expect(screen.getByText("10")).not.toHaveClass("text-red-600");
+        expect(screen.getByText("10")).not.toHaveClass("text-orange-600");
     });
 
     it("muestra N/A cuando el producto no tiene imagen", () => {

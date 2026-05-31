@@ -9,6 +9,9 @@ import type {
     ExportedProduct,
     ImportResult,
     MovementsResponse,
+    PriceHistoryResponse,
+    CreateManualMovementDto,
+    BulkStockDto,
 } from "../types/product.types";
 
 const toFormData = (dto: CreateProductDto | UpdateProductDto): FormData => {
@@ -67,5 +70,20 @@ export const importProducts = async (products: ImportProductDto[]): Promise<Impo
 
 export const getProductMovements = async (productId: string): Promise<MovementsResponse> => {
     const { data } = await api.get<ApiResponse<MovementsResponse>>(`/products/${productId}/movements`);
+    return data.data!;
+};
+
+export const getPriceHistory = async (productId: string): Promise<PriceHistoryResponse> => {
+    const { data } = await api.get<ApiResponse<PriceHistoryResponse>>(`/products/${productId}/price-history`);
+    return data.data!;
+};
+
+export const createManualMovement = async (productId: string, dto: CreateManualMovementDto): Promise<Product> => {
+    const { data } = await api.post<ApiResponse<Product>>(`/products/${productId}/movements`, dto);
+    return data.data!;
+};
+
+export const bulkUpdateStock = async (dto: BulkStockDto): Promise<Array<{ productId: string; success: boolean; error?: string }>> => {
+    const { data } = await api.patch<ApiResponse<Array<{ productId: string; success: boolean; error?: string }>>>("/products/bulk-stock", dto);
     return data.data!;
 };

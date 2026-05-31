@@ -8,6 +8,8 @@ import CatalogPage from "@/modules/catalog/components/CatalogPage";
 import CategoriesPage from "@/modules/catalog/components/CategoriesPage";
 import BrandsPage from "@/modules/catalog/components/BrandsPage";
 import SuppliersPage from "@/modules/suppliers/components/SuppliersPage";
+import ReportsPage from "@/modules/reports/components/ReportsPage";
+import PurchaseOrdersPage from "@/modules/purchase-orders/components/PurchaseOrdersPage";
 import NotFoundPage from "@/shared/components/NotFoundPage";
 import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
 import LoginPage from "@/modules/auth/components/LoginPage";
@@ -40,6 +42,8 @@ export const router = createBrowserRouter([
         children: [
             { index: true, element: <DashboardPage /> },
             { path: "profile", element: <ProfilePage /> },
+            { path: "reports", element: <ReportsPage /> },
+            { path: "purchase-orders", element: <PurchaseOrdersPage /> },
             {
                 path: "catalog",
                 element: <CatalogPage />,

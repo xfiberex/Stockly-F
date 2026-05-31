@@ -8,6 +8,8 @@ import { Button } from "@/shared/components/Button";
 const navLinks = [
     { to: "/", label: "Dashboard", end: true },
     { to: "/catalog", label: "Catálogo", end: false },
+    { to: "/purchase-orders", label: "Órdenes de compra", end: false },
+    { to: "/reports", label: "Reportes", end: false },
 ];
 
 function App() {
