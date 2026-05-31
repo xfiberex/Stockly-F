@@ -19,7 +19,7 @@ import {
 
 interface Filters {
     search?: string;
-    category?: string;
+    categoryId?: string;
     isActive?: boolean;
 }
 

@@ -2,6 +2,13 @@ import { render, screen, act, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProductFilters } from "@/modules/products/components/ProductFilters";
 
+// ProductFilters ahora usa useCategories para cargar categorías dinámicas
+vi.mock("@/modules/catalog/hooks/useCategories", () => ({
+    useCategories: () => ({
+        data: [{ id: "cat-electronica", name: "Electrónica" }],
+    }),
+}));
+
 describe("ProductFilters", () => {
     it("renderiza el campo de búsqueda y los dos selects", () => {
         render(<ProductFilters onFilterChange={vi.fn()} />);
@@ -14,8 +21,8 @@ describe("ProductFilters", () => {
         render(<ProductFilters onFilterChange={onFilterChange} />);
         expect(onFilterChange).toHaveBeenCalledWith({
             search: undefined,
-            category: undefined,
-            isActive: true, // "true" por defecto
+            categoryId: undefined,
+            isActive: true,
         });
     });
 
@@ -69,7 +76,6 @@ describe("ProductFilters", () => {
         });
         await act(async () => vi.advanceTimersByTime(400));
 
-        // Solo debe aparecer la búsqueda final
         expect(onFilterChange).toHaveBeenLastCalledWith(
             expect.objectContaining({ search: "Monitor" }),
         );
@@ -80,17 +86,17 @@ describe("ProductFilters", () => {
 
     // ---- Tests de selects sin fake timers ----
 
-    it("emite la categoría seleccionada", async () => {
+    it("emite el categoryId de la categoría seleccionada", async () => {
         const user = userEvent.setup();
         const onFilterChange = vi.fn();
         render(<ProductFilters onFilterChange={onFilterChange} />);
         onFilterChange.mockClear();
 
         const [categorySelect] = screen.getAllByRole("combobox");
-        await user.selectOptions(categorySelect, "Electrónica");
+        await user.selectOptions(categorySelect, "cat-electronica");
 
         expect(onFilterChange).toHaveBeenLastCalledWith(
-            expect.objectContaining({ category: "Electrónica" }),
+            expect.objectContaining({ categoryId: "cat-electronica" }),
         );
     });
 

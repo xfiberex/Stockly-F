@@ -6,8 +6,8 @@ import { useAuth } from "@/modules/auth/hooks/useMe";
 import { Button } from "@/shared/components/Button";
 
 const navLinks = [
-    { to: "/", label: "Dashboard" },
-    { to: "/products", label: "Productos" },
+    { to: "/", label: "Dashboard", end: true },
+    { to: "/catalog", label: "Catálogo", end: false },
 ];
 
 function App() {
@@ -23,11 +23,11 @@ function App() {
                         Stockly
                     </div>
                     <div className="flex gap-1 flex-1">
-                        {navLinks.map(({ to, label }) => (
+                        {navLinks.map(({ to, label, end }) => (
                             <NavLink
                                 key={to}
                                 to={to}
-                                end
+                                end={end}
                                 className={({ isActive }) =>
                                     cn(
                                         "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
