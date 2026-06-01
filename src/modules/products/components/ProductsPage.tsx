@@ -24,6 +24,7 @@ import {
 interface Filters {
     search?: string;
     categoryId?: string;
+    tagId?: string;
     isActive?: boolean;
 }
 

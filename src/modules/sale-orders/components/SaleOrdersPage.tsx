@@ -8,27 +8,26 @@ import { Badge } from "@/shared/components/Badge";
 import { Spinner } from "@/shared/components/Spinner";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { useAuth } from "@/modules/auth/hooks/useMe";
-import { useSuppliers } from "@/modules/suppliers/hooks/useSuppliers";
 import { useProducts } from "@/modules/products/hooks/useProducts";
 import {
-    usePurchaseOrders,
-    useCreatePurchaseOrder,
-    useUpdatePurchaseOrder,
-    useDeletePurchaseOrder,
-} from "@/modules/purchase-orders/hooks/usePurchaseOrders";
-import { exportPurchaseOrdersCsv } from "@/modules/purchase-orders/api/purchase-orders.api";
-import type { PurchaseOrder, CreatePurchaseOrderForm } from "@/modules/purchase-orders/types/purchase-orders.types";
-import { PlusIcon, TrashIcon, CheckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+    useSaleOrders,
+    useCreateSaleOrder,
+    useUpdateSaleOrder,
+    useDeleteSaleOrder,
+} from "@/modules/sale-orders/hooks/useSaleOrders";
+import { exportSaleOrdersCsv } from "@/modules/sale-orders/api/sale-orders.api";
+import type { SaleOrder, CreateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
+import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 
 const STATUS_LABELS: Record<string, string> = {
     PENDING: "Pendiente",
-    RECEIVED: "Recibida",
-    CANCELLED: "Cancelada",
+    SHIPPED: "Enviado",
+    CANCELLED: "Cancelado",
 };
 
 const STATUS_VARIANTS: Record<string, "orange" | "success" | "danger"> = {
     PENDING: "orange",
-    RECEIVED: "success",
+    SHIPPED: "success",
     CANCELLED: "danger",
 };
 
@@ -36,33 +35,24 @@ function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function orderTotal(order: PurchaseOrder): number {
+function orderTotal(order: SaleOrder): number {
     return order.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
 }
 
 // ── Formulario nueva orden ────────────────────────────────────────────────────
 
-interface OrderFormModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-}
+interface OrderFormModalProps { isOpen: boolean; onClose: () => void; }
 
 function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
-    const { data: suppliers = [] } = useSuppliers();
-    const { data: productsData } = useProducts({ limit: 100, isActive: true });
+    const { data: productsData } = useProducts({ limit: 200, isActive: true });
     const products = productsData?.data ?? [];
-    const createMutation = useCreatePurchaseOrder();
+    const createMutation = useCreateSaleOrder();
 
-    const { register, handleSubmit, control, reset, setValue, formState: { errors } } = useForm<CreatePurchaseOrderForm>({
+    const { register, handleSubmit, control, reset, setValue, formState: { errors } } = useForm<CreateSaleOrderDto>({
         defaultValues: { items: [{ productName: "", quantity: 1, unitPrice: 0 }] },
     });
 
     const { fields, append, remove } = useFieldArray({ control, name: "items" });
-
-    const supplierOptions = [
-        { value: "", label: "Sin proveedor" },
-        ...suppliers.map((s) => ({ value: s.id, label: s.name })),
-    ];
 
     const productOptions = [
         { value: "", label: "Escribir manualmente" },
@@ -78,13 +68,15 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
         }
     };
 
-    const onSubmit = (data: CreatePurchaseOrderForm) => {
-        const payload = {
-            ...data,
-            supplierId: data.supplierId || undefined,
-            items: data.items.map((item) => ({
-                ...item,
+    const onSubmit = (formData: CreateSaleOrderDto) => {
+        const payload: CreateSaleOrderDto = {
+            customerName: formData.customerName || undefined,
+            customerEmail: formData.customerEmail || undefined,
+            customerPhone: formData.customerPhone || undefined,
+            notes: formData.notes || undefined,
+            items: formData.items.map((item) => ({
                 productId: item.productId || undefined,
+                productName: item.productName,
                 quantity: Number(item.quantity),
                 unitPrice: Number(item.unitPrice),
             })),
@@ -95,26 +87,20 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Nueva orden de compra" className="max-w-2xl">
+        <Modal isOpen={isOpen} onClose={onClose} title="Nueva orden de venta" className="max-w-2xl">
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-3">
-                    <Select
-                        id="supplierId"
-                        label="Proveedor"
-                        options={supplierOptions}
-                        {...register("supplierId")}
-                    />
-                    <Input
-                        id="notes"
-                        label="Notas"
-                        placeholder="Observaciones..."
-                        {...register("notes")}
-                    />
+                    <Input id="customerName" label="Nombre del cliente" placeholder="Ej: Juan García" {...register("customerName")} />
+                    <Input id="customerEmail" label="Correo" type="email" placeholder="cliente@email.com" {...register("customerEmail")} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <Input id="customerPhone" label="Teléfono" placeholder="+52 55 ..." {...register("customerPhone")} />
+                    <Input id="notes" label="Notas" placeholder="Observaciones..." {...register("notes")} />
                 </div>
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-gray-700">Ítems</p>
+                        <p className="text-sm font-medium text-gray-700">Ítems *</p>
                         <Button
                             type="button"
                             variant="secondary"
@@ -143,21 +129,10 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                     />
                                 </div>
                                 <div className="col-span-2">
-                                    <Input
-                                        label="Cant."
-                                        type="number"
-                                        min="1"
-                                        {...register(`items.${idx}.quantity`)}
-                                    />
+                                    <Input label="Cant." type="number" min="1" {...register(`items.${idx}.quantity`)} />
                                 </div>
                                 <div className="col-span-2">
-                                    <Input
-                                        label="P. unit."
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        {...register(`items.${idx}.unitPrice`)}
-                                    />
+                                    <Input label="P. unit." type="number" step="0.01" min="0" {...register(`items.${idx}.unitPrice`)} />
                                 </div>
                                 <div className="col-span-1 flex justify-end">
                                     <Button
@@ -185,37 +160,33 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 
-export default function PurchaseOrdersPage() {
+export default function SaleOrdersPage() {
     const [formOpen, setFormOpen] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
 
-    const { data: orders = [], isLoading } = usePurchaseOrders();
-    const updateMutation = useUpdatePurchaseOrder();
-    const deleteMutation = useDeletePurchaseOrder();
+    const { data, isLoading } = useSaleOrders();
+    const orders = data?.data ?? [];
+    const updateMutation = useUpdateSaleOrder();
+    const deleteMutation = useDeleteSaleOrder();
 
-    const handleReceive = (id: string) => {
-        updateMutation.mutate({ id, dto: { status: "RECEIVED" } });
-    };
-
-    const handleCancel = (id: string) => {
-        updateMutation.mutate({ id, dto: { status: "CANCELLED" } });
-    };
+    const handleShip = (id: string) => updateMutation.mutate({ id, dto: { status: "SHIPPED" } });
+    const handleCancel = (id: string) => updateMutation.mutate({ id, dto: { status: "CANCELLED" } });
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Órdenes de compra</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Órdenes de venta</h1>
                     <p className="text-sm text-gray-500 mt-1">{orders.length} orden{orders.length !== 1 ? "es" : ""}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <DropdownButton
                         label="Exportar"
                         icon={ArrowDownTrayIcon}
-                        items={[{ label: "Exportar CSV", onClick: exportPurchaseOrdersCsv }]}
+                        items={[{ label: "Exportar CSV", onClick: exportSaleOrdersCsv }]}
                     />
                     {isAdmin && (
                         <Button onClick={() => setFormOpen(true)}>
@@ -229,12 +200,11 @@ export default function PurchaseOrdersPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : orders.length === 0 ? (
-                <div className="py-16 text-center text-sm text-gray-400">No hay órdenes de compra. Crea la primera.</div>
+                <div className="py-16 text-center text-sm text-gray-400">No hay órdenes de venta. Crea la primera.</div>
             ) : (
                 <div className="space-y-3">
                     {orders.map((order) => (
                         <div key={order.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            {/* Row header */}
                             <div
                                 className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
                                 onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
@@ -245,10 +215,10 @@ export default function PurchaseOrdersPage() {
                                     </Badge>
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-gray-900">
-                                            Orden #{order.id.slice(0, 8).toUpperCase()}
+                                            Venta #{order.id.slice(0, 8).toUpperCase()}
                                         </p>
                                         <p className="text-xs text-gray-400">
-                                            {order.supplier?.name ?? "Sin proveedor"} · {formatDate(order.createdAt)}
+                                            {order.customerName ?? "Cliente sin nombre"} · {formatDate(order.createdAt)}
                                         </p>
                                     </div>
                                 </div>
@@ -263,11 +233,11 @@ export default function PurchaseOrdersPage() {
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 variant="ghost"
-                                                title="Marcar como recibida"
+                                                title="Marcar como enviado"
                                                 isLoading={updateMutation.isPending}
-                                                onClick={() => handleReceive(order.id)}
+                                                onClick={() => handleShip(order.id)}
                                             >
-                                                <CheckIcon className="h-4 w-4 text-green-600" />
+                                                <TruckIcon className="h-4 w-4 text-green-600" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -290,9 +260,14 @@ export default function PurchaseOrdersPage() {
                                 </div>
                             </div>
 
-                            {/* Expanded items */}
                             {expandedId === order.id && (
                                 <div className="border-t border-gray-100 px-5 py-4">
+                                    {(order.customerEmail || order.customerPhone) && (
+                                        <div className="flex gap-4 mb-3 text-xs text-gray-500">
+                                            {order.customerEmail && <span>✉ {order.customerEmail}</span>}
+                                            {order.customerPhone && <span>📞 {order.customerPhone}</span>}
+                                        </div>
+                                    )}
                                     {order.notes && (
                                         <p className="text-xs text-gray-500 mb-3 italic">"{order.notes}"</p>
                                     )}

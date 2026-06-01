@@ -1,5 +1,6 @@
 import { Select } from "@/shared/components/Select";
 import { useCategories } from "@/modules/catalog/hooks/useCategories";
+import { useTags } from "@/modules/tags/hooks/useTags";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useEffect, useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
@@ -8,6 +9,7 @@ interface ProductFiltersProps {
     onFilterChange: (filters: {
         search?: string;
         categoryId?: string;
+        tagId?: string;
         isActive?: boolean;
     }) => void;
 }
@@ -15,23 +17,31 @@ interface ProductFiltersProps {
 export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     const [search, setSearch] = useState("");
     const [categoryId, setCategoryId] = useState("");
+    const [tagId, setTagId] = useState("");
     const [activeFilter, setActiveFilter] = useState<"true" | "false" | "">("true");
 
     const debouncedSearch = useDebounce(search, 400);
     const { data: categories = [] } = useCategories();
+    const { data: tags = [] } = useTags();
 
     const categoryOptions = [
         { value: "", label: "Todas las categorías" },
         ...categories.map((c) => ({ value: c.id, label: c.name })),
     ];
 
+    const tagOptions = [
+        { value: "", label: "Todas las etiquetas" },
+        ...tags.map((t) => ({ value: t.id, label: t.name })),
+    ];
+
     useEffect(() => {
         onFilterChange({
             search: debouncedSearch || undefined,
             categoryId: categoryId || undefined,
+            tagId: tagId || undefined,
             isActive: activeFilter === "true" ? true : activeFilter === "false" ? false : undefined,
         });
-    }, [debouncedSearch, categoryId, activeFilter, onFilterChange]);
+    }, [debouncedSearch, categoryId, tagId, activeFilter, onFilterChange]);
 
     return (
         <div className="flex flex-wrap items-end gap-3">
@@ -46,7 +56,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
                 />
             </div>
 
-            <div className="flex-1 min-w-40">
+            <div className="flex-1 min-w-36">
                 <Select
                     options={categoryOptions}
                     value={categoryId}
@@ -54,6 +64,17 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
                     className="w-full"
                 />
             </div>
+
+            {tags.length > 0 && (
+                <div className="flex-1 min-w-36">
+                    <Select
+                        options={tagOptions}
+                        value={tagId}
+                        onChange={(e) => setTagId(e.target.value)}
+                        className="w-full"
+                    />
+                </div>
+            )}
 
             <div className="flex-1 min-w-36">
                 <Select

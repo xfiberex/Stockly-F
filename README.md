@@ -29,7 +29,7 @@ SPA para el sistema de gestión de inventario Stockly.
 ```
 Stockly-F/src/
 ├── main.tsx                        # Entry point: providers globales
-├── App.tsx                         # Layout raíz con navbar + UserMenu
+├── App.tsx                         # Layout raíz con navbar + UserMenu + AdminMenu
 ├── routes/index.tsx                # Definición de rutas (React Router v7)
 │
 ├── modules/
@@ -50,8 +50,8 @@ Stockly-F/src/
 │   │                               # CategoriesPage, BrandsPage
 │   │
 │   ├── products/
-│   │   ├── components/             # ProductsPage, ProductTable, ProductForm,
-│   │   │                           # ProductFilters, ProductImageUpload,
+│   │   ├── components/             # ProductsPage, ProductTable, ProductForm (con tags),
+│   │   │                           # ProductFilters (con filtro por tag), ProductImageUpload,
 │   │   │                           # ProductDetailModal, StockMovementsPage,
 │   │   │                           # ManualMovementModal, BulkStockModal
 │   │   ├── hooks/                  # useProducts, useProduct, useCreateProduct,
@@ -61,14 +61,39 @@ Stockly-F/src/
 │   │   ├── schemas/                # product.schema.ts (Zod)
 │   │   └── types/                  # product.types.ts
 │   │
+│   ├── tags/
+│   │   ├── components/TagsPage.tsx # CRUD de etiquetas con selector de color
+│   │   ├── hooks/useTags.ts
+│   │   └── api/tags.api.ts
+│   │
 │   ├── suppliers/
 │   │   └── components/SuppliersPage.tsx
 │   │
 │   ├── purchase-orders/
-│   │   └── components/PurchaseOrdersPage.tsx
+│   │   └── components/PurchaseOrdersPage.tsx   # Incluye exportar CSV
+│   │
+│   ├── sale-orders/
+│   │   ├── components/SaleOrdersPage.tsx       # PENDING → SHIPPED / CANCELLED
+│   │   ├── hooks/useSaleOrders.ts
+│   │   └── api/sale-orders.api.ts
+│   │
+│   ├── users/
+│   │   ├── components/UsersPage.tsx   # Panel ADMIN: rol, activar/desactivar
+│   │   ├── hooks/useUsers.ts
+│   │   └── api/users.api.ts
+│   │
+│   ├── settings/
+│   │   ├── components/SettingsPage.tsx  # Toggle de opciones con guardado en lote
+│   │   ├── hooks/useSettings.ts
+│   │   └── api/settings.api.ts
+│   │
+│   ├── audit-logs/
+│   │   ├── components/AuditLogsPage.tsx  # Tabla paginada con filtros
+│   │   ├── hooks/useAuditLogs.ts
+│   │   └── api/audit-logs.api.ts
 │   │
 │   └── reports/
-│       └── components/ReportsPage.tsx      # KPIs, gráficos, tablas
+│       └── components/ReportsPage.tsx   # KPIs, gráficos, métricas de rotación, descargar PDF
 │
 ├── shared/
 │   ├── components/                 # Badge, Button, DropdownButton, Input,
@@ -124,10 +149,15 @@ pnpm test:coverage    # Reporte de cobertura
 | `/catalog/categories` | `CategoriesPage` | JWT |
 | `/catalog/brands` | `BrandsPage` | JWT |
 | `/catalog/suppliers` | `SuppliersPage` | JWT |
+| `/catalog/tags` | `TagsPage` | JWT |
 | `/purchase-orders` | `PurchaseOrdersPage` | JWT |
+| `/sale-orders` | `SaleOrdersPage` | JWT |
 | `/reports` | `ReportsPage` | JWT |
+| `/admin/users` | `UsersPage` | JWT + ADMIN |
+| `/settings` | `SettingsPage` | JWT + ADMIN |
+| `/audit-logs` | `AuditLogsPage` | JWT + ADMIN |
 
-Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>` que redirige a `/auth/login` si no hay sesión activa.
+Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>`. Las rutas admin muestran su enlace solo si el usuario es `ADMIN` mediante un menú desplegable en la barra de navegación.
 
 ---
 
@@ -135,36 +165,60 @@ Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>` que redirig
 
 ### Dashboard
 
-- 4 KPI cards clickeables: Total productos, Productos activos, Stock bajo (alerta naranja), Categorías
+- 4 KPI cards: Total productos, Productos activos, Stock bajo, Categorías
 - Valor total del inventario con enlace a reportes
 - Gráfico de barras dual (stock + valor) por categoría
-- Panel de alertas con los productos en stock bajo/agotado
+- Panel de alertas con productos en stock bajo/agotado
 
 ### Catálogo de productos
 
-- Tabla paginada con filtros (búsqueda, categoría, estado, marca)
-- Acciones por fila: ver detalles (modal), historial de movimientos, editar, eliminar / restaurar
-- Modal de detalle con todos los campos, imagen y badge de stock
-- Formulario de creación/edición con previsualización de imagen y generador de SKU
-- Importación masiva por CSV
-- Movimiento manual de stock (modal)
-- Ajuste masivo de stock por selección múltiple
+- Tabla paginada con filtros: búsqueda, categoría, **etiqueta**, estado
+- Formulario de creación/edición con selector de **etiquetas** (multi-toggle con colores)
+- Generador de SKU automático
+- Importación masiva CSV/JSON; exportación CSV/JSON
+- Movimiento manual de stock y ajuste masivo por selección múltiple
+- Historial de movimientos con gráfico de evolución y exportación CSV
+- Historial de precios con gráfico de área
 
-### Reportes
+### Etiquetas
 
-- KPIs: total productos, activos, bajo stock, valor del inventario
-- Gráfico de barras horizontal: valor por categoría
-- Gráfico de pastel: distribución de stock
-- Gráfico de barras agrupado: movimientos por mes (entradas / salidas / ajustes)
-- Top 10 productos por valor de stock
-- Tabla de productos con stock bajo o agotado
+- CRUD de etiquetas con selector de 10 colores predefinidos
+- Las etiquetas aparecen en el formulario de producto y en el filtro de listado
+
+### Órdenes de venta
+
+- Listado de órdenes con estado (`PENDING`, `SHIPPED`, `CANCELLED`)
+- Crear orden con datos del cliente e ítems (enlazados o manuales)
+- Marcar como enviada (descuenta stock en backend), cancelar, eliminar
+- Exportar CSV con todos los ítems
 
 ### Órdenes de compra
 
-- Listado de órdenes con estado (`PENDING`, `RECEIVED`, `CANCELLED`)
-- Crear orden con proveedor e ítems
-- Marcar como recibida (actualiza stock automáticamente en el backend)
-- Cancelar y eliminar órdenes
+- Igual que antes + botón **Exportar CSV**
+
+### Reportes
+
+- KPIs, gráficos de valor/stock por categoría, movimientos por mes
+- Top 10 por valor, alertas de bajo stock
+- **Tabla de métricas de rotación**: salidas 30d, velocidad diaria, días hasta desabastecimiento
+- Botón **Descargar PDF** (genera reporte completo en servidor)
+
+### Gestión de usuarios (ADMIN)
+
+- Tabla paginada con búsqueda y filtros por rol/estado
+- Cambio de rol inline (ADMIN ↔ USER)
+- Activar/desactivar cuenta (con protección self-action)
+
+### Configuración (ADMIN)
+
+- Toggles y campos para cada opción de la app
+- Primer ítem: **Alertas de bajo stock por correo** (desactivado por defecto)
+- Guardado en lote con un solo botón "Guardar cambios"
+
+### Auditoría (ADMIN)
+
+- Tabla paginada de registros con filtros por acción y entidad
+- Muestra usuario, entidad afectada, fecha y detalles expandibles (JSON)
 
 ### Perfil
 
@@ -177,8 +231,8 @@ Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>` que redirig
 
 | Componente | Descripción |
 |---|---|
-| `Badge` | Chip de estado con variantes `success`, `danger`, `orange`, `blue`, `gray` |
-| `Button` | Botón con variantes `primary`, `ghost`, `danger` y estado `isLoading` |
+| `Badge` | Chip de estado con variantes `success`, `danger`, `orange`, `blue`, `purple`, `teal`, `gray` |
+| `Button` | Botón con variantes `primary`, `secondary`, `ghost`, `danger` y estado `isLoading` |
 | `DropdownButton` | Botón con menú desplegable de acciones |
 | `Input` | Campo de texto con label, error y forwarded ref |
 | `Select` | Select nativo con label, error y forwarded ref |

@@ -18,6 +18,10 @@ const toFormData = (dto: CreateProductDto | UpdateProductDto): FormData => {
     const form = new FormData();
     Object.entries(dto).forEach(([key, value]) => {
         if (value === undefined) return;
+        if (key === "tagIds") {
+            (value as string[]).forEach((id) => form.append("tagIds", id));
+            return;
+        }
         if (typeof value === "boolean" && !value) return;
         form.append(key, value instanceof File ? value : String(value));
     });
@@ -86,4 +90,11 @@ export const createManualMovement = async (productId: string, dto: CreateManualM
 export const bulkUpdateStock = async (dto: BulkStockDto): Promise<Array<{ productId: string; success: boolean; error?: string }>> => {
     const { data } = await api.patch<ApiResponse<Array<{ productId: string; success: boolean; error?: string }>>>("/products/bulk-stock", dto);
     return data.data!;
+};
+
+export const exportProductMovementsCsv = (productId: string): void => {
+    const a = document.createElement("a");
+    a.href = `${api.defaults.baseURL}/products/${productId}/movements/export?format=csv`;
+    a.download = `stockly-movimientos-${productId.slice(0, 8)}-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
 };

@@ -28,3 +28,10 @@ export const updatePurchaseOrder = async (
 export const deletePurchaseOrder = async (id: string): Promise<void> => {
     await api.delete(`/purchase-orders/${id}`);
 };
+
+export const exportPurchaseOrdersCsv = (): void => {
+    const a = document.createElement("a");
+    a.href = `${api.defaults.baseURL}/purchase-orders/export?format=csv`;
+    a.download = `stockly-compras-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+};
