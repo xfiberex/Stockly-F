@@ -1,39 +1,56 @@
+import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "@/App";
-import DashboardPage from "@/modules/dashboard/components/DashboardPage";
-import ProductsPage from "@/modules/products/components/ProductsPage";
-import StockMovementsPage from "@/modules/products/components/StockMovementsPage";
-import ProfilePage from "@/modules/auth/components/ProfilePage";
-import CatalogPage from "@/modules/catalog/components/CatalogPage";
-import CategoriesPage from "@/modules/catalog/components/CategoriesPage";
-import BrandsPage from "@/modules/catalog/components/BrandsPage";
-import SuppliersPage from "@/modules/suppliers/components/SuppliersPage";
-import TagsPage from "@/modules/tags/components/TagsPage";
-import ReportsPage from "@/modules/reports/components/ReportsPage";
-import PurchaseOrdersPage from "@/modules/purchase-orders/components/PurchaseOrdersPage";
-import SaleOrdersPage from "@/modules/sale-orders/components/SaleOrdersPage";
-import UsersPage from "@/modules/users/components/UsersPage";
-import SettingsPage from "@/modules/settings/components/SettingsPage";
-import AuditLogsPage from "@/modules/audit-logs/components/AuditLogsPage";
 import NotFoundPage from "@/shared/components/NotFoundPage";
 import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
-import LoginPage from "@/modules/auth/components/LoginPage";
-import RegisterPage from "@/modules/auth/components/RegisterPage";
-import ForgotPasswordPage from "@/modules/auth/components/ForgotPasswordPage";
-import ResetPasswordPage from "@/modules/auth/components/ResetPasswordPage";
-import VerifyEmailPage from "@/modules/auth/components/VerifyEmailPage";
-import ResendVerificationPage from "@/modules/auth/components/ResendVerificationPage";
+import { Spinner } from "@/shared/components/Spinner";
+
+const LoginPage = lazy(() => import("@/modules/auth/components/LoginPage"));
+const RegisterPage = lazy(() => import("@/modules/auth/components/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("@/modules/auth/components/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/modules/auth/components/ResetPasswordPage"));
+const VerifyEmailPage = lazy(() => import("@/modules/auth/components/VerifyEmailPage"));
+const ResendVerificationPage = lazy(() => import("@/modules/auth/components/ResendVerificationPage"));
+
+const DashboardPage = lazy(() => import("@/modules/dashboard/components/DashboardPage"));
+const ProfilePage = lazy(() => import("@/modules/auth/components/ProfilePage"));
+const ReportsPage = lazy(() => import("@/modules/reports/components/ReportsPage"));
+const PurchaseOrdersPage = lazy(() => import("@/modules/purchase-orders/components/PurchaseOrdersPage"));
+const SaleOrdersPage = lazy(() => import("@/modules/sale-orders/components/SaleOrdersPage"));
+const AuditLogsPage = lazy(() => import("@/modules/audit-logs/components/AuditLogsPage"));
+const SettingsPage = lazy(() => import("@/modules/settings/components/SettingsPage"));
+const UsersPage = lazy(() => import("@/modules/users/components/UsersPage"));
+
+const CatalogPage = lazy(() => import("@/modules/catalog/components/CatalogPage"));
+const ProductsPage = lazy(() => import("@/modules/products/components/ProductsPage"));
+const StockMovementsPage = lazy(() => import("@/modules/products/components/StockMovementsPage"));
+const CategoriesPage = lazy(() => import("@/modules/catalog/components/CategoriesPage"));
+const BrandsPage = lazy(() => import("@/modules/catalog/components/BrandsPage"));
+const SuppliersPage = lazy(() => import("@/modules/suppliers/components/SuppliersPage"));
+const TagsPage = lazy(() => import("@/modules/tags/components/TagsPage"));
+
+function PageLoader() {
+    return (
+        <div className="flex items-center justify-center h-64">
+            <Spinner size="lg" />
+        </div>
+    );
+}
+
+function S({ children }: { children: ReactNode }) {
+    return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
 
 export const router = createBrowserRouter([
     {
         path: "/auth",
         children: [
-            { path: "login", element: <LoginPage /> },
-            { path: "register", element: <RegisterPage /> },
-            { path: "forgot-password", element: <ForgotPasswordPage /> },
-            { path: "reset-password", element: <ResetPasswordPage /> },
-            { path: "confirm-account", element: <VerifyEmailPage /> },
-            { path: "resend-verification", element: <ResendVerificationPage /> },
+            { path: "login", element: <S><LoginPage /></S> },
+            { path: "register", element: <S><RegisterPage /></S> },
+            { path: "forgot-password", element: <S><ForgotPasswordPage /></S> },
+            { path: "reset-password", element: <S><ResetPasswordPage /></S> },
+            { path: "confirm-account", element: <S><VerifyEmailPage /></S> },
+            { path: "resend-verification", element: <S><ResendVerificationPage /></S> },
             { index: true, element: <Navigate to="/auth/login" replace /> },
         ],
     },
@@ -45,30 +62,30 @@ export const router = createBrowserRouter([
             </ProtectedRoute>
         ),
         children: [
-            { index: true, element: <DashboardPage /> },
-            { path: "profile", element: <ProfilePage /> },
-            { path: "reports", element: <ReportsPage /> },
-            { path: "purchase-orders", element: <PurchaseOrdersPage /> },
-            { path: "sale-orders", element: <SaleOrdersPage /> },
-            { path: "audit-logs", element: <AuditLogsPage /> },
-            { path: "settings", element: <SettingsPage /> },
+            { index: true, element: <S><DashboardPage /></S> },
+            { path: "profile", element: <S><ProfilePage /></S> },
+            { path: "reports", element: <S><ReportsPage /></S> },
+            { path: "purchase-orders", element: <S><PurchaseOrdersPage /></S> },
+            { path: "sale-orders", element: <S><SaleOrdersPage /></S> },
+            { path: "audit-logs", element: <S><AuditLogsPage /></S> },
+            { path: "settings", element: <S><SettingsPage /></S> },
             {
                 path: "admin",
                 children: [
-                    { path: "users", element: <UsersPage /> },
+                    { path: "users", element: <S><UsersPage /></S> },
                 ],
             },
             {
                 path: "catalog",
-                element: <CatalogPage />,
+                element: <S><CatalogPage /></S>,
                 children: [
                     { index: true, element: <Navigate to="/catalog/products" replace /> },
-                    { path: "products", element: <ProductsPage /> },
-                    { path: "products/:id/movements", element: <StockMovementsPage /> },
-                    { path: "categories", element: <CategoriesPage /> },
-                    { path: "brands", element: <BrandsPage /> },
-                    { path: "suppliers", element: <SuppliersPage /> },
-                    { path: "tags", element: <TagsPage /> },
+                    { path: "products", element: <S><ProductsPage /></S> },
+                    { path: "products/:id/movements", element: <S><StockMovementsPage /></S> },
+                    { path: "categories", element: <S><CategoriesPage /></S> },
+                    { path: "brands", element: <S><BrandsPage /></S> },
+                    { path: "suppliers", element: <S><SuppliersPage /></S> },
+                    { path: "tags", element: <S><TagsPage /></S> },
                 ],
             },
             { path: "*", element: <NotFoundPage /> },

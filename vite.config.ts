@@ -16,6 +16,18 @@ export default defineConfig(({ mode }) => ({
             "@": path.resolve(__dirname, "./src"),
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id: string) {
+                    if (id.includes("recharts")) return "vendor-charts";
+                    if (id.includes("react-router")) return "vendor-router";
+                    if (id.includes("@tanstack")) return "vendor-query";
+                    if (id.includes("node_modules")) return "vendor";
+                },
+            },
+        },
+    },
     test: {
         globals: true,
         environment: "jsdom",
