@@ -35,10 +35,23 @@ export interface LowStockProduct {
     category: string | null;
 }
 
+export interface StockMetric {
+    productId: string;
+    productName: string;
+    sku: string | null;
+    totalOutLast30Days: number;
+    currentStock: number;
+    minStock: number;
+    dailyVelocity: number;
+    daysToStockout: number | null;
+    reorderSoon: boolean;
+}
+
 export interface ReportSummary {
     totals: ReportTotals;
     stockByCategory: StockByCategory[];
     topByValue: TopProduct[];
     movementsByMonth: MovementByMonth[];
     lowStockProducts: LowStockProduct[];
+    stockMetrics: StockMetric[];
 }

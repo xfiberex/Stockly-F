@@ -13,6 +13,12 @@ export interface SupplierRef {
     name: string;
 }
 
+export interface TagRef {
+    id: string;
+    name: string;
+    color: string | null;
+}
+
 export interface Product {
     id: string;
     name: string;
@@ -24,6 +30,7 @@ export interface Product {
     category: CategoryRef | null;
     brand: BrandRef | null;
     supplier: SupplierRef | null;
+    tags: TagRef[];
     imageUrl?: string;
     imagePublicId?: string;
     isActive: boolean;
@@ -41,6 +48,7 @@ export interface CreateProductDto {
     categoryId?: string;
     brandId?: string;
     supplierId?: string;
+    tagIds?: string[];
     image?: File;
 }
 
@@ -54,6 +62,7 @@ export interface UpdateProductDto {
     categoryId?: string;
     brandId?: string;
     supplierId?: string;
+    tagIds?: string[];
     image?: File;
     removeImage?: boolean;
 }
@@ -65,6 +74,7 @@ export interface ProductQuery {
     categoryId?: string;
     brandId?: string;
     supplierId?: string;
+    tagId?: string;
     isActive?: boolean;
 }
 

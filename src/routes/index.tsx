@@ -8,8 +8,13 @@ import CatalogPage from "@/modules/catalog/components/CatalogPage";
 import CategoriesPage from "@/modules/catalog/components/CategoriesPage";
 import BrandsPage from "@/modules/catalog/components/BrandsPage";
 import SuppliersPage from "@/modules/suppliers/components/SuppliersPage";
+import TagsPage from "@/modules/tags/components/TagsPage";
 import ReportsPage from "@/modules/reports/components/ReportsPage";
 import PurchaseOrdersPage from "@/modules/purchase-orders/components/PurchaseOrdersPage";
+import SaleOrdersPage from "@/modules/sale-orders/components/SaleOrdersPage";
+import UsersPage from "@/modules/users/components/UsersPage";
+import SettingsPage from "@/modules/settings/components/SettingsPage";
+import AuditLogsPage from "@/modules/audit-logs/components/AuditLogsPage";
 import NotFoundPage from "@/shared/components/NotFoundPage";
 import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
 import LoginPage from "@/modules/auth/components/LoginPage";
@@ -44,6 +49,15 @@ export const router = createBrowserRouter([
             { path: "profile", element: <ProfilePage /> },
             { path: "reports", element: <ReportsPage /> },
             { path: "purchase-orders", element: <PurchaseOrdersPage /> },
+            { path: "sale-orders", element: <SaleOrdersPage /> },
+            { path: "audit-logs", element: <AuditLogsPage /> },
+            { path: "settings", element: <SettingsPage /> },
+            {
+                path: "admin",
+                children: [
+                    { path: "users", element: <UsersPage /> },
+                ],
+            },
             {
                 path: "catalog",
                 element: <CatalogPage />,
@@ -54,6 +68,7 @@ export const router = createBrowserRouter([
                     { path: "categories", element: <CategoriesPage /> },
                     { path: "brands", element: <BrandsPage /> },
                     { path: "suppliers", element: <SuppliersPage /> },
+                    { path: "tags", element: <TagsPage /> },
                 ],
             },
             { path: "*", element: <NotFoundPage /> },

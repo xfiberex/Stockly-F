@@ -5,12 +5,15 @@ import {
 } from "recharts";
 import { Spinner } from "@/shared/components/Spinner";
 import { Badge } from "@/shared/components/Badge";
+import { Button } from "@/shared/components/Button";
 import { useReports } from "@/modules/reports/hooks/useReports";
+import { downloadReportPdf } from "@/modules/reports/api/reports.api";
 import {
     CubeIcon,
     CurrencyDollarIcon,
     ExclamationTriangleIcon,
     CheckCircleIcon,
+    ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
@@ -28,7 +31,7 @@ export default function ReportsPage() {
 
     if (!data) return null;
 
-    const { totals, stockByCategory, topByValue, movementsByMonth, lowStockProducts } = data;
+    const { totals, stockByCategory, topByValue, movementsByMonth, lowStockProducts, stockMetrics } = data;
 
     // Consolidar movimientos por mes para el chart
     const fmtMonth = (m: string) => {
@@ -46,9 +49,15 @@ export default function ReportsPage() {
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
-                <p className="text-sm text-gray-500 mt-1">Análisis completo del inventario</p>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
+                    <p className="text-sm text-gray-500 mt-1">Análisis completo del inventario</p>
+                </div>
+                <Button variant="secondary" onClick={downloadReportPdf}>
+                    <ArrowDownTrayIcon className="h-4 w-4" />
+                    Descargar PDF
+                </Button>
             </div>
 
             {/* KPIs */}
@@ -220,6 +229,64 @@ export default function ReportsPage() {
                                     </td>
                                 </tr>
                             ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Métricas de rotación de stock */}
+            {stockMetrics?.filter((m) => m.totalOutLast30Days > 0).length > 0 && (
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100">
+                        <h2 className="text-base font-semibold text-gray-900">Rotación de stock — últimos 30 días</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">Solo productos con movimientos de salida</p>
+                    </div>
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                            <tr>
+                                <th className="px-6 py-3">Producto</th>
+                                <th className="px-6 py-3 text-right">Salidas (30d)</th>
+                                <th className="px-6 py-3 text-right">Vel. diaria</th>
+                                <th className="px-6 py-3 text-right">Stock actual</th>
+                                <th className="px-6 py-3 text-right">Días restantes</th>
+                                <th className="px-6 py-3">Alerta</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {stockMetrics
+                                .filter((m) => m.totalOutLast30Days > 0)
+                                .map((m) => (
+                                    <tr key={m.productId} className={m.reorderSoon ? "bg-amber-50/40 hover:bg-amber-50" : "hover:bg-gray-50"}>
+                                        <td className="px-6 py-3">
+                                            <Link
+                                                to={`/catalog/products/${m.productId}/movements`}
+                                                className="font-medium text-gray-900 hover:text-blue-600"
+                                            >
+                                                {m.productName}
+                                            </Link>
+                                            {m.sku && <div className="text-xs text-gray-400 font-mono">{m.sku}</div>}
+                                        </td>
+                                        <td className="px-6 py-3 text-right text-gray-700">{m.totalOutLast30Days}</td>
+                                        <td className="px-6 py-3 text-right text-gray-600">{m.dailyVelocity.toFixed(2)}/día</td>
+                                        <td className="px-6 py-3 text-right font-semibold text-gray-900">{m.currentStock}</td>
+                                        <td className="px-6 py-3 text-right">
+                                            {m.daysToStockout !== null ? (
+                                                <span className={m.daysToStockout <= 7 ? "font-semibold text-red-600" : m.daysToStockout <= 14 ? "font-medium text-orange-500" : "text-gray-600"}>
+                                                    {m.daysToStockout} días
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400">—</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            {m.reorderSoon ? (
+                                                <Badge variant="orange">Reabastecer pronto</Badge>
+                                            ) : (
+                                                <span className="text-gray-400 text-xs">—</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
                         </tbody>
                     </table>
                 </div>

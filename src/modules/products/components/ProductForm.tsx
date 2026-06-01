@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { SparklesIcon } from "@heroicons/react/24/outline";
+import { SparklesIcon, TagIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
@@ -13,6 +13,7 @@ import { useUpdateProduct } from "@/modules/products/hooks/useUpdateProduct";
 import { useCategories } from "@/modules/catalog/hooks/useCategories";
 import { useBrands } from "@/modules/catalog/hooks/useBrands";
 import { useSuppliers } from "@/modules/suppliers/hooks/useSuppliers";
+import { useTags } from "@/modules/tags/hooks/useTags";
 import type { Product } from "@/modules/products/types/product.types";
 import type { Resolver } from "react-hook-form";
 
@@ -28,10 +29,12 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
     const updateMutation = useUpdateProduct();
     const isPending = createMutation.isPending || updateMutation.isPending;
     const [removeImage, setRemoveImage] = useState(false);
+    const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
     const { data: categories = [] } = useCategories();
     const { data: brands = [] } = useBrands();
     const { data: suppliers = [] } = useSuppliers();
+    const { data: tags = [] } = useTags();
 
     const categoryOptions = [
         { value: "", label: "Sin categoría" },
@@ -45,6 +48,12 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
         { value: "", label: "Sin proveedor" },
         ...suppliers.map((s) => ({ value: s.id, label: s.name })),
     ];
+
+    const toggleTag = (id: string) => {
+        setSelectedTagIds((prev) =>
+            prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
+        );
+    };
 
     const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<CreateProductFormData>({
         resolver: zodResolver(isEditing ? updateProductSchema : createProductSchema) as Resolver<CreateProductFormData>,
@@ -92,8 +101,10 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                 brandId: product.brand?.id ?? "",
                 supplierId: product.supplier?.id ?? "",
             });
+            setSelectedTagIds(product.tags?.map((t) => t.id) ?? []);
         } else {
             reset({});
+            setSelectedTagIds([]);
         }
     }, [product, reset]);
 
@@ -104,16 +115,17 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
             categoryId: formData.categoryId || undefined,
             brandId: formData.brandId || undefined,
             supplierId: formData.supplierId || undefined,
+            tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
         };
 
         if (isEditing) {
             updateMutation.mutate(
-                { id: product.id, dto: { ...normalized, removeImage } },
-                { onSuccess: () => { onClose(); reset({}); setRemoveImage(false); } },
+                { id: product.id, dto: { ...normalized, tagIds: selectedTagIds, removeImage } },
+                { onSuccess: () => { onClose(); reset({}); setRemoveImage(false); setSelectedTagIds([]); } },
             );
         } else {
             createMutation.mutate(normalized, {
-                onSuccess: () => { onClose(); reset({}); },
+                onSuccess: () => { onClose(); reset({}); setSelectedTagIds([]); },
             });
         }
     };
@@ -206,6 +218,38 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                     error={errors.supplierId?.message}
                     {...register("supplierId")}
                 />
+                {tags.length > 0 && (
+                    <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                            <TagIcon className="h-3.5 w-3.5 text-gray-400" />
+                            Etiquetas
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {tags.map((tag) => {
+                                const isSelected = selectedTagIds.includes(tag.id);
+                                return (
+                                    <button
+                                        key={tag.id}
+                                        type="button"
+                                        onClick={() => toggleTag(tag.id)}
+                                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-all ${
+                                            isSelected
+                                                ? "border-transparent text-white"
+                                                : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
+                                        }`}
+                                        style={isSelected ? { backgroundColor: tag.color ?? "#6366f1" } : {}}
+                                    >
+                                        <span
+                                            className="h-2 w-2 rounded-full"
+                                            style={{ backgroundColor: isSelected ? "rgba(255,255,255,0.6)" : (tag.color ?? "#94a3b8") }}
+                                        />
+                                        {tag.name}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
                 <ProductImageUpload
                     currentImageUrl={removeImage ? undefined : product?.imageUrl}
                     onChange={(file) => setValue("image", file)}
