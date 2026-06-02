@@ -1,18 +1,18 @@
 import { useState, useRef, useEffect } from "react";
-import { Outlet, NavLink, Link, useMatch, useLocation } from "react-router-dom";
+import { Outlet, NavLink, Link, useLocation } from "react-router-dom";
 import {
     CubeIcon,
     UserCircleIcon,
     ChevronDownIcon,
     ArrowRightOnRectangleIcon,
     ShieldCheckIcon,
-    ChevronRightIcon,
     ClipboardDocumentListIcon,
     Squares2X2Icon,
     HomeIcon,
     ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
+import { NavDropdown } from "@/shared/components/NavDropdown";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 
@@ -39,155 +39,6 @@ const adminLinks = [
     { to: "/audit-logs", label: "Auditoría" },
     { to: "/settings", label: "Configuración" },
 ];
-
-function CatalogMenu() {
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-    const { pathname } = useLocation();
-    const isActive = pathname.startsWith("/catalog");
-
-    useEffect(() => {
-        function handle(e: MouseEvent) {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        }
-        document.addEventListener("mousedown", handle);
-        return () => document.removeEventListener("mousedown", handle);
-    }, []);
-
-    return (
-        <div ref={ref} className="relative">
-            <button
-                onClick={() => setOpen((o) => !o)}
-                className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                    isActive || open ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-100",
-                )}
-            >
-                <Squares2X2Icon className="h-3.5 w-3.5" />
-                Catálogo
-                <ChevronRightIcon className={cn("h-3 w-3 transition-transform", open && "rotate-90")} />
-            </button>
-            {open && (
-                <div className="absolute left-0 top-full mt-1.5 w-40 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
-                    {catalogLinks.map(({ to, label }) => (
-                        <NavLink
-                            key={to}
-                            to={to}
-                            onClick={() => setOpen(false)}
-                            className={({ isActive }) =>
-                                cn(
-                                    "block px-3.5 py-2 text-sm transition-colors",
-                                    isActive ? "text-blue-700 bg-blue-50" : "text-gray-700 hover:bg-gray-50",
-                                )
-                            }
-                        >
-                            {label}
-                        </NavLink>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
-
-function OrdersMenu() {
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-    const matchPurchase = useMatch("/purchase-orders");
-    const matchSale = useMatch("/sale-orders");
-    const isActive = !!(matchPurchase || matchSale);
-
-    useEffect(() => {
-        function handle(e: MouseEvent) {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        }
-        document.addEventListener("mousedown", handle);
-        return () => document.removeEventListener("mousedown", handle);
-    }, []);
-
-    return (
-        <div ref={ref} className="relative">
-            <button
-                onClick={() => setOpen((o) => !o)}
-                className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                    isActive || open ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-100",
-                )}
-            >
-                <ClipboardDocumentListIcon className="h-3.5 w-3.5" />
-                Órdenes
-                <ChevronRightIcon className={cn("h-3 w-3 transition-transform", open && "rotate-90")} />
-            </button>
-            {open && (
-                <div className="absolute left-0 top-full mt-1.5 w-36 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
-                    {orderLinks.map(({ to, label }) => (
-                        <NavLink
-                            key={to}
-                            to={to}
-                            onClick={() => setOpen(false)}
-                            className={({ isActive }) =>
-                                cn(
-                                    "block px-3.5 py-2 text-sm transition-colors",
-                                    isActive ? "text-blue-700 bg-blue-50" : "text-gray-700 hover:bg-gray-50",
-                                )
-                            }
-                        >
-                            {label}
-                        </NavLink>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
-
-function AdminMenu() {
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        function handle(e: MouseEvent) {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        }
-        document.addEventListener("mousedown", handle);
-        return () => document.removeEventListener("mousedown", handle);
-    }, []);
-
-    return (
-        <div ref={ref} className="relative">
-            <button
-                onClick={() => setOpen((o) => !o)}
-                className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                    open ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-100",
-                )}
-            >
-                <ShieldCheckIcon className="h-3.5 w-3.5" />
-                Admin
-                <ChevronRightIcon className={cn("h-3 w-3 transition-transform", open && "rotate-90")} />
-            </button>
-            {open && (
-                <div className="absolute left-0 top-full mt-1.5 w-44 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
-                    {adminLinks.map(({ to, label }) => (
-                        <NavLink
-                            key={to}
-                            to={to}
-                            onClick={() => setOpen(false)}
-                            className={({ isActive }) =>
-                                cn(
-                                    "block px-3.5 py-2 text-sm transition-colors",
-                                    isActive ? "text-blue-700 bg-blue-50" : "text-gray-700 hover:bg-gray-50",
-                                )
-                            }
-                        >
-                            {label}
-                        </NavLink>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
 
 function UserMenu({ name }: { name: string }) {
     const [open, setOpen] = useState(false);
@@ -250,6 +101,10 @@ function UserMenu({ name }: { name: string }) {
 function App() {
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
+    const { pathname } = useLocation();
+
+    const catalogActive = pathname.startsWith("/catalog");
+    const ordersActive = pathname === "/purchase-orders" || pathname === "/sale-orders";
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -276,8 +131,8 @@ function App() {
                                 {label}
                             </NavLink>
                         ))}
-                        <CatalogMenu />
-                        <OrdersMenu />
+                        <NavDropdown label="Catálogo" Icon={Squares2X2Icon} items={catalogLinks} isActive={catalogActive} width="w-40" />
+                        <NavDropdown label="Órdenes" Icon={ClipboardDocumentListIcon} items={orderLinks} isActive={ordersActive} width="w-36" />
                         {navLinks.slice(1).map(({ to, label, end, Icon }) => (
                             <NavLink
                                 key={to}
@@ -294,7 +149,7 @@ function App() {
                                 {label}
                             </NavLink>
                         ))}
-                        {isAdmin && <AdminMenu />}
+                        {isAdmin && <NavDropdown label="Admin" Icon={ShieldCheckIcon} items={adminLinks} width="w-44" />}
                     </div>
                     {user && <UserMenu name={user.name} />}
                 </div>

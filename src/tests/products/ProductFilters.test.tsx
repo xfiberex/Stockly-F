@@ -2,11 +2,16 @@ import { render, screen, act, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProductFilters } from "@/modules/products/components/ProductFilters";
 
-// ProductFilters ahora usa useCategories para cargar categorías dinámicas
+// ProductFilters usa useCategories para cargar categorías dinámicas
 vi.mock("@/modules/catalog/hooks/useCategories", () => ({
     useCategories: () => ({
         data: [{ id: "cat-electronica", name: "Electrónica" }],
     }),
+}));
+
+// ...y useTags para el filtro por etiqueta (vacío => no se renderiza ese select)
+vi.mock("@/modules/tags/hooks/useTags", () => ({
+    useTags: () => ({ data: [] }),
 }));
 
 describe("ProductFilters", () => {
