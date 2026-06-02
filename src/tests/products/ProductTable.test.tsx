@@ -49,6 +49,7 @@ const makeProduct = (overrides: Partial<Product> = {}): Product => ({
     category: { id: "cat-1", name: "Electrónica" },
     brand: null,
     supplier: null,
+    tags: [],
     isActive: true,
     createdAt: "2024-01-01T00:00:00Z",
     updatedAt: "2024-01-01T00:00:00Z",
@@ -154,11 +155,12 @@ describe("ProductTable", () => {
         expect(screen.getByText("10")).not.toHaveClass("text-orange-600");
     });
 
-    it("muestra N/A cuando el producto no tiene imagen", () => {
+    it("muestra un placeholder (sin imagen) cuando el producto no tiene imageUrl", () => {
         renderWithProviders(
             <ProductTable products={[makeProduct({ imageUrl: undefined })]} isLoading={false} onEdit={vi.fn()} />,
         );
-        expect(screen.getByText("N/A")).toBeInTheDocument();
+        // El componente renderiza un icono placeholder en lugar de un <img>
+        expect(screen.queryByRole("img")).not.toBeInTheDocument();
     });
 
     it("muestra la imagen cuando el producto tiene imageUrl", () => {

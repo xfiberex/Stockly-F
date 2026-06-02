@@ -17,6 +17,25 @@ const api = axios.create({
     headers: { "Content-Type": "application/json" },
 });
 
+// Lee la cookie csrfToken (no httpOnly) que emite el backend al iniciar sesión.
+function readCookie(name: string): string | undefined {
+    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+const SAFE_METHODS = new Set(["get", "head", "options"]);
+
+// Protección CSRF double-submit: reenvía el token de la cookie como cabecera
+// en toda petición que muta estado.
+api.interceptors.request.use((config) => {
+    const method = (config.method ?? "get").toLowerCase();
+    if (!SAFE_METHODS.has(method)) {
+        const csrf = readCookie("csrfToken");
+        if (csrf) config.headers.set("x-csrf-token", csrf);
+    }
+    return config;
+});
+
 // Cola de peticiones que llegaron mientras se estaba renovando el token
 type QueueEntry = { resolve: () => void; reject: (err: unknown) => void };
 let isRefreshing = false;
