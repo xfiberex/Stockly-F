@@ -124,7 +124,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-1.5">
-                                        <span className={isLowStock ? "text-orange-600 font-semibold" : "text-gray-700"}>
+                                        <span className={isLowStock ? "text-orange-700 font-semibold" : "text-gray-700"}>
                                             {product.stock}
                                         </span>
                                         {isLowStock && (

@@ -145,14 +145,14 @@ describe("ProductTable", () => {
         renderWithProviders(
             <ProductTable products={[makeProduct({ stock: 2, minStock: 5 })]} isLoading={false} onEdit={vi.fn()} />,
         );
-        expect(screen.getByText("2")).toHaveClass("text-orange-600");
+        expect(screen.getByText("2")).toHaveClass("text-orange-700");
     });
 
     it("no aplica estilo de alerta cuando stock es mayor al stock mínimo", () => {
         renderWithProviders(
             <ProductTable products={[makeProduct({ stock: 10, minStock: 3 })]} isLoading={false} onEdit={vi.fn()} />,
         );
-        expect(screen.getByText("10")).not.toHaveClass("text-orange-600");
+        expect(screen.getByText("10")).not.toHaveClass("text-orange-700");
     });
 
     it("muestra un placeholder (sin imagen) cuando el producto no tiene imageUrl", () => {

@@ -35,6 +35,17 @@ describe("toCsv", () => {
         const mouseRow = csv.split("\n")[2];
         expect(mouseRow).toMatch(/^Mouse Gamer,,/);
     });
+
+    it("neutraliza inyección de fórmulas anteponiendo un apóstrofo", () => {
+        const malicious: ExportedProduct[] = [
+            { name: "=HYPERLINK(0)", description: "+cmd", price: 10, stock: 1, categoryName: "@x", brandName: "-2", supplierName: null, isActive: true },
+        ];
+        const row = toCsv(malicious).split("\n")[1];
+        expect(row).toContain("'=HYPERLINK(0)");
+        expect(row).toContain("'+cmd");
+        expect(row).toContain("'@x");
+        expect(row).toContain("'-2");
+    });
 });
 
 describe("parseCsv", () => {
