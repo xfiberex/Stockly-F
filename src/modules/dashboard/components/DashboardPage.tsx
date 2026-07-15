@@ -1,4 +1,4 @@
-import { useProducts } from "@/modules/products/hooks/useProducts";
+import { useReports } from "@/modules/reports/hooks/useReports";
 import { Spinner } from "@/shared/components/Spinner";
 import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -11,9 +11,9 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function DashboardPage() {
-    const { data, isLoading } = useProducts({ limit: 100, page: 1 });
+    const { data, isLoading } = useReports();
 
-    if (isLoading) {
+    if (isLoading || !data) {
         return (
             <div className="flex justify-center py-32">
                 <Spinner size="lg" />
@@ -21,21 +21,8 @@ export default function DashboardPage() {
         );
     }
 
-    const products = data?.data ?? [];
-    const total = data?.meta.total ?? 0;
-    const activeCount = products.filter((p) => p.isActive).length;
-    const lowStockCount = products.filter((p) => p.stock <= (p.minStock ?? 0) && p.isActive).length;
-    const categories = [...new Set(products.map((p) => p.category?.name).filter(Boolean))];
-    const inventoryValue = products.reduce((sum, p) => sum + Number(p.price) * p.stock, 0);
-
-    const stockByCategory = categories.map((cat) => {
-        const catProducts = products.filter((p) => p.category?.name === cat);
-        return {
-            name: cat,
-            stock: catProducts.reduce((sum, p) => sum + p.stock, 0),
-            valor: catProducts.reduce((sum, p) => sum + Number(p.price) * p.stock, 0),
-        };
-    });
+    const { totals, stockByCategory, lowStockProducts } = data;
+    const lowStockCount = totals.lowStockCount;
 
     const stats: {
         label: string;
@@ -46,10 +33,10 @@ export default function DashboardPage() {
         to: string;
         highlight?: boolean;
     }[] = [
-        { label: "Total productos", value: total, bg: "bg-blue-50", text: "text-blue-600", Icon: CubeIcon, to: "/catalog/products" },
-        { label: "Productos activos", value: activeCount, bg: "bg-green-50", text: "text-green-600", Icon: CheckCircleIcon, to: "/catalog/products" },
+        { label: "Total productos", value: totals.totalProducts, bg: "bg-blue-50", text: "text-blue-600", Icon: CubeIcon, to: "/catalog/products" },
+        { label: "Productos activos", value: totals.activeProducts, bg: "bg-green-50", text: "text-green-600", Icon: CheckCircleIcon, to: "/catalog/products" },
         { label: "Stock bajo", value: lowStockCount, bg: "bg-orange-50", text: "text-orange-600", Icon: ExclamationTriangleIcon, to: "/reports", highlight: lowStockCount > 0 },
-        { label: "Categorías", value: categories.length, bg: "bg-purple-50", text: "text-purple-600", Icon: TagIcon, to: "/catalog/categories" },
+        { label: "Categorías", value: stockByCategory.length, bg: "bg-purple-50", text: "text-purple-600", Icon: TagIcon, to: "/catalog/categories" },
     ];
 
     return (
@@ -89,7 +76,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                     <p className="text-2xl font-bold text-gray-900">
-                        ${inventoryValue.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ${totals.inventoryValue.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                     <p className="text-sm text-gray-500">Valor total del inventario activo</p>
                 </div>
@@ -118,7 +105,7 @@ export default function DashboardPage() {
                             }
                         />
                         <Bar yAxisId="left" dataKey="stock" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Stock" />
-                        <Bar yAxisId="right" dataKey="valor" fill="#10b981" radius={[4, 4, 0, 0]} name="Valor" />
+                        <Bar yAxisId="right" dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} name="Valor" />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -133,22 +120,19 @@ export default function DashboardPage() {
                         </h2>
                     </div>
                     <div className="space-y-1">
-                        {products
-                            .filter((p) => p.stock <= (p.minStock ?? 0) && p.isActive)
-                            .slice(0, 5)
-                            .map((p) => (
-                                <div key={p.id} className="flex items-center justify-between text-sm">
-                                    <Link
-                                        to={`/catalog/products/${p.id}/movements`}
-                                        className="text-orange-700 hover:underline font-medium"
-                                    >
-                                        {p.name}
-                                    </Link>
-                                    <span className="text-orange-700 font-semibold tabular-nums">
-                                        {p.stock} uds. — mín. {p.minStock}
-                                    </span>
-                                </div>
-                            ))}
+                        {lowStockProducts.slice(0, 5).map((p) => (
+                            <div key={p.id} className="flex items-center justify-between text-sm">
+                                <Link
+                                    to={`/catalog/products/${p.id}/movements`}
+                                    className="text-orange-700 hover:underline font-medium"
+                                >
+                                    {p.name}
+                                </Link>
+                                <span className="text-orange-700 font-semibold tabular-nums">
+                                    {p.stock} uds. — mín. {p.minStock}
+                                </span>
+                            </div>
+                        ))}
                         {lowStockCount > 5 && (
                             <Link to="/reports" className="text-xs text-orange-700 hover:underline">
                                 Ver {lowStockCount - 5} más →

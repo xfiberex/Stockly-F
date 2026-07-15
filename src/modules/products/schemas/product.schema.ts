@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-const uuidOptional = z.string().uuid("Debe ser un UUID válido").optional();
+// Los <select> de categoría/marca/proveedor emiten "" cuando se elige "Sin …".
+// Se normaliza "" → undefined para que esas opciones (válidas) no fallen la
+// validación de UUID.
+const uuidOptional = z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.string().uuid("Debe ser un UUID válido").optional(),
+);
 
 export const createProductSchema = z.object({
     name: z.string().min(1, "El nombre es obligatorio").max(200, "Máximo 200 caracteres"),
