@@ -10,6 +10,8 @@ import {
     Squares2X2Icon,
     HomeIcon,
     ChartBarIcon,
+    Bars3Icon,
+    XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
 import { NavDropdown } from "@/shared/components/NavDropdown";
@@ -64,6 +66,9 @@ function UserMenu({ name }: { name: string }) {
         <div ref={ref} className="relative">
             <button
                 onClick={() => setOpen((o) => !o)}
+                aria-label="Menú de usuario"
+                aria-haspopup="menu"
+                aria-expanded={open}
                 className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-100 transition-colors"
             >
                 <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
@@ -74,9 +79,10 @@ function UserMenu({ name }: { name: string }) {
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
+                <div role="menu" className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
                     <Link
                         to="/profile"
+                        role="menuitem"
                         onClick={() => setOpen(false)}
                         className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
@@ -86,6 +92,7 @@ function UserMenu({ name }: { name: string }) {
                     <div className="my-1 border-t border-gray-100" />
                     <button
                         onClick={() => { setOpen(false); logout.mutate(); }}
+                        role="menuitem"
                         disabled={logout.isPending}
                         className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                     >
@@ -98,35 +105,95 @@ function UserMenu({ name }: { name: string }) {
     );
 }
 
+const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
+    cn(
+        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+        isActive ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-100",
+    );
+
+const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
+    cn(
+        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+        isActive ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-100",
+    );
+
+// Menú desplegable a pantalla completa para móvil. Lista todas las secciones
+// de forma plana (con subtítulos), evitando la barra apretada que se producía
+// al envolver los enlaces en un contenedor de altura fija.
+function MobileMenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate: () => void }) {
+    return (
+        <div className="lg:hidden border-t border-gray-200 bg-white px-4 py-3 space-y-4">
+            <div className="space-y-1">
+                {navLinks.map(({ to, label, end, Icon }) => (
+                    <NavLink key={to} to={to} end={end} onClick={onNavigate} className={mobileLinkClass}>
+                        <Icon className="h-4 w-4" />
+                        {label}
+                    </NavLink>
+                ))}
+            </div>
+
+            <MobileSection icon={Squares2X2Icon} label="Catálogo" links={catalogLinks} onNavigate={onNavigate} />
+            <MobileSection icon={ClipboardDocumentListIcon} label="Órdenes" links={orderLinks} onNavigate={onNavigate} />
+            {isAdmin && <MobileSection icon={ShieldCheckIcon} label="Admin" links={adminLinks} onNavigate={onNavigate} />}
+        </div>
+    );
+}
+
+function MobileSection({
+    icon: Icon,
+    label,
+    links,
+    onNavigate,
+}: {
+    icon: typeof Squares2X2Icon;
+    label: string;
+    links: { to: string; label: string }[];
+    onNavigate: () => void;
+}) {
+    return (
+        <div>
+            <p className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+            </p>
+            <div className="space-y-1">
+                {links.map(({ to, label: itemLabel }) => (
+                    <NavLink key={to} to={to} onClick={onNavigate} className={mobileLinkClass}>
+                        {itemLabel}
+                    </NavLink>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function App() {
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
     const { pathname } = useLocation();
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     const catalogActive = pathname.startsWith("/catalog");
     const ordersActive = pathname === "/purchase-orders" || pathname === "/sale-orders";
 
+    // Cierra el menú móvil al cambiar de ruta.
+    useEffect(() => {
+        setMobileOpen(false);
+    }, [pathname]);
+
     return (
         <div className="min-h-screen bg-gray-50">
             <nav className="sticky top-0 z-40 border-b border-gray-200 bg-white">
-                <div className="max-w-7xl mx-auto px-6 flex h-14 items-center gap-6">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-14 items-center gap-6">
                     <div className="flex items-center gap-2 font-bold text-gray-900">
                         <CubeIcon className="h-5 w-5 text-blue-600" />
                         Stockly
                     </div>
-                    <div className="flex gap-1 flex-1 items-center flex-wrap">
+
+                    {/* Navegación de escritorio */}
+                    <div className="hidden lg:flex gap-1 flex-1 items-center">
                         {navLinks.slice(0, 1).map(({ to, label, end, Icon }) => (
-                            <NavLink
-                                key={to}
-                                to={to}
-                                end={end}
-                                className={({ isActive }) =>
-                                    cn(
-                                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                                        isActive ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-100",
-                                    )
-                                }
-                            >
+                            <NavLink key={to} to={to} end={end} className={desktopLinkClass}>
                                 <Icon className="h-3.5 w-3.5" />
                                 {label}
                             </NavLink>
@@ -134,25 +201,34 @@ function App() {
                         <NavDropdown label="Catálogo" Icon={Squares2X2Icon} items={catalogLinks} isActive={catalogActive} width="w-40" />
                         <NavDropdown label="Órdenes" Icon={ClipboardDocumentListIcon} items={orderLinks} isActive={ordersActive} width="w-36" />
                         {navLinks.slice(1).map(({ to, label, end, Icon }) => (
-                            <NavLink
-                                key={to}
-                                to={to}
-                                end={end}
-                                className={({ isActive }) =>
-                                    cn(
-                                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                                        isActive ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-100",
-                                    )
-                                }
-                            >
+                            <NavLink key={to} to={to} end={end} className={desktopLinkClass}>
                                 <Icon className="h-3.5 w-3.5" />
                                 {label}
                             </NavLink>
                         ))}
                         {isAdmin && <NavDropdown label="Admin" Icon={ShieldCheckIcon} items={adminLinks} width="w-44" />}
                     </div>
-                    {user && <UserMenu name={user.name} />}
+
+                    <div className="flex items-center gap-1 ml-auto lg:ml-0">
+                        {user && <UserMenu name={user.name} />}
+                        {/* Botón hamburguesa — solo móvil/tablet */}
+                        <button
+                            onClick={() => setMobileOpen((o) => !o)}
+                            aria-label={mobileOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
+                            aria-expanded={mobileOpen}
+                            aria-controls="mobile-menu"
+                            className="lg:hidden rounded-lg p-2 text-gray-600 hover:bg-gray-100 transition-colors"
+                        >
+                            {mobileOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />}
+                        </button>
+                    </div>
                 </div>
+
+                {mobileOpen && (
+                    <div id="mobile-menu">
+                        <MobileMenu isAdmin={isAdmin} onNavigate={() => setMobileOpen(false)} />
+                    </div>
+                )}
             </nav>
             <main>
                 <Outlet />

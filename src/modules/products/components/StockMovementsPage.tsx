@@ -126,7 +126,7 @@ export default function StockMovementsPage() {
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">
                         <div className="text-right">
-                            <p className={`text-2xl font-bold ${isLowStock ? "text-orange-600" : "text-gray-900"}`}>
+                            <p className={`text-2xl font-bold ${isLowStock ? "text-orange-700" : "text-gray-900"}`}>
                                 {product.stock}
                             </p>
                             <p className="text-xs text-gray-500">

@@ -113,7 +113,7 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
 
                     <Field icon={CubeIcon} label="Stock actual">
                         <div className="flex items-center gap-1.5">
-                            <span className={isLowStock ? "font-semibold text-orange-600" : "text-gray-900"}>
+                            <span className={isLowStock ? "font-semibold text-orange-700" : "text-gray-900"}>
                                 {product.stock}
                             </span>
                             {isOutOfStock && (

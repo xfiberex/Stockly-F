@@ -112,7 +112,7 @@ export default function DashboardPage() {
                         <Tooltip
                             contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
                             formatter={(value, name) =>
-                                name === "valor"
+                                name === "Valor"
                                     ? [`$${Number(value).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`, "Valor"]
                                     : [Number(value), "Stock"]
                             }
@@ -144,13 +144,13 @@ export default function DashboardPage() {
                                     >
                                         {p.name}
                                     </Link>
-                                    <span className="text-orange-600 font-semibold tabular-nums">
+                                    <span className="text-orange-700 font-semibold tabular-nums">
                                         {p.stock} uds. — mín. {p.minStock}
                                     </span>
                                 </div>
                             ))}
                         {lowStockCount > 5 && (
-                            <Link to="/reports" className="text-xs text-orange-600 hover:underline">
+                            <Link to="/reports" className="text-xs text-orange-700 hover:underline">
                                 Ver {lowStockCount - 5} más →
                             </Link>
                         )}
