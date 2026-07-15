@@ -18,13 +18,13 @@ test.describe("Smoke: flujo principal autenticado", () => {
 
         // Navegar al catálogo de productos (dropdown Catálogo → Productos)
         await page.getByRole("button", { name: "Catálogo" }).click();
-        await page.getByRole("link", { name: "Productos" }).click();
+        await page.getByRole("link", { name: "Productos", exact: true }).click();
         await expect(page.getByRole("heading", { name: "Productos", level: 1 })).toBeVisible();
         await expect(page.getByText(/productos en total/)).toBeVisible();
 
         // Logout
         await page.getByRole("button", { name: "Menú de usuario" }).click();
-        await page.getByRole("button", { name: "Cerrar sesión" }).click();
+        await page.getByRole("menuitem", { name: "Cerrar sesión" }).click();
         await expect(page).toHaveURL(/\/auth\/login/);
         await expect(page.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
     });
