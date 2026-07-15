@@ -3,6 +3,7 @@ export interface ReportTotals {
     activeProducts: number;
     inactiveProducts: number;
     inventoryValue: number;
+    lowStockCount: number;
 }
 
 export interface StockByCategory {
