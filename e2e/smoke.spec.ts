@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-// Credenciales del entorno de desarrollo (sobreescribibles por variables de entorno).
+// Credenciales del seed (`prisma/seed.ts`), sobreescribibles por variables de entorno.
+// Nunca poner aquí una contraseña real: este archivo está versionado.
 const EMAIL = process.env.E2E_EMAIL ?? "admin@stockly.app";
 const PASSWORD = process.env.E2E_PASSWORD ?? "Admin1234!";
 
