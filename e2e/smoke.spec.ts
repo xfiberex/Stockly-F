@@ -1,8 +1,15 @@
 import { test, expect } from "@playwright/test";
 
+<<<<<<< HEAD
 // Credenciales del entorno de desarrollo (sobreescribibles por variables de entorno).
 const EMAIL = process.env.E2E_EMAIL ?? "admin@stockly.app";
 const PASSWORD = process.env.E2E_PASSWORD ?? "Ad159753";
+=======
+// Credenciales del seed (`prisma/seed.ts`), sobreescribibles por variables de entorno.
+// Nunca poner aquí una contraseña real: este archivo está versionado.
+const EMAIL = process.env.E2E_EMAIL ?? "admin@stockly.app";
+const PASSWORD = process.env.E2E_PASSWORD ?? "Admin1234!";
+>>>>>>> 51fc4705c1a34a09b38c893c0697396849d8d94c
 
 test.describe("Smoke: flujo principal autenticado", () => {
     test("login → dashboard → catálogo → logout", async ({ page }) => {
