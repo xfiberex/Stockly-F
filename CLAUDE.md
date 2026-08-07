@@ -28,9 +28,7 @@ Este proyecto **no usa CI**. No hay GitHub Actions ni pipeline de ningún provee
 pnpm verify
 ```
 
-Encadena `check → lint → test:coverage → build`.
-
-**Hoy `verify` se detiene en el lint**, con 26 errores y 4 avisos. No es un fallo del guion: es la tarea T1-09 del roadmap, que a su vez depende de T1-08 y T1-10. Mientras siga abierta, comprueba los demás pasos por separado.
+Encadena `check → lint → test:coverage → build`. **Está en verde** desde el 2026-08-07 (T1-09): `pnpm lint` debe terminar con 0 errores y 0 avisos, así que cualquier aviso nuevo es una regresión, no ruido de fondo.
 
 El E2E de Playwright (`pnpm test:e2e`) necesita backend y base de datos levantados a mano; hacerlo reproducible es la tarea T1-24.
 

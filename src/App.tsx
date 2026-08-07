@@ -171,15 +171,19 @@ function App() {
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
     const { pathname } = useLocation();
-    const [mobileOpen, setMobileOpen] = useState(false);
 
     const catalogActive = pathname.startsWith("/catalog");
     const ordersActive = pathname === "/purchase-orders" || pathname === "/sale-orders";
 
-    // Cierra el menú móvil al cambiar de ruta.
-    useEffect(() => {
-        setMobileOpen(false);
-    }, [pathname]);
+    // El menú se cierra solo al cambiar de ruta, sin sincronizarlo con un efecto:
+    // se guarda la ruta en la que se abrió y el estado se deriva en render. Al
+    // navegar, `openedAt` deja de coincidir con `pathname` y el menú desaparece,
+    // venga la navegación de un enlace del propio menú o del historial del navegador.
+    const [openedAt, setOpenedAt] = useState<string | null>(null);
+    const mobileOpen = openedAt === pathname;
+
+    const toggleMobile = () => setOpenedAt((actual) => (actual === pathname ? null : pathname));
+    const closeMobile = () => setOpenedAt(null);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -213,7 +217,7 @@ function App() {
                         {user && <UserMenu name={user.name} />}
                         {/* Botón hamburguesa — solo móvil/tablet */}
                         <button
-                            onClick={() => setMobileOpen((o) => !o)}
+                            onClick={toggleMobile}
                             aria-label={mobileOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
                             aria-expanded={mobileOpen}
                             aria-controls="mobile-menu"
@@ -226,7 +230,7 @@ function App() {
 
                 {mobileOpen && (
                     <div id="mobile-menu">
-                        <MobileMenu isAdmin={isAdmin} onNavigate={() => setMobileOpen(false)} />
+                        <MobileMenu isAdmin={isAdmin} onNavigate={closeMobile} />
                     </div>
                 )}
             </nav>

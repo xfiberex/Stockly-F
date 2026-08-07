@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
@@ -30,11 +30,14 @@ function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
     const updateMutation = useUpdateTag();
     const isPending = createMutation.isPending || updateMutation.isPending;
 
-    const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TagFormData>({
+    const { register, handleSubmit, setValue, control, reset, formState: { errors } } = useForm<TagFormData>({
         defaultValues: { name: tag?.name ?? "", color: tag?.color ?? PRESET_COLORS[0] },
     });
 
-    const selectedColor = watch("color");
+    // `useWatch` en lugar de `watch()`: este último devuelve una función que el
+    // React Compiler no puede memoizar, y por eso descartaba el componente entero.
+    // Es el mismo patrón que ya usa `ProductForm`.
+    const selectedColor = useWatch({ control, name: "color" });
 
     const onSubmit = (form: TagFormData) => {
         const dto = { name: form.name, color: form.color || undefined };

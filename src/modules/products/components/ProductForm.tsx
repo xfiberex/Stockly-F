@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { SparklesIcon, TagIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,13 +23,34 @@ interface ProductFormProps {
     product?: Product;
 }
 
+// `ProductsPage` monta este formulario con `key={editingProduct?.id ?? "new"}`, así
+// que cambiar de producto lo remonta: los valores del producto pueden nacer ya
+// puestos, en lugar de sincronizarse con un efecto tras el primer render.
+function valoresIniciales(product?: Product) {
+    if (!product) return {};
+
+    return {
+        name: product.name,
+        description: product.description ?? "",
+        sku: product.sku ?? "",
+        price: product.price,
+        stock: product.stock,
+        minStock: product.minStock ?? 0,
+        categoryId: product.category?.id ?? "",
+        brandId: product.brand?.id ?? "",
+        supplierId: product.supplier?.id ?? "",
+    };
+}
+
 export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
     const isEditing = !!product;
     const createMutation = useCreateProduct();
     const updateMutation = useUpdateProduct();
     const isPending = createMutation.isPending || updateMutation.isPending;
     const [removeImage, setRemoveImage] = useState(false);
-    const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+    const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
+        () => product?.tags?.map((t) => t.id) ?? [],
+    );
 
     const { data: categories = [] } = useCategories();
     const { data: brands = [] } = useBrands();
@@ -57,6 +78,7 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
 
     const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<CreateProductFormData>({
         resolver: zodResolver(isEditing ? updateProductSchema : createProductSchema) as Resolver<CreateProductFormData>,
+        defaultValues: valoresIniciales(product),
     });
 
     const watchedName       = useWatch({ control, name: "name",       defaultValue: "" });
@@ -87,26 +109,6 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
 
         setValue("sku", `${catPrefix}-${brandPrefix}-${code}`, { shouldValidate: true });
     };
-
-    useEffect(() => {
-        if (product) {
-            reset({
-                name: product.name,
-                description: product.description ?? "",
-                sku: product.sku ?? "",
-                price: product.price,
-                stock: product.stock,
-                minStock: product.minStock ?? 0,
-                categoryId: product.category?.id ?? "",
-                brandId: product.brand?.id ?? "",
-                supplierId: product.supplier?.id ?? "",
-            });
-            setSelectedTagIds(product.tags?.map((t) => t.id) ?? []);
-        } else {
-            reset({});
-            setSelectedTagIds([]);
-        }
-    }, [product, reset]);
 
     const onSubmit = (formData: CreateProductFormData) => {
         const normalized = {
