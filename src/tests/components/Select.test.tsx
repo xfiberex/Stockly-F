@@ -48,4 +48,29 @@ describe("Select", () => {
         await user.selectOptions(screen.getByRole("combobox"), "opt2");
         expect(handleChange).toHaveBeenCalledTimes(1);
     });
+
+    // T1-14, igual que en `Input`: el error debe estar atado al campo.
+    describe("accesibilidad del error", () => {
+        it("marca el campo como inválido y ata el mensaje al select", () => {
+            render(<Select id="categoria" label="Categoría" options={options} error="Obligatorio" />);
+            const select = screen.getByLabelText("Categoría");
+
+            expect(select).toHaveAttribute("aria-invalid", "true");
+            expect(select).toHaveAccessibleDescription("Obligatorio");
+            expect(select).toHaveAttribute("aria-describedby", "categoria-error");
+        });
+
+        it("anuncia el mensaje en cuanto aparece", () => {
+            render(<Select id="categoria" options={options} error="Obligatorio" />);
+            expect(screen.getByRole("alert")).toHaveTextContent("Obligatorio");
+        });
+
+        it("sin error no queda ningún atributo ARIA residual", () => {
+            render(<Select id="categoria" label="Categoría" options={options} />);
+            const select = screen.getByLabelText("Categoría");
+
+            expect(select).not.toHaveAttribute("aria-invalid");
+            expect(select).not.toHaveAttribute("aria-describedby");
+        });
+    });
 });

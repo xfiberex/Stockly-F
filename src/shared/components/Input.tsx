@@ -8,6 +8,12 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
     ({ label, error, className, id, ...props }, ref) => {
+        // El color del borde es el único indicador visual del error, y no llega a
+        // quien no lo ve. `aria-invalid` marca el campo como inválido y
+        // `aria-describedby` ata el mensaje al campo, para que el lector de pantalla
+        // lo anuncie al enfocarlo; `role="alert"` lo hace además al aparecer.
+        const errorId = error && id ? `${id}-error` : undefined;
+
         return (
             <div className="flex flex-col gap-1">
                 {label && (
@@ -18,6 +24,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 <input
                     ref={ref}
                     id={id}
+                    aria-invalid={error ? true : undefined}
+                    aria-describedby={errorId}
                     className={cn(
                         "rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none transition",
                         "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
@@ -26,7 +34,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                     )}
                     {...props}
                 />
-                {error && <p className="text-xs text-red-500">{error}</p>}
+                {error && <p id={errorId} role="alert" className="text-xs text-red-500">{error}</p>}
             </div>
         );
     },

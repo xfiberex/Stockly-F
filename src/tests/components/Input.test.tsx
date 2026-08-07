@@ -37,4 +37,31 @@ describe("Input", () => {
         const input = screen.getByPlaceholderText("usuario@ejemplo.com");
         expect(input).toHaveAttribute("type", "email");
     });
+
+    // T1-14. El borde rojo era el único indicador del error: sin relación
+    // programática, un lector de pantalla anunciaba el campo como si estuviera bien.
+    describe("accesibilidad del error", () => {
+        it("marca el campo como inválido y ata el mensaje al input", () => {
+            render(<Input id="email" label="Correo" error="Campo obligatorio" />);
+            const input = screen.getByLabelText("Correo");
+
+            expect(input).toHaveAttribute("aria-invalid", "true");
+            expect(input).toHaveAccessibleDescription("Campo obligatorio");
+            expect(input).toHaveAttribute("aria-describedby", "email-error");
+        });
+
+        it("anuncia el mensaje en cuanto aparece", () => {
+            render(<Input id="email" label="Correo" error="Campo obligatorio" />);
+            expect(screen.getByRole("alert")).toHaveTextContent("Campo obligatorio");
+        });
+
+        it("sin error no queda ningún atributo ARIA residual", () => {
+            render(<Input id="email" label="Correo" />);
+            const input = screen.getByLabelText("Correo");
+
+            expect(input).not.toHaveAttribute("aria-invalid");
+            expect(input).not.toHaveAttribute("aria-describedby");
+            expect(screen.queryByRole("alert")).toBeNull();
+        });
+    });
 });

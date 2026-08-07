@@ -11,6 +11,9 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     ({ label, error, placeholder, options, className, id, ...props }, ref) => {
+        // Ver `Input.tsx`: el error debe estar atado al campo, no solo pintado al lado.
+        const errorId = error && id ? `${id}-error` : undefined;
+
         return (
             <div className="flex flex-col gap-1">
                 {label && (
@@ -22,6 +25,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                     <select
                         ref={ref}
                         id={id}
+                        aria-invalid={error ? true : undefined}
+                        aria-describedby={errorId}
                         className={cn(
                             // appearance-none oculta el indicador nativo (que se alinea distinto
                             // según el navegador); pr-9 deja sitio para el chevron propio.
@@ -44,7 +49,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                         className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
                     />
                 </div>
-                {error && <p className="text-xs text-red-500">{error}</p>}
+                {error && <p id={errorId} role="alert" className="text-xs text-red-500">{error}</p>}
             </div>
         );
     },
