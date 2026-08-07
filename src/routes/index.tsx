@@ -67,12 +67,14 @@ export const router = createBrowserRouter([
             { path: "reports", element: <S><ReportsPage /></S> },
             { path: "purchase-orders", element: <S><PurchaseOrdersPage /></S> },
             { path: "sale-orders", element: <S><SaleOrdersPage /></S> },
-            { path: "audit-logs", element: <S><AuditLogsPage /></S> },
-            { path: "settings", element: <S><SettingsPage /></S> },
+            // Rutas solo de ADMIN: el backend responde 403 a un USER, así que sin
+            // este guardia la página se pintaba rota y llena de toasts de error.
+            { path: "audit-logs", element: <ProtectedRoute requireRole="ADMIN"><S><AuditLogsPage /></S></ProtectedRoute> },
+            { path: "settings", element: <ProtectedRoute requireRole="ADMIN"><S><SettingsPage /></S></ProtectedRoute> },
             {
                 path: "admin",
                 children: [
-                    { path: "users", element: <S><UsersPage /></S> },
+                    { path: "users", element: <ProtectedRoute requireRole="ADMIN"><S><UsersPage /></S></ProtectedRoute> },
                 ],
             },
             {

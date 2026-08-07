@@ -19,7 +19,13 @@ const toFormData = (dto: CreateProductDto | UpdateProductDto): FormData => {
     Object.entries(dto).forEach(([key, value]) => {
         if (value === undefined) return;
         if (key === "tagIds") {
-            (value as string[]).forEach((id) => form.append("tagIds", id));
+            const ids = value as string[];
+            // Una lista vacía debe viajar igualmente: si la clave no aparece, el
+            // backend entiende «no tocar las etiquetas» y nunca podrían quitarse
+            // todas. La cadena vacía es el «ninguna» explícito que espera el
+            // validador (`product.validator.ts:tagIdsOptional`).
+            if (ids.length === 0) form.append("tagIds", "");
+            else ids.forEach((id) => form.append("tagIds", id));
             return;
         }
         if (typeof value === "boolean" && !value) return;

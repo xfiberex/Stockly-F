@@ -135,11 +135,15 @@ export default function TagsPage() {
                             />
                             <span className="text-sm font-medium text-gray-900 flex-1 truncate">{tag.name}</span>
                             <div className="flex gap-1 shrink-0">
-                                <Button variant="ghost" onClick={() => handleEdit(tag)}>
+                                {/* Botones solo de icono: sin `aria-label` un lector de
+                                    pantalla los anuncia como «botón», sin decir sobre
+                                    qué etiqueta actúan. */}
+                                <Button variant="ghost" aria-label={`Editar ${tag.name}`} onClick={() => handleEdit(tag)}>
                                     <PencilIcon className="h-3.5 w-3.5 text-gray-400 hover:text-blue-600" />
                                 </Button>
                                 <Button
                                     variant="ghost"
+                                    aria-label={`Eliminar ${tag.name}`}
                                     isLoading={deleteMutation.isPending}
                                     onClick={() => deleteMutation.mutate(tag.id)}
                                 >
@@ -151,7 +155,10 @@ export default function TagsPage() {
                 </div>
             )}
 
-            <TagFormModal isOpen={formOpen} onClose={handleClose} tag={editingTag} />
+            {/* La `key` remonta el modal al cambiar de etiqueta: `useForm` solo aplica
+                `defaultValues` en el primer montaje, así que sin ella editar abría el
+                formulario vacío. Mismo patrón que `ProductsPage:255`. */}
+            <TagFormModal key={editingTag?.id ?? "new"} isOpen={formOpen} onClose={handleClose} tag={editingTag} />
         </div>
     );
 }

@@ -62,4 +62,57 @@ describe("ProtectedRoute", () => {
         expect(screen.getByText("Contenido protegido")).toBeInTheDocument();
         expect(screen.queryByText("Página de login")).toBeNull();
     });
+
+    // T1-18. Antes solo se comprobaba que existiera sesión, así que un USER que
+    // escribía /admin/users en la barra de direcciones llegaba a la página y solo
+    // veía cómo fallaban sus peticiones con 403.
+    describe("guardia de rol", () => {
+        const usuarioConRol = (role: string) => ({
+            user: { id: "1", email: "user@test.com", name: "Test", role, isVerified: true, createdAt: "2024-01-01" },
+            isLoading: false,
+            isError: false,
+        });
+
+        function AppConRuta() {
+            return (
+                <QueryClientProvider client={createTestQueryClient()}>
+                    <MemoryRouter initialEntries={["/admin/users"]}>
+                        <Routes>
+                            <Route path="/" element={<div>Dashboard</div>} />
+                            <Route
+                                path="/admin/users"
+                                element={
+                                    <ProtectedRoute requireRole="ADMIN">
+                                        <div>Gestión de usuarios</div>
+                                    </ProtectedRoute>
+                                }
+                            />
+                        </Routes>
+                    </MemoryRouter>
+                </QueryClientProvider>
+            );
+        }
+
+        it("un USER es redirigido al dashboard, no al login", () => {
+            vi.mocked(useAuth).mockReturnValue(usuarioConRol("USER"));
+            render(<AppConRuta />);
+
+            expect(screen.getByText("Dashboard")).toBeInTheDocument();
+            expect(screen.queryByText("Gestión de usuarios")).toBeNull();
+        });
+
+        it("un ADMIN accede con normalidad", () => {
+            vi.mocked(useAuth).mockReturnValue(usuarioConRol("ADMIN"));
+            render(<AppConRuta />);
+
+            expect(screen.getByText("Gestión de usuarios")).toBeInTheDocument();
+        });
+
+        it("sin `requireRole` sigue bastando con tener sesión", () => {
+            vi.mocked(useAuth).mockReturnValue(usuarioConRol("USER"));
+            render(<TestApp />);
+
+            expect(screen.getByText("Contenido protegido")).toBeInTheDocument();
+        });
+    });
 });
