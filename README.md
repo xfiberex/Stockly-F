@@ -126,7 +126,7 @@ pnpm preview          # Previsualizar el build de producción
 pnpm lint             # Verificar ESLint
 
 pnpm test             # Tests en modo watch
-pnpm test:run         # Tests sin watch (CI)
+pnpm test:run         # Tests sin watch (una sola pasada)
 pnpm test:coverage    # Reporte de cobertura
 ```
 
