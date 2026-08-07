@@ -70,9 +70,15 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
                 aria-modal="true"
                 aria-labelledby={titleId}
                 tabIndex={-1}
-                className={cn("relative z-10 w-full max-w-lg rounded-xl bg-white shadow-xl outline-none", className)}
+                // `max-h` + scroll propio: sin esto, un formulario más alto que la
+                // ventana desborda el panel y sus botones quedan fuera de pantalla,
+                // inalcanzables (el body está bloqueado mientras el modal está abierto).
+                className={cn(
+                    "relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-xl outline-none",
+                    className,
+                )}
             >
-                <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
                     <h2 id={titleId} className="text-base font-semibold text-gray-900">{title}</h2>
                     <button
                         onClick={onClose}
@@ -82,7 +88,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
                         <XMarkIcon className="h-5 w-5" />
                     </button>
                 </div>
-                <div className="px-6 py-4">{children}</div>
+                <div className="overflow-y-auto px-6 py-4">{children}</div>
             </div>
         </div>,
         document.body,

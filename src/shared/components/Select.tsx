@@ -1,5 +1,5 @@
 import { cn } from "@/shared/lib/cn";
-import { forwardRef, type SelectHTMLAttributes } from "react";
+import { forwardRef, useId, type SelectHTMLAttributes } from "react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
@@ -11,20 +11,23 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     ({ label, error, placeholder, options, className, id, ...props }, ref) => {
-        // Ver `Input.tsx`: el error debe estar atado al campo, no solo pintado al lado.
-        const errorId = error && id ? `${id}-error` : undefined;
+        // Ver `Input.tsx`: el id generado hace que la etiqueta rotule de verdad al
+        // campo cuando quien lo usa no pasa `id`, y el error queda atado a él.
+        const generatedId = useId();
+        const fieldId = id ?? generatedId;
+        const errorId = error ? `${fieldId}-error` : undefined;
 
         return (
             <div className="flex flex-col gap-1">
                 {label && (
-                    <label htmlFor={id} className="text-sm font-medium text-gray-700">
+                    <label htmlFor={fieldId} className="text-sm font-medium text-gray-700">
                         {label}
                     </label>
                 )}
                 <div className="relative">
                     <select
                         ref={ref}
-                        id={id}
+                        id={fieldId}
                         aria-invalid={error ? true : undefined}
                         aria-describedby={errorId}
                         className={cn(

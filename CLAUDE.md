@@ -31,7 +31,9 @@ pnpm verify
 
 Encadena `check → lint → test:coverage → build`. **Está en verde** desde el 2026-08-07 (T1-09): `pnpm lint` debe terminar con 0 errores y 0 avisos, así que cualquier aviso nuevo es una regresión, no ruido de fondo.
 
-El E2E de Playwright (`pnpm test:e2e`) necesita backend y base de datos levantados a mano; hacerlo reproducible es la tarea T1-24.
+El E2E de Playwright (`pnpm test:e2e:full`) **no necesita levantar nada a mano** desde T1-24: `e2e/global-setup.ts` prepara la base de datos (migraciones + seed, recurriendo a Docker solo si no hay PostgreSQL escuchando) y el `webServer` arranca backend y frontend. Se ejecuta en dos proyectos, `chromium` y `Mobile Chrome`.
+
+El E2E sube el techo del rate limit del backend con `RATE_LIMIT_MAX` y `AUTH_RATE_LIMIT_MAX`: una pasada del navegador supera las 100 peticiones/15 min por defecto. El limitador y la protección CSRF siguen activos durante la ejecución.
 
 ## Convenciones
 

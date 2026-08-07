@@ -14,6 +14,8 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:e2e:full": "playwright test",
+    "test:e2e:desktop": "playwright test --project=chromium",
     "verify": "pnpm run check && pnpm run lint && pnpm run test:coverage && pnpm run build"
   },
   "dependencies": {
