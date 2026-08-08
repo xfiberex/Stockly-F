@@ -9,7 +9,11 @@ export default function NotFoundPage() {
                 Stockly
             </div>
             <div className="text-center">
-                <p className="text-6xl font-black text-border">404</p>
+                {/* Era `text-6xl font-black`: un tamaño y un peso que no usaba nadie
+                    más, y el 900 ni siquiera estaba cargado (lo fingía el navegador).
+                    Con el tamaño mayor de la escala y un peso real sigue leyéndose
+                    como lo que es: el número grande de una página de error. */}
+                <p className="text-2xl font-bold text-foreground-muted">404</p>
                 <h1 className="mt-2 text-xl font-semibold text-foreground">Página no encontrada</h1>
                 <p className="mt-1 text-sm text-foreground-muted">La ruta que buscas no existe.</p>
             </div>

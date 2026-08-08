@@ -43,7 +43,7 @@ export default function VerifyEmailPage() {
             {status === "loading" && <Spinner size="lg" />}
             {status === "success" && (
                 <>
-                    <p className="text-success font-medium text-lg">¡Cuenta confirmada!</p>
+                    <p className="text-success font-medium text-xl">¡Cuenta confirmada!</p>
                     <Link to="/auth/login" className="text-info hover:underline text-sm">
                         Inicia sesión
                     </Link>
