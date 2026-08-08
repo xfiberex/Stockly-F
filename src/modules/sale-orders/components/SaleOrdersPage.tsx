@@ -4,7 +4,8 @@ import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
-import { Badge, type BadgeVariant } from "@/shared/components/Badge";
+import { EstadoBadge } from "@/shared/components/EstadoBadge";
+import { ESTADO_ORDEN_VENTA, buscarEstado } from "@/shared/lib/estados";
 import { Spinner } from "@/shared/components/Spinner";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { useAuth } from "@/modules/auth/hooks/useMe";
@@ -19,18 +20,8 @@ import { exportSaleOrdersCsv } from "@/modules/sale-orders/api/sale-orders.api";
 import type { SaleOrder, CreateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
 import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 
-const STATUS_LABELS: Record<string, string> = {
-    PENDING: "Pendiente",
-    SHIPPED: "Enviado",
-    CANCELLED: "Cancelado",
-};
-
-// Mismo criterio que en las órdenes de compra.
-const STATUS_VARIANTS: Record<string, BadgeVariant> = {
-    PENDING: "warning",
-    SHIPPED: "success",
-    CANCELLED: "danger",
-};
+// Mismo criterio que en las órdenes de compra: el descriptor de `shared/lib/estados`
+// lleva etiqueta, color e icono juntos (T2-38).
 
 function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
@@ -211,9 +202,7 @@ export default function SaleOrdersPage() {
                                 onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <Badge variant={STATUS_VARIANTS[order.status] ?? "default"}>
-                                        {STATUS_LABELS[order.status] ?? order.status}
-                                    </Badge>
+                                    <EstadoBadge estado={buscarEstado(ESTADO_ORDEN_VENTA, order.status)} />
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-foreground">
                                             Venta #{order.id.slice(0, 8).toUpperCase()}

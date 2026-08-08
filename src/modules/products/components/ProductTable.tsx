@@ -8,7 +8,18 @@ import { useDeleteProduct } from "@/modules/products/hooks/useDeleteProduct";
 import { useRestoreProduct } from "@/modules/products/hooks/useRestoreProduct";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import type { Product } from "@/modules/products/types/product.types";
-import { PencilIcon, TrashIcon, ArrowPathIcon, ChartBarIcon, ExclamationTriangleIcon, EyeIcon, CubeIcon } from "@heroicons/react/24/outline";
+import { PencilIcon, TrashIcon, ArrowPathIcon, ChartBarIcon, EyeIcon, CubeIcon } from "@heroicons/react/24/outline";
+import { cn } from "@/shared/lib/cn";
+import { EstadoBadge } from "@/shared/components/EstadoBadge";
+import { NIVEL_STOCK, ACTIVIDAD, nivelDeStock, type NivelStock } from "@/shared/lib/estados";
+
+// Clases literales, no `text-${variant}`: el escáner de Tailwind lee el código
+// fuente como texto y no genera las utilidades que se construyen al vuelo.
+const CLASE_NIVEL: Record<NivelStock, string> = {
+    correcto: "text-foreground",
+    bajo: "text-warning font-semibold",
+    agotado: "text-danger font-semibold",
+};
 
 interface ProductTableProps {
     products: Product[];
@@ -60,11 +71,19 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                 </thead>
                 <tbody className="divide-y divide-border bg-surface">
                     {products.map((product) => {
-                        const isLowStock = product.stock <= (product.minStock ?? 0) && product.isActive;
+                        // El nivel distingue «agotado» de «bajo», que antes compartían color y
+                        // aviso (T2-38); solo se resalta la fila de un producto activo, porque en
+                        // uno dado de baja el stock ya no es una incidencia.
+                        const nivel = product.isActive ? nivelDeStock(product.stock, product.minStock) : "correcto";
+                        const incidencia = nivel !== "correcto" ? NIVEL_STOCK[nivel] : null;
                         return (
                             <tr
                                 key={product.id}
-                                className={`hover:bg-surface-muted transition-colors ${isLowStock ? "bg-warning-surface/40" : ""}`}
+                                className={cn(
+                                    "hover:bg-surface-muted transition-colors",
+                                    nivel === "bajo" && "bg-warning-surface/40",
+                                    nivel === "agotado" && "bg-danger-surface/40",
+                                )}
                             >
                                 {selectable && (
                                     <td className="px-3 py-3">
@@ -125,14 +144,16 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-1.5">
-                                        <span className={isLowStock ? "text-warning font-semibold" : "text-foreground"}>
+                                        <span className={cn("tabular-nums", CLASE_NIVEL[nivel])}>
                                             {product.stock}
                                         </span>
-                                        {isLowStock && (
-                                            <ExclamationTriangleIcon
-                                                className="h-4 w-4 text-warning"
-                                                title={`Stock mínimo: ${product.minStock}`}
-                                            />
+                                        {/* El icono nombra el nivel además de teñirlo: sin él,
+                                            «bajo» y «agotado» eran el mismo triángulo ámbar. */}
+                                        {incidencia && (
+                                            <>
+                                                <incidencia.Icon className={cn("h-4 w-4", CLASE_NIVEL[nivel])} aria-hidden="true" />
+                                                <span className="sr-only">{incidencia.label}</span>
+                                            </>
                                         )}
                                         {product.minStock > 0 && (
                                             <span className="text-xs text-foreground-muted">/ {product.minStock}</span>
@@ -140,9 +161,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                     </div>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <Badge variant={product.isActive ? "success" : "danger"}>
-                                        {product.isActive ? "Activo" : "Inactivo"}
-                                    </Badge>
+                                    <EstadoBadge estado={product.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex justify-end gap-1">

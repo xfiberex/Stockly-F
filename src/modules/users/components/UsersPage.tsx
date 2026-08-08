@@ -7,7 +7,9 @@ import { Spinner } from "@/shared/components/Spinner";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useUsers, useUpdateUserRole, useSetUserActive } from "@/modules/users/hooks/useUsers";
 import type { AppUser, UserRole } from "@/modules/users/types/users.types";
-import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
+import { EstadoBadge } from "@/shared/components/EstadoBadge";
+import { ACTIVIDAD } from "@/shared/lib/estados";
 
 function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
@@ -119,20 +121,17 @@ export default function UsersPage() {
                                         </td>
                                         <td className="px-6 py-3">
                                             {/* Ser ADMIN es un dato relevante que conviene distinguir; USER es lo corriente. */}
-                                            <Badge variant={u.role === "ADMIN" ? "info" : "neutral"}>
-                                                {u.role === "ADMIN" ? (
-                                                    <span className="flex items-center gap-1"><ShieldCheckIcon className="h-3 w-3" />Admin</span>
-                                                ) : (
-                                                    <span className="flex items-center gap-1"><UserIcon className="h-3 w-3" />Usuario</span>
-                                                )}
+                                            <Badge
+                                                variant={u.role === "ADMIN" ? "info" : "neutral"}
+                                                Icon={u.role === "ADMIN" ? ShieldCheckIcon : UserIcon}
+                                            >
+                                                {u.role === "ADMIN" ? "Admin" : "Usuario"}
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-3">
-                                            <Badge variant={u.isActive ? "success" : "danger"}>
-                                                {u.isActive ? "Activo" : "Inactivo"}
-                                            </Badge>
+                                            <EstadoBadge estado={u.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
                                             {!u.isVerified && (
-                                                <Badge variant="warning" className="ml-1.5">Sin verificar</Badge>
+                                                <Badge variant="warning" Icon={EnvelopeIcon} className="ml-1.5">Sin verificar</Badge>
                                             )}
                                         </td>
                                         <td className="px-6 py-3 text-foreground-muted hidden md:table-cell">{formatDate(u.createdAt)}</td>

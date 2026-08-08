@@ -6,29 +6,14 @@ import {
     AreaChart, Area,
 } from "recharts";
 import { Spinner } from "@/shared/components/Spinner";
-import { Badge, type BadgeVariant } from "@/shared/components/Badge";
+import { EstadoBadge } from "@/shared/components/EstadoBadge";
+import { TIPO_MOVIMIENTO, ACTIVIDAD } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
 import { useStockMovements } from "@/modules/products/hooks/useStockMovements";
 import { usePriceHistory } from "@/modules/products/hooks/usePriceHistory";
 import { downloadBlob } from "@/modules/products/utils/importExport";
 import type { StockMovementType } from "@/modules/products/types/product.types";
-
-const TYPE_LABELS: Record<StockMovementType, string> = {
-    IN: "Entrada",
-    OUT: "Salida",
-    ADJUSTMENT: "Ajuste",
-    IMPORT: "Importación",
-};
-
-// Entrada y salida son las dos direcciones del stock; ajuste e importación no
-// mueven mercancía real, así que no compiten con ellas por el color.
-const TYPE_VARIANTS: Record<StockMovementType, BadgeVariant> = {
-    IN: "success",
-    OUT: "danger",
-    ADJUSTMENT: "info",
-    IMPORT: "neutral",
-};
 
 function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
@@ -44,7 +29,7 @@ function exportMovementsCsv(
 ) {
     const header = "Fecha,Tipo,Cambio,Stock resultante,Nota";
     const rows = movements.map((m) =>
-        [formatDate(m.createdAt), TYPE_LABELS[m.type as StockMovementType] ?? m.type, m.delta, m.stockAfter, m.note ?? ""].join(","),
+        [formatDate(m.createdAt), TIPO_MOVIMIENTO[m.type as StockMovementType]?.label ?? m.type, m.delta, m.stockAfter, m.note ?? ""].join(","),
     );
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -135,9 +120,7 @@ export default function StockMovementsPage() {
                                 Stock actual {product.minStock > 0 ? `(mín: ${product.minStock})` : ""}
                             </p>
                         </div>
-                        <Badge variant={product.isActive ? "success" : "danger"}>
-                            {product.isActive ? "Activo" : "Inactivo"}
-                        </Badge>
+                        <EstadoBadge estado={product.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
                         {movements.length > 0 && (
                             <Button
                                 variant="secondary"
@@ -211,10 +194,9 @@ export default function StockMovementsPage() {
                                 <Select
                                     options={[
                                         { value: "", label: "Todos los tipos" },
-                                        { value: "IN", label: "Entrada" },
-                                        { value: "OUT", label: "Salida" },
-                                        { value: "ADJUSTMENT", label: "Ajuste" },
-                                        { value: "IMPORT", label: "Importación" },
+                                        // Las opciones salen del descriptor para que el filtro no
+                                        // pueda decir una cosa y la insignia de la tabla otra.
+                                        ...Object.entries(TIPO_MOVIMIENTO).map(([value, { label }]) => ({ value, label })),
                                     ]}
                                     value={typeFilter}
                                     onChange={(e) => setTypeFilter(e.target.value)}
@@ -276,9 +258,7 @@ export default function StockMovementsPage() {
                                                     {formatDate(m.createdAt)}
                                                 </td>
                                                 <td className="px-6 py-3">
-                                                    <Badge variant={TYPE_VARIANTS[m.type as StockMovementType]}>
-                                                        {TYPE_LABELS[m.type as StockMovementType] ?? m.type}
-                                                    </Badge>
+                                                    <EstadoBadge estado={TIPO_MOVIMIENTO[m.type as StockMovementType]} />
                                                 </td>
                                                 <td className="px-6 py-3 font-medium">
                                                     <span className={m.delta >= 0 ? "text-success" : "text-danger"}>

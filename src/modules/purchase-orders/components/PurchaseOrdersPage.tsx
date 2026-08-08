@@ -4,7 +4,8 @@ import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
-import { Badge, type BadgeVariant } from "@/shared/components/Badge";
+import { EstadoBadge } from "@/shared/components/EstadoBadge";
+import { ESTADO_ORDEN_COMPRA, buscarEstado } from "@/shared/lib/estados";
 import { Spinner } from "@/shared/components/Spinner";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { useAuth } from "@/modules/auth/hooks/useMe";
@@ -20,19 +21,9 @@ import { exportPurchaseOrdersCsv } from "@/modules/purchase-orders/api/purchase-
 import type { PurchaseOrder, CreatePurchaseOrderForm } from "@/modules/purchase-orders/types/purchase-orders.types";
 import { PlusIcon, TrashIcon, CheckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 
-const STATUS_LABELS: Record<string, string> = {
-    PENDING: "Pendiente",
-    RECEIVED: "Recibida",
-    CANCELLED: "Cancelada",
-};
-
-// Pendiente es un aviso —hay algo por hacer—, recibida es el final correcto y
-// cancelada, el negativo.
-const STATUS_VARIANTS: Record<string, BadgeVariant> = {
-    PENDING: "warning",
-    RECEIVED: "success",
-    CANCELLED: "danger",
-};
+// Etiqueta, color e icono del estado salen del mismo descriptor (T2-38): pendiente
+// es un aviso —hay algo por hacer—, recibida es el final correcto y cancelada, el
+// negativo.
 
 function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
@@ -263,9 +254,7 @@ export default function PurchaseOrdersPage() {
                                 onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <Badge variant={STATUS_VARIANTS[order.status] ?? "default"}>
-                                        {STATUS_LABELS[order.status] ?? order.status}
-                                    </Badge>
+                                    <EstadoBadge estado={buscarEstado(ESTADO_ORDEN_COMPRA, order.status)} />
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-foreground">
                                             Orden #{order.id.slice(0, 8).toUpperCase()}

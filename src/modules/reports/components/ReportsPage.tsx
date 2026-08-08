@@ -5,6 +5,8 @@ import {
 } from "recharts";
 import { Spinner } from "@/shared/components/Spinner";
 import { Badge } from "@/shared/components/Badge";
+import { EstadoBadge } from "@/shared/components/EstadoBadge";
+import { NIVEL_STOCK, nivelDeStock } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
 import { useReports } from "@/modules/reports/hooks/useReports";
 import { downloadReportPdf } from "@/modules/reports/api/reports.api";
@@ -223,9 +225,7 @@ export default function ReportsPage() {
                                     <td className="px-6 py-3 font-semibold text-warning">{p.stock}</td>
                                     <td className="px-6 py-3 text-foreground-muted">{p.minStock}</td>
                                     <td className="px-6 py-3">
-                                        <Badge variant={p.stock === 0 ? "danger" : "warning"}>
-                                            {p.stock === 0 ? "Agotado" : "Bajo"}
-                                        </Badge>
+                                        <EstadoBadge estado={NIVEL_STOCK[nivelDeStock(p.stock, p.minStock)]} />
                                     </td>
                                 </tr>
                             ))}
@@ -280,7 +280,7 @@ export default function ReportsPage() {
                                         </td>
                                         <td className="px-6 py-3">
                                             {m.reorderSoon ? (
-                                                <Badge variant="warning">Reabastecer pronto</Badge>
+                                                <Badge variant="warning" Icon={ExclamationTriangleIcon}>Reabastecer pronto</Badge>
                                             ) : (
                                                 <span className="text-foreground-muted text-xs">—</span>
                                             )}

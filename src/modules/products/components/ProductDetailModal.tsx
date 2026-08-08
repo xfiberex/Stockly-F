@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { Modal } from "@/shared/components/Modal";
 import { Badge } from "@/shared/components/Badge";
+import { EstadoBadge } from "@/shared/components/EstadoBadge";
+import { NIVEL_STOCK, ACTIVIDAD, nivelDeStock } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import type { Product } from "@/modules/products/types/product.types";
@@ -45,8 +47,8 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
 
     if (!product) return null;
 
-    const isLowStock = product.stock <= (product.minStock ?? 0) && product.isActive;
-    const isOutOfStock = product.stock === 0;
+    // Mismo criterio que la tabla (T2-38): el nivel se nombra, no solo se tiñe.
+    const nivel = product.isActive ? nivelDeStock(product.stock, product.minStock) : "correcto";
 
     const fmt = (dateStr: string) =>
         new Date(dateStr).toLocaleDateString("es-MX", {
@@ -79,12 +81,10 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                     <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                             <h3 className="font-semibold text-foreground text-base leading-snug">{product.name}</h3>
-                            <Badge
-                                variant={product.isActive ? "success" : "danger"}
+                            <EstadoBadge
+                                estado={product.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo}
                                 className="shrink-0 mt-0.5"
-                            >
-                                {product.isActive ? "Activo" : "Inactivo"}
-                            </Badge>
+                            />
                         </div>
 
                         {product.sku && (
@@ -113,15 +113,10 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
 
                     <Field icon={CubeIcon} label="Stock actual">
                         <div className="flex items-center gap-1.5">
-                            <span className={isLowStock ? "font-semibold text-warning" : "text-foreground"}>
+                            <span className={nivel === "correcto" ? "text-foreground" : "font-semibold text-foreground"}>
                                 {product.stock}
                             </span>
-                            {isOutOfStock && (
-                                <Badge variant="danger">Agotado</Badge>
-                            )}
-                            {isLowStock && !isOutOfStock && (
-                                <ExclamationTriangleIcon className="h-3.5 w-3.5 text-warning" />
-                            )}
+                            {nivel !== "correcto" && <EstadoBadge estado={NIVEL_STOCK[nivel]} />}
                         </div>
                     </Field>
 
