@@ -70,3 +70,47 @@ describe("App — menú móvil", () => {
         expect(screen.getByRole("button", { name: "Abrir menú de navegación" })).toHaveAttribute("aria-expanded", "false");
     });
 });
+
+/**
+ * T2-11 — saltar la navegación (WCAG 2.4.1).
+ *
+ * Lo que hay que comprobar no es que el enlace exista, sino las dos cosas que lo
+ * hacen útil: que sea **el primero** que recibe el foco al tabular, y que
+ * activarlo deje el foco **dentro** del contenido. Un enlace de salto que solo
+ * desplaza la página no sirve: la siguiente pulsación de Tab devuelve al usuario
+ * al principio de la navegación que quería saltarse.
+ */
+describe("App — saltar al contenido (T2-11)", () => {
+    it("la primera pulsación de Tab lo revela", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(layoutConEnlaceExterno());
+
+        await user.tab();
+
+        const salto = screen.getByRole("link", { name: "Saltar al contenido principal" });
+        expect(salto).toHaveFocus();
+    });
+
+    it("activarlo mueve el foco al contenido principal, no solo el scroll", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(layoutConEnlaceExterno());
+
+        await user.tab();
+        await user.keyboard("{Enter}");
+
+        const contenido = document.getElementById("contenido");
+        expect(contenido).not.toBeNull();
+        expect(contenido).toHaveFocus();
+    });
+
+    it("apunta a un destino que existe y es enfocable por programa", () => {
+        renderWithProviders(layoutConEnlaceExterno());
+
+        const salto = screen.getByRole("link", { name: "Saltar al contenido principal" });
+        expect(salto).toHaveAttribute("href", "#contenido");
+
+        const destino = document.getElementById("contenido");
+        expect(destino?.tagName).toBe("MAIN");
+        expect(destino).toHaveAttribute("tabindex", "-1");
+    });
+});

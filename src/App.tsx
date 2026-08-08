@@ -187,6 +187,32 @@ function App() {
 
     return (
         <div className="min-h-screen bg-background">
+            {/*
+              T2-11 — saltar la navegación (WCAG 2.4.1, nivel A).
+              La barra repite entre 3 y 12 controles en todas las páginas: sin esto,
+              quien navega con teclado o lector de pantalla los recorre enteros en
+              cada cambio de página antes de llegar al contenido.
+              Está siempre en el DOM y es el primer elemento enfocable; solo se
+              muestra al recibir el foco (`sr-only` + `focus:not-sr-only`), así que
+              no ocupa sitio para quien no lo necesita.
+            */}
+            <a
+                href="#contenido"
+                onClick={(e) => {
+                    // El navegador enfoca el destino de un fragmento si es enfocable,
+                    // pero no todos lo hacen igual y ninguno lo hace en jsdom. Moverlo a
+                    // mano deja el comportamiento decidido aquí —y comprobable por un
+                    // test— en vez de a merced del navegador. Se evita además ensuciar
+                    // el historial con `#contenido`.
+                    // `focus()` ya desplaza la página hasta el elemento, así que un
+                    // `scrollIntoView()` detrás no añade nada y encima revienta en jsdom.
+                    e.preventDefault();
+                    document.getElementById("contenido")?.focus();
+                }}
+                className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:flex focus:min-h-11 focus:items-center focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-surface focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+            >
+                Saltar al contenido principal
+            </a>
             <nav className="sticky top-0 z-40 border-b border-border bg-surface">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-14 items-center gap-6">
                     <div className="flex items-center gap-2 font-bold text-foreground">
@@ -236,7 +262,14 @@ function App() {
                     </div>
                 )}
             </nav>
-            <main>
+            {/*
+              `tabIndex={-1}` no lo mete en el orden de tabulación: lo hace
+              enfocable *por programa*, que es lo que necesita el salto. Sin él, el
+              navegador desplaza la página pero deja el foco donde estaba y la
+              siguiente pulsación de Tab vuelve al principio de la navegación —el
+              fallo clásico que hace inútil un enlace de salto.
+            */}
+            <main id="contenido" tabIndex={-1} className="outline-none">
                 <Outlet />
             </main>
         </div>
