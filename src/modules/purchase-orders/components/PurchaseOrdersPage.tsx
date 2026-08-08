@@ -185,6 +185,9 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 
+// Mismo tamaño de página que productos y órdenes de venta.
+const PAGE_SIZE = 10;
+
 export default function PurchaseOrdersPage() {
     const [formOpen, setFormOpen] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -192,7 +195,13 @@ export default function PurchaseOrdersPage() {
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
 
-    const { data: orders = [], isLoading } = usePurchaseOrders();
+    const [page, setPage] = useState(1);
+
+    const { data, isLoading } = usePurchaseOrders({ page, limit: PAGE_SIZE });
+    const orders = data?.data ?? [];
+    const total = data?.meta.total ?? 0;
+    const totalPages = data?.meta.totalPages ?? 1;
+
     const updateMutation = useUpdatePurchaseOrder();
     const deleteMutation = useDeletePurchaseOrder();
 
@@ -204,12 +213,24 @@ export default function PurchaseOrdersPage() {
         updateMutation.mutate({ id, dto: { status: "CANCELLED" } });
     };
 
+    // Si se borra la última orden de la última página, esa página deja de existir:
+    // se retrocede en el propio evento, sin efecto que reaccione al cambio de datos.
+    const handleDelete = (id: string) => {
+        const eraLaUnica = orders.length === 1 && page > 1;
+        deleteMutation.mutate(id, {
+            onSuccess: () => {
+                if (eraLaUnica) setPage((p) => p - 1);
+            },
+        });
+    };
+
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Órdenes de compra</h1>
-                    <p className="text-sm text-gray-500 mt-1">{orders.length} orden{orders.length !== 1 ? "es" : ""}</p>
+                    {/* El plural de «orden» lleva tilde: concatenar "es" daba «ordenes». */}
+                    <p className="text-sm text-gray-500 mt-1">{total} {total === 1 ? "orden" : "órdenes"} en total</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <DropdownButton
@@ -281,7 +302,7 @@ export default function PurchaseOrdersPage() {
                                                 variant="ghost"
                                                 title="Eliminar"
                                                 isLoading={deleteMutation.isPending}
-                                                onClick={() => deleteMutation.mutate(order.id)}
+                                                onClick={() => handleDelete(order.id)}
                                             >
                                                 <TrashIcon className="h-4 w-4 text-red-500" />
                                             </Button>
@@ -330,6 +351,20 @@ export default function PurchaseOrdersPage() {
                             )}
                         </div>
                     ))}
+                </div>
+            )}
+
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                    <span>Página {page} de {totalPages}</span>
+                    <div className="flex gap-2">
+                        <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+                            Anterior
+                        </Button>
+                        <Button variant="secondary" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>
+                            Siguiente
+                        </Button>
+                    </div>
                 </div>
             )}
 

@@ -1,9 +1,18 @@
 import api from "@/shared/api/axios";
-import type { ApiResponse } from "@/shared/types";
-import type { PurchaseOrder, CreatePurchaseOrderForm } from "../types/purchase-orders.types";
+import type { ApiResponse, PaginatedResponse } from "@/shared/types";
+import type {
+    PurchaseOrder,
+    CreatePurchaseOrderForm,
+    PurchaseOrderQuery,
+} from "../types/purchase-orders.types";
 
-export const getPurchaseOrders = async (): Promise<PurchaseOrder[]> => {
-    const { data } = await api.get<ApiResponse<PurchaseOrder[]>>("/purchase-orders");
+// Desde T2-03 el endpoint responde `{ data, meta }` como el resto de listados.
+export const getPurchaseOrders = async (
+    params?: PurchaseOrderQuery,
+): Promise<PaginatedResponse<PurchaseOrder>> => {
+    const { data } = await api.get<ApiResponse<PaginatedResponse<PurchaseOrder>>>("/purchase-orders", {
+        params,
+    });
     return data.data!;
 };
 

@@ -10,6 +10,8 @@ const updateMutate = vi.fn();
 const etiquetas = [
     { id: "tag-1", name: "Oferta", color: "#ef4444" },
     { id: "tag-2", name: "Novedad", color: "#22c55e" },
+    // Color oscuro de verdad: el rojo y el verde de arriba contrastan mejor con negro.
+    { id: "tag-3", name: "Marina", color: "#1e3a8a" },
 ];
 
 const productoExistente: Product = {
@@ -123,5 +125,44 @@ describe("ProductForm", () => {
 
         await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
         expect(updateMutate.mock.calls[0][0]).toMatchObject({ dto: { tagIds: ["tag-2"] } });
+    });
+
+    // T2-17: la selección se comunicaba solo por color de fondo, así que quien no
+    // distingue el color no sabía qué etiquetas estaban puestas.
+    describe("accesibilidad de los conmutadores de etiqueta", () => {
+        it("expone el estado de cada etiqueta con aria-pressed", () => {
+            renderWithProviders(<ProductForm isOpen onClose={vi.fn()} product={productoExistente} />);
+
+            expect(screen.getByRole("button", { name: /oferta/i })).toHaveAttribute("aria-pressed", "true");
+            expect(screen.getByRole("button", { name: /novedad/i })).toHaveAttribute("aria-pressed", "false");
+        });
+
+        it("el estado cambia al pulsar", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<ProductForm isOpen onClose={vi.fn()} product={productoExistente} />);
+
+            await user.click(screen.getByRole("button", { name: /novedad/i }));
+
+            expect(screen.getByRole("button", { name: /novedad/i })).toHaveAttribute("aria-pressed", "true");
+        });
+
+        it("agrupa los conmutadores bajo el rótulo «Etiquetas»", () => {
+            renderWithProviders(<ProductForm isOpen onClose={vi.fn()} />);
+
+            expect(screen.getByRole("group", { name: /etiquetas/i })).toBeInTheDocument();
+        });
+
+        it("el texto de una etiqueta seleccionada usa el color que contrasta con su fondo", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<ProductForm isOpen onClose={vi.fn()} product={productoExistente} />);
+
+            // «Oferta» (#ef4444) viene seleccionada. Pese a parecer oscuro, ese rojo
+            // contrasta más con negro (5.7) que con blanco (3.7): texto negro.
+            expect(screen.getByRole("button", { name: /oferta/i })).toHaveStyle({ color: "#000000" });
+
+            // «Marina» (#1e3a8a) sí es oscura: al seleccionarla, texto blanco.
+            await user.click(screen.getByRole("button", { name: /marina/i }));
+            expect(screen.getByRole("button", { name: /marina/i })).toHaveStyle({ color: "#ffffff" });
+        });
     });
 });

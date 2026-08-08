@@ -4,7 +4,9 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    // `node` lo necesitan los tests que leen archivos del proyecto (theme.test.ts
+    // lee index.css): Vitest anula el CSS, así que `?raw` devuelve cadena vacía.
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom", "node"],
     "skipLibCheck": true,
     "baseUrl": "",
     "paths": {

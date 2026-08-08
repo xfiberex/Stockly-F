@@ -29,6 +29,12 @@ export interface PurchaseOrderItemForm {
     unitPrice: number;
 }
 
+export interface PurchaseOrderQuery {
+    page?: number;
+    limit?: number;
+    status?: PurchaseOrderStatus;
+}
+
 export interface CreatePurchaseOrderForm {
     supplierId?: string;
     notes?: string;

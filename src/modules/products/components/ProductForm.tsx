@@ -3,6 +3,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { SparklesIcon, TagIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal } from "@/shared/components/Modal";
+import { textoLegibleSobre } from "@/shared/lib/color";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
@@ -16,6 +17,9 @@ import { useSuppliers } from "@/modules/suppliers/hooks/useSuppliers";
 import { useTags } from "@/modules/tags/hooks/useTags";
 import type { Product } from "@/modules/products/types/product.types";
 import type { Resolver } from "react-hook-form";
+
+// Color de una etiqueta sin color propio.
+const COLOR_ETIQUETA_POR_DEFECTO = "#6366f1";
 
 interface ProductFormProps {
     isOpen: boolean;
@@ -222,28 +226,35 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                 />
                 {tags.length > 0 && (
                     <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                        <p id="etiquetas-label" className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
                             <TagIcon className="h-3.5 w-3.5 text-gray-400" />
                             Etiquetas
                         </p>
-                        <div className="flex flex-wrap gap-2">
+                        {/* Conmutadores, no botones de acción: `aria-pressed` es lo que
+                            comunica la selección a quien no ve el color de fondo. */}
+                        <div role="group" aria-labelledby="etiquetas-label" className="flex flex-wrap gap-2">
                             {tags.map((tag) => {
                                 const isSelected = selectedTagIds.includes(tag.id);
+                                const color = tag.color ?? COLOR_ETIQUETA_POR_DEFECTO;
+                                // El color lo elige el usuario: con texto blanco fijo,
+                                // una etiqueta amarilla quedaba ilegible.
+                                const colorTexto = textoLegibleSobre(color);
                                 return (
                                     <button
                                         key={tag.id}
                                         type="button"
+                                        aria-pressed={isSelected}
                                         onClick={() => toggleTag(tag.id)}
                                         className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-all ${
                                             isSelected
-                                                ? "border-transparent text-white"
+                                                ? "border-transparent"
                                                 : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
                                         }`}
-                                        style={isSelected ? { backgroundColor: tag.color ?? "#6366f1" } : {}}
+                                        style={isSelected ? { backgroundColor: color, color: colorTexto } : {}}
                                     >
                                         <span
                                             className="h-2 w-2 rounded-full"
-                                            style={{ backgroundColor: isSelected ? "rgba(255,255,255,0.6)" : (tag.color ?? "#94a3b8") }}
+                                            style={{ backgroundColor: isSelected ? colorTexto : color, opacity: isSelected ? 0.6 : 1 }}
                                         />
                                         {tag.name}
                                     </button>

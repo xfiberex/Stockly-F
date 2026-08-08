@@ -6,12 +6,16 @@ import {
     updatePurchaseOrder,
     deletePurchaseOrder,
 } from "../api/purchase-orders.api";
-import type { CreatePurchaseOrderForm } from "../types/purchase-orders.types";
+import type { CreatePurchaseOrderForm, PurchaseOrderQuery } from "../types/purchase-orders.types";
 
 const QUERY_KEY = ["purchase-orders"] as const;
 
-export function usePurchaseOrders() {
-    return useQuery({ queryKey: QUERY_KEY, queryFn: getPurchaseOrders });
+export function usePurchaseOrders(params?: PurchaseOrderQuery) {
+    return useQuery({
+        // Los parámetros entran en la clave: cada página se cachea por separado.
+        queryKey: [...QUERY_KEY, params],
+        queryFn: () => getPurchaseOrders(params),
+    });
 }
 
 export function useCreatePurchaseOrder() {

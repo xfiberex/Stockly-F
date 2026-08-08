@@ -4,6 +4,76 @@
 @import "@fontsource/inter/600.css";
 @import "@fontsource/inter/700.css";
 
+/*
+ * Capa de tokens semánticos (T2-35).
+ *
+ * Los componentes deben nombrar el *papel* del color, no su valor: `bg-surface`,
+ * no `bg-white`. Cambiar aquí un token cambia toda la aplicación; ese es el punto.
+ *
+ * Paleta «Industrial slate + stock green». Los ratios anotados son contra
+ * `--color-surface` (#FFFFFF) y están comprobados con la fórmula WCAG 2.1;
+ * `src/tests/theme.test.ts` los recalcula desde este archivo, así que tocar un
+ * valor y bajar del mínimo hace fallar la suite.
+ *
+ * Dos decisiones que conviene no deshacer sin querer:
+ *
+ * 1. Aquí NO se redefine ningún `--radius-*` de Tailwind. Hacerlo cambiaría de
+ *    golpe las 68 utilidades `rounded-lg`/`rounded-xl` ya escritas. La convención
+ *    (`rounded-xl` superficies, `rounded-lg` controles, `rounded-full` badges) la
+ *    aplica T3-14.
+ * 2. El acento tiene dos valores a propósito: blanco sobre `--color-accent` da
+ *    3.77:1 y **falla AA** para texto normal, así que los rellenos con texto
+ *    encima usan `--color-accent-strong`. El acento suave queda para bordes e
+ *    indicadores, donde el mínimo es 3:1.
+ */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Superficies */
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f2f3f4;
+  --color-border: #e6e8ea;
+
+  /* Texto */
+  --color-foreground: #0f172a;        /* 18.1:1 — AAA */
+  --color-foreground-muted: #64748b;  /*  4.8:1 — AA  */
+
+  /* Acción y acento */
+  --color-primary: #334155;           /* 10.4:1 — AAA */
+  --color-accent: #059669;            /*  3.8:1 — solo bordes e indicadores */
+  --color-accent-strong: #047857;     /*  5.5:1 — AA, rellenos con texto blanco */
+
+  /* Estados */
+  --color-success: #047857;           /*  5.5:1 — AA */
+  --color-warning: #b45309;           /*  5.0:1 — AA (4.8:1 sobre su superficie) */
+  /* La ficha de la paleta traía #dc2626 (4.8:1 sobre blanco, AA). Pero sobre su
+     propia superficie de badge se queda en 4.41 y falla: los ratios estaban
+     medidos solo contra blanco. #b91c1c cumple en ambos fondos. */
+  --color-danger: #b91c1c;            /*  6.5:1 sobre blanco · 5.9:1 sobre su superficie */
+  --color-info: #1d4ed8;              /*  6.7:1 — AA */
+
+  /* Superficie de cada estado, para fondos de badge y avisos */
+  --color-success-surface: #ecfdf5;
+  --color-warning-surface: #fffbeb;
+  --color-danger-surface: #fef2f2;
+  --color-info-surface: #eff6ff;
+
+  /* Elevación. Nombres nuevos: no pisan los `--shadow-*` de Tailwind. */
+  --shadow-raised: 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-overlay: 0 8px 24px rgb(15 23 42 / 0.12);
+
+  /* Movimiento */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/*
+ * Tailwind 4 no tiene espacio de nombres `--duration-*`: las duraciones se
+ * escriben como número (`duration-150`). Estas dos viven fuera de `@theme` para
+ * dejar claro que no generan utilidad; se consumen como
+ * `duration-[var(--duration-fast)]` o desde CSS propio.
+ */
+:root {
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
 }
