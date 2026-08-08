@@ -33,7 +33,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                         className={cn(
                             // appearance-none oculta el indicador nativo (que se alinea distinto
                             // según el navegador); pr-9 deja sitio para el chevron propio.
-                            "w-full appearance-none rounded-lg border border-border pl-3 pr-9 py-2 text-sm text-foreground outline-none transition bg-surface",
+                            // `min-h-11` hasta `md`: mínimo táctil (T2-40).
+                            "w-full min-h-11 appearance-none rounded-lg border border-border pl-3 pr-9 py-2 text-sm text-foreground outline-none transition bg-surface md:min-h-9",
                             "focus:border-accent focus:ring-2 focus:ring-accent/20",
                             error && "border-danger focus:border-danger focus:ring-danger/20",
                             className,

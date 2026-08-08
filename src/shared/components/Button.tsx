@@ -28,7 +28,12 @@ export function Button({
         <button
             disabled={disabled || isLoading}
             className={cn(
-                "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed",
+                // T2-40: el mismo componente en dos densidades, no dos componentes.
+                // Por debajo de `md` manda el mínimo táctil de 44 px —este botón es
+                // el de las acciones por fila y el de la paginación, que se pulsan con
+                // el pulgar—; de `md` en adelante vuelve a los 36 px del perfil denso,
+                // donde se apunta con ratón y la altura solo gasta espacio.
+                "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed md:min-h-9",
                 variants[variant],
                 className,
             )}

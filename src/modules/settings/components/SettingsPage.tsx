@@ -18,11 +18,18 @@ function BooleanToggle({ value, onChange }: { value: SettingValue; onChange: (va
             role="switch"
             aria-checked={isOn}
             onClick={() => onChange(!isOn)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 ${isOn ? "bg-primary" : "bg-border"}`}
+            // El carril mide 44×24 y no puede crecer sin dejar de parecer un
+            // interruptor, así que la diana táctil es el botón que lo envuelve
+            // (T2-40): 44 px de alto hasta `md`, sin tocar el dibujo.
+            className="group inline-flex min-h-11 items-center rounded-full focus:outline-none md:min-h-0"
         >
             <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-surface shadow transition-transform ${isOn ? "translate-x-6" : "translate-x-1"}`}
-            />
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors group-focus-visible:ring-2 group-focus-visible:ring-accent group-focus-visible:ring-offset-2 ${isOn ? "bg-primary" : "bg-border"}`}
+            >
+                <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-surface shadow transition-transform ${isOn ? "translate-x-6" : "translate-x-1"}`}
+                />
+            </span>
         </button>
     );
 }
@@ -94,7 +101,7 @@ export default function SettingsPage() {
                                             entry.key,
                                             entry.type === "number" ? Number(e.target.value) : e.target.value,
                                         )}
-                                        className="rounded-lg border border-border px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition w-40"
+                                        className="min-h-11 rounded-lg border border-border px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition w-40 md:min-h-9"
                                     />
                                 )}
                             </div>

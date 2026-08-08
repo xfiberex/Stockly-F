@@ -69,7 +69,7 @@ function UserMenu({ name }: { name: string }) {
                 aria-label="Menú de usuario"
                 aria-haspopup="menu"
                 aria-expanded={open}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-muted transition-colors"
+                className="flex min-h-11 items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-muted transition-colors md:min-h-0"
             >
                 <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-surface text-xs font-semibold shrink-0">
                     {initials}
@@ -84,7 +84,7 @@ function UserMenu({ name }: { name: string }) {
                         to="/profile"
                         role="menuitem"
                         onClick={() => setOpen(false)}
-                        className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-surface-muted transition-colors"
+                        className="flex min-h-11 items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-surface-muted transition-colors md:min-h-0"
                     >
                         <UserCircleIcon className="h-4 w-4 text-foreground-muted" />
                         Mi perfil
@@ -94,7 +94,7 @@ function UserMenu({ name }: { name: string }) {
                         onClick={() => { setOpen(false); logout.mutate(); }}
                         role="menuitem"
                         disabled={logout.isPending}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-danger hover:bg-danger-surface transition-colors disabled:opacity-50"
+                        className="w-full flex min-h-11 items-center gap-2.5 px-3.5 py-2.5 text-sm text-danger hover:bg-danger-surface transition-colors disabled:opacity-50 md:min-h-0"
                     >
                         <ArrowRightOnRectangleIcon className="h-4 w-4" />
                         Cerrar sesión
@@ -113,7 +113,7 @@ const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+        "flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
         isActive ? "bg-info-surface text-info" : "text-foreground hover:bg-surface-muted",
     );
 
@@ -222,7 +222,8 @@ function App() {
                             aria-label={mobileOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
                             aria-expanded={mobileOpen}
                             aria-controls="mobile-menu"
-                            className="lg:hidden rounded-lg p-2 text-foreground-muted hover:bg-surface-muted transition-colors"
+                            // Solo existe por debajo de `lg`, así que siempre se pulsa con el dedo.
+                            className="lg:hidden flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-foreground-muted hover:bg-surface-muted transition-colors"
                         >
                             {mobileOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />}
                         </button>

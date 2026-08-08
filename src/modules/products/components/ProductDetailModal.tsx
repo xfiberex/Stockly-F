@@ -106,7 +106,7 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                 {/* ── Campos ── */}
                 <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <Field icon={CurrencyDollarIcon} label="Precio">
-                        <span className="font-semibold text-foreground">
+                        <span className="font-semibold text-foreground tabular-nums">
                             ${Number(product.price).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                         </span>
                     </Field>

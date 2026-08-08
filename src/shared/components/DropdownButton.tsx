@@ -58,7 +58,8 @@ export function DropdownButton({
                 aria-haspopup="true"
                 aria-expanded={open}
                 className={cn(
-                    "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed",
+                    // Misma densidad que `Button` (T2-40): 44 px al pulgar, 36 al ratón.
+                    "inline-flex min-h-11 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed md:min-h-9",
                     variants[variant],
                 )}
             >
@@ -83,7 +84,7 @@ export function DropdownButton({
                                 item.onClick();
                                 setOpen(false);
                             }}
-                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-foreground hover:bg-surface-muted transition-colors"
+                            className="flex min-h-11 w-full items-center gap-2 px-4 py-2 text-left text-sm text-foreground hover:bg-surface-muted transition-colors md:min-h-0"
                         >
                             {item.icon && <item.icon className="h-4 w-4 text-foreground-muted" />}
                             {item.label}

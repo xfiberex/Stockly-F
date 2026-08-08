@@ -77,3 +77,19 @@
   --duration-fast: 150ms;
   --duration-base: 200ms;
 }
+
+/*
+ * Cifras tabulares en las tablas (T2-39).
+ *
+ * Inter usa cifras proporcionales por defecto: el «1» es más estrecho que el «8»,
+ * así que dos números de los mismos dígitos ocupan anchos distintos y las columnas
+ * no alinean entre filas. Una tabla de inventario existe para comparar cifras en
+ * vertical, de modo que la regla va aquí y no celda a celda: así la próxima tabla
+ * que alguien escriba nace alineada en lugar de depender de que se acuerde.
+ *
+ * Es una regla de elemento, no una utilidad, así que cualquier `proportional-nums`
+ * puntual la gana por especificidad si algún día hace falta.
+ */
+table {
+  font-variant-numeric: tabular-nums;
+}

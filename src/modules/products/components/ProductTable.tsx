@@ -59,14 +59,14 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                 <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                     <tr>
                         {selectable && <th className="px-3 py-3 w-8" />}
-                        <th className="px-4 py-3">Imagen</th>
-                        <th className="px-4 py-3">Nombre / SKU</th>
-                        <th className="px-4 py-3">Categoría</th>
-                        <th className="px-4 py-3">Marca</th>
-                        <th className="px-4 py-3">Precio</th>
-                        <th className="px-4 py-3">Stock / Mín</th>
-                        <th className="px-4 py-3">Estado</th>
-                        <th className="px-4 py-3 text-right">Acciones</th>
+                        <th className="px-4 py-3 lg:py-1.5">Imagen</th>
+                        <th className="px-4 py-3 lg:py-1.5">Nombre / SKU</th>
+                        <th className="px-4 py-3 lg:py-1.5">Categoría</th>
+                        <th className="px-4 py-3 lg:py-1.5">Marca</th>
+                        <th className="px-4 py-3 lg:py-1.5 text-right">Precio</th>
+                        <th className="px-4 py-3 lg:py-1.5">Stock / Mín</th>
+                        <th className="px-4 py-3 lg:py-1.5">Estado</th>
+                        <th className="px-4 py-3 lg:py-1.5 text-right">Acciones</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-border bg-surface">
@@ -86,29 +86,39 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                 )}
                             >
                                 {selectable && (
-                                    <td className="px-3 py-3">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedIds?.has(product.id) ?? false}
-                                            onChange={() => onToggleSelect!(product.id)}
-                                            className="h-4 w-4 rounded border-border text-info focus:ring-accent"
-                                        />
+                                    <td className="px-3 py-3 lg:py-1.5">
+                                        {/* La casilla mide 16 px y no puede crecer sin desentonar,
+                                            así que quien recibe el toque es la etiqueta que la
+                                            envuelve: 44×44 hasta `md` (T2-40). */}
+                                        <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center md:min-h-0 md:min-w-0">
+                                            <input
+                                                type="checkbox"
+                                                // El nombre accesible va en `aria-label` y no en un
+                                                // `sr-only` dentro de la etiqueta: ese texto se suma
+                                                // al árbol de texto de la fila y el nombre del
+                                                // producto pasaba a aparecer dos veces en ella.
+                                                aria-label={`Seleccionar ${product.name}`}
+                                                checked={selectedIds?.has(product.id) ?? false}
+                                                onChange={() => onToggleSelect!(product.id)}
+                                                className="h-4 w-4 rounded border-border text-info focus:ring-accent"
+                                            />
+                                        </label>
                                     </td>
                                 )}
-                                <td className="px-4 py-3">
+                                <td className="px-4 py-3 lg:py-1.5">
                                     {product.imageUrl ? (
                                         <img
                                             src={product.imageUrl}
                                             alt={product.name}
-                                            className="h-10 w-10 rounded-lg object-cover"
+                                            className="h-10 w-10 lg:h-8 lg:w-8 rounded-lg object-cover"
                                         />
                                     ) : (
-                                        <div className="h-10 w-10 rounded-lg bg-surface-muted flex items-center justify-center text-border">
+                                        <div className="h-10 w-10 lg:h-8 lg:w-8 rounded-lg bg-surface-muted flex items-center justify-center text-border">
                                             <CubeIcon className="h-5 w-5" />
                                         </div>
                                     )}
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-4 py-3 lg:py-1.5">
                                     <Link
                                         to={`/catalog/products/${product.id}/movements`}
                                         className="font-medium text-foreground hover:text-info transition-colors"
@@ -125,26 +135,30 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                     )}
                                 </td>
                                 {/* La categoría clasifica, no informa de un estado: variante neutra. */}
-                                <td className="px-4 py-3">
+                                <td className="px-4 py-3 lg:py-1.5">
                                     {product.category ? (
                                         <Badge variant="neutral">{product.category.name}</Badge>
                                     ) : (
                                         <span className="text-xs text-foreground-muted">—</span>
                                     )}
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-4 py-3 lg:py-1.5">
                                     {product.brand ? (
                                         <span className="text-sm text-foreground">{product.brand.name}</span>
                                     ) : (
                                         <span className="text-xs text-foreground-muted">—</span>
                                     )}
                                 </td>
-                                <td className="px-4 py-3 text-foreground tabular-nums">
+                                <td className="px-4 py-3 lg:py-1.5 text-right text-foreground">
                                     ${Number(product.price).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-4 py-3 lg:py-1.5">
                                     <div className="flex items-center gap-1.5">
-                                        <span className={cn("tabular-nums", CLASE_NIVEL[nivel])}>
+                                        {/* El stock va en una caja de ancho fijo y alineado a la
+                                            derecha: con las cifras tabulares de la tabla, eso hace
+                                            que las unidades queden en la misma vertical aunque
+                                            detrás vengan el icono y el mínimo, que sí varían. */}
+                                        <span className={cn("inline-block min-w-10 text-right", CLASE_NIVEL[nivel])}>
                                             {product.stock}
                                         </span>
                                         {/* El icono nombra el nivel además de teñirlo: sin él,
@@ -160,10 +174,10 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                         )}
                                     </div>
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-4 py-3 lg:py-1.5">
                                     <EstadoBadge estado={product.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
                                 </td>
-                                <td className="px-4 py-3">
+                                <td className="px-4 py-3 lg:py-1.5">
                                     <div className="flex justify-end gap-1">
                                         <Button
                                             variant="ghost"

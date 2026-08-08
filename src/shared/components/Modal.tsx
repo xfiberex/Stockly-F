@@ -83,7 +83,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
                     <button
                         onClick={onClose}
                         aria-label="Cerrar"
-                        className="rounded-lg p-1 text-foreground-muted hover:bg-surface-muted hover:text-foreground-muted transition-colors"
+                        className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-1 text-foreground-muted hover:bg-surface-muted hover:text-foreground-muted transition-colors md:min-h-0 md:min-w-0"
                     >
                         <XMarkIcon className="h-5 w-5" />
                     </button>

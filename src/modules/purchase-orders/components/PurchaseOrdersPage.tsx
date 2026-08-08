@@ -119,15 +119,15 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                     </div>
                     <div className="space-y-3">
                         {fields.map((field, idx) => (
-                            <div key={field.id} className="grid grid-cols-12 gap-2 items-end border border-border rounded-lg p-3 bg-surface-muted">
-                                <div className="col-span-4">
+                            <div key={field.id} className="grid grid-cols-2 gap-2 items-end border border-border rounded-lg p-3 bg-surface-muted md:grid-cols-12">
+                                <div className="col-span-2 md:col-span-4">
                                     <Select
                                         label="Producto"
                                         options={productOptions}
                                         onChange={(e) => handleProductSelect(idx, e.target.value)}
                                     />
                                 </div>
-                                <div className="col-span-3">
+                                <div className="col-span-2 md:col-span-3">
                                     <Input
                                         label="Nombre"
                                         placeholder="Nombre del ítem"
@@ -135,7 +135,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                         {...register(`items.${idx}.productName`, { required: "Obligatorio" })}
                                     />
                                 </div>
-                                <div className="col-span-2">
+                                <div className="col-span-1 md:col-span-2">
                                     <Input
                                         label="Cant."
                                         type="number"
@@ -143,7 +143,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                         {...register(`items.${idx}.quantity`)}
                                     />
                                 </div>
-                                <div className="col-span-2">
+                                <div className="col-span-1 md:col-span-2">
                                     <Input
                                         label="P. unit."
                                         type="number"
@@ -152,7 +152,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                         {...register(`items.${idx}.unitPrice`)}
                                     />
                                 </div>
-                                <div className="col-span-1 flex justify-end">
+                                <div className="col-span-2 flex justify-end md:col-span-1">
                                     <Button
                                         type="button"
                                         variant="ghost"
@@ -266,7 +266,7 @@ export default function PurchaseOrdersPage() {
                                 </div>
                                 <div className="flex items-center gap-4 shrink-0">
                                     <div className="text-right hidden sm:block">
-                                        <p className="text-sm font-semibold text-foreground">
+                                        <p className="text-sm font-semibold text-foreground tabular-nums">
                                             ${orderTotal(order).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                         </p>
                                         <p className="text-xs text-foreground-muted">{order.items.length} ítem{order.items.length !== 1 ? "s" : ""}</p>

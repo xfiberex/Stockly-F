@@ -64,7 +64,7 @@ export default function DashboardPage() {
                             <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${text}`} />
                         </div>
                         <div className="min-w-0">
-                            <p className={`text-xl sm:text-2xl font-bold ${highlight ? "text-warning" : "text-foreground"}`}>{value}</p>
+                            <p className={`text-xl sm:text-2xl font-bold tabular-nums ${highlight ? "text-warning" : "text-foreground"}`}>{value}</p>
                             <p className="text-xs sm:text-sm text-foreground-muted leading-tight">{label}</p>
                         </div>
                     </Link>
@@ -77,7 +77,9 @@ export default function DashboardPage() {
                     <CurrencyDollarIcon className="h-6 w-6 text-success" />
                 </div>
                 <div>
-                    <p className="text-2xl font-bold text-foreground">
+                    {/* El KPI que más se refresca: sin cifras tabulares cambiaba de ancho
+                        con cada actualización, y el bloque entero se movía. */}
+                    <p className="text-2xl font-bold text-foreground tabular-nums">
                         ${totals.inventoryValue.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                     <p className="text-sm text-foreground-muted">Valor total del inventario activo</p>

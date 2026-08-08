@@ -81,7 +81,7 @@ export default function ReportsPage() {
                             <Icon className={`h-6 w-6 ${text}`} />
                         </div>
                         <div>
-                            <p className="text-xl font-bold text-foreground">{value}</p>
+                            <p className="text-xl font-bold text-foreground tabular-nums">{value}</p>
                             <p className="text-xs text-foreground-muted">{label}</p>
                         </div>
                     </div>
@@ -161,9 +161,9 @@ export default function ReportsPage() {
                             <tr>
                                 <th className="px-6 py-3">#</th>
                                 <th className="px-6 py-3">Producto</th>
-                                <th className="px-6 py-3">Precio unit.</th>
-                                <th className="px-6 py-3">Stock</th>
-                                <th className="px-6 py-3">Valor total</th>
+                                <th className="px-6 py-3 text-right">Precio unit.</th>
+                                <th className="px-6 py-3 text-right">Stock</th>
+                                <th className="px-6 py-3 text-right">Valor total</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -179,9 +179,9 @@ export default function ReportsPage() {
                                         </Link>
                                         {p.sku && <div className="text-xs text-foreground-muted font-mono">{p.sku}</div>}
                                     </td>
-                                    <td className="px-6 py-3 text-foreground-muted">${Number(p.price).toFixed(2)}</td>
-                                    <td className="px-6 py-3 text-foreground">{p.stock}</td>
-                                    <td className="px-6 py-3 font-semibold text-foreground">
+                                    <td className="px-6 py-3 text-right text-foreground-muted">${Number(p.price).toFixed(2)}</td>
+                                    <td className="px-6 py-3 text-right text-foreground">{p.stock}</td>
+                                    <td className="px-6 py-3 text-right font-semibold text-foreground">
                                         ${Number(p.totalValue).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                     </td>
                                 </tr>
@@ -204,8 +204,8 @@ export default function ReportsPage() {
                             <tr>
                                 <th className="px-6 py-3">Producto</th>
                                 <th className="px-6 py-3">Categoría</th>
-                                <th className="px-6 py-3">Stock actual</th>
-                                <th className="px-6 py-3">Stock mínimo</th>
+                                <th className="px-6 py-3 text-right">Stock actual</th>
+                                <th className="px-6 py-3 text-right">Stock mínimo</th>
                                 <th className="px-6 py-3">Estado</th>
                             </tr>
                         </thead>
@@ -222,8 +222,8 @@ export default function ReportsPage() {
                                         {p.sku && <div className="text-xs text-foreground-muted font-mono">{p.sku}</div>}
                                     </td>
                                     <td className="px-6 py-3 text-foreground-muted">{p.category ?? "—"}</td>
-                                    <td className="px-6 py-3 font-semibold text-warning">{p.stock}</td>
-                                    <td className="px-6 py-3 text-foreground-muted">{p.minStock}</td>
+                                    <td className="px-6 py-3 text-right font-semibold text-warning">{p.stock}</td>
+                                    <td className="px-6 py-3 text-right text-foreground-muted">{p.minStock}</td>
                                     <td className="px-6 py-3">
                                         <EstadoBadge estado={NIVEL_STOCK[nivelDeStock(p.stock, p.minStock)]} />
                                     </td>

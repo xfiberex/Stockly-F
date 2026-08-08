@@ -113,7 +113,7 @@ export default function StockMovementsPage() {
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">
                         <div className="text-right">
-                            <p className={`text-2xl font-bold ${isLowStock ? "text-warning" : "text-foreground"}`}>
+                            <p className={`text-2xl font-bold tabular-nums ${isLowStock ? "text-warning" : "text-foreground"}`}>
                                 {product.stock}
                             </p>
                             <p className="text-xs text-foreground-muted">
@@ -140,7 +140,7 @@ export default function StockMovementsPage() {
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                        className={`min-h-11 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px md:min-h-9 ${
                             activeTab === tab
                                 ? "border-info text-info"
                                 : "border-transparent text-foreground-muted hover:text-foreground"
@@ -208,7 +208,7 @@ export default function StockMovementsPage() {
                                     type="date"
                                     value={dateFrom}
                                     onChange={(e) => setDateFrom(e.target.value)}
-                                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                                    className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 md:min-h-9"
                                 />
                             </div>
                             <div className="flex items-center gap-2">
@@ -217,7 +217,7 @@ export default function StockMovementsPage() {
                                     type="date"
                                     value={dateTo}
                                     onChange={(e) => setDateTo(e.target.value)}
-                                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+                                    className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 md:min-h-9"
                                 />
                             </div>
                             {(typeFilter || dateFrom || dateTo) && (
