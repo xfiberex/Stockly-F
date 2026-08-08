@@ -53,7 +53,7 @@ export function CatalogFormModal({ isOpen, onClose, title, item, onSubmit, isPen
                     error={errors.description?.message}
                     {...register("description")}
                 />
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button type="button" variant="secondary" onClick={handleClose}>Cancelar</Button>
                     <Button type="submit" isLoading={isPending}>Guardar</Button>
                 </div>
@@ -118,8 +118,8 @@ export function CatalogItemSection({
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-                    <p className="text-sm text-gray-500 mt-1">{description}</p>
+                    <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{description}</p>
                 </div>
                 {isAdmin && (
                     <Button onClick={handleOpenNew}>
@@ -132,24 +132,24 @@ export function CatalogItemSection({
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : items.length === 0 ? (
-                <div className="py-12 text-center text-sm text-gray-400">
+                <div className="py-12 text-center text-sm text-foreground-muted">
                     No hay {entityLabel.toLowerCase()}s registradas. Crea la primera.
                 </div>
             ) : (
-                <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <div className="overflow-x-auto rounded-xl border border-border">
                     <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
                                 <th className="px-4 py-3">Nombre</th>
                                 <th className="px-4 py-3">Descripción</th>
                                 {isAdmin && <th className="px-4 py-3 text-right">Acciones</th>}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
+                        <tbody className="divide-y divide-border bg-surface">
                             {items.map((item) => (
-                                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-4 py-3 font-medium text-gray-900">{item.name}</td>
-                                    <td className="px-4 py-3 text-gray-500 max-w-xs truncate">
+                                <tr key={item.id} className="hover:bg-surface-muted transition-colors">
+                                    <td className="px-4 py-3 font-medium text-foreground">{item.name}</td>
+                                    <td className="px-4 py-3 text-foreground-muted max-w-xs truncate">
                                         {item.description ?? "—"}
                                     </td>
                                     {isAdmin && (
@@ -164,7 +164,7 @@ export function CatalogItemSection({
                                                     onClick={() => onDelete(item.id)}
                                                     title="Eliminar"
                                                 >
-                                                    <TrashIcon className="h-4 w-4 text-red-500" />
+                                                    <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>
                                             </div>
                                         </td>

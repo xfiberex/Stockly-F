@@ -35,7 +35,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
 
     if (products.length === 0) {
         return (
-            <div className="py-16 text-center text-sm text-gray-400">No se encontraron productos</div>
+            <div className="py-16 text-center text-sm text-foreground-muted">No se encontraron productos</div>
         );
     }
 
@@ -43,9 +43,9 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
 
     return (
         <>
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
+        <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full min-w-160 text-sm">
-                <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                     <tr>
                         {selectable && <th className="px-3 py-3 w-8" />}
                         <th className="px-4 py-3">Imagen</th>
@@ -58,13 +58,13 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                         <th className="px-4 py-3 text-right">Acciones</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
+                <tbody className="divide-y divide-border bg-surface">
                     {products.map((product) => {
                         const isLowStock = product.stock <= (product.minStock ?? 0) && product.isActive;
                         return (
                             <tr
                                 key={product.id}
-                                className={`hover:bg-gray-50 transition-colors ${isLowStock ? "bg-orange-50/40" : ""}`}
+                                className={`hover:bg-surface-muted transition-colors ${isLowStock ? "bg-warning-surface/40" : ""}`}
                             >
                                 {selectable && (
                                     <td className="px-3 py-3">
@@ -72,7 +72,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                             type="checkbox"
                                             checked={selectedIds?.has(product.id) ?? false}
                                             onChange={() => onToggleSelect!(product.id)}
-                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            className="h-4 w-4 rounded border-border text-info focus:ring-accent"
                                         />
                                     </td>
                                 )}
@@ -84,7 +84,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                             className="h-10 w-10 rounded-lg object-cover"
                                         />
                                     ) : (
-                                        <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300">
+                                        <div className="h-10 w-10 rounded-lg bg-surface-muted flex items-center justify-center text-border">
                                             <CubeIcon className="h-5 w-5" />
                                         </div>
                                     )}
@@ -92,49 +92,50 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                 <td className="px-4 py-3">
                                     <Link
                                         to={`/catalog/products/${product.id}/movements`}
-                                        className="font-medium text-gray-900 hover:text-blue-600 transition-colors"
+                                        className="font-medium text-foreground hover:text-info transition-colors"
                                     >
                                         {product.name}
                                     </Link>
                                     {product.sku && (
-                                        <div className="text-xs text-gray-400 font-mono">{product.sku}</div>
+                                        <div className="text-xs text-foreground-muted font-mono">{product.sku}</div>
                                     )}
                                     {product.description && !product.sku && (
-                                        <div className="text-xs text-gray-400 truncate max-w-48">
+                                        <div className="text-xs text-foreground-muted truncate max-w-48">
                                             {product.description}
                                         </div>
                                     )}
                                 </td>
+                                {/* La categoría clasifica, no informa de un estado: variante neutra. */}
                                 <td className="px-4 py-3">
                                     {product.category ? (
-                                        <Badge variant="blue">{product.category.name}</Badge>
+                                        <Badge variant="neutral">{product.category.name}</Badge>
                                     ) : (
-                                        <span className="text-xs text-gray-400">—</span>
+                                        <span className="text-xs text-foreground-muted">—</span>
                                     )}
                                 </td>
                                 <td className="px-4 py-3">
                                     {product.brand ? (
-                                        <span className="text-sm text-gray-700">{product.brand.name}</span>
+                                        <span className="text-sm text-foreground">{product.brand.name}</span>
                                     ) : (
-                                        <span className="text-xs text-gray-400">—</span>
+                                        <span className="text-xs text-foreground-muted">—</span>
                                     )}
                                 </td>
-                                <td className="px-4 py-3 text-gray-700 tabular-nums">
+                                <td className="px-4 py-3 text-foreground tabular-nums">
                                     ${Number(product.price).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-1.5">
-                                        <span className={isLowStock ? "text-orange-700 font-semibold" : "text-gray-700"}>
+                                        <span className={isLowStock ? "text-warning font-semibold" : "text-foreground"}>
                                             {product.stock}
                                         </span>
                                         {isLowStock && (
                                             <ExclamationTriangleIcon
-                                                className="h-4 w-4 text-orange-500"
+                                                className="h-4 w-4 text-warning"
                                                 title={`Stock mínimo: ${product.minStock}`}
                                             />
                                         )}
                                         {product.minStock > 0 && (
-                                            <span className="text-xs text-gray-400">/ {product.minStock}</span>
+                                            <span className="text-xs text-foreground-muted">/ {product.minStock}</span>
                                         )}
                                     </div>
                                 </td>
@@ -151,11 +152,11 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                             title="Ver detalles"
                                             onClick={() => setDetailProduct(product)}
                                         >
-                                            <EyeIcon className="h-4 w-4 text-gray-500" />
+                                            <EyeIcon className="h-4 w-4 text-foreground-muted" />
                                         </Button>
                                         <Link to={`/catalog/products/${product.id}/movements`}>
                                             <Button variant="ghost" title="Historial de movimientos" type="button">
-                                                <ChartBarIcon className="h-4 w-4 text-blue-500" />
+                                                <ChartBarIcon className="h-4 w-4 text-info" />
                                             </Button>
                                         </Link>
                                         {isAdmin && product.isActive && (
@@ -169,7 +170,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                                     onClick={() => deleteMutation.mutate(product.id)}
                                                     title="Eliminar"
                                                 >
-                                                    <TrashIcon className="h-4 w-4 text-red-500" />
+                                                    <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>
                                             </>
                                         )}
@@ -180,7 +181,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                                 onClick={() => restoreMutation.mutate(product.id)}
                                                 title="Restaurar"
                                             >
-                                                <ArrowPathIcon className="h-4 w-4 text-green-600" />
+                                                <ArrowPathIcon className="h-4 w-4 text-success" />
                                             </Button>
                                         )}
                                     </div>

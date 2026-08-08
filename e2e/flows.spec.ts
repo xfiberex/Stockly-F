@@ -1,10 +1,25 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { api, login, stockDe, sufijo } from "./helpers";
 
 // T1-23: los tres defectos funcionales de la auditoría (T0-03, T1-03 y T1-05) no
 // produjeron ni un fallo entre 379 tests, porque cada repositorio se probaba contra su
 // propia suposición del contrato. Estos escenarios cruzan la frontera: pasan por la
 // interfaz real y comprueban el efecto en el backend real.
+
+/**
+ * Guarda la configuración y espera a la **respuesta del PATCH**, no al estado del
+ * botón: «Guardar cambios» también se deshabilita mientras la petición está en
+ * vuelo (`isLoading`), así que esperar a que se deshabilite podía dar por bueno un
+ * guardado a medias y recargar antes de que se persistiera. Era una prueba
+ * intermitente, no un fallo de la aplicación.
+ */
+async function guardarAjustes(page: Page): Promise<void> {
+    const respuesta = page.waitForResponse(
+        (r) => r.url().includes("/api/v1/settings") && r.request().method() === "PATCH",
+    );
+    await page.getByRole("button", { name: "Guardar cambios" }).click();
+    expect((await respuesta).status()).toBe(200);
+}
 
 test.describe("Flujos que cruzan frontend y backend", () => {
     test("el interruptor de configuración sigue activo tras recargar (T1-05, T1-07)", async ({ page }, testInfo) => {
@@ -22,9 +37,7 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         const esperado = inicial === "true" ? "false" : "true";
 
         await interruptor.click();
-        await page.getByRole("button", { name: "Guardar cambios" }).click();
-        // El botón vuelve a deshabilitarse cuando el guardado se confirma.
-        await expect(page.getByRole("button", { name: "Guardar cambios" })).toBeDisabled();
+        await guardarAjustes(page);
 
         await page.reload();
         // Antes de T1-05 el PATCH devolvía 200 sin persistir nada: al recargar,
@@ -33,8 +46,7 @@ test.describe("Flujos que cruzan frontend y backend", () => {
 
         // Se deja como estaba para no arrastrar estado entre ejecuciones.
         await page.getByRole("switch").first().click();
-        await page.getByRole("button", { name: "Guardar cambios" }).click();
-        await expect(page.getByRole("button", { name: "Guardar cambios" })).toBeDisabled();
+        await guardarAjustes(page);
     });
 
     test("un producto creado con etiqueta la conserva y aparece en el filtro (T1-03, T1-04)", async ({ page }) => {

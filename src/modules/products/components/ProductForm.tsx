@@ -155,13 +155,13 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                 />
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
-                        <label htmlFor="sku" className="text-sm font-medium text-gray-700">
+                        <label htmlFor="sku" className="text-sm font-medium text-foreground">
                             SKU / Código interno
                         </label>
                         <button
                             type="button"
                             onClick={handleGenerateSku}
-                            className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                            className="flex items-center gap-1 text-xs font-medium text-info hover:text-info transition-colors"
                         >
                             <SparklesIcon className="h-3.5 w-3.5" />
                             Generar
@@ -226,8 +226,8 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                 />
                 {tags.length > 0 && (
                     <div>
-                        <p id="etiquetas-label" className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
-                            <TagIcon className="h-3.5 w-3.5 text-gray-400" />
+                        <p id="etiquetas-label" className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+                            <TagIcon className="h-3.5 w-3.5 text-foreground-muted" />
                             Etiquetas
                         </p>
                         {/* Conmutadores, no botones de acción: `aria-pressed` es lo que
@@ -248,7 +248,7 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                                         className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-all ${
                                             isSelected
                                                 ? "border-transparent"
-                                                : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
+                                                : "border-border bg-surface-muted text-foreground-muted hover:bg-surface-muted"
                                         }`}
                                         style={isSelected ? { backgroundColor: color, color: colorTexto } : {}}
                                     >
@@ -269,7 +269,7 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                     onRemoveExisting={() => setRemoveImage(true)}
                     error={errors.image?.message}
                 />
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button type="button" variant="secondary" onClick={onClose}>
                         Cancelar
                     </Button>

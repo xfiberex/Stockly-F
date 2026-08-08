@@ -14,17 +14,17 @@ export default function LoginPage() {
     });
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-            <div className="w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-sm p-8 space-y-6">
+        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+            <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-sm p-8 space-y-6">
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-2 mb-4">
-                        <div className="rounded-xl bg-blue-600 p-2">
-                            <CubeIcon className="h-6 w-6 text-white" />
+                        <div className="rounded-xl bg-primary p-2">
+                            <CubeIcon className="h-6 w-6 text-surface" />
                         </div>
-                        <span className="text-2xl font-bold text-gray-900">Stockly</span>
+                        <span className="text-2xl font-bold text-foreground">Stockly</span>
                     </div>
-                    <h1 className="text-xl font-bold text-gray-900">Iniciar sesión</h1>
-                    <p className="text-sm text-gray-500 mt-1">Accede a tu cuenta Stockly</p>
+                    <h1 className="text-xl font-bold text-foreground">Iniciar sesión</h1>
+                    <p className="text-sm text-foreground-muted mt-1">Accede a tu cuenta Stockly</p>
                 </div>
 
                 <form onSubmit={handleSubmit((data) => login.mutate(data))} className="space-y-4">
@@ -48,7 +48,7 @@ export default function LoginPage() {
                     />
 
                     <div className="text-right">
-                        <Link to="/auth/forgot-password" className="text-xs text-blue-600 hover:underline">
+                        <Link to="/auth/forgot-password" className="text-xs text-info hover:underline">
                             ¿Olvidaste tu contraseña?
                         </Link>
                     </div>
@@ -58,16 +58,16 @@ export default function LoginPage() {
                     </Button>
                 </form>
 
-                <p className="text-center text-sm text-gray-500">
+                <p className="text-center text-sm text-foreground-muted">
                     ¿No tienes cuenta?{" "}
-                    <Link to="/auth/register" className="text-blue-600 hover:underline font-medium">
+                    <Link to="/auth/register" className="text-info hover:underline font-medium">
                         Regístrate
                     </Link>
                 </p>
 
-                <p className="text-center text-xs text-gray-400">
+                <p className="text-center text-xs text-foreground-muted">
                     ¿No recibiste el correo de verificación?{" "}
-                    <Link to="/auth/resend-verification" className="text-blue-500 hover:underline">
+                    <Link to="/auth/resend-verification" className="text-info hover:underline">
                         Reenvíalo
                     </Link>
                 </p>

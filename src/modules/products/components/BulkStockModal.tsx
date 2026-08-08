@@ -48,10 +48,10 @@ export function BulkStockModal({ isOpen, onClose, products, selectedIds }: BulkS
 
                 <div className="max-h-80 overflow-y-auto space-y-2">
                     {selectedProducts.map((product) => (
-                        <div key={product.id} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0">
+                        <div key={product.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                                <p className="text-xs text-gray-400">Stock actual: {product.stock}</p>
+                                <p className="text-sm font-medium text-foreground truncate">{product.name}</p>
+                                <p className="text-xs text-foreground-muted">Stock actual: {product.stock}</p>
                             </div>
                             <div className="w-24 shrink-0">
                                 <Input
@@ -67,9 +67,9 @@ export function BulkStockModal({ isOpen, onClose, products, selectedIds }: BulkS
                     ))}
                 </div>
 
-                <p className="text-xs text-gray-400">Deja vacío para mantener el stock actual de un producto.</p>
+                <p className="text-xs text-foreground-muted">Deja vacío para mantener el stock actual de un producto.</p>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button type="button" variant="secondary" onClick={handleClose}>Cancelar</Button>
                     <Button
                         type="button"

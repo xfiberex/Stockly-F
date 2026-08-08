@@ -80,7 +80,7 @@ function SupplierFormModal({ isOpen, onClose, supplier, onSubmit, isPending }: S
                     error={errors.notes?.message}
                     {...register("notes")}
                 />
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button type="button" variant="secondary" onClick={handleClose}>Cancelar</Button>
                     <Button type="submit" isLoading={isPending}>Guardar</Button>
                 </div>
@@ -121,8 +121,8 @@ export default function SuppliersPage() {
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Proveedores</h1>
-                    <p className="text-sm text-gray-500 mt-1">{suppliers.length} proveedor{suppliers.length !== 1 ? "es" : ""} registrado{suppliers.length !== 1 ? "s" : ""}</p>
+                    <h1 className="text-2xl font-bold text-foreground">Proveedores</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{suppliers.length} proveedor{suppliers.length !== 1 ? "es" : ""} registrado{suppliers.length !== 1 ? "s" : ""}</p>
                 </div>
                 {isAdmin && (
                     <Button onClick={handleOpenNew}>
@@ -135,11 +135,11 @@ export default function SuppliersPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : suppliers.length === 0 ? (
-                <div className="py-12 text-center text-sm text-gray-400">No hay proveedores. Crea el primero.</div>
+                <div className="py-12 text-center text-sm text-foreground-muted">No hay proveedores. Crea el primero.</div>
             ) : (
-                <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <div className="overflow-x-auto rounded-xl border border-border">
                     <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
                                 <th className="px-4 py-3">Nombre</th>
                                 <th className="px-4 py-3">Email</th>
@@ -148,13 +148,13 @@ export default function SuppliersPage() {
                                 {isAdmin && <th className="px-4 py-3 text-right">Acciones</th>}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
+                        <tbody className="divide-y divide-border bg-surface">
                             {suppliers.map((supplier) => (
-                                <tr key={supplier.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-4 py-3 font-medium text-gray-900">{supplier.name}</td>
-                                    <td className="px-4 py-3 text-gray-600">{supplier.email ?? "—"}</td>
-                                    <td className="px-4 py-3 text-gray-600">{supplier.phone ?? "—"}</td>
-                                    <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{supplier.notes ?? "—"}</td>
+                                <tr key={supplier.id} className="hover:bg-surface-muted transition-colors">
+                                    <td className="px-4 py-3 font-medium text-foreground">{supplier.name}</td>
+                                    <td className="px-4 py-3 text-foreground-muted">{supplier.email ?? "—"}</td>
+                                    <td className="px-4 py-3 text-foreground-muted">{supplier.phone ?? "—"}</td>
+                                    <td className="px-4 py-3 text-foreground-muted max-w-xs truncate">{supplier.notes ?? "—"}</td>
                                     {isAdmin && (
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-1">
@@ -167,7 +167,7 @@ export default function SuppliersPage() {
                                                     onClick={() => deleteMutation.mutate(supplier.id)}
                                                     title="Eliminar"
                                                 >
-                                                    <TrashIcon className="h-4 w-4 text-red-500" />
+                                                    <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>
                                             </div>
                                         </td>

@@ -33,17 +33,19 @@ export default function DashboardPage() {
         to: string;
         highlight?: boolean;
     }[] = [
-        { label: "Total productos", value: totals.totalProducts, bg: "bg-blue-50", text: "text-blue-600", Icon: CubeIcon, to: "/catalog/products" },
-        { label: "Productos activos", value: totals.activeProducts, bg: "bg-green-50", text: "text-green-600", Icon: CheckCircleIcon, to: "/catalog/products" },
-        { label: "Stock bajo", value: lowStockCount, bg: "bg-orange-50", text: "text-orange-600", Icon: ExclamationTriangleIcon, to: "/reports", highlight: lowStockCount > 0 },
-        { label: "Categorías", value: stockByCategory.length, bg: "bg-purple-50", text: "text-purple-600", Icon: TagIcon, to: "/catalog/categories" },
+        { label: "Total productos", value: totals.totalProducts, bg: "bg-info-surface", text: "text-info", Icon: CubeIcon, to: "/catalog/products" },
+        { label: "Productos activos", value: totals.activeProducts, bg: "bg-success-surface", text: "text-success", Icon: CheckCircleIcon, to: "/catalog/products" },
+        { label: "Stock bajo", value: lowStockCount, bg: "bg-warning-surface", text: "text-warning", Icon: ExclamationTriangleIcon, to: "/reports", highlight: lowStockCount > 0 },
+        // Categorías es un recuento, no un estado: se queda en la variante neutra en
+        // vez de repetir el informativo de «Total productos».
+        { label: "Categorías", value: stockByCategory.length, bg: "bg-surface-muted", text: "text-foreground-muted", Icon: TagIcon, to: "/catalog/categories" },
     ];
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-sm text-gray-500 mt-1">Resumen general del inventario</p>
+                <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+                <p className="text-sm text-foreground-muted mt-1">Resumen general del inventario</p>
             </div>
 
             {/* Stats cards */}
@@ -52,44 +54,44 @@ export default function DashboardPage() {
                     <Link
                         key={label}
                         to={to}
-                        className={`bg-white rounded-xl border p-3 sm:p-5 flex items-center gap-3 sm:gap-4 hover:shadow-sm transition-shadow ${
+                        className={`bg-surface rounded-xl border p-3 sm:p-5 flex items-center gap-3 sm:gap-4 hover:shadow-sm transition-shadow ${
                             highlight
-                                ? "border-orange-200 bg-orange-50/30"
-                                : "border-gray-200"
+                                ? "border-warning bg-warning-surface/30"
+                                : "border-border"
                         }`}
                     >
                         <div className={`rounded-lg p-2 sm:p-2.5 shrink-0 ${bg}`}>
                             <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${text}`} />
                         </div>
                         <div className="min-w-0">
-                            <p className={`text-xl sm:text-2xl font-bold ${highlight ? "text-orange-700" : "text-gray-900"}`}>{value}</p>
-                            <p className="text-xs sm:text-sm text-gray-500 leading-tight">{label}</p>
+                            <p className={`text-xl sm:text-2xl font-bold ${highlight ? "text-warning" : "text-foreground"}`}>{value}</p>
+                            <p className="text-xs sm:text-sm text-foreground-muted leading-tight">{label}</p>
                         </div>
                     </Link>
                 ))}
             </div>
 
             {/* Valor del inventario */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
-                <div className="rounded-lg p-2.5 shrink-0 bg-emerald-50">
-                    <CurrencyDollarIcon className="h-6 w-6 text-emerald-600" />
+            <div className="bg-surface rounded-xl border border-border p-5 flex items-center gap-4">
+                <div className="rounded-lg p-2.5 shrink-0 bg-success-surface">
+                    <CurrencyDollarIcon className="h-6 w-6 text-success" />
                 </div>
                 <div>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-2xl font-bold text-foreground">
                         ${totals.inventoryValue.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
-                    <p className="text-sm text-gray-500">Valor total del inventario activo</p>
+                    <p className="text-sm text-foreground-muted">Valor total del inventario activo</p>
                 </div>
                 <div className="ml-auto text-right hidden sm:block">
-                    <Link to="/reports" className="text-sm text-blue-600 hover:underline">
+                    <Link to="/reports" className="text-sm text-info hover:underline">
                         Ver reporte completo →
                     </Link>
                 </div>
             </div>
 
             {/* Gráfico stock por categoría */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="text-base font-semibold text-gray-900 mb-6">Stock y valor por categoría</h2>
+            <div className="bg-surface rounded-xl border border-border p-6">
+                <h2 className="text-base font-semibold text-foreground mb-6">Stock y valor por categoría</h2>
                 <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={stockByCategory} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -112,10 +114,10 @@ export default function DashboardPage() {
 
             {/* Alertas de stock bajo */}
             {lowStockCount > 0 && (
-                <div className="bg-orange-50 border border-orange-200 rounded-xl p-5">
+                <div className="bg-warning-surface border border-warning rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-3">
-                        <ExclamationTriangleIcon className="h-5 w-5 text-orange-500" />
-                        <h2 className="text-sm font-semibold text-orange-800">
+                        <ExclamationTriangleIcon className="h-5 w-5 text-warning" />
+                        <h2 className="text-sm font-semibold text-warning">
                             {lowStockCount} producto{lowStockCount !== 1 ? "s" : ""} con stock bajo o agotado
                         </h2>
                     </div>
@@ -124,17 +126,17 @@ export default function DashboardPage() {
                             <div key={p.id} className="flex items-center justify-between text-sm">
                                 <Link
                                     to={`/catalog/products/${p.id}/movements`}
-                                    className="text-orange-700 hover:underline font-medium"
+                                    className="text-warning hover:underline font-medium"
                                 >
                                     {p.name}
                                 </Link>
-                                <span className="text-orange-700 font-semibold tabular-nums">
+                                <span className="text-warning font-semibold tabular-nums">
                                     {p.stock} uds. — mín. {p.minStock}
                                 </span>
                             </div>
                         ))}
                         {lowStockCount > 5 && (
-                            <Link to="/reports" className="text-xs text-orange-700 hover:underline">
+                            <Link to="/reports" className="text-xs text-warning hover:underline">
                                 Ver {lowStockCount - 5} más →
                             </Link>
                         )}
@@ -143,7 +145,7 @@ export default function DashboardPage() {
             )}
 
             <div className="text-right">
-                <Link to="/catalog/products" className="text-sm text-blue-600 hover:underline">
+                <Link to="/catalog/products" className="text-sm text-info hover:underline">
                     Gestionar productos →
                 </Link>
             </div>

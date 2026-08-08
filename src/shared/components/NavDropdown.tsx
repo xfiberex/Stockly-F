@@ -37,7 +37,7 @@ export function NavDropdown({ label, Icon, items, isActive = false, width = "w-4
                 onClick={() => setOpen((o) => !o)}
                 className={cn(
                     "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                    isActive || open ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-100",
+                    isActive || open ? "bg-info-surface text-info" : "text-foreground-muted hover:bg-surface-muted",
                 )}
             >
                 <Icon className="h-3.5 w-3.5" />
@@ -47,7 +47,7 @@ export function NavDropdown({ label, Icon, items, isActive = false, width = "w-4
             {open && (
                 <div
                     className={cn(
-                        "absolute left-0 top-full mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50",
+                        "absolute left-0 top-full mt-1.5 bg-surface rounded-xl border border-border shadow-lg py-1 z-50",
                         width,
                     )}
                 >
@@ -59,7 +59,7 @@ export function NavDropdown({ label, Icon, items, isActive = false, width = "w-4
                             className={({ isActive: linkActive }) =>
                                 cn(
                                     "block px-3.5 py-2 text-sm transition-colors",
-                                    linkActive ? "text-blue-700 bg-blue-50" : "text-gray-700 hover:bg-gray-50",
+                                    linkActive ? "text-info bg-info-surface" : "text-foreground hover:bg-surface-muted",
                                 )
                             }
                         >

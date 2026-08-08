@@ -13,17 +13,17 @@ export default function ForgotPasswordPage() {
     });
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-            <div className="w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-sm p-8 space-y-6">
+        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+            <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-sm p-8 space-y-6">
                 <div className="text-center">
-                    <h1 className="text-xl font-bold text-gray-900">Recuperar contraseña</h1>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <h1 className="text-xl font-bold text-foreground">Recuperar contraseña</h1>
+                    <p className="text-sm text-foreground-muted mt-1">
                         Te enviaremos instrucciones por correo
                     </p>
                 </div>
 
                 {forgot.isSuccess ? (
-                    <p className="text-center text-sm text-green-600">
+                    <p className="text-center text-sm text-success">
                         Si el correo existe, recibirás instrucciones en tu bandeja.
                     </p>
                 ) : (
@@ -42,8 +42,8 @@ export default function ForgotPasswordPage() {
                     </form>
                 )}
 
-                <p className="text-center text-sm text-gray-500">
-                    <Link to="/auth/login" className="text-blue-600 hover:underline">
+                <p className="text-center text-sm text-foreground-muted">
+                    <Link to="/auth/login" className="text-info hover:underline">
                         Volver al inicio de sesión
                     </Link>
                 </p>

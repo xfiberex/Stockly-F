@@ -6,11 +6,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     isLoading?: boolean;
 }
 
+// Tokens semánticos (T2-35), no valores. `--color-primary` es el color de acción
+// primaria de la paleta; los rellenos con texto blanco encima usan siempre la
+// variante fuerte de cada color, nunca el acento suave, que no llega a AA.
 const variants = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300",
-    secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:bg-gray-50",
-    danger: "bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300",
-    ghost: "bg-transparent text-gray-600 hover:bg-gray-100 disabled:text-gray-300",
+    primary: "bg-primary text-surface hover:bg-foreground disabled:bg-primary/40",
+    secondary: "bg-surface-muted text-foreground hover:bg-border disabled:text-foreground-muted/50",
+    danger: "bg-danger text-surface hover:bg-danger/90 disabled:bg-danger/40",
+    ghost: "bg-transparent text-foreground-muted hover:bg-surface-muted disabled:text-foreground-muted/40",
 };
 
 export function Button({

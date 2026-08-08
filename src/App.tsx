@@ -69,32 +69,32 @@ function UserMenu({ name }: { name: string }) {
                 aria-label="Menú de usuario"
                 aria-haspopup="menu"
                 aria-expanded={open}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-muted transition-colors"
             >
-                <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-surface text-xs font-semibold shrink-0">
                     {initials}
                 </div>
-                <span className="text-sm text-gray-700 font-medium hidden sm:block max-w-36 truncate">{name}</span>
-                <ChevronDownIcon className={cn("h-3.5 w-3.5 text-gray-400 transition-transform hidden sm:block", open && "rotate-180")} />
+                <span className="text-sm text-foreground font-medium hidden sm:block max-w-36 truncate">{name}</span>
+                <ChevronDownIcon className={cn("h-3.5 w-3.5 text-foreground-muted transition-transform hidden sm:block", open && "rotate-180")} />
             </button>
 
             {open && (
-                <div role="menu" className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
+                <div role="menu" className="absolute right-0 top-full mt-1.5 w-48 bg-surface rounded-xl border border-border shadow-lg py-1 z-50">
                     <Link
                         to="/profile"
                         role="menuitem"
                         onClick={() => setOpen(false)}
-                        className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-surface-muted transition-colors"
                     >
-                        <UserCircleIcon className="h-4 w-4 text-gray-400" />
+                        <UserCircleIcon className="h-4 w-4 text-foreground-muted" />
                         Mi perfil
                     </Link>
-                    <div className="my-1 border-t border-gray-100" />
+                    <div className="my-1 border-t border-border" />
                     <button
                         onClick={() => { setOpen(false); logout.mutate(); }}
                         role="menuitem"
                         disabled={logout.isPending}
-                        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-danger hover:bg-danger-surface transition-colors disabled:opacity-50"
                     >
                         <ArrowRightOnRectangleIcon className="h-4 w-4" />
                         Cerrar sesión
@@ -108,13 +108,13 @@ function UserMenu({ name }: { name: string }) {
 const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
         "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-        isActive ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-100",
+        isActive ? "bg-info-surface text-info" : "text-foreground-muted hover:bg-surface-muted",
     );
 
 const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
         "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-        isActive ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-100",
+        isActive ? "bg-info-surface text-info" : "text-foreground hover:bg-surface-muted",
     );
 
 // Menú desplegable a pantalla completa para móvil. Lista todas las secciones
@@ -122,7 +122,7 @@ const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
 // al envolver los enlaces en un contenedor de altura fija.
 function MobileMenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate: () => void }) {
     return (
-        <div className="lg:hidden border-t border-gray-200 bg-white px-4 py-3 space-y-4">
+        <div className="lg:hidden border-t border-border bg-surface px-4 py-3 space-y-4">
             <div className="space-y-1">
                 {navLinks.map(({ to, label, end, Icon }) => (
                     <NavLink key={to} to={to} end={end} onClick={onNavigate} className={mobileLinkClass}>
@@ -152,7 +152,7 @@ function MobileSection({
 }) {
     return (
         <div>
-            <p className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <p className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-foreground-muted">
                 <Icon className="h-3.5 w-3.5" />
                 {label}
             </p>
@@ -186,11 +186,12 @@ function App() {
     const closeMobile = () => setOpenedAt(null);
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <nav className="sticky top-0 z-40 border-b border-gray-200 bg-white">
+        <div className="min-h-screen bg-background">
+            <nav className="sticky top-0 z-40 border-b border-border bg-surface">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-14 items-center gap-6">
-                    <div className="flex items-center gap-2 font-bold text-gray-900">
-                        <CubeIcon className="h-5 w-5 text-blue-600" />
+                    <div className="flex items-center gap-2 font-bold text-foreground">
+                        {/* La marca va en el acento de la paleta, no en el informativo. */}
+                        <CubeIcon className="h-5 w-5 text-accent" />
                         Stockly
                     </div>
 
@@ -221,7 +222,7 @@ function App() {
                             aria-label={mobileOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
                             aria-expanded={mobileOpen}
                             aria-controls="mobile-menu"
-                            className="lg:hidden rounded-lg p-2 text-gray-600 hover:bg-gray-100 transition-colors"
+                            className="lg:hidden rounded-lg p-2 text-foreground-muted hover:bg-surface-muted transition-colors"
                         >
                             {mobileOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />}
                         </button>

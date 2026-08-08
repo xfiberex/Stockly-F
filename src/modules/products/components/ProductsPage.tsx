@@ -136,8 +136,8 @@ export default function ProductsPage() {
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Productos</h1>
-                    <p className="text-sm text-gray-500 mt-1">{data?.meta.total ?? 0} productos en total</p>
+                    <h1 className="text-2xl font-bold text-foreground">Productos</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{data?.meta.total ?? 0} productos en total</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <DropdownButton
@@ -171,8 +171,8 @@ export default function ProductsPage() {
 
             {/* Barra de acciones masivas */}
             {isAdmin && selectedIds.size > 0 && (
-                <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-xl border border-blue-200">
-                    <span className="text-sm font-medium text-blue-700">
+                <div className="flex items-center gap-3 px-4 py-3 bg-info-surface rounded-xl border border-info">
+                    <span className="text-sm font-medium text-info">
                         {selectedIds.size} producto{selectedIds.size !== 1 ? "s" : ""} seleccionado{selectedIds.size !== 1 ? "s" : ""}
                     </span>
                     <div className="flex gap-2 ml-auto">
@@ -238,7 +238,7 @@ export default function ProductsPage() {
             )}
 
             {totalPages > 1 && (
-                <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex items-center justify-between text-sm text-foreground-muted">
                     <span>Página {page} de {totalPages}</span>
                     <div className="flex gap-2">
                         <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>

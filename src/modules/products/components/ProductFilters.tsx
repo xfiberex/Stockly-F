@@ -46,13 +46,13 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     return (
         <div className="flex flex-wrap items-end gap-3">
             <div className="relative flex-1 min-w-48">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted" />
                 <input
                     type="text"
                     placeholder="Buscar producto..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                    className="w-full rounded-lg border border-border pl-9 pr-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition"
                 />
             </div>
 

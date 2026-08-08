@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Badge } from "@/shared/components/Badge";
+import { Badge, type BadgeVariant } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
 import { Spinner } from "@/shared/components/Spinner";
@@ -12,18 +12,21 @@ function formatDate(iso: string) {
     });
 }
 
-const ACTION_VARIANTS: Record<string, "success" | "danger" | "blue" | "orange" | "purple" | "default"> = {
+// El color dice qué clase de acción fue: la que crea o completa algo, la que
+// destruye o cancela, y la que solo modifica. `RESTORE` deshace un borrado, así
+// que va con las positivas; los movimientos de stock son informativos.
+const ACTION_VARIANTS: Record<string, BadgeVariant> = {
     CREATE: "success",
-    UPDATE: "blue",
+    UPDATE: "info",
     DELETE: "danger",
-    RESTORE: "teal" as "default",
-    STOCK_MOVEMENT: "orange",
-    BULK_STOCK: "orange",
+    RESTORE: "success",
+    STOCK_MOVEMENT: "info",
+    BULK_STOCK: "info",
     ORDER_RECEIVE: "success",
     ORDER_CANCEL: "danger",
     SALE_SHIP: "success",
     SALE_CANCEL: "danger",
-    USER_ROLE_CHANGE: "purple",
+    USER_ROLE_CHANGE: "info",
     USER_ACTIVATE: "success",
     USER_DEACTIVATE: "danger",
 };
@@ -80,8 +83,8 @@ export default function AuditLogsPage() {
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Registro de auditoría</h1>
-                <p className="text-sm text-gray-500 mt-1">Historial de acciones realizadas en el sistema</p>
+                <h1 className="text-2xl font-bold text-foreground">Registro de auditoría</h1>
+                <p className="text-sm text-foreground-muted mt-1">Historial de acciones realizadas en el sistema</p>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -104,11 +107,11 @@ export default function AuditLogsPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : logs.length === 0 ? (
-                <div className="py-16 text-center text-sm text-gray-400">No hay registros de auditoría.</div>
+                <div className="py-16 text-center text-sm text-foreground-muted">No hay registros de auditoría.</div>
             ) : (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
                     <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
                                 <th className="px-5 py-3">Acción</th>
                                 <th className="px-5 py-3">Entidad</th>
@@ -117,38 +120,38 @@ export default function AuditLogsPage() {
                                 <th className="px-5 py-3 hidden md:table-cell">Fecha</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-border">
                             {logs.map((log) => (
-                                <tr key={log.id} className="hover:bg-gray-50">
+                                <tr key={log.id} className="hover:bg-surface-muted">
                                     <td className="px-5 py-3">
-                                        <Badge variant={ACTION_VARIANTS[log.action] ?? "default"}>
+                                        <Badge variant={ACTION_VARIANTS[log.action] ?? "neutral"}>
                                             {log.action.replace(/_/g, " ")}
                                         </Badge>
                                     </td>
-                                    <td className="px-5 py-3 text-gray-700">
+                                    <td className="px-5 py-3 text-foreground">
                                         {ENTITY_LABELS[log.entity] ?? log.entity}
                                         {log.entityId && (
-                                            <span className="ml-1.5 text-xs text-gray-400 font-mono">
+                                            <span className="ml-1.5 text-xs text-foreground-muted font-mono">
                                                 #{log.entityId.slice(0, 8)}
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-5 py-3 text-gray-600">
-                                        {log.userEmail ?? <span className="text-gray-400 italic">Sistema</span>}
+                                    <td className="px-5 py-3 text-foreground-muted">
+                                        {log.userEmail ?? <span className="text-foreground-muted italic">Sistema</span>}
                                     </td>
                                     <td className="px-5 py-3 hidden lg:table-cell">
                                         {log.details ? (
                                             <details className="cursor-pointer">
-                                                <summary className="text-xs text-blue-600 hover:underline">Ver detalles</summary>
-                                                <pre className="mt-1 text-xs text-gray-500 bg-gray-50 rounded p-2 max-w-xs overflow-auto">
+                                                <summary className="text-xs text-info hover:underline">Ver detalles</summary>
+                                                <pre className="mt-1 text-xs text-foreground-muted bg-surface-muted rounded p-2 max-w-xs overflow-auto">
                                                     {JSON.stringify(log.details, null, 2)}
                                                 </pre>
                                             </details>
                                         ) : (
-                                            <span className="text-gray-400">—</span>
+                                            <span className="text-foreground-muted">—</span>
                                         )}
                                     </td>
-                                    <td className="px-5 py-3 text-gray-500 hidden md:table-cell whitespace-nowrap">
+                                    <td className="px-5 py-3 text-foreground-muted hidden md:table-cell whitespace-nowrap">
                                         {formatDate(log.createdAt)}
                                     </td>
                                 </tr>
@@ -159,7 +162,7 @@ export default function AuditLogsPage() {
             )}
 
             {meta && meta.totalPages > 1 && (
-                <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex items-center justify-between text-sm text-foreground-muted">
                     <span>Página {page} de {meta.totalPages} — {meta.total} registros</span>
                     <div className="flex gap-2">
                         <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Anterior</Button>

@@ -36,15 +36,15 @@ export function ProductImageUpload({ currentImageUrl, onChange, onRemoveExisting
 
     return (
         <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-gray-700">Imagen</span>
+            <span className="text-sm font-medium text-foreground">Imagen</span>
 
             {displayed ? (
-                <div className="relative w-full h-40 rounded-lg overflow-hidden border border-gray-200">
+                <div className="relative w-full h-40 rounded-lg overflow-hidden border border-border">
                     <img src={displayed} alt="Preview" className="w-full h-full object-cover" />
                     <button
                         type="button"
                         onClick={handleRemove}
-                        className="absolute top-2 right-2 rounded-full bg-white/80 p-1 text-gray-600 hover:bg-white shadow transition"
+                        className="absolute top-2 right-2 rounded-full bg-surface/80 p-1 text-foreground-muted hover:bg-surface shadow transition"
                     >
                         <XMarkIcon className="h-4 w-4" />
                     </button>
@@ -54,8 +54,8 @@ export function ProductImageUpload({ currentImageUrl, onChange, onRemoveExisting
                     type="button"
                     onClick={() => inputRef.current?.click()}
                     className={cn(
-                        "flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-8 text-sm text-gray-400 transition hover:border-blue-400 hover:text-blue-500",
-                        error && "border-red-400",
+                        "flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-8 text-sm text-foreground-muted transition hover:border-info hover:text-info",
+                        error && "border-danger",
                     )}
                 >
                     <PhotoIcon className="h-8 w-8" />
@@ -71,7 +71,7 @@ export function ProductImageUpload({ currentImageUrl, onChange, onRemoveExisting
                 className="hidden"
                 onChange={handleFileChange}
             />
-            {error && <p className="text-xs text-red-500">{error}</p>}
+            {error && <p className="text-xs text-danger">{error}</p>}
         </div>
     );
 }

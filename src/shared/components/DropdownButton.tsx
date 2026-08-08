@@ -17,9 +17,9 @@ interface DropdownButtonProps {
 }
 
 const variants = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300",
-    secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:bg-gray-50",
-    ghost: "bg-transparent text-gray-600 hover:bg-gray-100 disabled:text-gray-300",
+    primary: "bg-primary text-surface hover:bg-primary disabled:bg-primary/40",
+    secondary: "bg-surface-muted text-foreground hover:bg-border disabled:bg-surface-muted",
+    ghost: "bg-transparent text-foreground-muted hover:bg-surface-muted disabled:text-border",
 };
 
 export function DropdownButton({
@@ -72,7 +72,7 @@ export function DropdownButton({
             {open && (
                 <div
                     role="menu"
-                    className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+                    className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-border bg-surface py-1 shadow-lg"
                 >
                     {items.map((item) => (
                         <button
@@ -83,9 +83,9 @@ export function DropdownButton({
                                 item.onClick();
                                 setOpen(false);
                             }}
-                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-foreground hover:bg-surface-muted transition-colors"
                         >
-                            {item.icon && <item.icon className="h-4 w-4 text-gray-400" />}
+                            {item.icon && <item.icon className="h-4 w-4 text-foreground-muted" />}
                             {item.label}
                         </button>
                     ))}

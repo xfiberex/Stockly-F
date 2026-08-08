@@ -38,7 +38,7 @@ describe("Select", () => {
 
     it("aplica clase de error al select cuando hay error", () => {
         render(<Select options={options} error="Error" />);
-        expect(screen.getByRole("combobox")).toHaveClass("border-red-500");
+        expect(screen.getByRole("combobox")).toHaveClass("border-danger");
     });
 
     it("dispara onChange al seleccionar una opción", async () => {

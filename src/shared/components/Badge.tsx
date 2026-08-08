@@ -1,22 +1,31 @@
 import { cn } from "@/shared/lib/cn";
 
+/**
+ * Cinco variantes, todas con significado (T2-36).
+ *
+ * Antes eran siete y mezclaban semántica (`success`, `danger`) con decoración
+ * (`blue`, `purple`, `orange`, `teal`); `purple` y `teal` se usaban una sola vez
+ * en toda la aplicación, así que el color no comunicaba nada estable. Ahora cada
+ * variante es un par `--color-<estado>-surface` / `--color-<estado>` de la paleta,
+ * con el contraste comprobado en `theme.test.ts`.
+ */
+export type BadgeVariant = "neutral" | "success" | "warning" | "danger" | "info";
+
 interface BadgeProps {
     children: React.ReactNode;
-    variant?: "default" | "success" | "danger" | "blue" | "purple" | "orange" | "teal";
+    variant?: BadgeVariant;
     className?: string;
 }
 
-const variants = {
-    default: "bg-gray-100 text-gray-700",
-    success: "bg-green-100 text-green-700",
-    danger: "bg-red-100 text-red-700",
-    blue: "bg-blue-100 text-blue-700",
-    purple: "bg-purple-100 text-purple-700",
-    orange: "bg-orange-100 text-orange-700",
-    teal: "bg-teal-100 text-teal-700",
+const variants: Record<BadgeVariant, string> = {
+    neutral: "bg-surface-muted text-foreground-muted",
+    success: "bg-success-surface text-success",
+    warning: "bg-warning-surface text-warning",
+    danger: "bg-danger-surface text-danger",
+    info: "bg-info-surface text-info",
 };
 
-export function Badge({ children, variant = "default", className }: BadgeProps) {
+export function Badge({ children, variant = "neutral", className }: BadgeProps) {
     return (
         <span
             className={cn(

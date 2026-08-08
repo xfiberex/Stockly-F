@@ -11,11 +11,11 @@ describe("cn — utilidad de clases CSS", () => {
 
     it("resuelve conflictos de Tailwind conservando la última clase", () => {
         expect(cn("px-2", "px-4")).toBe("px-4");
-        expect(cn("text-red-500", "text-blue-500")).toBe("text-blue-500");
+        expect(cn("text-danger", "text-info")).toBe("text-info");
     });
 
     it("soporta objetos condicionales", () => {
-        expect(cn({ "text-red-500": true, "text-blue-500": false })).toBe("text-red-500");
+        expect(cn({ "text-danger": true, "text-info": false })).toBe("text-danger");
     });
 
     it("combina strings y objetos", () => {

@@ -39,26 +39,26 @@ export default function VerifyEmailPage() {
     }, [token]);
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-6 px-4">
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
             {status === "loading" && <Spinner size="lg" />}
             {status === "success" && (
                 <>
-                    <p className="text-green-600 font-medium text-lg">¡Cuenta confirmada!</p>
-                    <Link to="/auth/login" className="text-blue-600 hover:underline text-sm">
+                    <p className="text-success font-medium text-lg">¡Cuenta confirmada!</p>
+                    <Link to="/auth/login" className="text-info hover:underline text-sm">
                         Inicia sesión
                     </Link>
                 </>
             )}
             {status === "error" && (
                 <>
-                    <p className="text-red-600 font-medium">{message}</p>
+                    <p className="text-danger font-medium">{message}</p>
                     <Link
                         to="/auth/resend-verification"
-                        className="text-blue-600 hover:underline text-sm"
+                        className="text-info hover:underline text-sm"
                     >
                         Solicitar nuevo enlace de verificación
                     </Link>
-                    <Link to="/auth/login" className="text-gray-500 hover:underline text-sm">
+                    <Link to="/auth/login" className="text-foreground-muted hover:underline text-sm">
                         Volver al inicio de sesión
                     </Link>
                 </>

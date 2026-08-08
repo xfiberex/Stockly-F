@@ -24,12 +24,12 @@ describe("Input", () => {
 
     it("aplica clases de error al input cuando hay error", () => {
         render(<Input error="Error" />);
-        expect(screen.getByRole("textbox")).toHaveClass("border-red-500");
+        expect(screen.getByRole("textbox")).toHaveClass("border-danger");
     });
 
     it("no aplica clases de error cuando no hay error", () => {
         render(<Input />);
-        expect(screen.getByRole("textbox")).not.toHaveClass("border-red-500");
+        expect(screen.getByRole("textbox")).not.toHaveClass("border-danger");
     });
 
     it("pasa atributos HTML al input (type, placeholder)", () => {

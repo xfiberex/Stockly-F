@@ -51,8 +51,8 @@ export default function ReportsPage() {
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
-                    <p className="text-sm text-gray-500 mt-1">Análisis completo del inventario</p>
+                    <h1 className="text-2xl font-bold text-foreground">Reportes</h1>
+                    <p className="text-sm text-foreground-muted mt-1">Análisis completo del inventario</p>
                 </div>
                 <Button variant="secondary" onClick={downloadReportPdf}>
                     <ArrowDownTrayIcon className="h-4 w-4" />
@@ -63,24 +63,24 @@ export default function ReportsPage() {
             {/* KPIs */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: "Total productos", value: totals.totalProducts, Icon: CubeIcon, bg: "bg-blue-50", text: "text-blue-600" },
-                    { label: "Productos activos", value: totals.activeProducts, Icon: CheckCircleIcon, bg: "bg-green-50", text: "text-green-600" },
-                    { label: "Bajo stock / agotados", value: lowStockProducts.length, Icon: ExclamationTriangleIcon, bg: "bg-orange-50", text: "text-orange-600" },
+                    { label: "Total productos", value: totals.totalProducts, Icon: CubeIcon, bg: "bg-info-surface", text: "text-info" },
+                    { label: "Productos activos", value: totals.activeProducts, Icon: CheckCircleIcon, bg: "bg-success-surface", text: "text-success" },
+                    { label: "Bajo stock / agotados", value: lowStockProducts.length, Icon: ExclamationTriangleIcon, bg: "bg-warning-surface", text: "text-warning" },
                     {
                         label: "Valor inventario",
                         value: `$${totals.inventoryValue.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
                         Icon: CurrencyDollarIcon,
-                        bg: "bg-emerald-50",
-                        text: "text-emerald-600",
+                        bg: "bg-success-surface",
+                        text: "text-success",
                     },
                 ].map(({ label, value, Icon, bg, text }) => (
-                    <div key={label} className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
+                    <div key={label} className="bg-surface rounded-xl border border-border p-5 flex items-center gap-4">
                         <div className={`rounded-lg p-2.5 shrink-0 ${bg}`}>
                             <Icon className={`h-6 w-6 ${text}`} />
                         </div>
                         <div>
-                            <p className="text-xl font-bold text-gray-900">{value}</p>
-                            <p className="text-xs text-gray-500">{label}</p>
+                            <p className="text-xl font-bold text-foreground">{value}</p>
+                            <p className="text-xs text-foreground-muted">{label}</p>
                         </div>
                     </div>
                 ))}
@@ -88,8 +88,8 @@ export default function ReportsPage() {
 
             {/* Valor por categoría + distribución */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h2 className="text-base font-semibold text-gray-900 mb-6">Valor por categoría</h2>
+                <div className="bg-surface rounded-xl border border-border p-6">
+                    <h2 className="text-base font-semibold text-foreground mb-6">Valor por categoría</h2>
                     <ResponsiveContainer width="100%" height={260}>
                         <BarChart data={stockByCategory} layout="vertical" margin={{ left: 60, right: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
@@ -104,8 +104,8 @@ export default function ReportsPage() {
                     </ResponsiveContainer>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h2 className="text-base font-semibold text-gray-900 mb-6">Distribución de stock</h2>
+                <div className="bg-surface rounded-xl border border-border p-6">
+                    <h2 className="text-base font-semibold text-foreground mb-6">Distribución de stock</h2>
                     <ResponsiveContainer width="100%" height={260}>
                         <PieChart>
                             <Pie
@@ -131,8 +131,8 @@ export default function ReportsPage() {
 
             {/* Movimientos por mes */}
             {movementsChartData.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                    <h2 className="text-base font-semibold text-gray-900 mb-6">Movimientos por mes (últimos 6 meses)</h2>
+                <div className="bg-surface rounded-xl border border-border p-6">
+                    <h2 className="text-base font-semibold text-foreground mb-6">Movimientos por mes (últimos 6 meses)</h2>
                     <ResponsiveContainer width="100%" height={260}>
                         <BarChart data={movementsChartData} margin={{ left: -20 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -150,12 +150,12 @@ export default function ReportsPage() {
 
             {/* Top 10 por valor */}
             {topByValue.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100">
-                        <h2 className="text-base font-semibold text-gray-900">Top 10 productos por valor</h2>
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                    <div className="px-6 py-4 border-b border-border">
+                        <h2 className="text-base font-semibold text-foreground">Top 10 productos por valor</h2>
                     </div>
                     <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
                                 <th className="px-6 py-3">#</th>
                                 <th className="px-6 py-3">Producto</th>
@@ -164,22 +164,22 @@ export default function ReportsPage() {
                                 <th className="px-6 py-3">Valor total</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-border">
                             {topByValue.map((p, i) => (
-                                <tr key={p.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-3 text-gray-400 font-medium">{i + 1}</td>
+                                <tr key={p.id} className="hover:bg-surface-muted">
+                                    <td className="px-6 py-3 text-foreground-muted font-medium">{i + 1}</td>
                                     <td className="px-6 py-3">
                                         <Link
                                             to={`/catalog/products/${p.id}/movements`}
-                                            className="font-medium text-gray-900 hover:text-blue-600"
+                                            className="font-medium text-foreground hover:text-info"
                                         >
                                             {p.name}
                                         </Link>
-                                        {p.sku && <div className="text-xs text-gray-400 font-mono">{p.sku}</div>}
+                                        {p.sku && <div className="text-xs text-foreground-muted font-mono">{p.sku}</div>}
                                     </td>
-                                    <td className="px-6 py-3 text-gray-600">${Number(p.price).toFixed(2)}</td>
-                                    <td className="px-6 py-3 text-gray-700">{p.stock}</td>
-                                    <td className="px-6 py-3 font-semibold text-gray-900">
+                                    <td className="px-6 py-3 text-foreground-muted">${Number(p.price).toFixed(2)}</td>
+                                    <td className="px-6 py-3 text-foreground">{p.stock}</td>
+                                    <td className="px-6 py-3 font-semibold text-foreground">
                                         ${Number(p.totalValue).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                     </td>
                                 </tr>
@@ -191,14 +191,14 @@ export default function ReportsPage() {
 
             {/* Productos con stock bajo */}
             {lowStockProducts.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100">
-                        <h2 className="text-base font-semibold text-gray-900">
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                    <div className="px-6 py-4 border-b border-border">
+                        <h2 className="text-base font-semibold text-foreground">
                             Productos con stock bajo o agotado ({lowStockProducts.length})
                         </h2>
                     </div>
                     <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
                                 <th className="px-6 py-3">Producto</th>
                                 <th className="px-6 py-3">Categoría</th>
@@ -207,23 +207,23 @@ export default function ReportsPage() {
                                 <th className="px-6 py-3">Estado</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-border">
                             {lowStockProducts.map((p) => (
-                                <tr key={p.id} className="hover:bg-gray-50 bg-orange-50/30">
+                                <tr key={p.id} className="hover:bg-surface-muted bg-warning-surface/30">
                                     <td className="px-6 py-3">
                                         <Link
                                             to={`/catalog/products/${p.id}/movements`}
-                                            className="font-medium text-gray-900 hover:text-blue-600"
+                                            className="font-medium text-foreground hover:text-info"
                                         >
                                             {p.name}
                                         </Link>
-                                        {p.sku && <div className="text-xs text-gray-400 font-mono">{p.sku}</div>}
+                                        {p.sku && <div className="text-xs text-foreground-muted font-mono">{p.sku}</div>}
                                     </td>
-                                    <td className="px-6 py-3 text-gray-500">{p.category ?? "—"}</td>
-                                    <td className="px-6 py-3 font-semibold text-orange-700">{p.stock}</td>
-                                    <td className="px-6 py-3 text-gray-500">{p.minStock}</td>
+                                    <td className="px-6 py-3 text-foreground-muted">{p.category ?? "—"}</td>
+                                    <td className="px-6 py-3 font-semibold text-warning">{p.stock}</td>
+                                    <td className="px-6 py-3 text-foreground-muted">{p.minStock}</td>
                                     <td className="px-6 py-3">
-                                        <Badge variant={p.stock === 0 ? "danger" : "orange"}>
+                                        <Badge variant={p.stock === 0 ? "danger" : "warning"}>
                                             {p.stock === 0 ? "Agotado" : "Bajo"}
                                         </Badge>
                                     </td>
@@ -236,13 +236,13 @@ export default function ReportsPage() {
 
             {/* Métricas de rotación de stock */}
             {stockMetrics?.filter((m) => m.totalOutLast30Days > 0).length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100">
-                        <h2 className="text-base font-semibold text-gray-900">Rotación de stock — últimos 30 días</h2>
-                        <p className="text-xs text-gray-400 mt-0.5">Solo productos con movimientos de salida</p>
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                    <div className="px-6 py-4 border-b border-border">
+                        <h2 className="text-base font-semibold text-foreground">Rotación de stock — últimos 30 días</h2>
+                        <p className="text-xs text-foreground-muted mt-0.5">Solo productos con movimientos de salida</p>
                     </div>
                     <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
                                 <th className="px-6 py-3">Producto</th>
                                 <th className="px-6 py-3 text-right">Salidas (30d)</th>
@@ -252,37 +252,37 @@ export default function ReportsPage() {
                                 <th className="px-6 py-3">Alerta</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-border">
                             {stockMetrics
                                 .filter((m) => m.totalOutLast30Days > 0)
                                 .map((m) => (
-                                    <tr key={m.productId} className={m.reorderSoon ? "bg-amber-50/40 hover:bg-amber-50" : "hover:bg-gray-50"}>
+                                    <tr key={m.productId} className={m.reorderSoon ? "bg-warning-surface/40 hover:bg-warning-surface" : "hover:bg-surface-muted"}>
                                         <td className="px-6 py-3">
                                             <Link
                                                 to={`/catalog/products/${m.productId}/movements`}
-                                                className="font-medium text-gray-900 hover:text-blue-600"
+                                                className="font-medium text-foreground hover:text-info"
                                             >
                                                 {m.productName}
                                             </Link>
-                                            {m.sku && <div className="text-xs text-gray-400 font-mono">{m.sku}</div>}
+                                            {m.sku && <div className="text-xs text-foreground-muted font-mono">{m.sku}</div>}
                                         </td>
-                                        <td className="px-6 py-3 text-right text-gray-700">{m.totalOutLast30Days}</td>
-                                        <td className="px-6 py-3 text-right text-gray-600">{m.dailyVelocity.toFixed(2)}/día</td>
-                                        <td className="px-6 py-3 text-right font-semibold text-gray-900">{m.currentStock}</td>
+                                        <td className="px-6 py-3 text-right text-foreground">{m.totalOutLast30Days}</td>
+                                        <td className="px-6 py-3 text-right text-foreground-muted">{m.dailyVelocity.toFixed(2)}/día</td>
+                                        <td className="px-6 py-3 text-right font-semibold text-foreground">{m.currentStock}</td>
                                         <td className="px-6 py-3 text-right">
                                             {m.daysToStockout !== null ? (
-                                                <span className={m.daysToStockout <= 7 ? "font-semibold text-red-600" : m.daysToStockout <= 14 ? "font-medium text-orange-500" : "text-gray-600"}>
+                                                <span className={m.daysToStockout <= 7 ? "font-semibold text-danger" : m.daysToStockout <= 14 ? "font-medium text-warning" : "text-foreground-muted"}>
                                                     {m.daysToStockout} días
                                                 </span>
                                             ) : (
-                                                <span className="text-gray-400">—</span>
+                                                <span className="text-foreground-muted">—</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-3">
                                             {m.reorderSoon ? (
-                                                <Badge variant="orange">Reabastecer pronto</Badge>
+                                                <Badge variant="warning">Reabastecer pronto</Badge>
                                             ) : (
-                                                <span className="text-gray-400 text-xs">—</span>
+                                                <span className="text-foreground-muted text-xs">—</span>
                                             )}
                                         </td>
                                     </tr>

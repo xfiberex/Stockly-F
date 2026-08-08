@@ -8,24 +8,34 @@ describe("Button", () => {
         expect(screen.getByRole("button", { name: /guardar/i })).toBeInTheDocument();
     });
 
+    // T2-36: los literales (`bg-primary`, `bg-surface-muted`, `bg-danger`) pasaron a
+    // tokens semánticos, así que el color de la aplicación se cambia desde la paleta.
     it("aplica variante primary por defecto", () => {
         render(<Button>Test</Button>);
-        expect(screen.getByRole("button")).toHaveClass("bg-blue-600");
+        expect(screen.getByRole("button")).toHaveClass("bg-primary", "text-surface");
     });
 
     it("aplica variante secondary", () => {
         render(<Button variant="secondary">Test</Button>);
-        expect(screen.getByRole("button")).toHaveClass("bg-gray-100");
+        expect(screen.getByRole("button")).toHaveClass("bg-surface-muted", "text-foreground");
     });
 
     it("aplica variante danger", () => {
         render(<Button variant="danger">Eliminar</Button>);
-        expect(screen.getByRole("button")).toHaveClass("bg-red-600");
+        expect(screen.getByRole("button")).toHaveClass("bg-danger", "text-surface");
     });
 
     it("aplica variante ghost", () => {
         render(<Button variant="ghost">Ghost</Button>);
-        expect(screen.getByRole("button")).toHaveClass("bg-transparent");
+        expect(screen.getByRole("button")).toHaveClass("bg-transparent", "text-foreground-muted");
+    });
+
+    it("ninguna variante usa utilidades de color crudas", () => {
+        for (const variant of ["primary", "secondary", "danger", "ghost"] as const) {
+            const { unmount } = render(<Button variant={variant}>Test</Button>);
+            expect(screen.getByRole("button").className).not.toMatch(/(bg|text)-[a-z]+-\d{2,3}/);
+            unmount();
+        }
     });
 
     it("muestra spinner y deshabilita cuando isLoading=true", () => {

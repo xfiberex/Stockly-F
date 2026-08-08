@@ -6,7 +6,7 @@ import {
     AreaChart, Area,
 } from "recharts";
 import { Spinner } from "@/shared/components/Spinner";
-import { Badge } from "@/shared/components/Badge";
+import { Badge, type BadgeVariant } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
 import { useStockMovements } from "@/modules/products/hooks/useStockMovements";
@@ -21,11 +21,13 @@ const TYPE_LABELS: Record<StockMovementType, string> = {
     IMPORT: "Importación",
 };
 
-const TYPE_VARIANTS: Record<StockMovementType, "success" | "danger" | "blue" | "purple"> = {
+// Entrada y salida son las dos direcciones del stock; ajuste e importación no
+// mueven mercancía real, así que no compiten con ellas por el color.
+const TYPE_VARIANTS: Record<StockMovementType, BadgeVariant> = {
     IN: "success",
     OUT: "danger",
-    ADJUSTMENT: "blue",
-    IMPORT: "purple",
+    ADJUSTMENT: "info",
+    IMPORT: "neutral",
 };
 
 function formatDate(iso: string) {
@@ -81,8 +83,8 @@ export default function StockMovementsPage() {
     if (isError || !data) {
         return (
             <div className="max-w-4xl mx-auto px-6 py-8">
-                <p className="text-red-600">No se pudo cargar el historial de movimientos.</p>
-                <Link to="/catalog/products" className="text-blue-600 text-sm hover:underline mt-2 inline-block">
+                <p className="text-danger">No se pudo cargar el historial de movimientos.</p>
+                <Link to="/catalog/products" className="text-info text-sm hover:underline mt-2 inline-block">
                     ← Volver a productos
                 </Link>
             </div>
@@ -111,25 +113,25 @@ export default function StockMovementsPage() {
             <div>
                 <Link
                     to="/catalog/products"
-                    className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 transition-colors mb-4"
+                    className="inline-flex items-center gap-1 text-sm text-foreground-muted hover:text-info transition-colors mb-4"
                 >
                     <ArrowLeftIcon className="h-4 w-4" />
                     Volver a productos
                 </Link>
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+                        <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
                         {product.sku && (
-                            <p className="text-xs text-gray-400 font-mono mt-0.5">{product.sku}</p>
+                            <p className="text-xs text-foreground-muted font-mono mt-0.5">{product.sku}</p>
                         )}
-                        <p className="text-sm text-gray-500 mt-1">Historial de movimientos de stock</p>
+                        <p className="text-sm text-foreground-muted mt-1">Historial de movimientos de stock</p>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">
                         <div className="text-right">
-                            <p className={`text-2xl font-bold ${isLowStock ? "text-orange-700" : "text-gray-900"}`}>
+                            <p className={`text-2xl font-bold ${isLowStock ? "text-warning" : "text-foreground"}`}>
                                 {product.stock}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-foreground-muted">
                                 Stock actual {product.minStock > 0 ? `(mín: ${product.minStock})` : ""}
                             </p>
                         </div>
@@ -150,15 +152,15 @@ export default function StockMovementsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 border-b border-gray-200">
+            <div className="flex gap-1 border-b border-border">
                 {(["movements", "prices"] as const).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
                             activeTab === tab
-                                ? "border-blue-600 text-blue-700"
-                                : "border-transparent text-gray-500 hover:text-gray-700"
+                                ? "border-info text-info"
+                                : "border-transparent text-foreground-muted hover:text-foreground"
                         }`}
                     >
                         {tab === "movements" ? `Movimientos (${movements.length})` : `Historial de precios (${priceHistory.length})`}
@@ -170,8 +172,8 @@ export default function StockMovementsPage() {
                 <>
                     {/* Gráfico de stock */}
                     {movements.length > 0 && (
-                        <div className="bg-white rounded-xl border border-gray-200 p-6">
-                            <h2 className="text-base font-semibold text-gray-900 mb-6">Evolución del stock</h2>
+                        <div className="bg-surface rounded-xl border border-border p-6">
+                            <h2 className="text-base font-semibold text-foreground mb-6">Evolución del stock</h2>
                             <ResponsiveContainer width="100%" height={260}>
                                 <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -219,21 +221,21 @@ export default function StockMovementsPage() {
                                 />
                             </div>
                             <div className="flex items-center gap-2">
-                                <label className="text-xs text-gray-500 whitespace-nowrap">Desde</label>
+                                <label className="text-xs text-foreground-muted whitespace-nowrap">Desde</label>
                                 <input
                                     type="date"
                                     value={dateFrom}
                                     onChange={(e) => setDateFrom(e.target.value)}
-                                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
                                 />
                             </div>
                             <div className="flex items-center gap-2">
-                                <label className="text-xs text-gray-500 whitespace-nowrap">Hasta</label>
+                                <label className="text-xs text-foreground-muted whitespace-nowrap">Hasta</label>
                                 <input
                                     type="date"
                                     value={dateTo}
                                     onChange={(e) => setDateTo(e.target.value)}
-                                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                    className="rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
                                 />
                             </div>
                             {(typeFilter || dateFrom || dateTo) && (
@@ -249,16 +251,16 @@ export default function StockMovementsPage() {
 
                     {/* Tabla de movimientos */}
                     {filteredMovements.length > 0 ? (
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                                <h2 className="text-base font-semibold text-gray-900">
+                        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                                <h2 className="text-base font-semibold text-foreground">
                                     Movimientos ({filteredMovements.length}
                                     {filteredMovements.length !== movements.length && ` de ${movements.length}`})
                                 </h2>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                         <tr>
                                             <th className="px-6 py-3">Fecha</th>
                                             <th className="px-6 py-3">Tipo</th>
@@ -267,10 +269,10 @@ export default function StockMovementsPage() {
                                             <th className="px-6 py-3">Nota</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100">
+                                    <tbody className="divide-y divide-border">
                                         {[...filteredMovements].reverse().map((m) => (
-                                            <tr key={m.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
+                                            <tr key={m.id} className="hover:bg-surface-muted transition-colors">
+                                                <td className="px-6 py-3 text-foreground-muted whitespace-nowrap">
                                                     {formatDate(m.createdAt)}
                                                 </td>
                                                 <td className="px-6 py-3">
@@ -279,12 +281,12 @@ export default function StockMovementsPage() {
                                                     </Badge>
                                                 </td>
                                                 <td className="px-6 py-3 font-medium">
-                                                    <span className={m.delta >= 0 ? "text-green-600" : "text-red-600"}>
+                                                    <span className={m.delta >= 0 ? "text-success" : "text-danger"}>
                                                         {m.delta >= 0 ? `+${m.delta}` : m.delta}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-3 text-gray-700">{m.stockAfter}</td>
-                                                <td className="px-6 py-3 text-gray-400 text-xs">{m.note ?? "—"}</td>
+                                                <td className="px-6 py-3 text-foreground">{m.stockAfter}</td>
+                                                <td className="px-6 py-3 text-foreground-muted text-xs">{m.note ?? "—"}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -292,7 +294,7 @@ export default function StockMovementsPage() {
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
+                        <div className="bg-surface rounded-xl border border-border p-6 text-center text-sm text-foreground-muted">
                             {movements.length === 0
                                 ? "Aún no hay movimientos registrados para este producto."
                                 : "No hay movimientos que coincidan con los filtros aplicados."}
@@ -305,8 +307,8 @@ export default function StockMovementsPage() {
                 <>
                     {priceHistory.length > 0 ? (
                         <>
-                            <div className="bg-white rounded-xl border border-gray-200 p-6">
-                                <h2 className="text-base font-semibold text-gray-900 mb-6">Evolución del precio</h2>
+                            <div className="bg-surface rounded-xl border border-border p-6">
+                                <h2 className="text-base font-semibold text-foreground mb-6">Evolución del precio</h2>
                                 <ResponsiveContainer width="100%" height={240}>
                                     <AreaChart data={priceChartData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                                         <defs>
@@ -334,12 +336,12 @@ export default function StockMovementsPage() {
                                 </ResponsiveContainer>
                             </div>
 
-                            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                                <div className="px-6 py-4 border-b border-gray-100">
-                                    <h2 className="text-base font-semibold text-gray-900">Cambios de precio ({priceHistory.length})</h2>
+                            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                                <div className="px-6 py-4 border-b border-border">
+                                    <h2 className="text-base font-semibold text-foreground">Cambios de precio ({priceHistory.length})</h2>
                                 </div>
                                 <table className="w-full text-sm">
-                                    <thead className="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                         <tr>
                                             <th className="px-6 py-3">Fecha</th>
                                             <th className="px-6 py-3">Precio anterior</th>
@@ -347,23 +349,23 @@ export default function StockMovementsPage() {
                                             <th className="px-6 py-3">Variación</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100">
+                                    <tbody className="divide-y divide-border">
                                         {[...priceHistory].reverse().map((h) => {
                                             const diff = Number(h.newPrice) - Number(h.oldPrice);
                                             const pct = Number(h.oldPrice) > 0 ? (diff / Number(h.oldPrice)) * 100 : 0;
                                             return (
-                                                <tr key={h.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
+                                                <tr key={h.id} className="hover:bg-surface-muted">
+                                                    <td className="px-6 py-3 text-foreground-muted whitespace-nowrap">
                                                         {formatDate(h.createdAt)}
                                                     </td>
-                                                    <td className="px-6 py-3 text-gray-600">
+                                                    <td className="px-6 py-3 text-foreground-muted">
                                                         ${Number(h.oldPrice).toFixed(2)}
                                                     </td>
-                                                    <td className="px-6 py-3 font-medium text-gray-900">
+                                                    <td className="px-6 py-3 font-medium text-foreground">
                                                         ${Number(h.newPrice).toFixed(2)}
                                                     </td>
                                                     <td className="px-6 py-3">
-                                                        <span className={diff >= 0 ? "text-red-600" : "text-green-600"}>
+                                                        <span className={diff >= 0 ? "text-danger" : "text-success"}>
                                                             {diff >= 0 ? "+" : ""}{diff.toFixed(2)} ({pct.toFixed(1)}%)
                                                         </span>
                                                     </td>
@@ -375,7 +377,7 @@ export default function StockMovementsPage() {
                             </div>
                         </>
                     ) : (
-                        <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
+                        <div className="bg-surface rounded-xl border border-border p-6 text-center text-sm text-foreground-muted">
                             Aún no hay cambios de precio registrados para este producto.
                         </div>
                     )}

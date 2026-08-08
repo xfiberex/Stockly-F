@@ -17,18 +17,18 @@ export default function ResetPasswordPage() {
 
     if (!token) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-                <p className="text-red-600">Token inválido. Solicita un nuevo enlace.</p>
+            <div className="min-h-screen bg-background flex items-center justify-center px-4">
+                <p className="text-danger">Token inválido. Solicita un nuevo enlace.</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-            <div className="w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-sm p-8 space-y-6">
+        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+            <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-sm p-8 space-y-6">
                 <div className="text-center">
-                    <h1 className="text-xl font-bold text-gray-900">Nueva contraseña</h1>
-                    <p className="text-sm text-gray-500 mt-1">Elige una contraseña segura</p>
+                    <h1 className="text-xl font-bold text-foreground">Nueva contraseña</h1>
+                    <p className="text-sm text-foreground-muted mt-1">Elige una contraseña segura</p>
                 </div>
 
                 <form onSubmit={handleSubmit((data) => reset.mutate(data))} className="space-y-4">

@@ -4,7 +4,7 @@ import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
-import { Badge } from "@/shared/components/Badge";
+import { Badge, type BadgeVariant } from "@/shared/components/Badge";
 import { Spinner } from "@/shared/components/Spinner";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { useAuth } from "@/modules/auth/hooks/useMe";
@@ -25,8 +25,9 @@ const STATUS_LABELS: Record<string, string> = {
     CANCELLED: "Cancelado",
 };
 
-const STATUS_VARIANTS: Record<string, "orange" | "success" | "danger"> = {
-    PENDING: "orange",
+// Mismo criterio que en las órdenes de compra.
+const STATUS_VARIANTS: Record<string, BadgeVariant> = {
+    PENDING: "warning",
     SHIPPED: "success",
     CANCELLED: "danger",
 };
@@ -100,7 +101,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-gray-700">Ítems *</p>
+                        <p className="text-sm font-medium text-foreground">Ítems *</p>
                         <Button
                             type="button"
                             variant="secondary"
@@ -112,7 +113,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                     </div>
                     <div className="space-y-3">
                         {fields.map((field, idx) => (
-                            <div key={field.id} className="grid grid-cols-12 gap-2 items-end border border-gray-100 rounded-lg p-3 bg-gray-50">
+                            <div key={field.id} className="grid grid-cols-12 gap-2 items-end border border-border rounded-lg p-3 bg-surface-muted">
                                 <div className="col-span-4">
                                     <Select
                                         label="Producto"
@@ -141,7 +142,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                         disabled={fields.length === 1}
                                         onClick={() => remove(idx)}
                                     >
-                                        <TrashIcon className="h-4 w-4 text-red-500" />
+                                        <TrashIcon className="h-4 w-4 text-danger" />
                                     </Button>
                                 </div>
                             </div>
@@ -149,7 +150,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
                     <Button type="submit" isLoading={createMutation.isPending}>Crear orden</Button>
                 </div>
@@ -179,8 +180,8 @@ export default function SaleOrdersPage() {
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Órdenes de venta</h1>
-                    <p className="text-sm text-gray-500 mt-1">{orders.length} orden{orders.length !== 1 ? "es" : ""}</p>
+                    <h1 className="text-2xl font-bold text-foreground">Órdenes de venta</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{orders.length} orden{orders.length !== 1 ? "es" : ""}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <DropdownButton
@@ -200,13 +201,13 @@ export default function SaleOrdersPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : orders.length === 0 ? (
-                <div className="py-16 text-center text-sm text-gray-400">No hay órdenes de venta. Crea la primera.</div>
+                <div className="py-16 text-center text-sm text-foreground-muted">No hay órdenes de venta. Crea la primera.</div>
             ) : (
                 <div className="space-y-3">
                     {orders.map((order) => (
-                        <div key={order.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        <div key={order.id} className="bg-surface rounded-xl border border-border overflow-hidden">
                             <div
-                                className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                                className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer hover:bg-surface-muted transition-colors"
                                 onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
                             >
                                 <div className="flex items-center gap-3 min-w-0">
@@ -214,20 +215,20 @@ export default function SaleOrdersPage() {
                                         {STATUS_LABELS[order.status] ?? order.status}
                                     </Badge>
                                     <div className="min-w-0">
-                                        <p className="text-sm font-medium text-gray-900">
+                                        <p className="text-sm font-medium text-foreground">
                                             Venta #{order.id.slice(0, 8).toUpperCase()}
                                         </p>
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-xs text-foreground-muted">
                                             {order.customerName ?? "Cliente sin nombre"} · {formatDate(order.createdAt)}
                                         </p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 shrink-0">
                                     <div className="text-right hidden sm:block">
-                                        <p className="text-sm font-semibold text-gray-900">
+                                        <p className="text-sm font-semibold text-foreground">
                                             ${orderTotal(order).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                         </p>
-                                        <p className="text-xs text-gray-400">{order.items.length} ítem{order.items.length !== 1 ? "s" : ""}</p>
+                                        <p className="text-xs text-foreground-muted">{order.items.length} ítem{order.items.length !== 1 ? "s" : ""}</p>
                                     </div>
                                     {isAdmin && order.status === "PENDING" && (
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -237,7 +238,7 @@ export default function SaleOrdersPage() {
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleShip(order.id)}
                                             >
-                                                <TruckIcon className="h-4 w-4 text-green-600" />
+                                                <TruckIcon className="h-4 w-4 text-success" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -245,7 +246,7 @@ export default function SaleOrdersPage() {
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleCancel(order.id)}
                                             >
-                                                <XMarkIcon className="h-4 w-4 text-orange-500" />
+                                                <XMarkIcon className="h-4 w-4 text-warning" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -253,7 +254,7 @@ export default function SaleOrdersPage() {
                                                 isLoading={deleteMutation.isPending}
                                                 onClick={() => deleteMutation.mutate(order.id)}
                                             >
-                                                <TrashIcon className="h-4 w-4 text-red-500" />
+                                                <TrashIcon className="h-4 w-4 text-danger" />
                                             </Button>
                                         </div>
                                     )}
@@ -261,18 +262,18 @@ export default function SaleOrdersPage() {
                             </div>
 
                             {expandedId === order.id && (
-                                <div className="border-t border-gray-100 px-5 py-4">
+                                <div className="border-t border-border px-5 py-4">
                                     {(order.customerEmail || order.customerPhone) && (
-                                        <div className="flex gap-4 mb-3 text-xs text-gray-500">
+                                        <div className="flex gap-4 mb-3 text-xs text-foreground-muted">
                                             {order.customerEmail && <span>✉ {order.customerEmail}</span>}
                                             {order.customerPhone && <span>📞 {order.customerPhone}</span>}
                                         </div>
                                     )}
                                     {order.notes && (
-                                        <p className="text-xs text-gray-500 mb-3 italic">"{order.notes}"</p>
+                                        <p className="text-xs text-foreground-muted mb-3 italic">"{order.notes}"</p>
                                     )}
                                     <table className="w-full text-sm">
-                                        <thead className="text-left text-xs font-medium uppercase tracking-wide text-gray-400 border-b border-gray-100">
+                                        <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
                                             <tr>
                                                 <th className="pb-2">Producto</th>
                                                 <th className="pb-2 text-right">Cant.</th>
@@ -280,22 +281,22 @@ export default function SaleOrdersPage() {
                                                 <th className="pb-2 text-right">Subtotal</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-50">
+                                        <tbody className="divide-y divide-border">
                                             {order.items.map((item) => (
                                                 <tr key={item.id}>
-                                                    <td className="py-2 text-gray-700">{item.productName}</td>
-                                                    <td className="py-2 text-right text-gray-600">{item.quantity}</td>
-                                                    <td className="py-2 text-right text-gray-600">${Number(item.unitPrice).toFixed(2)}</td>
-                                                    <td className="py-2 text-right font-medium text-gray-900">
+                                                    <td className="py-2 text-foreground">{item.productName}</td>
+                                                    <td className="py-2 text-right text-foreground-muted">{item.quantity}</td>
+                                                    <td className="py-2 text-right text-foreground-muted">${Number(item.unitPrice).toFixed(2)}</td>
+                                                    <td className="py-2 text-right font-medium text-foreground">
                                                         ${(Number(item.unitPrice) * item.quantity).toFixed(2)}
                                                     </td>
                                                 </tr>
                                             ))}
                                         </tbody>
-                                        <tfoot className="border-t border-gray-200">
+                                        <tfoot className="border-t border-border">
                                             <tr>
-                                                <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-gray-700">Total</td>
-                                                <td className="pt-2 text-right font-bold text-gray-900">
+                                                <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">Total</td>
+                                                <td className="pt-2 text-right font-bold text-foreground">
                                                     ${orderTotal(order).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                                 </td>
                                             </tr>

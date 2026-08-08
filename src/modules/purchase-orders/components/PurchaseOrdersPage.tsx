@@ -4,7 +4,7 @@ import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
-import { Badge } from "@/shared/components/Badge";
+import { Badge, type BadgeVariant } from "@/shared/components/Badge";
 import { Spinner } from "@/shared/components/Spinner";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { useAuth } from "@/modules/auth/hooks/useMe";
@@ -26,8 +26,10 @@ const STATUS_LABELS: Record<string, string> = {
     CANCELLED: "Cancelada",
 };
 
-const STATUS_VARIANTS: Record<string, "orange" | "success" | "danger"> = {
-    PENDING: "orange",
+// Pendiente es un aviso —hay algo por hacer—, recibida es el final correcto y
+// cancelada, el negativo.
+const STATUS_VARIANTS: Record<string, BadgeVariant> = {
+    PENDING: "warning",
     RECEIVED: "success",
     CANCELLED: "danger",
 };
@@ -114,7 +116,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-gray-700">Ítems</p>
+                        <p className="text-sm font-medium text-foreground">Ítems</p>
                         <Button
                             type="button"
                             variant="secondary"
@@ -126,7 +128,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                     </div>
                     <div className="space-y-3">
                         {fields.map((field, idx) => (
-                            <div key={field.id} className="grid grid-cols-12 gap-2 items-end border border-gray-100 rounded-lg p-3 bg-gray-50">
+                            <div key={field.id} className="grid grid-cols-12 gap-2 items-end border border-border rounded-lg p-3 bg-surface-muted">
                                 <div className="col-span-4">
                                     <Select
                                         label="Producto"
@@ -166,7 +168,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                         disabled={fields.length === 1}
                                         onClick={() => remove(idx)}
                                     >
-                                        <TrashIcon className="h-4 w-4 text-red-500" />
+                                        <TrashIcon className="h-4 w-4 text-danger" />
                                     </Button>
                                 </div>
                             </div>
@@ -174,7 +176,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
                     <Button type="submit" isLoading={createMutation.isPending}>Crear orden</Button>
                 </div>
@@ -228,9 +230,9 @@ export default function PurchaseOrdersPage() {
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Órdenes de compra</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Órdenes de compra</h1>
                     {/* El plural de «orden» lleva tilde: concatenar "es" daba «ordenes». */}
-                    <p className="text-sm text-gray-500 mt-1">{total} {total === 1 ? "orden" : "órdenes"} en total</p>
+                    <p className="text-sm text-foreground-muted mt-1">{total} {total === 1 ? "orden" : "órdenes"} en total</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <DropdownButton
@@ -250,14 +252,14 @@ export default function PurchaseOrdersPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : orders.length === 0 ? (
-                <div className="py-16 text-center text-sm text-gray-400">No hay órdenes de compra. Crea la primera.</div>
+                <div className="py-16 text-center text-sm text-foreground-muted">No hay órdenes de compra. Crea la primera.</div>
             ) : (
                 <div className="space-y-3">
                     {orders.map((order) => (
-                        <div key={order.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        <div key={order.id} className="bg-surface rounded-xl border border-border overflow-hidden">
                             {/* Row header */}
                             <div
-                                className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                                className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer hover:bg-surface-muted transition-colors"
                                 onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
                             >
                                 <div className="flex items-center gap-3 min-w-0">
@@ -265,20 +267,20 @@ export default function PurchaseOrdersPage() {
                                         {STATUS_LABELS[order.status] ?? order.status}
                                     </Badge>
                                     <div className="min-w-0">
-                                        <p className="text-sm font-medium text-gray-900">
+                                        <p className="text-sm font-medium text-foreground">
                                             Orden #{order.id.slice(0, 8).toUpperCase()}
                                         </p>
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-xs text-foreground-muted">
                                             {order.supplier?.name ?? "Sin proveedor"} · {formatDate(order.createdAt)}
                                         </p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 shrink-0">
                                     <div className="text-right hidden sm:block">
-                                        <p className="text-sm font-semibold text-gray-900">
+                                        <p className="text-sm font-semibold text-foreground">
                                             ${orderTotal(order).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                         </p>
-                                        <p className="text-xs text-gray-400">{order.items.length} ítem{order.items.length !== 1 ? "s" : ""}</p>
+                                        <p className="text-xs text-foreground-muted">{order.items.length} ítem{order.items.length !== 1 ? "s" : ""}</p>
                                     </div>
                                     {isAdmin && order.status === "PENDING" && (
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -288,7 +290,7 @@ export default function PurchaseOrdersPage() {
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleReceive(order.id)}
                                             >
-                                                <CheckIcon className="h-4 w-4 text-green-600" />
+                                                <CheckIcon className="h-4 w-4 text-success" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -296,7 +298,7 @@ export default function PurchaseOrdersPage() {
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleCancel(order.id)}
                                             >
-                                                <XMarkIcon className="h-4 w-4 text-orange-500" />
+                                                <XMarkIcon className="h-4 w-4 text-warning" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -304,7 +306,7 @@ export default function PurchaseOrdersPage() {
                                                 isLoading={deleteMutation.isPending}
                                                 onClick={() => handleDelete(order.id)}
                                             >
-                                                <TrashIcon className="h-4 w-4 text-red-500" />
+                                                <TrashIcon className="h-4 w-4 text-danger" />
                                             </Button>
                                         </div>
                                     )}
@@ -313,12 +315,12 @@ export default function PurchaseOrdersPage() {
 
                             {/* Expanded items */}
                             {expandedId === order.id && (
-                                <div className="border-t border-gray-100 px-5 py-4">
+                                <div className="border-t border-border px-5 py-4">
                                     {order.notes && (
-                                        <p className="text-xs text-gray-500 mb-3 italic">"{order.notes}"</p>
+                                        <p className="text-xs text-foreground-muted mb-3 italic">"{order.notes}"</p>
                                     )}
                                     <table className="w-full text-sm">
-                                        <thead className="text-left text-xs font-medium uppercase tracking-wide text-gray-400 border-b border-gray-100">
+                                        <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
                                             <tr>
                                                 <th className="pb-2">Producto</th>
                                                 <th className="pb-2 text-right">Cant.</th>
@@ -326,22 +328,22 @@ export default function PurchaseOrdersPage() {
                                                 <th className="pb-2 text-right">Subtotal</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-50">
+                                        <tbody className="divide-y divide-border">
                                             {order.items.map((item) => (
                                                 <tr key={item.id}>
-                                                    <td className="py-2 text-gray-700">{item.productName}</td>
-                                                    <td className="py-2 text-right text-gray-600">{item.quantity}</td>
-                                                    <td className="py-2 text-right text-gray-600">${Number(item.unitPrice).toFixed(2)}</td>
-                                                    <td className="py-2 text-right font-medium text-gray-900">
+                                                    <td className="py-2 text-foreground">{item.productName}</td>
+                                                    <td className="py-2 text-right text-foreground-muted">{item.quantity}</td>
+                                                    <td className="py-2 text-right text-foreground-muted">${Number(item.unitPrice).toFixed(2)}</td>
+                                                    <td className="py-2 text-right font-medium text-foreground">
                                                         ${(Number(item.unitPrice) * item.quantity).toFixed(2)}
                                                     </td>
                                                 </tr>
                                             ))}
                                         </tbody>
-                                        <tfoot className="border-t border-gray-200">
+                                        <tfoot className="border-t border-border">
                                             <tr>
-                                                <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-gray-700">Total</td>
-                                                <td className="pt-2 text-right font-bold text-gray-900">
+                                                <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">Total</td>
+                                                <td className="pt-2 text-right font-bold text-foreground">
                                                     ${orderTotal(order).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                                                 </td>
                                             </tr>
@@ -355,7 +357,7 @@ export default function PurchaseOrdersPage() {
             )}
 
             {totalPages > 1 && (
-                <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex items-center justify-between text-sm text-foreground-muted">
                     <span>Página {page} de {totalPages}</span>
                     <div className="flex gap-2">
                         <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>

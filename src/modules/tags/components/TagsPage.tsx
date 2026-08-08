@@ -60,7 +60,7 @@ function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
                 />
 
                 <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Color</p>
+                    <p className="text-sm font-medium text-foreground mb-2">Color</p>
                     <div className="flex flex-wrap gap-2">
                         {PRESET_COLORS.map((c) => (
                             <button
@@ -79,7 +79,7 @@ function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
                     <input type="hidden" {...register("color")} />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
                     <Button type="submit" isLoading={isPending}>
                         {isEditing ? "Guardar cambios" : "Crear etiqueta"}
@@ -110,8 +110,8 @@ export default function TagsPage() {
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Etiquetas</h1>
-                    <p className="text-sm text-gray-500 mt-1">{tags.length} etiqueta{tags.length !== 1 ? "s" : ""}</p>
+                    <h1 className="text-2xl font-bold text-foreground">Etiquetas</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{tags.length} etiqueta{tags.length !== 1 ? "s" : ""}</p>
                 </div>
                 <Button onClick={() => setFormOpen(true)}>
                     <PlusIcon className="h-4 w-4" />
@@ -122,24 +122,24 @@ export default function TagsPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : tags.length === 0 ? (
-                <div className="py-16 text-center text-sm text-gray-400">
+                <div className="py-16 text-center text-sm text-foreground-muted">
                     No hay etiquetas. Crea la primera para organizar tus productos.
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {tags.map((tag) => (
-                        <div key={tag.id} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+                        <div key={tag.id} className="bg-surface rounded-xl border border-border px-4 py-3 flex items-center gap-3">
                             <div
                                 className="h-4 w-4 rounded-full shrink-0"
                                 style={{ backgroundColor: tag.color ?? "#94a3b8" }}
                             />
-                            <span className="text-sm font-medium text-gray-900 flex-1 truncate">{tag.name}</span>
+                            <span className="text-sm font-medium text-foreground flex-1 truncate">{tag.name}</span>
                             <div className="flex gap-1 shrink-0">
                                 {/* Botones solo de icono: sin `aria-label` un lector de
                                     pantalla los anuncia como «botón», sin decir sobre
                                     qué etiqueta actúan. */}
                                 <Button variant="ghost" aria-label={`Editar ${tag.name}`} onClick={() => handleEdit(tag)}>
-                                    <PencilIcon className="h-3.5 w-3.5 text-gray-400 hover:text-blue-600" />
+                                    <PencilIcon className="h-3.5 w-3.5 text-foreground-muted hover:text-info" />
                                 </Button>
                                 <Button
                                     variant="ghost"
@@ -147,7 +147,7 @@ export default function TagsPage() {
                                     isLoading={deleteMutation.isPending}
                                     onClick={() => deleteMutation.mutate(tag.id)}
                                 >
-                                    <TrashIcon className="h-3.5 w-3.5 text-gray-400 hover:text-red-500" />
+                                    <TrashIcon className="h-3.5 w-3.5 text-foreground-muted hover:text-danger" />
                                 </Button>
                             </div>
                         </div>

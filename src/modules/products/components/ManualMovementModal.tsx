@@ -59,9 +59,9 @@ export function ManualMovementModal({ isOpen, onClose, product }: ManualMovement
 
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title="Registrar movimiento" className="max-w-md">
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm">
-                <p className="font-medium text-gray-900">{product.name}</p>
-                <p className="text-gray-500">Stock actual: <span className="font-semibold">{product.stock}</span></p>
+            <div className="mb-4 p-3 bg-surface-muted rounded-lg text-sm">
+                <p className="font-medium text-foreground">{product.name}</p>
+                <p className="text-foreground-muted">Stock actual: <span className="font-semibold">{product.stock}</span></p>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <Select
@@ -94,7 +94,7 @@ export function ManualMovementModal({ isOpen, onClose, product }: ManualMovement
                     error={errors.note?.message}
                     {...register("note")}
                 />
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button type="button" variant="secondary" onClick={handleClose}>Cancelar</Button>
                     <Button type="submit" isLoading={mutation.isPending}>Registrar</Button>
                 </div>

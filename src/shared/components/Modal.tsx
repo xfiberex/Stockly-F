@@ -74,16 +74,16 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
                 // ventana desborda el panel y sus botones quedan fuera de pantalla,
                 // inalcanzables (el body está bloqueado mientras el modal está abierto).
                 className={cn(
-                    "relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-xl outline-none",
+                    "relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-surface shadow-xl outline-none",
                     className,
                 )}
             >
-                <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
-                    <h2 id={titleId} className="text-base font-semibold text-gray-900">{title}</h2>
+                <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-4">
+                    <h2 id={titleId} className="text-base font-semibold text-foreground">{title}</h2>
                     <button
                         onClick={onClose}
                         aria-label="Cerrar"
-                        className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                        className="rounded-lg p-1 text-foreground-muted hover:bg-surface-muted hover:text-foreground-muted transition-colors"
                     >
                         <XMarkIcon className="h-5 w-5" />
                     </button>

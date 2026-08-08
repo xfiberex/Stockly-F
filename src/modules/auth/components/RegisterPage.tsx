@@ -13,11 +13,11 @@ export default function RegisterPage() {
     });
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-            <div className="w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-sm p-8 space-y-6">
+        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+            <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-sm p-8 space-y-6">
                 <div className="text-center">
-                    <h1 className="text-xl font-bold text-gray-900">Crear cuenta</h1>
-                    <p className="text-sm text-gray-500 mt-1">Únete a Stockly</p>
+                    <h1 className="text-xl font-bold text-foreground">Crear cuenta</h1>
+                    <p className="text-sm text-foreground-muted mt-1">Únete a Stockly</p>
                 </div>
 
                 <form onSubmit={handleSubmit((data) => registerMutation.mutate(data))} className="space-y-4">
@@ -62,9 +62,9 @@ export default function RegisterPage() {
                     </Button>
                 </form>
 
-                <p className="text-center text-sm text-gray-500">
+                <p className="text-center text-sm text-foreground-muted">
                     ¿Ya tienes cuenta?{" "}
-                    <Link to="/auth/login" className="text-blue-600 hover:underline font-medium">
+                    <Link to="/auth/login" className="text-info hover:underline font-medium">
                         Inicia sesión
                     </Link>
                 </p>
