@@ -4,7 +4,7 @@ import { Squares2X2Icon } from "@heroicons/react/24/outline";
 import { renderWithProviders } from "@/tests/utils";
 import { NavDropdown } from "@/shared/components/NavDropdown";
 import { DropdownButton } from "@/shared/components/DropdownButton";
-import { clasesDeItemDeMenu } from "@/shared/lib/clasesDeItemDeMenu";
+import { clasesDeItemDeMenu, CLASES_PANEL_DE_MENU } from "@/shared/lib/clasesDeItemDeMenu";
 import App from "@/App";
 import { Routes, Route } from "react-router-dom";
 
@@ -114,5 +114,39 @@ describe("Menú de usuario — disparador y cabecera", () => {
 
         // Dos ítems, los de siempre: la cabecera no se pulsa y no debe contarse.
         expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+    });
+});
+
+// Dashboard y Reportes no abren menú, pero viven en la misma fila que los que sí: si
+// unos muestran su caja y otros no, la barra se lee desigual.
+describe("Enlaces sueltos de la barra", () => {
+    it("el de la ruta actual lleva su borde puesto, sin esperar al cursor", () => {
+        renderWithProviders(<UserMenuDePrueba />);
+
+        // El layout se monta en «/», así que Dashboard es la ruta activa.
+        const activo = screen.getAllByRole("link", { name: "Dashboard" })[0];
+        expect(activo.className).toContain("border-info/30");
+        expect(activo.className).toContain("bg-info-surface");
+    });
+
+    it("el resto se delimita al señalarlo, como los ítems de menú", () => {
+        renderWithProviders(<UserMenuDePrueba />);
+
+        const inactivo = screen.getAllByRole("link", { name: "Reportes" })[0];
+        expect(inactivo.className).toContain("border-transparent");
+        expect(inactivo.className).toContain("hover:border-border");
+    });
+});
+
+describe("Panel de menú", () => {
+    it("separa los ítems: dos recuadros contiguos no comparten línea", () => {
+        expect(CLASES_PANEL_DE_MENU).toContain("flex flex-col");
+        expect(CLASES_PANEL_DE_MENU).toContain("gap-1");
+    });
+
+    it("tiene relleno por los cuatro lados, no solo arriba y abajo", () => {
+        // Con los ítems delimitados, un borde pegado al del panel parece un error.
+        expect(CLASES_PANEL_DE_MENU).toContain("p-1");
+        expect(CLASES_PANEL_DE_MENU).not.toContain("py-1 ");
     });
 });

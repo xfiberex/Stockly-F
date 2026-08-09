@@ -79,7 +79,14 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
             lo vigila. */}
         <div className="overflow-x-auto contain-paint rounded-xl border border-border">
             <table className="w-full min-w-160 text-sm">
-                <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
+                {/* `whitespace-nowrap` en la cabecera entera —`white-space` se hereda— y no
+                    columna a columna: con reparto automático de anchos, un nombre de producto
+                    largo le quita sitio a las demás y la primera en partirse es la única
+                    etiqueta con espacio dentro, «Stock / Mín». Romper un rótulo fijo de dos
+                    palabras no gana nada; el ancho que sobra lo absorbe «Nombre / SKU», que sí
+                    es texto variable. Truncar el nombre sería peor: es el identificador con el
+                    que se escanea la tabla. */}
+                <thead className="whitespace-nowrap bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                     <tr>
                         {selectable && (
                             <th className="px-3 py-3 w-8">
@@ -195,7 +202,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                     {formatearImporte(product.price)}
                                 </td>
                                 <td className="px-4 py-3 lg:py-1.5">
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5 whitespace-nowrap">
                                         {/* El stock va en una caja de ancho fijo y alineado a la
                                             derecha: con las cifras tabulares de la tabla, eso hace
                                             que las unidades queden en la misma vertical aunque

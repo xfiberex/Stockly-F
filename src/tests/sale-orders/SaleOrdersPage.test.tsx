@@ -148,7 +148,9 @@ describe("SaleOrdersPage — cancelar una orden ya enviada (T2-42)", () => {
         const user = userEvent.setup();
         renderWithProviders(<SaleOrdersPage />);
 
-        await user.click(screen.getByRole("button", { name: "Cancelar orden" }));
+        // El nombre lleva el número de la orden: tres botones de icono por fila se
+        // anunciaban todos igual, y el E2E llegó a operar sobre la orden equivocada.
+        await user.click(screen.getByRole("button", { name: /^Cancelar la Venta #/ }));
 
         // Cancelar una orden pendiente no mueve inventario, así que no hay nada que
         // confirmar: la diferencia de trato entre los dos estados es deliberada.
@@ -161,6 +163,6 @@ describe("SaleOrdersPage — cancelar una orden ya enviada (T2-42)", () => {
         renderWithProviders(<SaleOrdersPage />);
 
         expect(botonCancelarEnvio()).not.toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Cancelar orden" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^Cancelar la Venta #/ })).not.toBeInTheDocument();
     });
 });

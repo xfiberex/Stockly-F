@@ -47,7 +47,7 @@ export function NavDropdown({ label, Icon, items, isActive = false, width = "w-4
                     "flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-1.5 text-sm font-medium transition-colors",
                     "focus-visible:border-border focus-visible:outline-none",
                     isActive || open
-                        ? "border-info-surface bg-info-surface text-info"
+                        ? "border-info/30 bg-info-surface text-info"
                         : "text-foreground-muted hover:border-border hover:bg-surface-muted",
                 )}
             >
@@ -71,7 +71,7 @@ export function NavDropdown({ label, Icon, items, isActive = false, width = "w-4
                                     linkActive
                                         // La sección en la que ya estás se delimita en su
                                         // propio color, sin esperar a que la señales.
-                                        ? "border-info-surface bg-info-surface text-info"
+                                        ? "border-info/30 bg-info-surface text-info"
                                         : "text-foreground",
                                 )
                             }

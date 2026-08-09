@@ -126,15 +126,25 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         await modal.getByRole("button", { name: "Crear orden" }).click();
         await expect(modal).toBeHidden();
 
+        // Se localiza **esta** orden por su número, no «la primera de la lista»: los dos
+        // proyectos del E2E corren en paralelo contra la misma base y cada uno crea la
+        // suya, así que quedarse con la primera fila hacía que un proyecto operase sobre
+        // la orden del otro. Los botones llevan el número en su nombre accesible.
+        const ordenes = (await api(page, "get", "/sale-orders?limit=100")) as {
+            data: Array<{ id: string; items: Array<{ productId: string | null }> }>;
+        };
+        const orden = ordenes.data.find((o) => o.items.some((i) => i.productId === productId));
+        expect(orden, "la orden recién creada debería existir").toBeTruthy();
+        const numero = orden!.id.slice(0, 8).toUpperCase();
+
         // Enviar descuenta el stock.
-        await page.getByTitle("Marcar como enviado").first().click();
+        await page.getByRole("button", { name: `Marcar como enviada la Venta #${numero}` }).click();
         await expect.poll(() => stockDe(page, productId)).toBe(STOCK_INICIAL - CANTIDAD);
 
         // Cancelar la orden ya enviada, por la interfaz. Hasta T2-42 este paso iba por API
         // porque los botones solo aparecían en estado PENDIENTE: la reposición de T0-03
         // existía en el backend y era inalcanzable desde la aplicación.
-        // La orden recién creada es la primera de la lista (`orderBy: createdAt desc`).
-        await page.getByTitle("Cancelar orden enviada").first().click();
+        await page.getByRole("button", { name: `Cancelar la orden enviada Venta #${numero}` }).click();
 
         const confirmacion = page.getByRole("dialog");
         // El diálogo dice cuántas unidades vuelven al inventario antes de mover nada.

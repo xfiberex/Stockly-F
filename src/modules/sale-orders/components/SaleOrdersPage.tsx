@@ -314,9 +314,14 @@ export default function SaleOrdersPage() {
                                     </div>
                                     {isAdmin && order.status === "PENDING" && (
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                            {/* El nombre accesible nombra **la orden**: tres
+                                                botones de icono repetidos por fila se anuncian
+                                                todos igual, y no hay forma de saber sobre cuál
+                                                se actúa. El `title` se queda para el ratón. */}
                                             <Button
                                                 variant="ghost"
                                                 title="Marcar como enviado"
+                                                aria-label={`Marcar como enviada la Venta #${numeroDeOrden(order.id)}`}
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleShip(order.id)}
                                             >
@@ -325,6 +330,7 @@ export default function SaleOrdersPage() {
                                             <Button
                                                 variant="ghost"
                                                 title="Cancelar orden"
+                                                aria-label={`Cancelar la Venta #${numeroDeOrden(order.id)}`}
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleCancel(order.id)}
                                             >
@@ -333,6 +339,7 @@ export default function SaleOrdersPage() {
                                             <Button
                                                 variant="ghost"
                                                 title="Eliminar"
+                                                aria-label={`Eliminar la Venta #${numeroDeOrden(order.id)}`}
                                                 isLoading={deleteMutation.isPending}
                                                 onClick={() => deleteMutation.mutate(order.id)}
                                             >

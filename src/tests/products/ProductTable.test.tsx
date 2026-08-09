@@ -210,6 +210,35 @@ describe("ProductTable — acción de historial (T2-14)", () => {
     });
 });
 
+// Con anchos automáticos, un nombre de producto largo le quita sitio a las demás
+// columnas y la cabecera «Stock / Mín» —la única con un espacio dentro— se partía en
+// dos líneas. Se prohíbe el salto en la cabecera en lugar de recortar el nombre, que
+// es el identificador con el que se escanea la tabla.
+describe("ProductTable — la cabecera no se parte", () => {
+    it("la cabecera entera lleva `whitespace-nowrap`, no columna a columna", () => {
+        renderWithProviders(
+            <ProductTable products={[makeProduct()]} isLoading={false} onEdit={vi.fn()} />,
+        );
+
+        // `white-space` se hereda: puesto en el `<thead>`, alcanza a las nueve columnas
+        // y ninguna futura nace pudiendo partirse.
+        const cabecera = document.querySelector("thead")!;
+        expect(cabecera.className).toContain("whitespace-nowrap");
+        expect(screen.getByRole("columnheader", { name: "Stock / Mín" })).toBeInTheDocument();
+    });
+
+    it("el nombre del producto se muestra entero, sin truncar", () => {
+        const largo = "Switch Administrable TP-Link TL-SG108E 8 puertos Gigabit";
+        renderWithProviders(
+            <ProductTable products={[makeProduct({ name: largo })]} isLoading={false} onEdit={vi.fn()} />,
+        );
+
+        const enlace = screen.getByRole("link", { name: largo });
+        expect(enlace.className).not.toContain("truncate");
+        expect(enlace.className).not.toContain("max-w-");
+    });
+});
+
 // T2-15: las casillas gobiernan un ajuste masivo de stock —destructivo— y no había
 // forma de marcar la página entera ni de saber cuántas había marcadas sin contarlas.
 describe("ProductTable — selección de filas (T2-15)", () => {

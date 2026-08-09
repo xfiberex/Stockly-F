@@ -94,7 +94,7 @@ function UserMenu({ name, email }: { name: string; email?: string }) {
                         <p className="truncate text-sm font-semibold text-foreground">{name}</p>
                         {email && <p className="truncate text-xs text-foreground-muted">{email}</p>}
                     </div>
-                    <div className="mb-1 border-t border-border" />
+                    <div className="border-t border-border" />
                     <Link
                         to="/profile"
                         role="menuitem"
@@ -104,7 +104,7 @@ function UserMenu({ name, email }: { name: string; email?: string }) {
                         <UserCircleIcon className="h-4 w-4 text-foreground-muted" />
                         Mi perfil
                     </Link>
-                    <div className="my-1 border-t border-border" />
+                    <div className="border-t border-border" />
                     <button
                         onClick={() => { cerrar(); logout.mutate(); }}
                         role="menuitem"
@@ -124,10 +124,17 @@ function UserMenu({ name, email }: { name: string; email?: string }) {
     );
 }
 
+// Dashboard y Reportes son enlaces sueltos de la barra, no disparadores de menú, pero
+// se delimitan igual que ellos: si no, en la misma fila conviven controles que muestran
+// su caja y controles que no, y la barra se lee desigual.
 const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-        isActive ? "bg-info-surface text-info" : "text-foreground-muted hover:bg-surface-muted",
+        "flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-1.5 text-sm font-medium transition-colors",
+        "focus-visible:border-border focus-visible:outline-none",
+        isActive
+            // La sección en la que estás lleva su borde puesto, sin esperar al cursor.
+            ? "border-info/30 bg-info-surface text-info"
+            : "text-foreground-muted hover:border-border hover:bg-surface-muted",
     );
 
 const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -135,7 +142,7 @@ const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
         // Mismo trato que los ítems de los desplegables: la caja se delimita al tocarla.
         "flex min-h-11 items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium transition-colors",
         isActive
-            ? "border-info-surface bg-info-surface text-info"
+            ? "border-info/30 bg-info-surface text-info"
             : "text-foreground hover:border-border hover:bg-surface-muted",
     );
 

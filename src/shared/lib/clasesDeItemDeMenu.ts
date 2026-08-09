@@ -24,9 +24,14 @@ export function clasesDeItemDeMenu(className?: string) {
 }
 
 /**
- * El panel que los contiene. Lleva relleno por los cuatro lados —no solo arriba y
- * abajo— porque, con los ítems delimitados, un borde pegado al borde del panel se lee
- * como un fallo de dibujo.
+ * El panel que los contiene.
+ *
+ * Relleno por los cuatro lados —no solo arriba y abajo— porque, con los ítems
+ * delimitados, un borde pegado al borde del panel se lee como un fallo de dibujo.
+ *
+ * Y **separación entre ítems** (`gap-1`, 4 px): apilados sin holgura, dos recuadros
+ * contiguos comparten línea y parecen uno solapado con el siguiente. Cuando los ítems
+ * no tenían borde no se notaba; en cuanto se delimitan, hace falta el aire.
  */
 export const CLASES_PANEL_DE_MENU =
-    "rounded-xl border border-border bg-surface p-1 shadow-lg";
+    "flex flex-col gap-1 rounded-xl border border-border bg-surface p-1 shadow-lg";
