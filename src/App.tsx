@@ -233,10 +233,13 @@ function App() {
                     // mano deja el comportamiento decidido aquí —y comprobable por un
                     // test— en vez de a merced del navegador. Se evita además ensuciar
                     // el historial con `#contenido`.
-                    // `focus()` ya desplaza la página hasta el elemento, así que un
-                    // `scrollIntoView()` detrás no añade nada y encima revienta en jsdom.
+                    // El desplazamiento se manda a mano y el foco va con `preventScroll`:
+                    // dejárselo a `focus()` sale mal justo aquí, porque `<main>` es más
+                    // alto que la ventana y el navegador desplaza *lo mínimo*, lo que
+                    // alinea su final con el borde inferior en vez de mostrar el título.
                     e.preventDefault();
-                    document.getElementById("contenido")?.focus();
+                    window.scrollTo(0, 0);
+                    document.getElementById("contenido")?.focus({ preventScroll: true });
                 }}
                 className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:flex focus:min-h-11 focus:items-center focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-surface focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
             >

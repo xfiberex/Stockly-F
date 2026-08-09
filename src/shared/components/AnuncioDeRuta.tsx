@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigationType } from "react-router-dom";
 import { tituloDeRuta } from "@/shared/lib/titulos";
 
 /**
@@ -10,10 +10,26 @@ import { tituloDeRuta } from "@/shared/lib/titulos";
  * cambiado. Quien navega con teclado tiene que volver a recorrer el menú entero para
  * llegar al contenido nuevo, y quien no ve la pantalla no se entera de que llegó.
  *
- * Dos cosas, entonces, en cada cambio de ruta:
- *   1. el foco se mueve a `<main id="contenido" tabIndex={-1}>` (el destino que dejó
+ * Tres cosas, entonces, en cada cambio de ruta:
+ *   1. la página vuelve arriba;
+ *   2. el foco se mueve a `<main id="contenido" tabIndex={-1}>` (el destino que dejó
  *      puesto T2-11), así que el siguiente Tab sigue *dentro* del contenido;
- *   2. la región `aria-live` cambia de texto, y eso es lo que se anuncia.
+ *   3. la región `aria-live` cambia de texto, y eso es lo que se anuncia.
+ *
+ * Lo primero hace falta porque React Router **no restablece el desplazamiento**: al
+ * cambiar de ruta se conserva el del documento anterior y se aterriza a media página.
+ * El `focus()` lo disimulaba a medias y de la peor manera: al enfocar un elemento más
+ * alto que la ventana, el navegador desplaza lo mínimo, y estando por debajo eso alinea
+ * el *final* de `<main>` con el borde inferior — nunca su principio. Medido: desde 800 px
+ * en Reportes, al ir a Dashboard quedaba en 202 px, con el `<h1>` a −113 px. De ahí que
+ * hubiera que subir a mano para ver el título.
+ *
+ * `preventScroll` en el foco, entonces: quien decide dónde queda la página es el
+ * `scrollTo`, y no dos mecanismos peleándose por ello.
+ *
+ * Solo en navegación nueva (`PUSH`/`REPLACE`). En `POP` —atrás y adelante— el navegador
+ * restaura la posición que tenía esa entrada del historial, y volver arriba a la fuerza
+ * borraría justo lo que el usuario espera recuperar.
  *
  * El texto se **deriva** del `pathname` en vez de guardarse en un estado sincronizado
  * por un efecto: además de evitar el `setState` en efecto que ya costó T1-08 y T1-10,
@@ -22,6 +38,7 @@ import { tituloDeRuta } from "@/shared/lib/titulos";
  */
 export function AnuncioDeRuta() {
     const { pathname } = useLocation();
+    const tipoDeNavegacion = useNavigationType();
     const titulo = tituloDeRuta(pathname);
     const yaNavegado = useRef(false);
 
@@ -35,8 +52,14 @@ export function AnuncioDeRuta() {
             return;
         }
 
-        document.getElementById("contenido")?.focus();
-    }, [pathname, titulo]);
+        if (tipoDeNavegacion !== "POP") {
+            // Sin `behavior`, o sea instantáneo: un salto animado en cada cambio de
+            // página molesta a quien pidió menos movimiento (T2-12) y no informa de nada.
+            window.scrollTo(0, 0);
+        }
+
+        document.getElementById("contenido")?.focus({ preventScroll: true });
+    }, [pathname, titulo, tipoDeNavegacion]);
 
     return (
         <p aria-live="polite" className="sr-only">
