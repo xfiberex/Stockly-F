@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Outlet, NavLink, Link, useLocation } from "react-router-dom";
 import {
     CubeIcon,
@@ -14,7 +14,9 @@ import {
     XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
+import { useMenuDesplegable } from "@/shared/hooks/useMenuDesplegable";
 import { NavDropdown } from "@/shared/components/NavDropdown";
+import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 
@@ -43,17 +45,10 @@ const adminLinks = [
 ];
 
 function UserMenu({ name }: { name: string }) {
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
+    // T2-16: el cierre al pulsar fuera estaba duplicado con `NavDropdown` y ninguno de
+    // los dos cerraba con Escape. Los dos usan ahora el mismo hook.
+    const { abierto: open, contenedor, disparador, alternar, cerrar } = useMenuDesplegable();
     const logout = useLogout();
-
-    useEffect(() => {
-        function handle(e: MouseEvent) {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        }
-        document.addEventListener("mousedown", handle);
-        return () => document.removeEventListener("mousedown", handle);
-    }, []);
 
     const initials = name
         .split(" ")
@@ -63,9 +58,10 @@ function UserMenu({ name }: { name: string }) {
         .toUpperCase();
 
     return (
-        <div ref={ref} className="relative">
+        <div ref={contenedor} className="relative">
             <button
-                onClick={() => setOpen((o) => !o)}
+                ref={disparador}
+                onClick={alternar}
                 aria-label="Menú de usuario"
                 aria-haspopup="menu"
                 aria-expanded={open}
@@ -83,7 +79,7 @@ function UserMenu({ name }: { name: string }) {
                     <Link
                         to="/profile"
                         role="menuitem"
-                        onClick={() => setOpen(false)}
+                        onClick={cerrar}
                         className="flex min-h-11 items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-surface-muted transition-colors md:min-h-0"
                     >
                         <UserCircleIcon className="h-4 w-4 text-foreground-muted" />
@@ -91,7 +87,7 @@ function UserMenu({ name }: { name: string }) {
                     </Link>
                     <div className="my-1 border-t border-border" />
                     <button
-                        onClick={() => { setOpen(false); logout.mutate(); }}
+                        onClick={() => { cerrar(); logout.mutate(); }}
                         role="menuitem"
                         disabled={logout.isPending}
                         className="w-full flex min-h-11 items-center gap-2.5 px-3.5 py-2.5 text-sm text-danger hover:bg-danger-surface transition-colors disabled:opacity-50 md:min-h-0"
@@ -213,6 +209,12 @@ function App() {
             >
                 Saltar al contenido principal
             </a>
+            {/*
+              T2-18 — mueve el foco a `<main>` y anuncia el título en cada cambio de
+              ruta. Va aquí, junto al enlace de salto, porque los dos resuelven la misma
+              carencia: en una SPA nada avisa de que la página ha cambiado.
+            */}
+            <AnuncioDeRuta />
             <nav className="sticky top-0 z-40 border-b border-border bg-surface">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-14 items-center gap-6">
                     <div className="flex items-center gap-2 font-bold text-foreground">

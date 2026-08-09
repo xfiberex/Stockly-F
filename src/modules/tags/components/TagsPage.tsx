@@ -8,9 +8,20 @@ import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from "@/modules/tag
 import type { Tag } from "@/modules/tags/types/tags.types";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 
-const PRESET_COLORS = [
-    "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
-    "#ec4899", "#06b6d4", "#84cc16", "#f97316", "#6366f1",
+// T2-13: el color no puede ser lo único que identifique a cada opción. Un botón sin
+// texto se anuncia como «botón» a secas, y quien no distingue los tonos —o no ve la
+// pantalla— no tiene forma de saber cuál está eligiendo ni cuál está elegido.
+const PRESET_COLORS: ReadonlyArray<{ valor: string; nombre: string }> = [
+    { valor: "#3b82f6", nombre: "Azul" },
+    { valor: "#10b981", nombre: "Verde" },
+    { valor: "#f59e0b", nombre: "Ámbar" },
+    { valor: "#ef4444", nombre: "Rojo" },
+    { valor: "#8b5cf6", nombre: "Violeta" },
+    { valor: "#ec4899", nombre: "Rosa" },
+    { valor: "#06b6d4", nombre: "Cian" },
+    { valor: "#84cc16", nombre: "Lima" },
+    { valor: "#f97316", nombre: "Naranja" },
+    { valor: "#6366f1", nombre: "Índigo" },
 ];
 
 interface TagFormData {
@@ -31,7 +42,7 @@ function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
     const isPending = createMutation.isPending || updateMutation.isPending;
 
     const { register, handleSubmit, setValue, control, reset, formState: { errors } } = useForm<TagFormData>({
-        defaultValues: { name: tag?.name ?? "", color: tag?.color ?? PRESET_COLORS[0] },
+        defaultValues: { name: tag?.name ?? "", color: tag?.color ?? PRESET_COLORS[0].valor },
     });
 
     // `useWatch` en lugar de `watch()`: este último devuelve una función que el
@@ -60,20 +71,29 @@ function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
                 />
 
                 <div>
-                    <p className="text-sm font-medium text-foreground mb-2">Color</p>
-                    <div className="flex flex-wrap gap-2">
-                        {PRESET_COLORS.map((c) => (
+                    <p id="color-etiqueta" className="text-sm font-medium text-foreground mb-2">Color</p>
+                    {/* Conmutadores, como los de etiqueta de T2-17: `aria-pressed` es lo
+                        que comunica cuál está elegido a quien no ve el contorno. */}
+                    <div role="group" aria-labelledby="color-etiqueta" className="flex flex-wrap gap-2">
+                        {PRESET_COLORS.map(({ valor, nombre }) => (
                             <button
-                                key={c}
+                                key={valor}
                                 type="button"
-                                onClick={() => setValue("color", c)}
-                                className="h-7 w-7 rounded-full transition-transform hover:scale-110 ring-offset-2"
-                                style={{
-                                    backgroundColor: c,
-                                    outline: selectedColor === c ? `2px solid ${c}` : "none",
-                                    outlineOffset: "2px",
-                                }}
-                            />
+                                aria-label={nombre}
+                                aria-pressed={selectedColor === valor}
+                                onClick={() => setValue("color", valor)}
+                                className="flex min-h-11 min-w-11 items-center justify-center rounded-lg md:min-h-0 md:min-w-0"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className="block h-7 w-7 rounded-full transition-transform hover:scale-110"
+                                    style={{
+                                        backgroundColor: valor,
+                                        outline: selectedColor === valor ? `2px solid ${valor}` : "none",
+                                        outlineOffset: "2px",
+                                    }}
+                                />
+                            </button>
                         ))}
                     </div>
                     <input type="hidden" {...register("color")} />

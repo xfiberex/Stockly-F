@@ -186,3 +186,100 @@ describe("ProductTable", () => {
         expect(screen.getByText("Producto C")).toBeInTheDocument();
     });
 });
+
+// T2-14: un `<button>` dentro de un `<a>` es HTML inválido y produce dos paradas de
+// tabulación por acción, multiplicado por cada fila de la tabla.
+describe("ProductTable — acción de historial (T2-14)", () => {
+    it("es un enlace, y no envuelve ningún botón", () => {
+        renderWithProviders(
+            <ProductTable products={[makeProduct()]} isLoading={false} onEdit={vi.fn()} />,
+        );
+
+        const enlace = screen.getByRole("link", { name: "Historial de movimientos de Monitor LG" });
+        expect(enlace).toHaveAttribute("href", "/catalog/products/prod-1/movements");
+        expect(enlace.querySelector("button")).toBeNull();
+    });
+
+    it("ninguna fila anida contenido interactivo", () => {
+        renderWithProviders(
+            <ProductTable products={[makeProduct()]} isLoading={false} onEdit={vi.fn()} />,
+        );
+
+        const anidados = document.querySelectorAll("a button, button a, a a, button button");
+        expect(anidados).toHaveLength(0);
+    });
+});
+
+// T2-15: las casillas gobiernan un ajuste masivo de stock —destructivo— y no había
+// forma de marcar la página entera ni de saber cuántas había marcadas sin contarlas.
+describe("ProductTable — selección de filas (T2-15)", () => {
+    const productos = [
+        makeProduct({ id: "p1", name: "Monitor LG" }),
+        makeProduct({ id: "p2", name: "Teclado Logitech" }),
+    ];
+
+    function conSeleccion(seleccionados: string[] = []) {
+        const onToggleSelect = vi.fn();
+        renderWithProviders(
+            <ProductTable
+                products={productos}
+                isLoading={false}
+                onEdit={vi.fn()}
+                selectedIds={new Set(seleccionados)}
+                onToggleSelect={onToggleSelect}
+            />,
+        );
+        return { onToggleSelect };
+    }
+
+    it("cada casilla dice a qué producto corresponde", () => {
+        conSeleccion();
+
+        expect(screen.getByRole("checkbox", { name: "Seleccionar Monitor LG" })).toBeInTheDocument();
+        expect(screen.getByRole("checkbox", { name: "Seleccionar Teclado Logitech" })).toBeInTheDocument();
+    });
+
+    it("la casilla de cabecera selecciona los que faltan, sin desmarcar los ya marcados", async () => {
+        const user = userEvent.setup();
+        const { onToggleSelect } = conSeleccion(["p1"]);
+
+        await user.click(screen.getByRole("checkbox", { name: /Seleccionar todos/ }));
+
+        expect(onToggleSelect).toHaveBeenCalledTimes(1);
+        expect(onToggleSelect).toHaveBeenCalledWith("p2");
+    });
+
+    it("con todo marcado, la cabecera desmarca la página entera", async () => {
+        const user = userEvent.setup();
+        const { onToggleSelect } = conSeleccion(["p1", "p2"]);
+
+        const todos = screen.getByRole("checkbox", { name: /Seleccionar todos/ });
+        expect(todos).toBeChecked();
+
+        await user.click(todos);
+
+        expect(onToggleSelect.mock.calls.map(([id]) => id)).toEqual(["p1", "p2"]);
+    });
+
+    it("una selección parcial se anuncia como indeterminada, no como «sin marcar»", () => {
+        conSeleccion(["p1"]);
+
+        const todos = screen.getByRole("checkbox", { name: /Seleccionar todos/ }) as HTMLInputElement;
+        expect(todos.indeterminate).toBe(true);
+        expect(todos.checked).toBe(false);
+    });
+
+    it("sin nada marcado no está ni marcada ni indeterminada", () => {
+        conSeleccion();
+
+        const todos = screen.getByRole("checkbox", { name: /Seleccionar todos/ }) as HTMLInputElement;
+        expect(todos.indeterminate).toBe(false);
+        expect(todos.checked).toBe(false);
+    });
+
+    it("sin `onToggleSelect` no aparece ninguna casilla", () => {
+        renderWithProviders(<ProductTable products={productos} isLoading={false} onEdit={vi.fn()} />);
+
+        expect(screen.queryByRole("checkbox")).toBeNull();
+    });
+});

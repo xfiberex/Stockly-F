@@ -1,3 +1,4 @@
+import { formatearImporte } from "@/shared/lib/moneda";
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
@@ -307,7 +308,7 @@ export default function SaleOrdersPage() {
                                 <div className="flex items-center gap-4 shrink-0">
                                     <div className="text-right hidden sm:block">
                                         <p className="text-sm font-semibold text-foreground tabular-nums">
-                                            ${orderTotal(order).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                            {formatearImporte(orderTotal(order))}
                                         </p>
                                         <p className="text-xs text-foreground-muted">{order.items.length} ítem{order.items.length !== 1 ? "s" : ""}</p>
                                     </div>
@@ -382,9 +383,9 @@ export default function SaleOrdersPage() {
                                                 <tr key={item.id}>
                                                     <td className="py-2 text-foreground">{item.productName}</td>
                                                     <td className="py-2 text-right text-foreground-muted">{item.quantity}</td>
-                                                    <td className="py-2 text-right text-foreground-muted">${Number(item.unitPrice).toFixed(2)}</td>
+                                                    <td className="py-2 text-right text-foreground-muted">{formatearImporte(item.unitPrice)}</td>
                                                     <td className="py-2 text-right font-medium text-foreground">
-                                                        ${(Number(item.unitPrice) * item.quantity).toFixed(2)}
+                                                        {formatearImporte(Number(item.unitPrice) * item.quantity)}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -393,7 +394,7 @@ export default function SaleOrdersPage() {
                                             <tr>
                                                 <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">Total</td>
                                                 <td className="pt-2 text-right font-bold text-foreground">
-                                                    ${orderTotal(order).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                                    {formatearImporte(orderTotal(order))}
                                                 </td>
                                             </tr>
                                         </tfoot>

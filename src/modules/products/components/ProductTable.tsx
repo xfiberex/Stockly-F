@@ -1,7 +1,9 @@
+import { formatearImporte } from "@/shared/lib/moneda";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
+import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 import { Spinner } from "@/shared/components/Spinner";
 import { ProductDetailModal } from "@/modules/products/components/ProductDetailModal";
 import { useDeleteProduct } from "@/modules/products/hooks/useDeleteProduct";
@@ -52,6 +54,21 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
 
     const selectable = !!onToggleSelect;
 
+    // T2-15: el ajuste masivo de stock es destructivo y hasta ahora se seleccionaba fila
+    // a fila, sin forma de marcar la página entera ni de saber —sin mirar— cuántas hay
+    // marcadas. `onToggleSelect` actualiza con función, así que llamarlo en bucle es
+    // seguro: cada llamada ve el conjunto que dejó la anterior.
+    const seleccionados = products.filter((p) => selectedIds?.has(p.id));
+    const todosSeleccionados = products.length > 0 && seleccionados.length === products.length;
+    const algunosSeleccionados = seleccionados.length > 0;
+
+    const alternarTodos = () => {
+        const objetivo = todosSeleccionados
+            ? products // estaban todos: se desmarcan todos
+            : products.filter((p) => !selectedIds?.has(p.id)); // se completan los que faltan
+        objetivo.forEach((p) => onToggleSelect!(p.id));
+    };
+
     return (
         <>
         {/* `contain:paint` no es decoración: sin él, en Chrome de Android el ancho de
@@ -64,7 +81,26 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
             <table className="w-full min-w-160 text-sm">
                 <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                     <tr>
-                        {selectable && <th className="px-3 py-3 w-8" />}
+                        {selectable && (
+                            <th className="px-3 py-3 w-8">
+                                <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center md:min-h-0 md:min-w-0">
+                                    <input
+                                        type="checkbox"
+                                        aria-label="Seleccionar todos los productos de esta página"
+                                        ref={(el) => {
+                                            // El estado indeterminado no existe como atributo:
+                                            // solo se puede poner por propiedad. Sin él, una
+                                            // selección parcial se anuncia como «no marcado»,
+                                            // que es justo lo contrario de lo que hay.
+                                            if (el) el.indeterminate = algunosSeleccionados && !todosSeleccionados;
+                                        }}
+                                        checked={todosSeleccionados}
+                                        onChange={alternarTodos}
+                                        className="h-4 w-4 rounded border-border text-info focus:ring-accent"
+                                    />
+                                </label>
+                            </th>
+                        )}
                         <th className="px-4 py-3 lg:py-1.5">Imagen</th>
                         <th className="px-4 py-3 lg:py-1.5">Nombre / SKU</th>
                         <th className="px-4 py-3 lg:py-1.5">Categoría</th>
@@ -156,7 +192,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                     )}
                                 </td>
                                 <td className="px-4 py-3 lg:py-1.5 text-right text-foreground">
-                                    ${Number(product.price).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                    {formatearImporte(product.price)}
                                 </td>
                                 <td className="px-4 py-3 lg:py-1.5">
                                     <div className="flex items-center gap-1.5">
@@ -193,10 +229,18 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                         >
                                             <EyeIcon className="h-4 w-4 text-foreground-muted" />
                                         </Button>
-                                        <Link to={`/catalog/products/${product.id}/movements`}>
-                                            <Button variant="ghost" title="Historial de movimientos" type="button">
-                                                <ChartBarIcon className="h-4 w-4 text-info" />
-                                            </Button>
+                                        {/* T2-14: era un `<button>` dentro de un `<a>`, que es
+                                            HTML inválido: dos paradas de tabulación por fila
+                                            para una sola acción, multiplicado por cada
+                                            producto de la tabla. Como esto navega, se queda
+                                            el enlace y toma prestadas las clases del botón. */}
+                                        <Link
+                                            to={`/catalog/products/${product.id}/movements`}
+                                            title="Historial de movimientos"
+                                            aria-label={`Historial de movimientos de ${product.name}`}
+                                            className={clasesDeBoton("ghost")}
+                                        >
+                                            <ChartBarIcon className="h-4 w-4 text-info" />
                                         </Link>
                                         {isAdmin && product.isActive && (
                                             <>

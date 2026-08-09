@@ -1,3 +1,4 @@
+import { formatearImporte } from "@/shared/lib/moneda";
 import { Link } from "react-router-dom";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -70,7 +71,7 @@ export default function ReportsPage() {
                     { label: "Bajo stock / agotados", value: lowStockProducts.length, Icon: ExclamationTriangleIcon, bg: "bg-warning-surface", text: "text-warning" },
                     {
                         label: "Valor inventario",
-                        value: `$${totals.inventoryValue.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+                        value: formatearImporte(totals.inventoryValue, { decimales: 0 }),
                         Icon: CurrencyDollarIcon,
                         bg: "bg-success-surface",
                         text: "text-success",
@@ -98,7 +99,7 @@ export default function ReportsPage() {
                             <XAxis type="number" tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                             <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={55} />
                             <Tooltip
-                                formatter={(v) => [`$${Number(v).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`, "Valor"]}
+                                formatter={(v) => [formatearImporte(Number(v)), "Valor"]}
                                 contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
                             />
                             <Bar dataKey="value" fill="#6366f1" radius={[0, 4, 4, 0]} name="Valor" />
@@ -179,10 +180,10 @@ export default function ReportsPage() {
                                         </Link>
                                         {p.sku && <div className="text-xs text-foreground-muted font-mono">{p.sku}</div>}
                                     </td>
-                                    <td className="px-6 py-3 text-right text-foreground-muted">${Number(p.price).toFixed(2)}</td>
+                                    <td className="px-6 py-3 text-right text-foreground-muted">{formatearImporte(p.price)}</td>
                                     <td className="px-6 py-3 text-right text-foreground">{p.stock}</td>
                                     <td className="px-6 py-3 text-right font-semibold text-foreground">
-                                        ${Number(p.totalValue).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                                        {formatearImporte(p.totalValue)}
                                     </td>
                                 </tr>
                             ))}

@@ -143,3 +143,38 @@
 table {
   font-variant-numeric: tabular-nums;
 }
+
+/*
+ * Movimiento reducido (T2-12) — WCAG 2.3.3.
+ *
+ * La interfaz usa `transition-*` por todas partes, un `hover:scale-110` en los
+ * selectores de color y `animate-spin` en cada spinner. Para quien tiene trastornos
+ * vestibulares eso no es decoración: provoca mareo. «Reducir movimiento» es una
+ * preferencia del sistema operativo, y hasta ahora no había ni una coincidencia de
+ * `prefers-reduced-motion` en todo `src/`.
+ *
+ * Reducir, no eliminar: 0.01ms deja el estado final en su sitio —el menú abierto sigue
+ * abierto, el foco sigue donde toca— y los `transitionend` que alguien escuche siguen
+ * disparándose. Poner `none` los dejaría colgados.
+ *
+ * `!important` porque compite con utilidades de Tailwind, que ganan por especificidad;
+ * y `scroll-behavior: auto` porque el desplazamiento suave es la misma clase de
+ * movimiento involuntario.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* El spinner comunica «esto sigue en marcha» girando: sin giro no dice nada, así
+     que en vez de congelarlo se le baja el ritmo a una vuelta cada tres segundos. */
+  .animate-spin {
+    animation-duration: 3s !important;
+    animation-iteration-count: infinite !important;
+  }
+}

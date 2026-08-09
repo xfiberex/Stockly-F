@@ -114,3 +114,19 @@ describe("App — saltar al contenido (T2-11)", () => {
         expect(destino).toHaveAttribute("tabindex", "-1");
     });
 });
+
+describe("App — menú de usuario (T2-16)", () => {
+    it("Escape lo cierra y devuelve el foco a su botón", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(layoutConEnlaceExterno());
+
+        const boton = screen.getByRole("button", { name: "Menú de usuario" });
+        await user.click(boton);
+        expect(screen.getByRole("menu")).toBeInTheDocument();
+
+        await user.keyboard("{Escape}");
+
+        expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+        expect(boton).toHaveFocus();
+    });
+});

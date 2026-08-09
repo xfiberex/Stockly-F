@@ -1,3 +1,4 @@
+import { formatearImporte } from "@/shared/lib/moneda";
 import { useState, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeftIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
@@ -302,7 +303,7 @@ export default function StockMovementsPage() {
                                         <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
                                         <Tooltip
                                             contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 13 }}
-                                            formatter={(value) => [`$${Number(value).toFixed(2)}`, "Precio"]}
+                                            formatter={(value) => [formatearImporte(Number(value)), "Precio"]}
                                         />
                                         <Area
                                             type="monotone"
@@ -339,14 +340,14 @@ export default function StockMovementsPage() {
                                                         {formatDate(h.createdAt)}
                                                     </td>
                                                     <td className="px-6 py-3 text-foreground-muted">
-                                                        ${Number(h.oldPrice).toFixed(2)}
+                                                        {formatearImporte(h.oldPrice)}
                                                     </td>
                                                     <td className="px-6 py-3 font-medium text-foreground">
-                                                        ${Number(h.newPrice).toFixed(2)}
+                                                        {formatearImporte(h.newPrice)}
                                                     </td>
                                                     <td className="px-6 py-3">
                                                         <span className={diff >= 0 ? "text-danger" : "text-success"}>
-                                                            {diff >= 0 ? "+" : ""}{diff.toFixed(2)} ({pct.toFixed(1)}%)
+                                                            {formatearImporte(diff, { signo: true })} ({pct.toFixed(1)}%)
                                                         </span>
                                                     </td>
                                                 </tr>

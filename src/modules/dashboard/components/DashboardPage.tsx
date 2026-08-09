@@ -1,3 +1,4 @@
+import { formatearImporte } from "@/shared/lib/moneda";
 import { useReports } from "@/modules/reports/hooks/useReports";
 import { Spinner } from "@/shared/components/Spinner";
 import { Link } from "react-router-dom";
@@ -80,7 +81,7 @@ export default function DashboardPage() {
                     {/* El KPI que más se refresca: sin cifras tabulares cambiaba de ancho
                         con cada actualización, y el bloque entero se movía. */}
                     <p className="text-2xl font-bold text-foreground tabular-nums">
-                        ${totals.inventoryValue.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatearImporte(totals.inventoryValue)}
                     </p>
                     <p className="text-sm text-foreground-muted">Valor total del inventario activo</p>
                 </div>
@@ -104,7 +105,7 @@ export default function DashboardPage() {
                             contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
                             formatter={(value, name) =>
                                 name === "Valor"
-                                    ? [`$${Number(value).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`, "Valor"]
+                                    ? [formatearImporte(Number(value)), "Valor"]
                                     : [Number(value), "Stock"]
                             }
                         />

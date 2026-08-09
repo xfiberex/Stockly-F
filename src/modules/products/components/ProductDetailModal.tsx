@@ -1,3 +1,4 @@
+import { formatearImporte } from "@/shared/lib/moneda";
 import { Link } from "react-router-dom";
 import { Modal } from "@/shared/components/Modal";
 import { Badge } from "@/shared/components/Badge";
@@ -107,7 +108,7 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                 <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <Field icon={CurrencyDollarIcon} label="Precio">
                         <span className="font-semibold text-foreground tabular-nums">
-                            ${Number(product.price).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                            {formatearImporte(product.price)}
                         </span>
                     </Field>
 
