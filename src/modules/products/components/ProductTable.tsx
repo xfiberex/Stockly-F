@@ -54,7 +54,13 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
 
     return (
         <>
-        <div className="overflow-x-auto rounded-xl border border-border">
+        {/* `contain:paint` no es decoración: sin él, en Chrome de Android el ancho de
+            esta tabla ensancha el *viewport de diseño* aunque el scroller la recorte, y
+            todo lo `position: fixed` —los modales— pasa a medir más que la pantalla, con
+            sus botones fuera del borde derecho. Medido: contenedor fijo 663 px en una
+            pantalla de 393. Va en todos los scrollers horizontales; `desbordes.test.ts`
+            lo vigila. */}
+        <div className="overflow-x-auto contain-paint rounded-xl border border-border">
             <table className="w-full min-w-160 text-sm">
                 <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                     <tr>

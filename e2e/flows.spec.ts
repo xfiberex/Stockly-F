@@ -130,20 +130,23 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         await page.getByTitle("Marcar como enviado").first().click();
         await expect.poll(() => stockDe(page, productId)).toBe(STOCK_INICIAL - CANTIDAD);
 
-        // La interfaz solo ofrece cancelar mientras la orden está PENDIENTE, así que la
-        // cancelación de una orden ya enviada —el caso que arregló T0-03— se hace por API.
-        const ordenes = (await api(page, "get", "/sale-orders?limit=100")) as {
-            data: Array<{ id: string; status: string; items: Array<{ productId: string | null }> }>;
-        };
-        const orden = ordenes.data.find(
-            (o) => o.status === "SHIPPED" && o.items.some((i) => i.productId === productId),
-        );
-        expect(orden, "la orden enviada debería existir").toBeTruthy();
+        // Cancelar la orden ya enviada, por la interfaz. Hasta T2-42 este paso iba por API
+        // porque los botones solo aparecían en estado PENDIENTE: la reposición de T0-03
+        // existía en el backend y era inalcanzable desde la aplicación.
+        // La orden recién creada es la primera de la lista (`orderBy: createdAt desc`).
+        await page.getByTitle("Cancelar orden enviada").first().click();
 
-        await api(page, "patch", `/sale-orders/${orden!.id}`, { status: "CANCELLED" });
+        const confirmacion = page.getByRole("dialog");
+        // El diálogo dice cuántas unidades vuelven al inventario antes de mover nada.
+        await expect(confirmacion.getByText(`Se repondrán ${CANTIDAD} unidades`)).toBeVisible();
+        await confirmacion.getByRole("button", { name: "Cancelar la orden" }).click();
+        await expect(confirmacion).toBeHidden();
 
         // Antes de T0-03, cancelar una venta ya enviada no reponía nada.
-        expect(await stockDe(page, productId)).toBe(STOCK_INICIAL);
+        await expect.poll(() => stockDe(page, productId)).toBe(STOCK_INICIAL);
+
+        // Y el estado que ve el usuario acompaña al efecto en la base.
+        await expect(page.getByText("Cancelado").first()).toBeVisible();
 
         await api(page, "delete", `/products/${productId}`);
     });

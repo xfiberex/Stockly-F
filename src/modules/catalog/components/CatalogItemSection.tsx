@@ -136,7 +136,7 @@ export function CatalogItemSection({
                     No hay {entityLabel.toLowerCase()}s registradas. Crea la primera.
                 </div>
             ) : (
-                <div className="overflow-x-auto rounded-xl border border-border">
+                <div className="overflow-x-auto contain-paint rounded-xl border border-border">
                     <table className="w-full text-sm">
                         <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>

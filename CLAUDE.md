@@ -13,7 +13,7 @@ SPA de React 19 sobre Vite. El backend vive en un repositorio hermano, `Stockly-
 Está en el repositorio del backend, en `Stockly-B/docs/`, y cubre **los dos repositorios**:
 
 - `docs/CONTEXTO.md` — **empieza aquí al retomar el proyecto:** estado actual, decisiones vivas, trampas del entorno ya pagadas y por dónde seguir.
-- `docs/ROADMAP.md` — 100 tareas con dependencias, progreso y métricas. La fuente de verdad del trabajo pendiente.
+- `docs/ROADMAP.md` — 104 tareas con dependencias, progreso y métricas. La fuente de verdad del trabajo pendiente.
 - `docs/INFORME-AUDITORIA.md` — los hallazgos que justifican cada tarea.
 - `docs/README-proyecto.md` — visión de conjunto y arranque.
 

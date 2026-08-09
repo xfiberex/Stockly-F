@@ -240,7 +240,7 @@ export default function StockMovementsPage() {
                                     {filteredMovements.length !== movements.length && ` de ${movements.length}`})
                                 </h2>
                             </div>
-                            <div className="overflow-x-auto">
+                            <div className="overflow-x-auto contain-paint">
                                 <table className="w-full text-sm">
                                     <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                         <tr>

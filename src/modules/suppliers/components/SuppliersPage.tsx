@@ -137,7 +137,7 @@ export default function SuppliersPage() {
             ) : suppliers.length === 0 ? (
                 <div className="py-12 text-center text-sm text-foreground-muted">No hay proveedores. Crea el primero.</div>
             ) : (
-                <div className="overflow-x-auto rounded-xl border border-border">
+                <div className="overflow-x-auto contain-paint rounded-xl border border-border">
                     <table className="w-full text-sm">
                         <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
