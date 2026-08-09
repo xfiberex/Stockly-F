@@ -50,6 +50,20 @@ export default defineConfig(({ mode }) => ({
                 "src/vite-env.d.ts",
                 "src/config/**",
             ],
+            // T2-22: un suelo, no una meta. Nada impedía que la cobertura bajara, y sin
+            // CI que lo vigile la única barrera es que `pnpm verify` falle aquí mismo.
+            //
+            // Cada umbral son **dos puntos por debajo del valor real** del 2026-08-09
+            // (44.55 / 52.19 / 35.70 / 45.59), que es margen para un refactor honrado
+            // sin dejar sitio a que se erosione sin que nadie se entere. Al subir la
+            // cobertura, subir también estos números: es lo que convierte el avance en
+            // irreversible.
+            thresholds: {
+                statements: 42,
+                branches: 50,
+                functions: 33,
+                lines: 43,
+            },
         },
     },
 }));
