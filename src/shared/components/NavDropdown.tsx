@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
 import { useMenuDesplegable } from "@/shared/hooks/useMenuDesplegable";
+import { clasesDeItemDeMenu, CLASES_PANEL_DE_MENU } from "@/shared/lib/clasesDeItemDeMenu";
 
 export interface NavDropdownItem {
     to: string;
@@ -43,8 +44,11 @@ export function NavDropdown({ label, Icon, items, isActive = false, width = "w-4
                 aria-expanded={open}
                 aria-controls={open ? idMenu : undefined}
                 className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                    isActive || open ? "bg-info-surface text-info" : "text-foreground-muted hover:bg-surface-muted",
+                    "flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-1.5 text-sm font-medium transition-colors",
+                    "focus-visible:border-border focus-visible:outline-none",
+                    isActive || open
+                        ? "border-info-surface bg-info-surface text-info"
+                        : "text-foreground-muted hover:border-border hover:bg-surface-muted",
                 )}
             >
                 <Icon className="h-3.5 w-3.5" />
@@ -55,10 +59,7 @@ export function NavDropdown({ label, Icon, items, isActive = false, width = "w-4
                 <div
                     id={idMenu}
                     aria-label={label}
-                    className={cn(
-                        "absolute left-0 top-full mt-1.5 bg-surface rounded-xl border border-border shadow-lg py-1 z-50",
-                        width,
-                    )}
+                    className={cn("absolute left-0 top-full mt-1.5 z-50", CLASES_PANEL_DE_MENU, width)}
                 >
                     {items.map(({ to, label: itemLabel }) => (
                         <NavLink
@@ -66,9 +67,12 @@ export function NavDropdown({ label, Icon, items, isActive = false, width = "w-4
                             to={to}
                             onClick={cerrar}
                             className={({ isActive: linkActive }) =>
-                                cn(
-                                    "block px-3.5 py-2 text-sm transition-colors",
-                                    linkActive ? "text-info bg-info-surface" : "text-foreground hover:bg-surface-muted",
+                                clasesDeItemDeMenu(
+                                    linkActive
+                                        // La sección en la que ya estás se delimita en su
+                                        // propio color, sin esperar a que la señales.
+                                        ? "border-info-surface bg-info-surface text-info"
+                                        : "text-foreground",
                                 )
                             }
                         >

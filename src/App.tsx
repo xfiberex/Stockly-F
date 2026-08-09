@@ -15,6 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
 import { useMenuDesplegable } from "@/shared/hooks/useMenuDesplegable";
+import { clasesDeItemDeMenu, CLASES_PANEL_DE_MENU } from "@/shared/lib/clasesDeItemDeMenu";
 import { NavDropdown } from "@/shared/components/NavDropdown";
 import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
@@ -44,7 +45,7 @@ const adminLinks = [
     { to: "/settings", label: "Configuración" },
 ];
 
-function UserMenu({ name }: { name: string }) {
+function UserMenu({ name, email }: { name: string; email?: string }) {
     // T2-16: el cierre al pulsar fuera estaba duplicado con `NavDropdown` y ninguno de
     // los dos cerraba con Escape. Los dos usan ahora el mismo hook.
     const { abierto: open, contenedor, disparador, alternar, cerrar } = useMenuDesplegable();
@@ -65,7 +66,16 @@ function UserMenu({ name }: { name: string }) {
                 aria-label="Menú de usuario"
                 aria-haspopup="menu"
                 aria-expanded={open}
-                className="flex min-h-11 items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-muted transition-colors md:min-h-0"
+                // El disparador se delimita igual que los ítems que abre: borde
+                // transparente en reposo, y visible al señalarlo, al enfocarlo con el
+                // teclado y **mientras está abierto**, para que se lea como una sola
+                // pieza con el panel de debajo.
+                className={cn(
+                    "flex min-h-11 items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 transition-colors md:min-h-0",
+                    "hover:border-border hover:bg-surface-muted",
+                    "focus-visible:border-border focus-visible:bg-surface-muted focus-visible:outline-none",
+                    open && "border-border bg-surface-muted",
+                )}
             >
                 <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-surface text-xs font-semibold shrink-0">
                     {initials}
@@ -75,12 +85,21 @@ function UserMenu({ name }: { name: string }) {
             </button>
 
             {open && (
-                <div role="menu" className="absolute right-0 top-full mt-1.5 w-48 bg-surface rounded-xl border border-border shadow-lg py-1 z-50">
+                <div role="menu" className={cn("absolute right-0 top-full mt-1.5 w-56 z-50", CLASES_PANEL_DE_MENU)}>
+                    {/* Cabecera: de quién es la sesión. En el disparador el nombre se
+                        recorta a 144 px y en pantallas pequeñas ni se ve, así que este
+                        es el único sitio donde la cuenta se lee entera. No es un ítem
+                        —no se pulsa—, y por eso queda fuera del `role="menu"`. */}
+                    <div role="none" className="px-3 pt-2 pb-2.5">
+                        <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+                        {email && <p className="truncate text-xs text-foreground-muted">{email}</p>}
+                    </div>
+                    <div className="mb-1 border-t border-border" />
                     <Link
                         to="/profile"
                         role="menuitem"
                         onClick={cerrar}
-                        className="flex min-h-11 items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-surface-muted transition-colors md:min-h-0"
+                        className={clasesDeItemDeMenu("text-foreground")}
                     >
                         <UserCircleIcon className="h-4 w-4 text-foreground-muted" />
                         Mi perfil
@@ -90,7 +109,11 @@ function UserMenu({ name }: { name: string }) {
                         onClick={() => { cerrar(); logout.mutate(); }}
                         role="menuitem"
                         disabled={logout.isPending}
-                        className="w-full flex min-h-11 items-center gap-2.5 px-3.5 py-2.5 text-sm text-danger hover:bg-danger-surface transition-colors disabled:opacity-50 md:min-h-0"
+                        // La acción destructiva delimita en su propio color, no en el
+                        // borde neutro: el recuadro dice «esto es otra cosa».
+                        className={clasesDeItemDeMenu(
+                            "text-danger hover:border-danger hover:bg-danger-surface focus-visible:border-danger focus-visible:bg-danger-surface disabled:opacity-50",
+                        )}
                     >
                         <ArrowRightOnRectangleIcon className="h-4 w-4" />
                         Cerrar sesión
@@ -109,8 +132,11 @@ const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-        "flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-        isActive ? "bg-info-surface text-info" : "text-foreground hover:bg-surface-muted",
+        // Mismo trato que los ítems de los desplegables: la caja se delimita al tocarla.
+        "flex min-h-11 items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium transition-colors",
+        isActive
+            ? "border-info-surface bg-info-surface text-info"
+            : "text-foreground hover:border-border hover:bg-surface-muted",
     );
 
 // Menú desplegable a pantalla completa para móvil. Lista todas las secciones
@@ -243,7 +269,7 @@ function App() {
                     </div>
 
                     <div className="flex items-center gap-1 ml-auto lg:ml-0">
-                        {user && <UserMenu name={user.name} />}
+                        {user && <UserMenu name={user.name} email={user.email} />}
                         {/* Botón hamburguesa — solo móvil/tablet */}
                         <button
                             onClick={toggleMobile}

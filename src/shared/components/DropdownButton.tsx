@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
+import { clasesDeItemDeMenu, CLASES_PANEL_DE_MENU } from "@/shared/lib/clasesDeItemDeMenu";
 
 export interface DropdownItem {
     label: string;
@@ -59,8 +60,10 @@ export function DropdownButton({
                 aria-expanded={open}
                 className={cn(
                     // Misma densidad que `Button` (T2-40): 44 px al pulgar, 36 al ratón.
-                    "inline-flex min-h-11 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed md:min-h-9",
+                    "inline-flex min-h-11 items-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed md:min-h-9",
+                    "hover:border-border focus-visible:border-border focus-visible:outline-none",
                     variants[variant],
+                    open && "border-border",
                 )}
             >
                 {Icon && <Icon className="h-4 w-4" />}
@@ -73,7 +76,7 @@ export function DropdownButton({
             {open && (
                 <div
                     role="menu"
-                    className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-border bg-surface py-1 shadow-lg"
+                    className={cn("absolute right-0 z-20 mt-1 w-44", CLASES_PANEL_DE_MENU)}
                 >
                     {items.map((item) => (
                         <button
@@ -84,7 +87,7 @@ export function DropdownButton({
                                 item.onClick();
                                 setOpen(false);
                             }}
-                            className="flex min-h-11 w-full items-center gap-2 px-4 py-2 text-left text-sm text-foreground hover:bg-surface-muted transition-colors md:min-h-0"
+                            className={clasesDeItemDeMenu("text-foreground")}
                         >
                             {item.icon && <item.icon className="h-4 w-4 text-foreground-muted" />}
                             {item.label}
