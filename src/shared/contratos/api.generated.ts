@@ -8,7 +8,7 @@
 // Editar este archivo directamente no sirve de nada: `frescura.test.ts` compara
 // su contenido con el del backend y falla, y la próxima generación lo pisa.
 //
-// huella: dcb1c9e2215e7d4c
+// huella: cc039f879263e4e4
 
 /**
  * T4-01 — El contrato de la API, en un solo archivo y en un solo sitio.
@@ -106,6 +106,24 @@ export const paginadoSchema = <T extends z.ZodTypeAny>(elemento: T) =>
 /** Todo endpoint responde envuelto así; `data` falta en las respuestas sin cuerpo útil. */
 export const sobreSchema = <T extends z.ZodTypeAny>(datos: T) =>
     z.object({ success: z.boolean(), message: z.string(), data: datos.optional() });
+
+/**
+ * La forma de cualquier respuesta de error. Comprobada contra los dos sitios que las
+ * escriben, que no coinciden del todo:
+ *
+ * - `validate.middleware.ts` responde **422** con `errors`, cuyo campo se llama `field`
+ *   —no `path`— y trae el mensaje del propio validador de Zod.
+ * - `error.middleware.ts` responde el resto con `message` a secas, y en los **500** añade
+ *   `requestId`: en producción el mensaje real se oculta, así que ese identificador es el
+ *   hilo del que tirar para encontrar las líneas de log de esa petición (T2-10). El
+ *   mensaje va además **saneado de rutas del sistema de archivos** (T3-13).
+ */
+export const errorSchema = z.object({
+    success: z.literal(false),
+    message: z.string(),
+    errors: z.array(z.object({ field: z.string(), message: z.string() })).optional(),
+    requestId: z.string().optional(),
+});
 
 // ─────────────────────── Referencias ───────────────────────
 
@@ -410,6 +428,7 @@ export type EntidadAuditoria = z.infer<typeof entidadAuditoriaSchema>;
 
 export type Importe = z.infer<typeof importeSchema>;
 export type MetaPaginacion = z.infer<typeof metaPaginacionSchema>;
+export type RespuestaDeError = z.infer<typeof errorSchema>;
 export type Referencia = z.infer<typeof referenciaSchema>;
 export type EtiquetaRef = z.infer<typeof etiquetaRefSchema>;
 
