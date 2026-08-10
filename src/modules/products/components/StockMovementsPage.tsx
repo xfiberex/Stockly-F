@@ -15,6 +15,7 @@ import { useStockMovements } from "@/modules/products/hooks/useStockMovements";
 import { usePriceHistory } from "@/modules/products/hooks/usePriceHistory";
 import { downloadBlob, blobCsv } from "@/modules/products/utils/importExport";
 import type { StockMovementType } from "@/modules/products/types/product.types";
+import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
 
 function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
@@ -159,17 +160,17 @@ export default function StockMovementsPage() {
                             <h2 className="text-base font-semibold text-foreground mb-6">Evolución del stock</h2>
                             <ResponsiveContainer width="100%" height={260}>
                                 <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
                                     <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                                     <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                                     <Tooltip
-                                        contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 13 }}
+                                        contentStyle={{ ...ESTILO_DE_TOOLTIP, fontSize: 13 }}
                                         formatter={(value) => [`${Number(value)} unidades`, "Stock"]}
                                     />
                                     {(product.minStock ?? 0) > 0 && (
                                         <ReferenceLine
                                             y={product.minStock}
-                                            stroke="#f97316"
+                                            stroke="var(--color-warning)"
                                             strokeDasharray="4 4"
                                             label={{ value: `Mín (${product.minStock})`, position: "right", fontSize: 11 }}
                                         />
@@ -177,9 +178,9 @@ export default function StockMovementsPage() {
                                     <Line
                                         type="stepAfter"
                                         dataKey="stock"
-                                        stroke="#3b82f6"
+                                        stroke="var(--color-chart-1)"
                                         strokeWidth={2}
-                                        dot={{ r: 4, fill: "#3b82f6" }}
+                                        dot={{ r: 4, fill: "var(--color-chart-1)" }}
                                         activeDot={{ r: 6 }}
                                     />
                                 </LineChart>
@@ -293,24 +294,24 @@ export default function StockMovementsPage() {
                                     <AreaChart data={priceChartData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
-                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                                <stop offset="5%" stopColor="var(--color-chart-5)" stopOpacity={0.15} />
+                                                <stop offset="95%" stopColor="var(--color-chart-5)" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                                        <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
                                         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                                         <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
                                         <Tooltip
-                                            contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: 13 }}
+                                            contentStyle={{ ...ESTILO_DE_TOOLTIP, fontSize: 13 }}
                                             formatter={(value) => [formatearImporte(Number(value)), "Precio"]}
                                         />
                                         <Area
                                             type="monotone"
                                             dataKey="precio"
-                                            stroke="#6366f1"
+                                            stroke="var(--color-chart-5)"
                                             strokeWidth={2}
                                             fill="url(#priceGradient)"
-                                            dot={{ r: 4, fill: "#6366f1" }}
+                                            dot={{ r: 4, fill: "var(--color-chart-5)" }}
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>

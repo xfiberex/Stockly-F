@@ -113,8 +113,100 @@
   --shadow-raised: 0 1px 2px rgb(15 23 42 / 0.06);
   --shadow-overlay: 0 8px 24px rgb(15 23 42 / 0.12);
 
+  /*
+   * Paleta de los gráficos (T4-03).
+   *
+   * Estaba escrita como hexadecimales dentro de los tres componentes de Recharts, y
+   * ningún test lo detectaba: `tokens.test.ts` busca utilidades de Tailwind, y aquí
+   * `fill` y `stroke` son props, no clases. Con el modo oscuro eso dejaba de ser una
+   * deuda estética — los gráficos se quedaban en colores de tema claro sobre un fondo
+   * oscuro.
+   *
+   * Son ocho series **categóricas** —para distinguir cosas que no son estados, como las
+   * categorías de una tarta— más la rejilla. Lo que sí es un estado no sale de aquí: las
+   * entradas de stock van en `--color-success`, las salidas en `--color-danger` y la
+   * línea de stock mínimo en `--color-warning`, que es la regla del sistema de diseño —
+   * el color comunica estado, nunca decora—.
+   */
+  --color-chart-1: #3b82f6;
+  --color-chart-2: #10b981;
+  --color-chart-3: #f59e0b;
+  --color-chart-4: #ef4444;
+  --color-chart-5: #8b5cf6;
+  --color-chart-6: #ec4899;
+  --color-chart-7: #06b6d4;
+  --color-chart-8: #84cc16;
+  --color-chart-grid: #f3f4f6;
+
   /* Movimiento */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/*
+ * Modo oscuro (T4-03) — WCAG 1.4.3 en los dos temas.
+ *
+ * Solo se redefine la **capa semántica**: las utilidades que Tailwind genera desde
+ * `@theme` se compilan a `var(--color-…)`, así que cambiar aquí el valor de la variable
+ * cambia la aplicación entera sin tocar ni una pantalla. Es literalmente lo que T2-35 a
+ * T2-37 hicieron posible al retirar las 561 utilidades de color crudas: sin ese trabajo
+ * previo, esto serían veinte páginas con clases `dark:`.
+ *
+ * **No es la paleta clara invertida.** Los colores de estado se aclaran y se desaturan,
+ * porque un rojo #b91c1c sobre fondo oscuro es casi negro; las superficies suben en
+ * escalones cortos (fondo → tarjeta → cabecera) porque en oscuro la jerarquía la da el
+ * escalón de luminancia, no la sombra.
+ *
+ * **La inversión de los rellenos sale gratis por una decisión vieja:** los botones se
+ * pintan `bg-primary text-surface`, nunca `text-white` —que no aparece ni una vez en
+ * `src/`—. Al oscurecer `--color-surface` y aclarar `--color-primary`, el botón primario
+ * pasa solo a claro con texto oscuro, sin tocar el componente.
+ *
+ * Los ratios de abajo están medidos con la fórmula WCAG 2.1 y `theme.test.ts` los
+ * recalcula desde este archivo **para los dos temas**: bajar de mínimos rompe la suite.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Superficies, en escalones cortos y ascendentes */
+    --color-background: #0b1220;
+    --color-surface: #151d2c;         /* 1.11:1 sobre el fondo — la tarjeta se despega */
+    --color-surface-muted: #1e2739;
+    --color-border: #2f3a4d;          /* 1.47:1 sobre la tarjeta (en claro es 1.23) */
+
+    /* Texto */
+    --color-foreground: #e6ecf5;      /* 14.2:1 — AAA */
+    --color-foreground-muted: #9aa8bd;/*  7.0:1 — AAA */
+
+    /*
+     * Acción y acento. `--color-primary` se **aclara** porque es un relleno que lleva
+     * `text-surface` encima: en oscuro, el botón primario es claro con texto oscuro.
+     */
+    --color-primary: #cbd5e1;         /* 11.4:1 como relleno con text-surface */
+    --color-accent: #10b981;          /*  6.7:1 — ver la nota de asimetría más abajo */
+    --color-accent-strong: #34d399;   /*  8.8:1 como relleno con text-surface */
+
+    /* Estados: aclarados y desaturados, no invertidos */
+    --color-success: #34d399;         /*  8.8:1 sobre la tarjeta · 8.0:1 sobre su superficie */
+    --color-warning: #fbbf24;         /* 10.1:1 · 9.3:1 */
+    --color-danger: #f87171;          /*  6.1:1 · 6.0:1 — y 6.1:1 como relleno de botón */
+    --color-info: #60a5fa;            /*  6.6:1 · 6.2:1 */
+
+    /* Superficies de estado: tintes profundos del mismo tono, no grises */
+    --color-success-surface: #0d2a20;
+    --color-warning-surface: #2e2205;
+    --color-danger-surface: #33161a;
+    --color-info-surface: #10233d;
+
+    /* Gráficos: los mismos tonos, aclarados para leerse sobre fondo oscuro */
+    --color-chart-1: #60a5fa;
+    --color-chart-2: #34d399;
+    --color-chart-3: #fbbf24;
+    --color-chart-4: #f87171;
+    --color-chart-5: #a78bfa;
+    --color-chart-6: #f472b6;
+    --color-chart-7: #22d3ee;
+    --color-chart-8: #a3e635;
+    --color-chart-grid: #2f3a4d;
+  }
 }
 
 /*
@@ -126,6 +218,15 @@
 :root {
   --duration-fast: 150ms;
   --duration-base: 200ms;
+
+  /*
+   * T4-03 — le dice al navegador que la página sirve en los dos temas, y con eso los
+   * controles nativos que la aplicación no pinta se adaptan solos: barras de scroll,
+   * el desplegable de un `<select>`, el selector de fecha, el relleno automático de
+   * formularios. Sin esta línea, el modo oscuro deja islas blancas que ninguna hoja de
+   * estilos puede alcanzar.
+   */
+  color-scheme: light dark;
 }
 
 /*
@@ -140,6 +241,52 @@
  * Es una regla de elemento, no una utilidad, así que cualquier `proportional-nums`
  * puntual la gana por especificidad si algún día hace falta.
  */
+/*
+ * El fondo de página se pinta en el `body` (T4-03).
+ *
+ * Hasta ahora solo lo ponía un envoltorio `min-h-screen bg-background`, repetido en nueve
+ * pantallas, y el `body` quedaba transparente: lo que se veía debajo era el lienzo por
+ * defecto del navegador. En tema claro no se notaba —ese lienzo es blanco— pero en oscuro
+ * asoma en cuanto el contenido no llena la ventana, al rebotar el desplazamiento o
+ * mientras carga el primer render. Pintarlo aquí lo resuelve para todas a la vez, y los
+ * envoltorios siguen valiendo para su `min-h-screen`.
+ */
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+/*
+ * Sombras del tema oscuro (T4-03) — y por qué no bastan los tokens.
+ *
+ * **Los `--shadow-*` de `@theme` no se pueden redefinir por media query.** Al compilar,
+ * Tailwind incrusta el color literal en la utilidad en vez de referenciar la variable:
+ *
+ *     .bg-surface     { background-color: var(--color-surface) }   ← flipea solo
+ *     .shadow-overlay { --tw-shadow: 0 8px 24px var(--tw-shadow-color, #0f172a1f) }
+ *
+ * Así que redefinir `--shadow-overlay` bajo `prefers-color-scheme` **no hace nada**, y lo
+ * peor es que no se nota: el token queda escrito, un test que lea el CSS lo da por bueno y
+ * la sombra sigue siendo azul translúcida sobre fondo oscuro. Se descubrió midiendo el
+ * modal en el navegador, que devolvía `rgba(15, 23, 42, 0.12)`.
+ *
+ * Lo que sí funciona es `--tw-shadow-color`, que es el hueco que Tailwind deja para sus
+ * propias utilidades `shadow-<color>`: cambia solo el color y **conserva la composición**
+ * con `ring-*` e `inset`, cosa que sobrescribir `box-shadow` entero rompería.
+ *
+ * Aun así, en oscuro la jerarquía la sigue dando el borde, como dice el sistema de diseño;
+ * la sombra solo separa lo que flota.
+ */
+@media (prefers-color-scheme: dark) {
+  .shadow-raised {
+    --tw-shadow-color: rgb(0 0 0 / 0.5);
+  }
+
+  .shadow-overlay {
+    --tw-shadow-color: rgb(0 0 0 / 0.7);
+  }
+}
+
 table {
   font-variant-numeric: tabular-nums;
 }

@@ -69,10 +69,58 @@ Cada estado tiene un color de texto y una superficie propia para el fondo del ba
 > superficie de badge**, donde de hecho se usa. Por eso es `#b91c1c`. Al añadir un color,
 > medir en el fondo real.
 
+### Modo oscuro
+
+La aplicación sigue la preferencia del sistema (`prefers-color-scheme`). **No hay clases
+`dark:` ni conmutador**: se redefine la capa semántica y ya está, que es exactamente lo que
+hizo posible retirar las 561 utilidades de color crudas.
+
+| Token | Claro | Oscuro | Contraste en oscuro |
+|---|---|---|---|
+| `--color-background` | `#f8fafc` | `#0b1220` | — |
+| `--color-surface` | `#ffffff` | `#151d2c` | 1.11:1 sobre el fondo |
+| `--color-surface-muted` | `#f2f3f4` | `#1e2739` | — |
+| `--color-border` | `#e6e8ea` | `#2f3a4d` | 1.47:1 *(en claro, 1.23)* |
+| `--color-foreground` | `#0f172a` | `#e6ecf5` | **14.2:1** — AAA |
+| `--color-foreground-muted` | `#64748b` | `#9aa8bd` | **7.0:1** — AAA |
+| `--color-primary` | `#334155` | `#cbd5e1` | 11.4:1 como relleno |
+| `--color-accent` | `#059669` | `#10b981` | 6.7:1 |
+| `--color-success` | `#047857` | `#34d399` | 8.8:1 |
+| `--color-warning` | `#b45309` | `#fbbf24` | 10.1:1 |
+| `--color-danger` | `#b91c1c` | `#f87171` | 6.1:1 |
+| `--color-info` | `#1d4ed8` | `#60a5fa` | 6.6:1 |
+
+Cuatro cosas que conviene entender antes de tocarlo:
+
+- **No es la paleta clara invertida.** Los estados se **aclaran y desaturan**: invertir
+  daría un rojo casi negro sobre fondo oscuro. Las superficies suben en escalones cortos
+  —fondo → tarjeta → cabecera— porque en oscuro la jerarquía la da el escalón de
+  luminancia, no la sombra.
+- **`--color-primary` se aclara**, y por eso el botón primario pasa a claro con texto
+  oscuro. Sale gratis porque los rellenos se pintan `bg-primary text-surface`, nunca
+  `text-white` —que no aparece ni una vez en `src/`—: al invertir los dos tokens, el par se
+  invierte solo.
+- **El acento cambia de papel entre temas.** En claro, `--color-accent` no llega a 4.5:1 y
+  por eso existe `--color-accent-strong` para los rellenos con texto. En oscuro el mismo
+  verde da 6.7:1 y esa tensión desaparece. El test afirma cada cosa donde es cierta en vez
+  de forzar la paleta oscura a cumplir una restricción que allí no aplica.
+- **Los colores de etiqueta no cambian.** Los elige el usuario y se guardan en la base:
+  son datos, no tema. Su legibilidad la resuelve `textoLegibleSobre()`, que calcula el
+  contraste contra el color real de la etiqueta.
+
+> **Las sombras no se pueden redefinir por token.** Tailwind incrusta el color literal en
+> la utilidad (`--tw-shadow: 0 8px 24px var(--tw-shadow-color, #0f172a1f)`) en vez de
+> referenciar `var(--shadow-overlay)`, al revés que los colores. Redefinir el token bajo la
+> media query **no hace nada, y no se nota**. Lo que funciona es sobrescribir
+> `--tw-shadow-color` en `.shadow-raised` / `.shadow-overlay`, que además conserva la
+> composición con `ring-*`.
+
 **Lo vigila:** [`src/tests/theme.test.ts`](../src/tests/theme.test.ts) recalcula todos los
-ratios desde `index.css` con la fórmula WCAG 2.1, así que bajar de mínimos rompe la suite.
-[`src/tests/tokens.test.ts`](../src/tests/tokens.test.ts) recorre `src/` y falla si aparece
-una utilidad cruda de la paleta de Tailwind (`bg-slate-100`, `text-red-500`…).
+ratios desde `index.css` con la fórmula WCAG 2.1 **para los dos temas**, comprueba que el
+bloque oscuro no se deje ningún token de color y que las sombras se oscurezcan por el
+mecanismo que sí funciona. [`src/tests/tokens.test.ts`](../src/tests/tokens.test.ts) recorre
+`src/` y falla si aparece una utilidad cruda de la paleta de Tailwind (`bg-slate-100`,
+`text-red-500`…) o un hexadecimal en los tres componentes de gráficos.
 
 ---
 
@@ -208,7 +256,34 @@ sobre el DOM renderizado, y las comprobaciones de nombre accesible de
 
 ---
 
-## 7. Movimiento
+## 7. Gráficos
+
+Recharts recibe los colores **por props** (`fill`, `stroke`, `contentStyle`), no por
+clases, así que las utilidades no llegan. Salen de
+[`src/shared/lib/grafico.ts`](../src/shared/lib/grafico.ts) como `var(--color-…)`, que
+funciona igual en un atributo de presentación de SVG **y responde al cambio de tema sin
+volver a renderizar** — comprobado en el navegador: la misma marca da `rgb(59, 130, 246)`
+en claro y `rgb(96, 165, 250)` en oscuro.
+
+| Qué | De dónde |
+|---|---|
+| Series **categóricas** (porciones de una tarta por categoría) | `COLORES_DE_SERIE`, ocho tokens `--color-chart-1…8` |
+| Rejilla de los ejes | `COLOR_DE_REJILLA` |
+| Tooltip | `ESTILO_DE_TOOLTIP` |
+| Cualquier cosa que sea un **estado** | su token de estado, no la paleta categórica |
+
+Esa última fila es la regla de arriba aplicada a los gráficos: las entradas de stock van en
+`--color-success`, las salidas en `--color-danger`, los ajustes en `--color-info` y la línea
+de stock mínimo en `--color-warning`. El color categórico es solo para distinguir cosas que
+no significan nada por sí mismas.
+
+**Lo vigila:** [`src/tests/tokens.test.ts`](../src/tests/tokens.test.ts) falla si aparece un
+hexadecimal en los tres componentes de gráficos. Hacía falta un test aparte: el que busca
+utilidades crudas nunca los vio, porque `fill` no es una clase.
+
+---
+
+## 8. Movimiento
 
 `--ease-standard: cubic-bezier(0.2, 0, 0, 1)`, y dos duraciones fuera de `@theme` porque
 Tailwind 4 no genera utilidades para ellas: `--duration-fast` (150ms) y `--duration-base`

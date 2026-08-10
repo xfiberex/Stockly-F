@@ -151,7 +151,7 @@ export default function TagsPage() {
                         <div key={tag.id} className="bg-surface rounded-xl border border-border px-4 py-3 flex items-center gap-3">
                             <div
                                 className="h-4 w-4 rounded-full shrink-0"
-                                style={{ backgroundColor: tag.color ?? "#94a3b8" }}
+                                style={{ backgroundColor: tag.color ?? "var(--color-foreground-muted)" }}
                             />
                             <span className="text-sm font-medium text-foreground flex-1 truncate">{tag.name}</span>
                             <div className="flex gap-1 shrink-0">

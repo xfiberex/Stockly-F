@@ -17,14 +17,28 @@ const PREFIJOS = ["bg", "text", "border", "ring", "divide", "from", "to", "via",
 
 const CRUDA = new RegExp(`\\b(?:${PREFIJOS})-(?:${FAMILIAS})-\\d{2,3}\\b`, "g");
 
-/**
- * Excepciones documentadas. Los gráficos de Recharts reciben colores como props
- * (`fill`, `stroke`), no como clases, así que no pueden usar utilidades; sus
- * paletas viven como hex en el propio componente. No son utilidades crudas y por
- * tanto no las detecta esta expresión — se listan aquí para dejar constancia de
- * que se revisaron.
- */
 const EXCEPCIONES: string[] = [];
+
+/**
+ * T4-03 — el agujero que esta guardia no veía.
+ *
+ * Recharts recibe los colores por props (`fill`, `stroke`, `contentStyle`), no por clases,
+ * así que la expresión de arriba —que busca utilidades de Tailwind— nunca los detectó: eran
+ * unos cuarenta hexadecimales sueltos en tres componentes, y con el modo oscuro se habrían
+ * quedado en tonos de tema claro sobre un fondo oscuro. Ahora salen de `var(--color-…)`,
+ * y esto vigila que no vuelvan.
+ *
+ * Los colores de **etiqueta** quedan fuera a propósito: los elige el usuario y se guardan
+ * en la base de datos, así que son datos, no tema. Su legibilidad la resuelve
+ * `textoLegibleSobre()`, que calcula el contraste contra el color real.
+ */
+const ARCHIVOS_DE_GRAFICO = [
+    "src/modules/dashboard/components/DashboardPage.tsx",
+    "src/modules/reports/components/ReportsPage.tsx",
+    "src/modules/products/components/StockMovementsPage.tsx",
+];
+
+const HEX = /#[0-9a-fA-F]{6}\b/g;
 
 function* archivos(dir: string): Generator<string> {
     for (const entrada of readdirSync(dir)) {
@@ -46,6 +60,17 @@ describe("Utilidades de color crudas (T2-37)", () => {
             if (encontradas) {
                 infracciones.push(`${relativo}: ${[...new Set(encontradas)].join(", ")}`);
             }
+        }
+
+        expect(infracciones).toEqual([]);
+    });
+
+    it("los gráficos no llevan colores literales, que las clases no alcanzan (T4-03)", () => {
+        const infracciones: string[] = [];
+
+        for (const relativo of ARCHIVOS_DE_GRAFICO) {
+            const encontrados = readFileSync(path.join(process.cwd(), relativo), "utf8").match(HEX);
+            if (encontrados) infracciones.push(`${relativo}: ${[...new Set(encontrados)].join(", ")}`);
         }
 
         expect(infracciones).toEqual([]);

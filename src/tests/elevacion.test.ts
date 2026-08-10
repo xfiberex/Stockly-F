@@ -27,8 +27,11 @@ const SRC = path.join(process.cwd(), "src");
 const RADIOS_PERMITIDOS = ["xl", "lg", "full"];
 const ELEVACIONES_PERMITIDAS = ["raised", "overlay"];
 
-const RADIO = new RegExp(`\\b${"rounded"}-([a-z0-9]+)\\b`, "g");
-const ELEVACION = new RegExp(`\\b${"shadow"}-([a-z0-9-]+)\\b`, "g");
+// La mirada atrás `(?<!-)` distingue una **utilidad** de un fragmento de otro nombre: sin
+// ella, `\b` casa dentro de `--tw-shadow-color` —el guion cuenta como límite de palabra— y
+// el test acusaba a la propiedad CSS que T4-03 usa para oscurecer las sombras.
+const RADIO = new RegExp(`(?<!-)\\b${"rounded"}-([a-z0-9]+)\\b`, "g");
+const ELEVACION = new RegExp(`(?<!-)\\b${"shadow"}-([a-z0-9-]+)\\b`, "g");
 
 function* archivos(dir: string): Generator<string> {
     for (const entrada of readdirSync(dir)) {

@@ -11,6 +11,7 @@ import { NIVEL_STOCK, nivelDeStock } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
 import { useReports } from "@/modules/reports/hooks/useReports";
 import { downloadReportPdf } from "@/modules/reports/api/reports.api";
+import { COLORES_DE_SERIE, COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
 import {
     CubeIcon,
     CurrencyDollarIcon,
@@ -18,8 +19,6 @@ import {
     CheckCircleIcon,
     ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
-
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
 
 export default function ReportsPage() {
     const { data, isLoading } = useReports();
@@ -95,14 +94,14 @@ export default function ReportsPage() {
                     <h2 className="text-base font-semibold text-foreground mb-6">Valor por categoría</h2>
                     <ResponsiveContainer width="100%" height={260}>
                         <BarChart data={stockByCategory} layout="vertical" margin={{ left: 60, right: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} horizontal={false} />
                             <XAxis type="number" tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                             <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={55} />
                             <Tooltip
                                 formatter={(v) => [formatearImporte(Number(v)), "Valor"]}
-                                contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                                contentStyle={ESTILO_DE_TOOLTIP}
                             />
-                            <Bar dataKey="value" fill="#6366f1" radius={[0, 4, 4, 0]} name="Valor" />
+                            <Bar dataKey="value" fill="var(--color-chart-5)" radius={[0, 4, 4, 0]} name="Valor" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -122,11 +121,11 @@ export default function ReportsPage() {
                                 labelLine={false}
                             >
                                 {stockByCategory.map((_, i) => (
-                                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                                    <Cell key={i} fill={COLORES_DE_SERIE[i % COLORES_DE_SERIE.length]} />
                                 ))}
                             </Pie>
                             <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
-                            <Tooltip formatter={(v) => [Number(v), "Unidades"]} contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }} />
+                            <Tooltip formatter={(v) => [Number(v), "Unidades"]} contentStyle={ESTILO_DE_TOOLTIP} />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
@@ -138,14 +137,14 @@ export default function ReportsPage() {
                     <h2 className="text-base font-semibold text-foreground mb-6">Movimientos por mes (últimos 6 meses)</h2>
                     <ResponsiveContainer width="100%" height={260}>
                         <BarChart data={movementsChartData} margin={{ left: -20 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                            <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
                             <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                             <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                            <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }} />
+                            <Tooltip contentStyle={ESTILO_DE_TOOLTIP} />
                             <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
-                            <Bar dataKey="entradas" fill="#10b981" radius={[4, 4, 0, 0]} name="Entradas" />
-                            <Bar dataKey="salidas" fill="#ef4444" radius={[4, 4, 0, 0]} name="Salidas" />
-                            <Bar dataKey="ajustes" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Ajustes" />
+                            <Bar dataKey="entradas" fill="var(--color-success)" radius={[4, 4, 0, 0]} name="Entradas" />
+                            <Bar dataKey="salidas" fill="var(--color-danger)" radius={[4, 4, 0, 0]} name="Salidas" />
+                            <Bar dataKey="ajustes" fill="var(--color-info)" radius={[4, 4, 0, 0]} name="Ajustes" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

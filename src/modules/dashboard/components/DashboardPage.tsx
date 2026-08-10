@@ -3,6 +3,7 @@ import { useReports } from "@/modules/reports/hooks/useReports";
 import { Spinner } from "@/shared/components/Spinner";
 import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
 import {
     CubeIcon,
     CheckCircleIcon,
@@ -97,20 +98,20 @@ export default function DashboardPage() {
                 <h2 className="text-base font-semibold text-foreground mb-6">Stock y valor por categoría</h2>
                 <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={stockByCategory} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
                         <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                         <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
                         <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                         <Tooltip
-                            contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                            contentStyle={ESTILO_DE_TOOLTIP}
                             formatter={(value, name) =>
                                 name === "Valor"
                                     ? [formatearImporte(Number(value)), "Valor"]
                                     : [Number(value), "Stock"]
                             }
                         />
-                        <Bar yAxisId="left" dataKey="stock" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Stock" />
-                        <Bar yAxisId="right" dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} name="Valor" />
+                        <Bar yAxisId="left" dataKey="stock" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} name="Stock" />
+                        <Bar yAxisId="right" dataKey="value" fill="var(--color-chart-2)" radius={[4, 4, 0, 0]} name="Valor" />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
