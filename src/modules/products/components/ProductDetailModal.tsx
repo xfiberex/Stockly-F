@@ -31,7 +31,10 @@ function Field({ icon: Icon, label, children }: {
 }) {
     return (
         <div className="flex items-start gap-3">
-            <div className="mt-0.5 rounded-md bg-surface-muted p-1.5 shrink-0">
+            {/* T3-14: este radio era el único del tamaño intermedio en todo el proyecto,
+                un valor sin sitio en la convención de T2-35. Es un contenedor de control
+                —no una superficie—, así que pasa al radio de los botones y campos. */}
+            <div className="mt-0.5 rounded-lg bg-surface-muted p-1.5 shrink-0">
                 <Icon className="h-3.5 w-3.5 text-foreground-muted" />
             </div>
             <div className="flex flex-col gap-0.5 min-w-0">

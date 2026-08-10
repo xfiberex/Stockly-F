@@ -15,7 +15,7 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center px-4">
-            <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-sm p-8 space-y-6">
+            <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-raised p-8 space-y-6">
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-2 mb-4">
                         <div className="rounded-xl bg-primary p-2">

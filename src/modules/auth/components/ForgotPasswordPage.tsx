@@ -14,7 +14,7 @@ export default function ForgotPasswordPage() {
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center px-4">
-            <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-sm p-8 space-y-6">
+            <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-raised p-8 space-y-6">
                 <div className="text-center">
                     <h1 className="text-xl font-bold text-foreground">Recuperar contraseña</h1>
                     <p className="text-sm text-foreground-muted mt-1">

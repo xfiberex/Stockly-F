@@ -74,7 +74,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
                 // ventana desborda el panel y sus botones quedan fuera de pantalla,
                 // inalcanzables (el body está bloqueado mientras el modal está abierto).
                 className={cn(
-                    "relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-surface shadow-xl outline-none",
+                    "relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-surface shadow-overlay outline-none",
                     className,
                 )}
             >

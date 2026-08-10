@@ -311,4 +311,68 @@ describe("ProductTable — selección de filas (T2-15)", () => {
 
         expect(screen.queryByRole("checkbox")).toBeNull();
     });
+
+    // T3-08 — sobre la tabla real, que es la que más iconos junta: los de acción de cada
+    // fila y el del semáforo de stock. La comprobación va sobre el DOM renderizado y no
+    // sobre el JSX, porque el `aria-hidden` lo pone Heroicons y no se ve leyendo el código.
+    describe("Iconos y nombres accesibles (T3-08)", () => {
+        it("ningún icono de la tabla se anuncia", () => {
+            const { container } = renderWithProviders(
+                <ProductTable products={[makeProduct()]} isLoading={false} onEdit={vi.fn()} />,
+            );
+
+            const iconos = Array.from(container.querySelectorAll("svg"));
+            expect(iconos.length).toBeGreaterThan(0);
+            for (const icono of iconos) expect(icono).toHaveAttribute("aria-hidden", "true");
+        });
+
+        it("cada acción de solo icono dice sobre qué producto actúa", () => {
+            // Los botones **ya tenían nombre accesible**: `title` es el último recurso que
+            // contempla la especificación de accname, y la implementación de Testing
+            // Library lo usa. Comprobado antes de tocar nada, para no arreglar un
+            // problema inexistente.
+            //
+            // Lo que fallaba es otra cosa: el nombre era el mismo en todas las filas. En
+            // una tabla de cincuenta productos, cincuenta botones llamados «Editar» no
+            // permiten saber cuál se está editando, y `title` además no se muestra en
+            // pantallas táctiles. El enlace de historial ya llevaba el producto en su
+            // `aria-label` desde T2-14; ahora los botones también.
+            renderWithProviders(
+                <ProductTable products={[makeProduct()]} isLoading={false} onEdit={vi.fn()} />,
+            );
+
+            expect(screen.getByRole("button", { name: "Ver detalles de Monitor LG" })).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Editar Monitor LG" })).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Eliminar Monitor LG" })).toBeInTheDocument();
+        });
+
+        it("dos filas no comparten el nombre de sus acciones", () => {
+            renderWithProviders(
+                <ProductTable
+                    products={[makeProduct(), makeProduct({ id: "prod-2", name: "Teclado Logitech" })]}
+                    isLoading={false}
+                    onEdit={vi.fn()}
+                />,
+            );
+
+            const nombres = screen
+                .getAllByRole("button")
+                .map((b) => b.getAttribute("aria-label"))
+                .filter((n): n is string => n !== null);
+
+            expect(new Set(nombres).size).toBe(nombres.length);
+        });
+
+        it("la acción de restaurar de un producto inactivo también lo nombra", () => {
+            renderWithProviders(
+                <ProductTable
+                    products={[makeProduct({ isActive: false })]}
+                    isLoading={false}
+                    onEdit={vi.fn()}
+                />,
+            );
+
+            expect(screen.getByRole("button", { name: "Restaurar Monitor LG" })).toBeInTheDocument();
+        });
+    });
 });

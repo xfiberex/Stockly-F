@@ -228,10 +228,18 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                 </td>
                                 <td className="px-4 py-3 lg:py-1.5">
                                     <div className="flex justify-end gap-1">
+                                        {/* T3-08: el `title` ya daba nombre accesible —es el
+                                            último recurso que contempla la especificación—, pero
+                                            el mismo para todas las filas: cincuenta botones
+                                            llamados «Editar» no dicen cuál se está editando. El
+                                            `aria-label` añade el producto, como ya hacía el enlace
+                                            de al lado desde T2-14, y deja de depender de un
+                                            atributo que en táctil no se muestra nunca. */}
                                         <Button
                                             variant="ghost"
                                             type="button"
                                             title="Ver detalles"
+                                            aria-label={`Ver detalles de ${product.name}`}
                                             onClick={() => setDetailProduct(product)}
                                         >
                                             <EyeIcon className="h-4 w-4 text-foreground-muted" />
@@ -251,7 +259,12 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                         </Link>
                                         {isAdmin && product.isActive && (
                                             <>
-                                                <Button variant="ghost" onClick={() => onEdit(product)} title="Editar">
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={() => onEdit(product)}
+                                                    title="Editar"
+                                                    aria-label={`Editar ${product.name}`}
+                                                >
                                                     <PencilIcon className="h-4 w-4" />
                                                 </Button>
                                                 <Button
@@ -259,6 +272,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                                     isLoading={deleteMutation.isPending}
                                                     onClick={() => deleteMutation.mutate(product.id)}
                                                     title="Eliminar"
+                                                    aria-label={`Eliminar ${product.name}`}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>
@@ -270,6 +284,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                                 isLoading={restoreMutation.isPending}
                                                 onClick={() => restoreMutation.mutate(product.id)}
                                                 title="Restaurar"
+                                                aria-label={`Restaurar ${product.name}`}
                                             >
                                                 <ArrowPathIcon className="h-4 w-4 text-success" />
                                             </Button>

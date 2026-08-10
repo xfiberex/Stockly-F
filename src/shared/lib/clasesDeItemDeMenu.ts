@@ -34,4 +34,4 @@ export function clasesDeItemDeMenu(className?: string) {
  * no tenían borde no se notaba; en cuanto se delimitan, hace falta el aire.
  */
 export const CLASES_PANEL_DE_MENU =
-    "flex flex-col gap-1 rounded-xl border border-border bg-surface p-1 shadow-lg";
+    "flex flex-col gap-1 rounded-xl border border-border bg-surface p-1 shadow-overlay";

@@ -2,17 +2,47 @@ import type { ExportedProduct, ImportProductDto } from "../types/product.types";
 
 // ── Export ────────────────────────────────────────────────────────────────────
 
+/**
+ * T3-05 — las mismas columnas y en el mismo orden que `GET /products/export?format=csv`.
+ *
+ * Hay dos productores de CSV de productos y ninguno sabe del otro: este, que arma el
+ * archivo en el navegador a partir del JSON, y el del backend, que lo transmite por
+ * lotes (`shared/lib/exportacion.ts`). Antes daban archivos distintos —aquí faltaban
+ * `sku`, `minStock` y `tags`—, así que exportar por la interfaz y exportar por la API
+ * producía dos ficheros que no se podían comparar ni sustituir uno por otro.
+ *
+ * Los campos ya venían en la respuesta: `filaDeExportacion` los envía y este lado los
+ * tiraba porque `ExportedProduct` no los declaraba.
+ *
+ * **La lista está duplicada a propósito**, porque los dos repositorios no comparten
+ * paquete. Lo que impide que se separen sin que nadie se entere no es este comentario:
+ * es que la misma cadena de cabecera está fijada en un test a cada lado
+ * (`export-streaming.test.ts` en el backend, `importExport.test.ts` aquí). Cambiar una
+ * sola de las dos pone en rojo ese repositorio.
+ *
+ * De estas once columnas, la reimportación solo entiende siete: `sku`, `minStock`,
+ * `supplierName` y `tags` se exportan pero el importador los ignora (`parseCsv` y el
+ * `importProductsSchema` del backend). Es una exportación más completa que el formato de
+ * entrada, no un viaje de ida y vuelta.
+ */
 const EXPORT_HEADERS: (keyof ExportedProduct)[] = [
     "name",
     "description",
+    "sku",
     "price",
     "stock",
+    "minStock",
+    "isActive",
     "categoryName",
     "brandName",
     "supplierName",
-    "isActive",
+    "tags",
 ];
 
+// Duplicado literalmente de `Stockly-B/src/shared/lib/csv.ts:escapeCsvCell`, comentario
+// incluido. Sin paquete compartido entre los dos repositorios, la alternativa era que
+// cada lado escapara a su manera; lo que sí está garantizado es que producen lo mismo,
+// porque los tests de ambos fijan la misma salida.
 function escapeCsvField(value: string | number | boolean | null | undefined): string {
     const str = value === null || value === undefined ? "" : String(value);
     // Previene inyección de fórmulas (CSV injection): una celda que empieza con

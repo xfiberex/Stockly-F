@@ -55,7 +55,7 @@ export default function DashboardPage() {
                     <Link
                         key={label}
                         to={to}
-                        className={`bg-surface rounded-xl border p-3 sm:p-5 flex items-center gap-3 sm:gap-4 hover:shadow-sm transition-shadow ${
+                        className={`bg-surface rounded-xl border p-3 sm:p-5 flex items-center gap-3 sm:gap-4 hover:shadow-raised transition-shadow ${
                             highlight
                                 ? "border-warning bg-warning-surface/30"
                                 : "border-border"

@@ -228,7 +228,9 @@ export default function ProductsPage() {
                             const product = allProducts.find((p) => p.id === id);
                             if (product) setMovementProduct(product);
                         }}
-                        className="shadow-lg"
+                        // T3-14: flota por encima del contenido, así que le toca la
+                        // elevación de superposición, la misma que modales y desplegables.
+                        className="shadow-overlay"
                     >
                         <BoltIcon className="h-4 w-4" />
                         Movimiento manual

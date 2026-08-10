@@ -1,17 +1,40 @@
 import { toCsv, parseCsv, downloadBlob, blobCsv } from "@/modules/products/utils/importExport";
 import type { ExportedProduct } from "@/modules/products/types/product.types";
 
+/**
+ * T3-05 — la cabecera canónica, palabra por palabra.
+ *
+ * Esta misma cadena está fijada en `Stockly-B/src/tests/export-streaming.test.ts`. Es lo
+ * único que impide que los dos productores de CSV —este, en el navegador, y el del
+ * backend, que transmite por lotes— se vuelvan a separar: no comparten paquete, así que
+ * el acuerdo se sostiene sobre que cambiar un lado ponga en rojo su propio repositorio.
+ */
+const CABECERA_CANONICA =
+    "name,description,sku,price,stock,minStock,isActive,categoryName,brandName,supplierName,tags";
+
+// `price` como cadena y `tags` unidos por `;`: es lo que devuelve el backend de verdad,
+// comprobado sobre la respuesta real (`price` es `Decimal` en Prisma y se serializa así).
 const PRODUCTS: ExportedProduct[] = [
-    { name: "Laptop Pro 15", description: "High performance", price: 1299.99, stock: 15, categoryName: "Electrónica", brandName: "LG", supplierName: null, isActive: true },
-    { name: "Mouse Gamer", description: null, price: 45.00, stock: 50, categoryName: "Periféricos", brandName: null, supplierName: null, isActive: false },
-    { name: 'Monitor 27"', description: 'Pantalla, HD', price: 299.99, stock: 8, categoryName: "Electrónica", brandName: null, supplierName: "TechDist", isActive: true },
+    { name: "Laptop Pro 15", description: "High performance", sku: "LAP-15", price: "1299.99", stock: 15, minStock: 3, isActive: true, categoryName: "Electrónica", brandName: "LG", supplierName: null, tags: "Oferta;Novedad" },
+    { name: "Mouse Gamer", description: null, sku: null, price: "45", stock: 50, minStock: 10, isActive: false, categoryName: "Periféricos", brandName: null, supplierName: null, tags: "" },
+    { name: 'Monitor 27"', description: 'Pantalla, HD', sku: null, price: "299.99", stock: 8, minStock: 2, isActive: true, categoryName: "Electrónica", brandName: null, supplierName: "TechDist", tags: "" },
 ];
 
 describe("toCsv", () => {
-    it("genera encabezados correctos", () => {
+    it("genera la misma cabecera que la exportación del backend", () => {
         const csv = toCsv(PRODUCTS);
         const firstLine = csv.split("\n")[0];
-        expect(firstLine).toBe("name,description,price,stock,categoryName,brandName,supplierName,isActive");
+        expect(firstLine).toBe(CABECERA_CANONICA);
+    });
+
+    it("incluye las tres columnas que antes se descartaban", () => {
+        // `sku`, `minStock` y `tags` ya venían en la respuesta del backend; este lado los
+        // tiraba porque `ExportedProduct` no los declaraba. El archivo de la interfaz
+        // salía con ocho columnas y el de la API con once.
+        const filaLaptop = toCsv(PRODUCTS).split("\n")[1];
+        expect(filaLaptop).toContain("LAP-15");
+        expect(filaLaptop).toContain("Oferta;Novedad");
+        expect(toCsv(PRODUCTS).split("\n")[0].split(",")).toHaveLength(11);
     });
 
     it("genera una fila por producto", () => {
@@ -38,7 +61,7 @@ describe("toCsv", () => {
 
     it("neutraliza inyección de fórmulas anteponiendo un apóstrofo", () => {
         const malicious: ExportedProduct[] = [
-            { name: "=HYPERLINK(0)", description: "+cmd", price: 10, stock: 1, categoryName: "@x", brandName: "-2", supplierName: null, isActive: true },
+            { name: "=HYPERLINK(0)", description: "+cmd", sku: null, price: 10, stock: 1, minStock: 0, isActive: true, categoryName: "@x", brandName: "-2", supplierName: null, tags: "" },
         ];
         const row = toCsv(malicious).split("\n")[1];
         expect(row).toContain("'=HYPERLINK(0)");
@@ -97,8 +120,25 @@ describe("parseCsv", () => {
         const parsed = parseCsv(csv);
         expect(parsed).toHaveLength(PRODUCTS.length);
         expect(parsed[0].name).toBe(PRODUCTS[0].name);
-        expect(parsed[0].price).toBe(PRODUCTS[0].price);
+        // El precio viaja como cadena (`Decimal` en Prisma) y vuelve como número: el
+        // valor sobrevive, el tipo no. Comparar con `Number(...)` lo deja explícito en
+        // vez de esconderlo detrás de una igualdad laxa.
+        expect(parsed[0].price).toBe(Number(PRODUCTS[0].price));
         expect(parsed[0].categoryName).toBe(PRODUCTS[0].categoryName);
+    });
+
+    it("T3-05: las columnas nuevas se ignoran al reimportar, no se malinterpretan", () => {
+        // `parseCsv` lee por nombre de columna, así que las cuatro que el importador no
+        // entiende —`sku`, `minStock`, `supplierName` y `tags`— sobran sin descolocar el
+        // resto. La exportación es más rica que el formato de entrada, y así se queda:
+        // ampliar el importador es otra tarea, no un efecto colateral de esta.
+        const parsed = parseCsv(toCsv(PRODUCTS));
+
+        expect(parsed[0]).not.toHaveProperty("sku");
+        expect(parsed[0]).not.toHaveProperty("tags");
+        expect(parsed[0].stock).toBe(15);
+        expect(parsed[0].brandName).toBe("LG");
+        expect(parsed[0].isActive).toBe(true);
     });
 });
 
@@ -157,12 +197,15 @@ describe("blobCsv (T2-34)", () => {
             {
                 name: "Cámara réflex",
                 description: "con acentuación",
+                sku: null,
                 price: 100,
                 stock: 5,
+                minStock: 1,
+                isActive: true,
                 categoryName: "Electrónica",
                 brandName: null,
                 supplierName: null,
-                isActive: true,
+                tags: "",
             },
         ]);
 

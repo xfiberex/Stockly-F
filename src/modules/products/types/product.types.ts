@@ -88,15 +88,26 @@ export interface ImportProductDto {
     isActive?: boolean | string;
 }
 
+/**
+ * T3-05 — la forma exacta de `filaDeExportacion` en `Stockly-B/src/modules/products/
+ * product.service.ts`, que es lo que devuelve `GET /products/export`.
+ *
+ * `sku`, `minStock` y `tags` faltaban aquí: el backend ya los enviaba y este lado los
+ * declaraba fuera, así que se descartaban al construir el CSV. `price` llega como cadena
+ * porque es `Decimal` en Prisma, y `tags` como los nombres unidos por `;`.
+ */
 export interface ExportedProduct {
     name: string;
     description: string | null;
-    price: number;
+    sku: string | null;
+    price: number | string;
     stock: number;
+    minStock: number;
+    isActive: boolean;
     categoryName: string | null;
     brandName: string | null;
     supplierName: string | null;
-    isActive: boolean;
+    tags: string;
 }
 
 export interface ImportResult {
