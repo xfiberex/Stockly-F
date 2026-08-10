@@ -45,8 +45,10 @@ describe("Descriptores de estado (T2-38)", () => {
         const trazos = estados.map(trazo);
         expect(new Set(trazos).size).toBe(estados.length);
 
-        const etiquetas = estados.map((e) => e.label);
-        expect(new Set(etiquetas).size).toBe(estados.length);
+        // Las **claves** deben ser distintas, no los textos: dos estados con la misma clave
+        // dirían lo mismo en los dos idiomas (T4-04).
+        const claves = estados.map((e) => e.clave);
+        expect(new Set(claves).size).toBe(estados.length);
     });
 
     it.each(CONJUNTOS)("ningún estado de %s se queda sin icono", (_nombre, conjunto) => {
@@ -77,7 +79,7 @@ describe("Descriptores de estado (T2-38)", () => {
     // mismo dibujo.
     it("el nivel de stock y la actividad no se pisan en la tabla de productos", () => {
         const trazos = [...Object.values(NIVEL_STOCK), ...Object.values(ACTIVIDAD)]
-            .filter((e) => e.label !== "Correcto") // «correcto» no se pinta: no es una incidencia
+            .filter((e) => e.clave !== "estado.stock.correcto") // «correcto» no se pinta: no es una incidencia
             .map(trazo);
         expect(new Set(trazos).size).toBe(trazos.length);
     });
@@ -104,12 +106,18 @@ describe("nivelDeStock", () => {
 
 describe("buscarEstado", () => {
     it("devuelve el descriptor cuando el estado se conoce", () => {
-        expect(buscarEstado(ESTADO_ORDEN_COMPRA, "RECEIVED").label).toBe("Recibida");
+        expect(buscarEstado(ESTADO_ORDEN_COMPRA, "RECEIVED").clave).toBe("estado.compra.RECEIVED");
     });
 
     it("un estado desconocido no hereda el color de otro: sale en neutro y con su código", () => {
         const estado = buscarEstado(ESTADO_ORDEN_COMPRA, "PARTIALLY_RECEIVED");
-        expect(estado.label).toBe("PARTIALLY_RECEIVED");
+        // El código viaja como clave y `traducir()` devuelve la clave cuando no la conoce,
+        // así que en pantalla sigue saliendo el código en crudo.
+        expect(estado.clave).toBe("PARTIALLY_RECEIVED");
+
+        // Y se comprueba de verdad que eso es lo que se ve, no solo lo que se guarda.
+        render(<EstadoBadge estado={estado} />);
+        expect(screen.getByText("PARTIALLY_RECEIVED")).toBeInTheDocument();
         expect(estado.variant).toBe("neutral");
         expect(estado.Icon).toBeTruthy();
     });

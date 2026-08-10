@@ -57,13 +57,16 @@ describe("Títulos de ruta (T2-18)", () => {
         expect(huerfanos, `Títulos sin ruta:\n${huerfanos.join("\n")}`).toEqual([]);
     });
 
+    // Desde T4-04 lo que devuelve es la **clave** del catálogo; el texto lo pone
+    // `AnuncioDeRuta` al pintar. Que la clave lleve a un texto de verdad lo comprueba
+    // `i18n.test.ts`, que exige que las dos listas del catálogo coincidan.
     it("resuelve una ruta con parámetro", () => {
-        expect(tituloDeRuta("/catalog/products/9f5e/movements")).toBe("Movimientos de stock");
+        expect(tituloDeRuta("/catalog/products/9f5e/movements")).toBe("ruta.movimientos");
     });
 
     it("la comparación es exacta: `/catalog` no se come a sus hijas", () => {
-        expect(tituloDeRuta("/catalog")).toBe("Catálogo");
-        expect(tituloDeRuta("/catalog/tags")).toBe("Etiquetas");
+        expect(tituloDeRuta("/catalog")).toBe("ruta.catalogo");
+        expect(tituloDeRuta("/catalog/tags")).toBe("ruta.etiquetas");
     });
 
     it("una ruta desconocida cae en el título por defecto", () => {

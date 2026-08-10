@@ -13,6 +13,7 @@ import {
 } from "@heroicons/react/24/outline";
 import type { BadgeVariant } from "@/shared/components/Badge";
 import type { StockMovementType } from "@/modules/products/types/product.types";
+import type { Clave } from "@/shared/i18n/traducir";
 
 /**
  * Descriptores de estado (T2-38).
@@ -28,7 +29,13 @@ import type { StockMovementType } from "@/modules/products/types/product.types";
  * comprueba que dos estados del mismo conjunto no compartan icono.
  */
 export interface Estado {
-    label: string;
+    /**
+     * La **clave** del catálogo, no el texto (T4-04). El descriptor se construye en
+     * tiempo de módulo y el idioma se elige en tiempo de render, así que aquí no puede
+     * haber una cadena ya traducida: cambiar de idioma no volvería a ejecutar esto.
+     * Quien pinta es `EstadoBadge`, que es el único sitio que llama a `t()`.
+     */
+    clave: Clave;
     variant: BadgeVariant;
     Icon: React.ElementType;
 }
@@ -41,9 +48,9 @@ export interface Estado {
 export type NivelStock = "correcto" | "bajo" | "agotado";
 
 export const NIVEL_STOCK: Record<NivelStock, Estado> = {
-    correcto: { label: "Correcto", variant: "success", Icon: CheckCircleIcon },
-    bajo: { label: "Bajo", variant: "warning", Icon: ExclamationTriangleIcon },
-    agotado: { label: "Agotado", variant: "danger", Icon: XCircleIcon },
+    correcto: { clave: "estado.stock.correcto", variant: "success", Icon: CheckCircleIcon },
+    bajo: { clave: "estado.stock.bajo", variant: "warning", Icon: ExclamationTriangleIcon },
+    agotado: { clave: "estado.stock.agotado", variant: "danger", Icon: XCircleIcon },
 };
 
 /** Agotado tiene prioridad sobre bajo: cero es un caso distinto, no un extremo. */
@@ -59,8 +66,8 @@ export function nivelDeStock(stock: number, minStock: number | null | undefined)
 // distinto.
 
 export const ACTIVIDAD = {
-    activo: { label: "Activo", variant: "success", Icon: CheckCircleIcon },
-    inactivo: { label: "Inactivo", variant: "danger", Icon: NoSymbolIcon },
+    activo: { clave: "estado.actividad.activo", variant: "success", Icon: CheckCircleIcon },
+    inactivo: { clave: "estado.actividad.inactivo", variant: "danger", Icon: NoSymbolIcon },
 } satisfies Record<string, Estado>;
 
 // ── Estado de orden ───────────────────────────────────────────────────────────
@@ -69,15 +76,15 @@ export const ACTIVIDAD = {
 // el color son los mismos para el mismo estado.
 
 export const ESTADO_ORDEN_COMPRA = {
-    PENDING: { label: "Pendiente", variant: "warning", Icon: ClockIcon },
-    RECEIVED: { label: "Recibida", variant: "success", Icon: CheckCircleIcon },
-    CANCELLED: { label: "Cancelada", variant: "danger", Icon: XCircleIcon },
+    PENDING: { clave: "estado.compra.PENDING", variant: "warning", Icon: ClockIcon },
+    RECEIVED: { clave: "estado.compra.RECEIVED", variant: "success", Icon: CheckCircleIcon },
+    CANCELLED: { clave: "estado.compra.CANCELLED", variant: "danger", Icon: XCircleIcon },
 } satisfies Record<string, Estado>;
 
 export const ESTADO_ORDEN_VENTA = {
-    PENDING: { label: "Pendiente", variant: "warning", Icon: ClockIcon },
-    SHIPPED: { label: "Enviado", variant: "success", Icon: TruckIcon },
-    CANCELLED: { label: "Cancelado", variant: "danger", Icon: XCircleIcon },
+    PENDING: { clave: "estado.venta.PENDING", variant: "warning", Icon: ClockIcon },
+    SHIPPED: { clave: "estado.venta.SHIPPED", variant: "success", Icon: TruckIcon },
+    CANCELLED: { clave: "estado.venta.CANCELLED", variant: "danger", Icon: XCircleIcon },
 } satisfies Record<string, Estado>;
 
 /**
@@ -86,7 +93,10 @@ export const ESTADO_ORDEN_VENTA = {
  * que no se sabe qué es, en lugar de heredar el color del último estado conocido.
  */
 export function buscarEstado(mapa: Record<string, Estado>, clave: string): Estado {
-    return mapa[clave] ?? { label: clave, variant: "neutral", Icon: QuestionMarkCircleIcon };
+    // El código en crudo pasa por `clave` sin estar en el catálogo, y eso es exactamente lo
+    // que se quiere: `traducir()` devuelve la clave cuando no la encuentra, así que en
+    // pantalla sigue apareciendo el código tal cual, como antes de T4-04.
+    return mapa[clave] ?? { clave: clave as Clave, variant: "neutral", Icon: QuestionMarkCircleIcon };
 }
 
 // ── Tipo de movimiento de stock ───────────────────────────────────────────────
@@ -94,8 +104,8 @@ export function buscarEstado(mapa: Record<string, Estado>, clave: string): Estad
 // mueven mercancía real, así que no compiten con ellas por el color.
 
 export const TIPO_MOVIMIENTO: Record<StockMovementType, Estado> = {
-    IN: { label: "Entrada", variant: "success", Icon: ArrowDownTrayIcon },
-    OUT: { label: "Salida", variant: "danger", Icon: ArrowUpTrayIcon },
-    ADJUSTMENT: { label: "Ajuste", variant: "info", Icon: AdjustmentsHorizontalIcon },
-    IMPORT: { label: "Importación", variant: "neutral", Icon: DocumentArrowUpIcon },
+    IN: { clave: "estado.movimiento.IN", variant: "success", Icon: ArrowDownTrayIcon },
+    OUT: { clave: "estado.movimiento.OUT", variant: "danger", Icon: ArrowUpTrayIcon },
+    ADJUSTMENT: { clave: "estado.movimiento.ADJUSTMENT", variant: "info", Icon: AdjustmentsHorizontalIcon },
+    IMPORT: { clave: "estado.movimiento.IMPORT", variant: "neutral", Icon: DocumentArrowUpIcon },
 };

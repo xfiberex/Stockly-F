@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigationType } from "react-router-dom";
+import { useT } from "@/shared/hooks/useIdioma";
 import { tituloDeRuta } from "@/shared/lib/titulos";
 
 /**
@@ -39,7 +40,10 @@ import { tituloDeRuta } from "@/shared/lib/titulos";
 export function AnuncioDeRuta() {
     const { pathname } = useLocation();
     const tipoDeNavegacion = useNavigationType();
-    const titulo = tituloDeRuta(pathname);
+    // T4-04: la lista guarda la clave y aquí se traduce, así que cambiar de idioma
+    // reescribe el `document.title` y lo que anuncia la región viva sin tocar nada más.
+    const { t } = useT();
+    const titulo = t(tituloDeRuta(pathname));
     const yaNavegado = useRef(false);
 
     useEffect(() => {

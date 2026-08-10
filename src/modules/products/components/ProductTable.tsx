@@ -14,6 +14,7 @@ import { PencilIcon, TrashIcon, ArrowPathIcon, ChartBarIcon, EyeIcon, CubeIcon }
 import { cn } from "@/shared/lib/cn";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { NIVEL_STOCK, ACTIVIDAD, nivelDeStock, type NivelStock } from "@/shared/lib/estados";
+import { useT } from "@/shared/hooks/useIdioma";
 
 // Clases literales, no `text-${variant}`: el escáner de Tailwind lee el código
 // fuente como texto y no genera las utilidades que se construyen al vuelo.
@@ -32,6 +33,7 @@ interface ProductTableProps {
 }
 
 export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggleSelect }: ProductTableProps) {
+    const { t } = useT();
     const deleteMutation = useDeleteProduct();
     const restoreMutation = useRestoreProduct();
     const { user } = useAuth();
@@ -215,7 +217,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                         {incidencia && (
                                             <>
                                                 <incidencia.Icon className={cn("h-4 w-4", CLASE_NIVEL[nivel])} aria-hidden="true" />
-                                                <span className="sr-only">{incidencia.label}</span>
+                                                <span className="sr-only">{t(incidencia.clave)}</span>
                                             </>
                                         )}
                                         {product.minStock > 0 && (

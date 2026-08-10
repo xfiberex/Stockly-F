@@ -16,6 +16,9 @@ import { usePriceHistory } from "@/modules/products/hooks/usePriceHistory";
 import { downloadBlob, blobCsv } from "@/modules/products/utils/importExport";
 import type { StockMovementType } from "@/modules/products/types/product.types";
 import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
+import { useT } from "@/shared/hooks/useIdioma";
+import { IDIOMA_POR_DEFECTO } from "@/shared/i18n/idioma";
+import { traducir, type Clave } from "@/shared/i18n/traducir";
 
 function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
@@ -29,9 +32,20 @@ function exportMovementsCsv(
     productName: string,
     movements: Array<{ createdAt: string; type: string; delta: number; stockAfter: number; note?: string | null }>,
 ) {
+    // T4-04 — **las exportaciones no se traducen: salen siempre en español.** Un CSV no es
+    // pantalla, es un formato de intercambio, y sus columnas están emparejadas con las que
+    // produce el backend por el test de T3-05. Traducirlas según quién pulse el botón
+    // rompería ese emparejamiento y haría que dos exportaciones del mismo dato no se
+    // pudieran juntar en la misma hoja de cálculo.
     const header = "Fecha,Tipo,Cambio,Stock resultante,Nota";
     const rows = movements.map((m) =>
-        [formatDate(m.createdAt), TIPO_MOVIMIENTO[m.type as StockMovementType]?.label ?? m.type, m.delta, m.stockAfter, m.note ?? ""].join(","),
+        [
+            formatDate(m.createdAt),
+            traducir(IDIOMA_POR_DEFECTO, TIPO_MOVIMIENTO[m.type as StockMovementType]?.clave ?? (m.type as Clave)),
+            m.delta,
+            m.stockAfter,
+            m.note ?? "",
+        ].join(","),
     );
     const csv = [header, ...rows].join("\n");
     const date = new Date().toISOString().split("T")[0];
@@ -39,6 +53,7 @@ function exportMovementsCsv(
 }
 
 export default function StockMovementsPage() {
+    const { t } = useT();
     const { id } = useParams<{ id: string }>();
     const { data, isLoading, isError } = useStockMovements(id!);
     const { data: priceData } = usePriceHistory(id!);
@@ -197,7 +212,7 @@ export default function StockMovementsPage() {
                                         { value: "", label: "Todos los tipos" },
                                         // Las opciones salen del descriptor para que el filtro no
                                         // pueda decir una cosa y la insignia de la tabla otra.
-                                        ...Object.entries(TIPO_MOVIMIENTO).map(([value, { label }]) => ({ value, label })),
+                                        ...Object.entries(TIPO_MOVIMIENTO).map(([value, { clave }]) => ({ value, label: t(clave) })),
                                     ]}
                                     value={typeFilter}
                                     onChange={(e) => setTypeFilter(e.target.value)}

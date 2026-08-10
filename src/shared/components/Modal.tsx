@@ -2,6 +2,7 @@ import { cn } from "@/shared/lib/cn";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import { useT } from "@/shared/hooks/useIdioma";
 
 interface ModalProps {
     isOpen: boolean;
@@ -15,6 +16,7 @@ const FOCUSABLE =
     'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
+    const { t } = useT();
     const titleId = useId();
     const panelRef = useRef<HTMLDivElement>(null);
 
@@ -82,7 +84,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
                     <h2 id={titleId} className="text-base font-semibold text-foreground">{title}</h2>
                     <button
                         onClick={onClose}
-                        aria-label="Cerrar"
+                        aria-label={t("comun.cerrar")}
                         className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-1 text-foreground-muted hover:bg-surface-muted hover:text-foreground-muted transition-colors md:min-h-0 md:min-w-0"
                     >
                         <XMarkIcon className="h-5 w-5" />

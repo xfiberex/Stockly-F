@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/shared/components/Button";
 import { Spinner } from "@/shared/components/Spinner";
+import { SelectorDeIdioma } from "@/modules/settings/components/SelectorDeIdioma";
 import { SelectorDeTema } from "@/modules/settings/components/SelectorDeTema";
+import { useT } from "@/shared/hooks/useIdioma";
 import { useSettings, useUpdateSettings } from "@/modules/settings/hooks/useSettings";
 import type { SettingUpdates, SettingValue } from "@/modules/settings/types/settings.types";
 
@@ -39,6 +41,7 @@ function BooleanToggle({ value, onChange }: { value: SettingValue; onChange: (va
 }
 
 export default function SettingsPage() {
+    const { t } = useT();
     const { data: settings = [], isLoading } = useSettings();
     const updateMutation = useUpdateSettings();
 
@@ -72,8 +75,8 @@ export default function SettingsPage() {
     return (
         <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
-                <p className="text-sm text-foreground-muted mt-1">Preferencias de este dispositivo y ajustes de la aplicación</p>
+                <h1 className="text-2xl font-bold text-foreground">{t("configuracion.titulo")}</h1>
+                <p className="text-sm text-foreground-muted mt-1">{t("configuracion.subtitulo")}</p>
             </div>
 
             {/*
@@ -84,9 +87,10 @@ export default function SettingsPage() {
               * corresponde: ahí arriba parecía gobernar también esta sección.
               */}
             <section className="bg-surface rounded-xl border border-border px-6 py-5">
-                <h2 className="text-base font-semibold text-foreground">Apariencia</h2>
-                <div className="mt-4">
+                <h2 className="text-base font-semibold text-foreground">{t("configuracion.apariencia")}</h2>
+                <div className="mt-4 space-y-5">
                     <SelectorDeTema />
+                    <SelectorDeIdioma />
                 </div>
             </section>
 
@@ -94,11 +98,11 @@ export default function SettingsPage() {
                 aplicación» parte en dos líneas y queda apretado contra «Guardar cambios». */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-base font-semibold text-foreground">Ajustes de la aplicación</h2>
-                    <p className="text-xs text-foreground-muted mt-0.5">Afectan a todos los usuarios</p>
+                    <h2 className="text-base font-semibold text-foreground">{t("configuracion.ajustes")}</h2>
+                    <p className="text-xs text-foreground-muted mt-0.5">{t("configuracion.ajustesAyuda")}</p>
                 </div>
                 <Button onClick={handleSave} disabled={!isDirty} isLoading={updateMutation.isPending}>
-                    Guardar cambios
+                    {t("comun.guardarCambios")}
                 </Button>
             </div>
 

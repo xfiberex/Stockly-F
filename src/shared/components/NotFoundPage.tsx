@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
 import { CubeIcon } from "@heroicons/react/24/outline";
+import { useT } from "@/shared/hooks/useIdioma";
 
 export default function NotFoundPage() {
+    const { t } = useT();
+
     return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
             <div className="flex items-center gap-2 font-bold text-foreground-muted">
@@ -14,14 +17,14 @@ export default function NotFoundPage() {
                     Con el tamaño mayor de la escala y un peso real sigue leyéndose
                     como lo que es: el número grande de una página de error. */}
                 <p className="text-2xl font-bold text-foreground-muted">404</p>
-                <h1 className="mt-2 text-xl font-semibold text-foreground">Página no encontrada</h1>
-                <p className="mt-1 text-sm text-foreground-muted">La ruta que buscas no existe.</p>
+                <h1 className="mt-2 text-xl font-semibold text-foreground">{t("ruta.noEncontrada")}</h1>
+                <p className="mt-1 text-sm text-foreground-muted">{t("noEncontrada.detalle")}</p>
             </div>
             <Link
                 to="/"
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-surface hover:bg-primary transition-colors"
             >
-                Volver al Dashboard
+                {t("noEncontrada.volver")}
             </Link>
         </div>
     );

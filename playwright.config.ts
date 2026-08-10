@@ -17,6 +17,16 @@ export default defineConfig({
     use: {
         baseURL: BASE_URL,
         trace: "on-first-retry",
+        /*
+         * T4-04 — el navegador de las pruebas habla español.
+         *
+         * Playwright arranca Chromium en `en-US`, y desde que la interfaz sigue el idioma del
+         * navegador eso bastaba para que estas pruebas buscaran «Iniciar sesión» en una página
+         * que decía «Sign in». No es un apaño: la suite comprueba *una* interfaz concreta, y
+         * cuál sea no puede depender del idioma que traiga el navegador de turno. Lo mismo hace
+         * `src/tests/setup.ts` con jsdom.
+         */
+        locale: "es-ES",
     },
     projects: [
         { name: "chromium", use: { ...devices["Desktop Chrome"] } },
