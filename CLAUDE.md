@@ -14,8 +14,12 @@ Está en el repositorio del backend, en `Stockly-B/docs/`, y cubre **los dos rep
 
 - `docs/CONTEXTO.md` — **empieza aquí al retomar el proyecto:** estado actual, decisiones vivas, trampas del entorno ya pagadas y por dónde seguir.
 - `docs/ROADMAP.md` — 107 tareas con dependencias, progreso y métricas. La fuente de verdad del trabajo pendiente.
-- `docs/INFORME-AUDITORIA.md` — los hallazgos que justifican cada tarea.
-- `docs/README-proyecto.md` — visión de conjunto y arranque.
+- `docs/adr/` — decisiones de arquitectura no obvias: léelas antes de simplificar algo que parezca complicado de más.
+- `docs/INFORME-AUDITORIA.md` — los hallazgos que justifican cada tarea. **Congelado a propósito:** está escrito en presente y describe el 2026-08-04, no el estado actual.
+- `docs/README-proyecto.md` — arranque desde cero de los dos repositorios.
+- `CONTRIBUTING.md` (en `Stockly-B`) — puerta de calidad, flujo de ramas y convención de commits.
+
+De este repositorio: **[`docs/design-system.md`](docs/design-system.md) es lectura previa a tocar cualquier pantalla.** No es una guía de estilo opcional — varias de sus reglas hacen fallar `pnpm verify` si se incumplen.
 
 Si no tienes clonado `Stockly-B`, esos documentos no están en disco: clónalo antes de planificar nada.
 

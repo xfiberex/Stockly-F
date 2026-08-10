@@ -1,6 +1,18 @@
 # Stockly — Frontend
 
-SPA para el sistema de gestión de inventario Stockly.
+SPA para el sistema de gestión de inventario Stockly. El backend vive en un repositorio hermano,
+`Stockly-B`, que se clona al lado de este.
+
+Este README documenta **la SPA**. La documentación que cubre los dos repositorios vive en
+`Stockly-B/docs/` —la carpeta que los contiene no está bajo control de versiones—, así que si no lo
+tienes clonado, esos documentos no están en disco:
+
+| Documento | Para qué |
+|---|---|
+| `Stockly-B/docs/CONTEXTO.md` | **Empieza aquí al retomar el proyecto.** Estado, decisiones vivas y trampas del entorno |
+| `Stockly-B/docs/ROADMAP.md` | Las 107 tareas con progreso y métricas |
+| [docs/design-system.md](docs/design-system.md) | **Lectura previa a tocar cualquier pantalla** |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Lo específico de este repositorio; la guía completa está en `Stockly-B` |
 
 ---
 
@@ -19,8 +31,8 @@ SPA para el sistema de gestión de inventario Stockly.
 | Gráficos | Recharts 3 |
 | Fuente | Inter (fontsource, autohospedada) |
 | Notificaciones | React Toastify |
-| Tests | Vitest + Testing Library |
-| Package manager | PNPM 11+ |
+| Tests | Vitest + Testing Library · Playwright (E2E) |
+| Package manager | PNPM 11.21.0 *(fijado en `packageManager`; no usar npm ni yarn)* |
 
 ---
 
@@ -123,12 +135,20 @@ cp .env.example .env
 pnpm dev              # Dev server con HMR en localhost:5173
 pnpm build            # Compilar TypeScript + generar dist/
 pnpm preview          # Previsualizar el build de producción
-pnpm lint             # Verificar ESLint
+pnpm lint             # Verificar ESLint — debe dar 0 errores y 0 avisos
 
 pnpm test             # Tests en modo watch
 pnpm test:run         # Tests sin watch (una sola pasada)
 pnpm test:coverage    # Reporte de cobertura
+
+pnpm verify           # Puerta de calidad: check → lint → test:coverage → build
+pnpm test:e2e:full    # Playwright en chromium y Mobile Chrome, sin levantar nada a mano
 ```
+
+**Este proyecto no usa CI**, y es deliberado
+([ADR 0005](../Stockly-B/docs/adr/0005-sin-integracion-continua.md)): `pnpm verify` es la única
+puerta de calidad, y hay que pasarla en local antes de cada push. Un aviso nuevo de `pnpm lint` es
+una regresión, no ruido de fondo.
 
 ---
 
@@ -286,12 +306,20 @@ git buscar useForm            # solo código de la aplicación
 git buscar-archivos -i zod    # solo los archivos que coinciden
 ```
 
-La diferencia es la que hace falta: ``git grep -il z.object` devuelve 61 archivos; `git buscar-archivos` devuelve 8`. Sin activarlo, el equivalente a mano es
+La diferencia es la que hace falta: `git grep -il z.object` devuelve **61** archivos y
+`git buscar-archivos` devuelve **8**. Sin activarlo, el equivalente a mano es
 `git grep X -- ':!.agents' ':!.claude'`.
 
 ## Credenciales seed
+
+Las crea el seed del backend (`Stockly-B`, `pnpm db:seed`); la lista completa está en su
+[README](../Stockly-B/README.md#seed).
 
 | Rol | Email | Contraseña |
 |---|---|---|
 | ADMIN | `admin@stockly.app` | `Admin1234!` |
 | USER | `laura@stockly.app` | `User1234!` |
+
+> Las del E2E salen de ahí y son sobreescribibles por variables de entorno. **Nunca poner una
+> contraseña real en `e2e/`**: ese directorio está versionado, y una fuga así ya obligó a reescribir
+> el historial (T0-06).
