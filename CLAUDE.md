@@ -37,7 +37,7 @@ El E2E sube el techo del rate limit del backend con `RATE_LIMIT_MAX` y `AUTH_RAT
 
 ## Convenciones
 
-- Gestor de paquetes: **pnpm 11.2.2** (fijado en `packageManager`). No usar npm ni yarn.
+- Gestor de paquetes: **pnpm 11.21.0** (fijado en `packageManager`, igual que el backend). No usar npm ni yarn. Se subió desde 11.2.2 el 2026-08-09: las versiones `<11.8.0` arrastraban avisos de path traversal y de ejecución de lifecycle scripts.
 - Comentarios y documentación **en español**, como el resto del código.
 - Las credenciales del E2E salen del seed del backend y son sobreescribibles por variables de entorno. **Nunca poner una contraseña real** en `e2e/`: ese directorio está versionado, y una fuga así ya obligó a reescribir el historial (tarea T0-06).
 
