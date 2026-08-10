@@ -53,10 +53,10 @@ export function OpcionesSegmentadas<T extends string>({
                             // levantarlo en `md`: la diana es la etiqueta entera, no un carril.
                             "flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-foreground-muted transition",
                             "hover:border-foreground-muted",
-                            "has-[:checked]:border-accent has-[:checked]:bg-accent/10 has-[:checked]:font-medium has-[:checked]:text-foreground",
+                            "has-checked:border-accent has-checked:bg-accent/10 has-checked:font-medium has-checked:text-foreground",
                             // `ring-offset-surface` no es decorativo: el hueco del anillo lo
                             // pinta Tailwind de blanco por defecto, y en oscuro eso es un halo.
-                            "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-surface",
+                            "has-focus-visible:ring-2 has-focus-visible:ring-accent has-focus-visible:ring-offset-2 has-focus-visible:ring-offset-surface",
                         )}
                     >
                         <input
