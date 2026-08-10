@@ -19,11 +19,42 @@ export default defineConfig(({ mode }) => ({
     build: {
         rollupOptions: {
             output: {
+                // T2-06 — un `vendor` de 559 kB se cargaba entero para pintar el
+                // formulario de login. Se parte por **cuándo hace falta cada cosa**, no
+                // por repartir bultos: lo que solo usan algunas rutas viaja en su propio
+                // trozo y el navegador no lo pide hasta que se llega a ellas.
+                //
+                // El orden importa: se comprueba de lo más específico a lo más general,
+                // porque `react-dom` también contiene «react» y `d3-shape` vive dentro
+                // del árbol de dependencias de recharts.
                 manualChunks(id: string) {
+                    if (!id.includes("node_modules")) return;
+
+                    // Recharts y **todo lo que solo existe por él**. Las rutas que pintan
+                    // gráficas son diferidas, así que separarlo lo mantiene fuera del
+                    // arranque; dejarlo revuelto con el resto lo metía en `vendor`, que sí
+                    // se descarga siempre. `@reduxjs/toolkit`, `immer`, `es-toolkit` y
+                    // compañía no los usa esta aplicación: son dependencias de recharts.
                     if (id.includes("recharts")) return "vendor-charts";
+                    if (/[\\/]node_modules[\\/](@reduxjs|react-redux|immer|reselect|es-toolkit|decimal\.js-light|victory-vendor|d3-)/.test(id)) {
+                        return "vendor-charts-deps";
+                    }
+
                     if (id.includes("react-router")) return "vendor-router";
                     if (id.includes("@tanstack")) return "vendor-query";
-                    if (id.includes("node_modules")) return "vendor";
+
+                    // Formularios: solo los usan las páginas con formulario, y ninguna de
+                    // ellas es la primera que se ve.
+                    if (id.includes("react-hook-form") || id.includes("@hookform") || id.includes("/zod/")) {
+                        return "vendor-forms";
+                    }
+
+                    // React se queda **dentro** de `vendor`, aunque separarlo parezca lo
+                    // natural y la ficha de T2-06 lo pidiera: medido, sacar `react` (o solo
+                    // `react-dom`) a su propio trozo arrastra `vendor-charts` al arranque
+                    // —697 → 956 kB— porque el grafo de trozos pasa a tener un ciclo entre
+                    // React y quien lo importa. Se descartó con la medición delante.
+                    return "vendor";
                 },
             },
         },

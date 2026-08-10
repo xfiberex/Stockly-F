@@ -1,4 +1,5 @@
 import api from "@/shared/api/axios";
+import { blobCsv, downloadBlob } from "@/modules/products/utils/importExport";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
 import type {
     Product,
@@ -98,9 +99,24 @@ export const bulkUpdateStock = async (dto: BulkStockDto): Promise<Array<{ produc
     return data.data!;
 };
 
-export const exportProductMovementsCsv = (productId: string): void => {
-    const a = document.createElement("a");
-    a.href = `${api.defaults.baseURL}/products/${productId}/movements/export?format=csv`;
-    a.download = `stockly-movimientos-${productId.slice(0, 8)}-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
+/**
+ * T2-34 — descarga por axios, no por un `<a href>` a otro origen.
+ *
+ * La versión anterior apuntaba el enlace directamente al backend, y eso rompía tres
+ * cosas a la vez: el atributo `download` se ignora entre orígenes distintos, así que el
+ * nombre del archivo lo decidía el servidor; la petición no pasaba por el interceptor de
+ * axios, de modo que **con la sesión caducada el usuario se descargaba el JSON del error
+ * 401** creyendo que era su CSV, sin redirección al login; y el archivo llegaba sin la
+ * marca de orden de bytes, con los acentos rotos al abrirlo en Excel.
+ *
+ * Pidiéndolo como `blob` por axios, el interceptor vuelve a ver la respuesta y el archivo
+ * se construye aquí, con `blobCsv`, que es el mismo camino que las otras dos descargas.
+ */
+export const exportProductMovementsCsv = async (productId: string): Promise<void> => {
+    const { data } = await api.get<string>(`/products/${productId}/movements/export`, {
+        params: { format: "csv" },
+        responseType: "text",
+    });
+    const fecha = new Date().toISOString().split("T")[0];
+    downloadBlob(blobCsv(data), `stockly-movimientos-${productId.slice(0, 8)}-${fecha}.csv`);
 };

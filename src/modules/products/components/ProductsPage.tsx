@@ -11,7 +11,7 @@ import { useProducts } from "@/modules/products/hooks/useProducts";
 import { useImportProducts } from "@/modules/products/hooks/useImportProducts";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { exportProducts } from "@/modules/products/api/product.api";
-import { toCsv, downloadBlob, parseCsv } from "@/modules/products/utils/importExport";
+import { toCsv, downloadBlob, blobCsv, parseCsv } from "@/modules/products/utils/importExport";
 import type { Product, ImportProductDto } from "@/modules/products/types/product.types";
 import {
     PlusIcon,
@@ -81,8 +81,7 @@ export default function ProductsPage() {
                 const blob = new Blob([JSON.stringify(products, null, 2)], { type: "application/json" });
                 downloadBlob(blob, `${filename}.json`);
             } else {
-                const blob = new Blob([toCsv(products)], { type: "text/csv;charset=utf-8;" });
-                downloadBlob(blob, `${filename}.csv`);
+                downloadBlob(blobCsv(toCsv(products)), `${filename}.csv`);
             }
 
             toast.success(`${products.length} productos exportados como ${format.toUpperCase()}`);

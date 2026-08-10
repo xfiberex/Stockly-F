@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/tests/utils";
 import SettingsPage from "@/modules/settings/components/SettingsPage";
 import type { SettingEntry } from "@/modules/settings/types/settings.types";
+import { ajusteBooleano } from "@/tests/contratos/fixtures";
 
 const mockMutate = vi.fn();
 let settingsData: SettingEntry[];
@@ -13,16 +14,15 @@ vi.mock("@/modules/settings/hooks/useSettings", () => ({
     useUpdateSettings: () => ({ mutate: mockMutate, isPending: false }),
 }));
 
-// `value` es boolean, no cadena: el backend lo parsea según el `type` del catálogo
-// antes de responder (`settings.service.ts:parseValue`). Mockearlo como "false"
-// ocultaba T1-06 — el interruptor se pintaba apagado con el ajuste activo.
-const booleanEntry: SettingEntry = {
-    key: "lowStockAlertEnabled",
-    label: "Alertas de bajo stock por correo",
-    description: "Envía un correo a los administradores cuando el stock cae por debajo del mínimo.",
-    type: "boolean",
-    value: false,
-};
+// T2-24: el mock ya no se declara aquí. Vive en `tests/contratos/fixtures.ts`, que lo
+// valida contra un esquema Zod de la respuesta real **al importarlo**, así que este
+// test falla si alguien lo desalinea del backend.
+//
+// Es el caso canónico: `value` es boolean, no cadena, porque el backend lo convierte
+// según el `type` del catálogo antes de responder (`settings.service.ts:parseValue`).
+// Mockeado como "false" ocultaba T1-06 — el interruptor se pintaba apagado con el
+// ajuste activo, y ningún test se enteraba.
+const booleanEntry = ajusteBooleano;
 
 describe("SettingsPage", () => {
     beforeEach(() => {

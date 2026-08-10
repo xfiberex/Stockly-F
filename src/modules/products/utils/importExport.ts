@@ -32,6 +32,23 @@ export function toCsv(products: ExportedProduct[]): string {
     return [EXPORT_HEADERS.join(","), ...rows].join("\n");
 }
 
+/**
+ * T2-34 — un CSV listo para Excel en Windows.
+ *
+ * Excel no mira el `charset` del blob ni el de la cabecera: si el archivo no empieza por
+ * la marca de orden de bytes (`U+FEFF`), lo abre con la página de códigos del sistema y
+ * cualquier acento sale roto — «Electrónica» se ve como «ElectrÃ³nica». Es el defecto
+ * clásico de exportar catálogos en español, y no se nota hasta que alguien abre el
+ * archivo en Excel, no en un editor.
+ *
+ * La marca **no estorba al reimportar**: `parseCsv` empieza con `text.trim()`, y `trim()`
+ * elimina `U+FEFF` porque el estándar lo cuenta como espacio en blanco. Hay un test que
+ * lo fija, porque es una casualidad afortunada y no algo evidente al leer el código.
+ */
+export function blobCsv(texto: string): Blob {
+    return new Blob(["\uFEFF" + texto], { type: "text/csv;charset=utf-8;" });
+}
+
 export function downloadBlob(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

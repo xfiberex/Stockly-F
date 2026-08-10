@@ -13,7 +13,7 @@ import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
 import { useStockMovements } from "@/modules/products/hooks/useStockMovements";
 import { usePriceHistory } from "@/modules/products/hooks/usePriceHistory";
-import { downloadBlob } from "@/modules/products/utils/importExport";
+import { downloadBlob, blobCsv } from "@/modules/products/utils/importExport";
 import type { StockMovementType } from "@/modules/products/types/product.types";
 
 function formatDate(iso: string) {
@@ -33,9 +33,8 @@ function exportMovementsCsv(
         [formatDate(m.createdAt), TIPO_MOVIMIENTO[m.type as StockMovementType]?.label ?? m.type, m.delta, m.stockAfter, m.note ?? ""].join(","),
     );
     const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const date = new Date().toISOString().split("T")[0];
-    downloadBlob(blob, `movimientos-${productName.replace(/\s+/g, "-").toLowerCase()}-${date}.csv`);
+    downloadBlob(blobCsv(csv), `movimientos-${productName.replace(/\s+/g, "-").toLowerCase()}-${date}.csv`);
 }
 
 export default function StockMovementsPage() {

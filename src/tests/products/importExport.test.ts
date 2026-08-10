@@ -1,4 +1,4 @@
-import { toCsv, parseCsv, downloadBlob } from "@/modules/products/utils/importExport";
+import { toCsv, parseCsv, downloadBlob, blobCsv } from "@/modules/products/utils/importExport";
 import type { ExportedProduct } from "@/modules/products/types/product.types";
 
 const PRODUCTS: ExportedProduct[] = [
@@ -124,5 +124,51 @@ describe("downloadBlob", () => {
         expect(revokeObjectURL).toHaveBeenCalledWith("blob:test");
 
         createElementSpy.mockRestore();
+    });
+});
+
+// T2-34: los CSV se generaban sin marca de orden de bytes, así que Excel en Windows los
+// abría con la página de códigos del sistema y cualquier acento salía roto. No se nota
+// en un editor de texto —ahí se ven bien—, solo al abrir el archivo en Excel.
+describe("blobCsv (T2-34)", () => {
+    it("antepone la marca de orden de bytes", async () => {
+        const blob = blobCsv("name,price\nCámara,10");
+
+        // Se miran los **bytes**, no `blob.text()`: ese decodifica con `TextDecoder`, que se
+        // come la marca salvo que se le pida `ignoreBOM`. Comprobarlo por texto daba un fallo
+        // desconcertante —la marca estaba puesta y el test decía que no— y aquí lo que importa
+        // es justo lo que Excel encuentra al abrir el archivo: los bytes EF BB BF.
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+        expect(await blob.text()).toContain("Cámara,10");
+    });
+
+    it("declara el tipo y la codificación", () => {
+        expect(blobCsv("a,b").type).toBe("text/csv;charset=utf-8;");
+    });
+
+    it("un CSV exportado se puede volver a importar pese a la marca", () => {
+        // `parseCsv` empieza con `text.trim()`, y `trim()` elimina `U+FEFF` porque el
+        // estándar lo cuenta como espacio en blanco. Es una casualidad afortunada, no
+        // algo evidente al leer el código: sin este test, el día que alguien cambie ese
+        // `trim()` por otra cosa, la primera columna pasa a llamarse «\uFEFFname» y
+        // todos los productos se importan sin nombre.
+        const csv = "\uFEFF" + toCsv([
+            {
+                name: "Cámara réflex",
+                description: "con acentuación",
+                price: 100,
+                stock: 5,
+                categoryName: "Electrónica",
+                brandName: null,
+                supplierName: null,
+                isActive: true,
+            },
+        ]);
+
+        const [producto] = parseCsv(csv);
+
+        expect(producto.name).toBe("Cámara réflex");
+        expect(producto.categoryName).toBe("Electrónica");
     });
 });

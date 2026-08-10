@@ -1,0 +1,22 @@
+# Lo que no debe entrar en el contexto de build (T2-28).
+#
+# `node_modules` es lo que más pesa y además sería erróneo copiarlo: el contenedor lo
+# reinstala con `--frozen-lockfile` para su propia plataforma.
+node_modules
+dist
+coverage
+
+# El `.env` no se copia nunca. Vite incrusta las `VITE_*` en el bundle al compilar, así
+# que un `.env` colado en el contexto acabaría **dentro del JavaScript publicado**.
+.env
+.env.*
+!.env.example
+
+# Artefactos de las pruebas de navegador y del editor.
+test-results
+playwright-report
+.vscode
+.idea
+
+.git
+.gitignore
