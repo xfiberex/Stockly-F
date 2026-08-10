@@ -10,8 +10,8 @@
 #
 # Existe porque `.agents/` y `.claude/` se versionan a propósito —el proyecto se
 # trabaja desde varias máquinas y el tooling debe viajar con él—, pero son ~460 de
-# los ~650 archivos del repositorio y ahogan cualquier búsqueda por texto: de los
-# 59 archivos que mencionan `z.object`, 53 son documentación de tooling.
+# los ~657 archivos del repositorio y ahogan cualquier búsqueda por texto: de los
+# 61 archivos que mencionan `z.object`, 53 son documentación de tooling.
 
 [alias]
 	# Busca solo en el código de la aplicación, excluyendo el tooling de IA.

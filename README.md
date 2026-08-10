@@ -264,7 +264,7 @@ Stockly se trabaja desde varias máquinas y las skills tienen que viajar con el 
 igual que el `README`. Quien clone Stockly-F se lleva el mismo tooling que quien lo escribió.
 
 La contrapartida está medida: **294 archivos bajo `.agents/` y 164 bajo
-`.claude/`, de 649 rastreados en total**. Eso ensucia dos cosas, y cada una tiene su
+`.claude/`, de 657 rastreados en total**. Eso ensucia dos cosas, y cada una tiene su
 remedio:
 
 | Ruido | Remedio |
@@ -286,7 +286,7 @@ git buscar useForm            # solo código de la aplicación
 git buscar-archivos -i zod    # solo los archivos que coinciden
 ```
 
-La diferencia es la que hace falta: ``git grep -il z.object` devuelve 59 archivos; `git buscar-archivos` devuelve 6`. Sin activarlo, el equivalente a mano es
+La diferencia es la que hace falta: ``git grep -il z.object` devuelve 61 archivos; `git buscar-archivos` devuelve 8`. Sin activarlo, el equivalente a mano es
 `git grep X -- ':!.agents' ':!.claude'`.
 
 ## Credenciales seed
