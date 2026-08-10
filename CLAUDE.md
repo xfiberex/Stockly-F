@@ -45,6 +45,8 @@ El E2E sube el techo del rate limit del backend con `RATE_LIMIT_MAX` y `AUTH_RAT
 - Comentarios y documentación **en español**, como el resto del código.
 - **`.agents/` y `.claude/` se versionan a propósito** (T3-06): el proyecto se trabaja desde varias máquinas y el tooling viaja con él. Son la mayoría de los archivos rastreados, así que para buscar en el código conviene excluirlos: `git buscar X` —tras activar una vez `git config --local include.path ../.gitconfig-stockly`— o `git grep X -- ":!.agents" ":!.claude"`.
 - Las credenciales del E2E salen del seed del backend y son sobreescribibles por variables de entorno. **Nunca poner una contraseña real** en `e2e/`: ese directorio está versionado, y una fuga así ya obligó a reescribir el historial (tarea T0-06).
+- **Los tipos de las respuestas de la API no se escriben aquí** (T4-01). `src/shared/contratos/api.generated.ts` es una copia literal de `Stockly-B/src/contratos/api.ts`, que es la fuente de verdad; los tipos de cada módulo (`Product`, `SaleOrder`, …) son alias de los suyos. Para cambiar la forma de una respuesta se edita **en el backend** y se ejecuta allí `pnpm contratos:generar`. Editar el archivo generado no sirve: `frescura.test.ts` lo detecta y la próxima generación lo pisa.
+- **`price` y los `unitPrice` son `string | number`**, no `number`: los `Decimal` de Prisma llegan como cadena. Para convertir, `aNumero()` del contrato. `/reports` es la excepción y sí manda números.
 
 ## CodeGraph
 

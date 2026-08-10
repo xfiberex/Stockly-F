@@ -90,10 +90,13 @@ export default defineConfig(({ mode }) => ({
             // cobertura, subir también estos números: es lo que convierte el avance en
             // irreversible.
             thresholds: {
-                statements: 42,
+                // T4-01 subió sentencias y líneas al conectar el contrato (49.74 → 50.84
+                // y 51.3 → 52.4), así que el suelo sube con ellas: mantiene el margen de
+                // ~6 puntos que tienen los otros dos y el backend entero.
+                statements: 45,
                 branches: 50,
                 functions: 33,
-                lines: 43,
+                lines: 46,
             },
         },
     },

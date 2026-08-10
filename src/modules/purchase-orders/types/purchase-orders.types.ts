@@ -1,27 +1,12 @@
-export type PurchaseOrderStatus = "PENDING" | "RECEIVED" | "CANCELLED";
+// T4-01 — la forma la define el contrato. Era el tipo más fiel de los doce y aun así
+// declaraba `unitPrice: number` cuando llega como cadena.
+import type { EstadoOrdenCompra, ItemOrdenCompra, OrdenCompra } from "@/shared/contratos";
 
-export interface PurchaseOrderItem {
-    id: string;
-    purchaseOrderId: string;
-    productId: string | null;
-    product: { id: string; name: string; sku: string | null } | null;
-    productName: string;
-    quantity: number;
-    unitPrice: number;
-    createdAt: string;
-}
+export type PurchaseOrderStatus = EstadoOrdenCompra;
+export type PurchaseOrderItem = ItemOrdenCompra;
+export type PurchaseOrder = OrdenCompra;
 
-export interface PurchaseOrder {
-    id: string;
-    supplierId: string | null;
-    supplier: { id: string; name: string } | null;
-    status: PurchaseOrderStatus;
-    notes: string | null;
-    items: PurchaseOrderItem[];
-    createdAt: string;
-    updatedAt: string;
-}
-
+/** Lo que se envía, no lo que se recibe: en el formulario `unitPrice` es un número. */
 export interface PurchaseOrderItemForm {
     productId?: string;
     productName: string;

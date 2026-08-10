@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/tests/utils";
 import SaleOrdersPage from "@/modules/sale-orders/components/SaleOrdersPage";
-import type { SaleOrder, SaleOrderStatus, UpdateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
+import type { SaleOrder, SaleOrderItem, SaleOrderStatus, UpdateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
 
 // T2-42: la reposición de stock de T0-03 vive en el backend desde el 2026-08-04, pero
 // la interfaz solo ofrecía cancelar mientras la orden estaba PENDIENTE, así que no había
@@ -10,16 +10,35 @@ import type { SaleOrder, SaleOrderStatus, UpdateSaleOrderDto } from "@/modules/s
 // que la acción existe en una orden enviada, que pide confirmación antes de mover
 // inventario, y que lo que envía al servidor es la transición correcta.
 
+const ORDEN_ID = "aaaaaaaa-1111-2222-3333-444444444444";
+
+/**
+ * T4-01 — un ítem con todos los campos que el backend envía de verdad. Antes los mocks
+ * traían cinco de los ocho y el tipo lo permitía; `unitPrice` va como cadena porque es
+ * `Decimal` en Prisma, y `product` acompaña a `productId`: los dos en null es un ítem
+ * suelto, que es lo que la reposición de T2-42 excluye.
+ */
+const item = (over: Partial<SaleOrderItem> & { id: string }): SaleOrderItem => ({
+    saleOrderId: ORDEN_ID,
+    productId: null,
+    product: null,
+    productName: "Artículo",
+    quantity: 1,
+    unitPrice: "10.00",
+    createdAt: "2026-08-08T10:00:00.000Z",
+    ...over,
+});
+
 const ORDEN_ENVIADA: SaleOrder = {
-    id: "aaaaaaaa-1111-2222-3333-444444444444",
+    id: ORDEN_ID,
     status: "SHIPPED",
     customerName: "Cliente de prueba",
     customerEmail: null,
     customerPhone: null,
     notes: null,
     items: [
-        { id: "i1", productId: "p1", productName: "Teclado", quantity: 3, unitPrice: 50 },
-        { id: "i2", productId: "p2", productName: "Ratón", quantity: 2, unitPrice: 25 },
+        item({ id: "i1", productId: "p1", product: { id: "p1", name: "Teclado", sku: null }, productName: "Teclado", quantity: 3, unitPrice: "50.00" }),
+        item({ id: "i2", productId: "p2", product: { id: "p2", name: "Ratón", sku: null }, productName: "Ratón", quantity: 2, unitPrice: "25.00" }),
     ],
     createdAt: "2026-08-08T10:00:00.000Z",
     updatedAt: "2026-08-08T10:00:00.000Z",
@@ -123,7 +142,7 @@ describe("SaleOrdersPage — cancelar una orden ya enviada (T2-42)", () => {
     it("los ítems sin producto del catálogo no se cuentan como reposición", async () => {
         ordenes = [{
             ...ORDEN_ENVIADA,
-            items: [{ id: "i3", productId: null, productName: "Servicio de instalación", quantity: 4, unitPrice: 100 }],
+            items: [item({ id: "i3", productName: "Servicio de instalación", quantity: 4, unitPrice: "100.00" })],
         }];
         const user = userEvent.setup();
         renderWithProviders(<SaleOrdersPage />);

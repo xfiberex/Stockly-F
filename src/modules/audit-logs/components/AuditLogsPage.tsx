@@ -4,6 +4,7 @@ import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
 import { Spinner } from "@/shared/components/Spinner";
 import { useAuditLogs } from "@/modules/audit-logs/hooks/useAuditLogs";
+import type { AuditAction, AuditEntity } from "@/modules/audit-logs/types/audit-logs.types";
 
 function formatDate(iso: string) {
     return new Date(iso).toLocaleString("es-MX", {
@@ -15,7 +16,11 @@ function formatDate(iso: string) {
 // El color dice qué clase de acción fue: la que crea o completa algo, la que
 // destruye o cancela, y la que solo modifica. `RESTORE` deshace un borrado, así
 // que va con las positivas; los movimientos de stock son informativos.
-const ACTION_VARIANTS: Record<string, BadgeVariant> = {
+//
+// T4-01 — `Record<AuditAction, …>` y no `Record<string, …>`: así añadir una acción al
+// enum del backend obliga a elegirle color aquí en vez de dejarla caer en el neutro por
+// omisión. Es como se destapó que `REFRESH_REUSE` no tenía ninguno desde T2-31.
+const ACTION_VARIANTS: Record<AuditAction, BadgeVariant> = {
     CREATE: "success",
     UPDATE: "info",
     DELETE: "danger",
@@ -29,9 +34,13 @@ const ACTION_VARIANTS: Record<string, BadgeVariant> = {
     USER_ROLE_CHANGE: "info",
     USER_ACTIVATE: "success",
     USER_DEACTIVATE: "danger",
+    // No la provoca un usuario: es la detección de reuso de refresh token de T2-31, o sea
+    // una anomalía de seguridad. Va en rojo porque leerla como un evento más sería justo
+    // lo contrario de para lo que se registra.
+    REFRESH_REUSE: "danger",
 };
 
-const ACTION_OPTIONS = [
+const ACTION_OPTIONS: ReadonlyArray<{ value: AuditAction | ""; label: string }> = [
     { value: "", label: "Todas las acciones" },
     { value: "CREATE", label: "Crear" },
     { value: "UPDATE", label: "Actualizar" },
@@ -46,9 +55,10 @@ const ACTION_OPTIONS = [
     { value: "USER_ROLE_CHANGE", label: "Cambio de rol" },
     { value: "USER_ACTIVATE", label: "Activar usuario" },
     { value: "USER_DEACTIVATE", label: "Desactivar usuario" },
+    { value: "REFRESH_REUSE", label: "Reuso de token detectado" },
 ];
 
-const ENTITY_OPTIONS = [
+const ENTITY_OPTIONS: ReadonlyArray<{ value: AuditEntity | ""; label: string }> = [
     { value: "", label: "Todas las entidades" },
     { value: "Product", label: "Producto" },
     { value: "PurchaseOrder", label: "Orden de compra" },
@@ -60,14 +70,16 @@ const ENTITY_OPTIONS = [
     { value: "Supplier", label: "Proveedor" },
 ];
 
-const ENTITY_LABELS: Record<string, string> = {
+const ENTITY_LABELS: Record<AuditEntity, string> = {
     Product: "Producto", PurchaseOrder: "Orden compra", SaleOrder: "Orden venta",
     User: "Usuario", Tag: "Etiqueta", Category: "Categoría", Brand: "Marca", Supplier: "Proveedor",
 };
 
 export default function AuditLogsPage() {
-    const [action, setAction] = useState("");
-    const [entity, setEntity] = useState("");
+    // El `""` es «sin filtro»; el resto solo admite valores del enum, así que un filtro
+    // mal escrito deja de compilar en vez de acabar en un 400 del backend.
+    const [action, setAction] = useState<AuditAction | "">("");
+    const [entity, setEntity] = useState<AuditEntity | "">("");
     const [page, setPage] = useState(1);
 
     const { data, isLoading } = useAuditLogs({
@@ -92,14 +104,14 @@ export default function AuditLogsPage() {
                     <Select
                         options={ACTION_OPTIONS}
                         value={action}
-                        onChange={(e) => { setAction(e.target.value); setPage(1); }}
+                        onChange={(e) => { setAction(e.target.value as AuditAction | ""); setPage(1); }}
                     />
                 </div>
                 <div className="flex-1 min-w-44">
                     <Select
                         options={ENTITY_OPTIONS}
                         value={entity}
-                        onChange={(e) => { setEntity(e.target.value); setPage(1); }}
+                        onChange={(e) => { setEntity(e.target.value as AuditEntity | ""); setPage(1); }}
                     />
                 </div>
             </div>

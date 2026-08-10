@@ -1,58 +1,20 @@
-export interface ReportTotals {
-    totalProducts: number;
-    activeProducts: number;
-    inactiveProducts: number;
-    inventoryValue: number;
-    lowStockCount: number;
-}
+// T4-01 — los tipos de reportes salen del contrato. Ojo con la excepción que documenta
+// `api.ts`: `reports.service.ts` convierte los importes con `Number(...)` antes de
+// responder, así que aquí `price` sí es un número, al revés que en `/products`.
+import type {
+    MetricaStock,
+    MovimientoPorMes,
+    ProductoBajoStock,
+    ProductoTop,
+    ResumenReporte,
+    StockPorCategoria,
+    TotalesReporte,
+} from "@/shared/contratos";
 
-export interface StockByCategory {
-    name: string;
-    stock: number;
-    value: number;
-}
-
-export interface TopProduct {
-    id: string;
-    name: string;
-    sku: string | null;
-    price: number;
-    stock: number;
-    totalValue: number;
-}
-
-export interface MovementByMonth {
-    month: string;
-    type: string;
-    total: number;
-}
-
-export interface LowStockProduct {
-    id: string;
-    name: string;
-    sku: string | null;
-    stock: number;
-    minStock: number;
-    category: string | null;
-}
-
-export interface StockMetric {
-    productId: string;
-    productName: string;
-    sku: string | null;
-    totalOutLast30Days: number;
-    currentStock: number;
-    minStock: number;
-    dailyVelocity: number;
-    daysToStockout: number | null;
-    reorderSoon: boolean;
-}
-
-export interface ReportSummary {
-    totals: ReportTotals;
-    stockByCategory: StockByCategory[];
-    topByValue: TopProduct[];
-    movementsByMonth: MovementByMonth[];
-    lowStockProducts: LowStockProduct[];
-    stockMetrics: StockMetric[];
-}
+export type ReportTotals = TotalesReporte;
+export type StockByCategory = StockPorCategoria;
+export type TopProduct = ProductoTop;
+export type MovementByMonth = MovimientoPorMes;
+export type LowStockProduct = ProductoBajoStock;
+export type StockMetric = MetricaStock;
+export type ReportSummary = ResumenReporte;

@@ -1,10 +1,7 @@
-export interface Tag {
-    id: string;
-    name: string;
-    color: string | null;
-    createdAt: string;
-    updatedAt: string;
-}
+// T4-01 — la forma la define el contrato.
+import type { Etiqueta } from "@/shared/contratos";
+
+export type Tag = Etiqueta;
 
 export interface CreateTagDto {
     name: string;

@@ -3,6 +3,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { SparklesIcon, TagIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal } from "@/shared/components/Modal";
+import { aNumero } from "@/shared/contratos";
 import { textoLegibleSobre } from "@/shared/lib/color";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
@@ -37,7 +38,11 @@ function valoresIniciales(product?: Product) {
         name: product.name,
         description: product.description ?? "",
         sku: product.sku ?? "",
-        price: product.price,
+        // T4-01 — `price` llega como cadena (`Decimal` de Prisma) y el formulario trabaja
+        // con números. Antes esto colaba porque el tipo mentía y el `z.coerce.number()`
+        // del esquema tapaba la diferencia al validar; la conversión va ahora donde
+        // corresponde, al entrar el dato, y no escondida en la validación de salida.
+        price: aNumero(product.price),
         stock: product.stock,
         minStock: product.minStock ?? 0,
         categoryId: product.category?.id ?? "",
@@ -264,7 +269,7 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                     </div>
                 )}
                 <ProductImageUpload
-                    currentImageUrl={removeImage ? undefined : product?.imageUrl}
+                    currentImageUrl={removeImage ? undefined : (product?.imageUrl ?? undefined)}
                     onChange={(file) => setValue("image", file)}
                     onRemoveExisting={() => setRemoveImage(true)}
                     error={errors.image?.message}

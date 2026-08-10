@@ -1,12 +1,7 @@
-export interface Supplier {
-    id: string;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    notes: string | null;
-    createdAt: string;
-    updatedAt: string;
-}
+// T4-01 — la forma la define el contrato.
+import type { Proveedor } from "@/shared/contratos";
+
+export type Supplier = Proveedor;
 
 export interface SupplierForm {
     name: string;

@@ -30,6 +30,13 @@ pnpm test:e2e:full    # Playwright en chromium y Mobile Chrome
 regresión, no ruido de fondo. A diferencia del backend, aquí sí existe ese comando; allí la
 comprobación estática es solo `pnpm check`.
 
+**Los tipos de las respuestas de la API no se escriben en este repositorio.**
+`src/shared/contratos/api.generated.ts` es una copia literal de `Stockly-B/src/contratos/api.ts`;
+para cambiar la forma de una respuesta se edita allí y se ejecuta `pnpm contratos:generar` **en el
+backend**. Editar el archivo generado no sirve de nada: `frescura.test.ts` lo detecta y la próxima
+generación lo pisa. Ojo con los importes —`price`, `unitPrice`— que llegan como cadena, no como
+número: para convertirlos está `aNumero()` del contrato.
+
 **Nunca poner una contraseña real en `e2e/`.** Ese directorio está versionado y una fuga así
 ya obligó a reescribir el historial (T0-06). Las credenciales salen del seed del backend y
 son sobreescribibles por variables de entorno.

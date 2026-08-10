@@ -6,7 +6,9 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
     label?: string;
     error?: string;
     placeholder?: string;
-    options: { value: string; label: string }[];
+    // `readonly` y `value: string`: el componente solo recorre la lista, así que exigir un
+    // array mutable obligaba a quien tipa sus opciones contra un enum (T4-01) a copiarlo.
+    options: ReadonlyArray<{ value: string; label: string }>;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(

@@ -1,42 +1,44 @@
-export interface CategoryRef {
-    id: string;
-    name: string;
+// T4-01 — la forma de todo lo que **llega** la define el contrato
+// (`Stockly-B/src/contratos/api.ts`, copiado en `@/shared/contratos`). Aquí solo quedan
+// los nombres que usa la aplicación y los DTO de lo que **se envía**, que son otra cosa:
+// los valida el backend con sus `*.validator.ts` y no viajan en la respuesta.
+//
+// Lo que cambió al conectar el contrato: `price` era `number` y llega como cadena, y
+// `description`/`imageUrl` eran `string | undefined` y llegan como `string | null`.
+import type {
+    EtiquetaRef,
+    HistorialPrecio,
+    MovimientoStock,
+    Producto,
+    ProductoExportado,
+    Referencia,
+    ResultadoImportacion,
+    TipoMovimiento,
+} from "@/shared/contratos";
+
+export type CategoryRef = Referencia;
+export type BrandRef = Referencia;
+export type SupplierRef = Referencia;
+export type TagRef = EtiquetaRef;
+
+export type Product = Producto;
+export type StockMovementType = TipoMovimiento;
+export type StockMovement = MovimientoStock;
+export type PriceHistoryEntry = HistorialPrecio;
+export type ExportedProduct = ProductoExportado;
+export type ImportResult = ResultadoImportacion;
+
+export interface MovementsResponse {
+    product: Product;
+    movements: StockMovement[];
 }
 
-export interface BrandRef {
-    id: string;
-    name: string;
+export interface PriceHistoryResponse {
+    product: Product;
+    history: PriceHistoryEntry[];
 }
 
-export interface SupplierRef {
-    id: string;
-    name: string;
-}
-
-export interface TagRef {
-    id: string;
-    name: string;
-    color: string | null;
-}
-
-export interface Product {
-    id: string;
-    name: string;
-    description?: string;
-    sku?: string | null;
-    price: number;
-    stock: number;
-    minStock: number;
-    category: CategoryRef | null;
-    brand: BrandRef | null;
-    supplier: SupplierRef | null;
-    tags: TagRef[];
-    imageUrl?: string;
-    imagePublicId?: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
+// ─────────────────────── Lo que se envía ───────────────────────
 
 export interface CreateProductDto {
     name: string;
@@ -78,6 +80,7 @@ export interface ProductQuery {
     isActive?: boolean;
 }
 
+/** Fila de un CSV/JSON de importación: todo puede llegar como cadena sin convertir. */
 export interface ImportProductDto {
     name: string;
     description?: string;
@@ -86,63 +89,6 @@ export interface ImportProductDto {
     categoryName?: string;
     brandName?: string;
     isActive?: boolean | string;
-}
-
-/**
- * T3-05 — la forma exacta de `filaDeExportacion` en `Stockly-B/src/modules/products/
- * product.service.ts`, que es lo que devuelve `GET /products/export`.
- *
- * `sku`, `minStock` y `tags` faltaban aquí: el backend ya los enviaba y este lado los
- * declaraba fuera, así que se descartaban al construir el CSV. `price` llega como cadena
- * porque es `Decimal` en Prisma, y `tags` como los nombres unidos por `;`.
- */
-export interface ExportedProduct {
-    name: string;
-    description: string | null;
-    sku: string | null;
-    price: number | string;
-    stock: number;
-    minStock: number;
-    isActive: boolean;
-    categoryName: string | null;
-    brandName: string | null;
-    supplierName: string | null;
-    tags: string;
-}
-
-export interface ImportResult {
-    created: number;
-    errors: Array<{ row: number; error: string }>;
-}
-
-export type StockMovementType = "IN" | "OUT" | "ADJUSTMENT" | "IMPORT";
-
-export interface StockMovement {
-    id: string;
-    productId: string;
-    type: StockMovementType;
-    delta: number;
-    stockAfter: number;
-    note?: string | null;
-    createdAt: string;
-}
-
-export interface MovementsResponse {
-    product: Product;
-    movements: StockMovement[];
-}
-
-export interface PriceHistoryEntry {
-    id: string;
-    productId: string;
-    oldPrice: number;
-    newPrice: number;
-    createdAt: string;
-}
-
-export interface PriceHistoryResponse {
-    product: Product;
-    history: PriceHistoryEntry[];
 }
 
 export interface CreateManualMovementDto {

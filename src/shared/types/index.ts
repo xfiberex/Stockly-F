@@ -1,17 +1,6 @@
-export interface ApiResponse<T = unknown> {
-    success: boolean;
-    message: string;
-    data?: T;
-}
+// T4-01 — el sobre y la paginación salen del contrato, no de una copia local.
+import type { MetaPaginacion, Paginado, Sobre } from "@/shared/contratos";
 
-export interface PaginationMeta {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-}
-
-export interface PaginatedResponse<T> {
-    data: T[];
-    meta: PaginationMeta;
-}
+export type ApiResponse<T = unknown> = Sobre<T>;
+export type PaginationMeta = MetaPaginacion;
+export type PaginatedResponse<T> = Paginado<T>;

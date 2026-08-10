@@ -19,9 +19,16 @@ const productoExistente: Product = {
     name: "Teclado mecánico",
     description: "Switches azules",
     sku: "PER-GEN-TECL",
-    price: 49.99,
+    // Cadena, como la envía el backend (T4-01): así el test ejercita de verdad el
+    // `aNumero()` que el formulario aplica al precargar los valores.
+    price: "49.99",
     stock: 12,
     minStock: 3,
+    imageUrl: null,
+    imagePublicId: null,
+    categoryId: null,
+    brandId: null,
+    supplierId: null,
     category: null,
     brand: null,
     supplier: null,

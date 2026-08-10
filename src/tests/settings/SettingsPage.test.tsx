@@ -67,7 +67,10 @@ describe("SettingsPage", () => {
     });
 
     it("pinta el interruptor encendido cuando el ajuste está activo", () => {
-        settingsData = [{ ...booleanEntry, value: true }];
+        // Se construye entero en vez de con `{ ...booleanEntry, value: true }`: al
+        // esparcir un miembro de la unión discriminada del contrato (T4-01) se pierde la
+        // correlación entre `type` y `value`, y TypeScript deja de poder comprobarla.
+        settingsData = [{ ...booleanEntry, type: "boolean", value: true }];
         renderWithProviders(<SettingsPage />);
 
         expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "true");

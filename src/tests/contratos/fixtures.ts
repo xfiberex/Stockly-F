@@ -10,6 +10,12 @@ import { ajusteSchema, productoSchema, ordenDeVentaSchema, segunContrato } from 
  * cualquier test que use uno de estos objetos falla si el mock deja de parecerse a lo
  * que devuelve el backend, sin depender de que alguien se acuerde de comprobarlo.
  * Un test de contrato que hay que invocar a mano es un test que se olvida.
+ *
+ * T4-01 retiró los `as unknown as …` que llevaban estas tres constantes. Eran el agujero
+ * del mecanismo: acallaban al compilador, así que a los mocks les faltaban campos que el
+ * backend sí envía —`imagePublicId`, los `*Id` sueltos, el `product` de cada ítem— y la
+ * validación en tiempo de ejecución no lo veía porque Zod ignora las claves de más, no
+ * las de menos. Ahora el tipo y el esquema tienen que cuadrar los dos.
  */
 
 export const ajusteBooleano: SettingEntry = segunContrato(ajusteSchema, {
@@ -20,7 +26,7 @@ export const ajusteBooleano: SettingEntry = segunContrato(ajusteSchema, {
     // Boolean, no la cadena "false": el backend lo convierte según el `type` del
     // catálogo antes de responder. Mockearlo como cadena ocultó T1-06.
     value: false,
-}, "ajusteBooleano") as SettingEntry;
+}, "ajusteBooleano");
 
 export const productoDeCatalogo: Product = segunContrato(productoSchema, {
     id: "11111111-1111-1111-1111-111111111111",
@@ -31,17 +37,21 @@ export const productoDeCatalogo: Product = segunContrato(productoSchema, {
     price: "299.99",
     stock: 12,
     minStock: 3,
+    imageUrl: null,
+    imagePublicId: null,
+    isActive: true,
+    categoryId: "22222222-2222-2222-2222-222222222222",
+    brandId: null,
+    supplierId: null,
     category: { id: "22222222-2222-2222-2222-222222222222", name: "Periféricos" },
     brand: null,
     supplier: null,
     // Array de objetos, no de cadenas: es la forma que el validador descartaba en
     // silencio y que costó T1-03.
     tags: [{ id: "33333333-3333-3333-3333-333333333333", name: "Oferta", color: "#ef4444" }],
-    imageUrl: null,
-    isActive: true,
     createdAt: "2026-08-01T10:00:00.000Z",
     updatedAt: "2026-08-01T10:00:00.000Z",
-}, "productoDeCatalogo") as unknown as Product;
+}, "productoDeCatalogo");
 
 export const ordenDeVentaEnviada: SaleOrder = segunContrato(ordenDeVentaSchema, {
     id: "aaaaaaaa-1111-2222-3333-444444444444",
@@ -51,9 +61,29 @@ export const ordenDeVentaEnviada: SaleOrder = segunContrato(ordenDeVentaSchema, 
     customerPhone: null,
     notes: null,
     items: [
-        { id: "i1", productId: "p1", productName: "Teclado", quantity: 3, unitPrice: 50 },
-        { id: "i2", productId: null, productName: "Servicio de instalación", quantity: 1, unitPrice: 25 },
+        {
+            id: "i1",
+            saleOrderId: "aaaaaaaa-1111-2222-3333-444444444444",
+            productId: "p1",
+            product: { id: "p1", name: "Teclado", sku: "PER-TEC" },
+            productName: "Teclado",
+            quantity: 3,
+            unitPrice: "50.00",
+            createdAt: "2026-08-08T10:00:00.000Z",
+        },
+        // Ítem suelto: `productId` **y** `product` en null. De esa distinción depende el
+        // recuento de reposición de T2-42, que excluye los ítems sin producto.
+        {
+            id: "i2",
+            saleOrderId: "aaaaaaaa-1111-2222-3333-444444444444",
+            productId: null,
+            product: null,
+            productName: "Servicio de instalación",
+            quantity: 1,
+            unitPrice: "25.00",
+            createdAt: "2026-08-08T10:00:00.000Z",
+        },
     ],
     createdAt: "2026-08-08T10:00:00.000Z",
     updatedAt: "2026-08-08T10:00:00.000Z",
-}, "ordenDeVentaEnviada") as unknown as SaleOrder;
+}, "ordenDeVentaEnviada");

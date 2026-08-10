@@ -1,25 +1,12 @@
-export type SaleOrderStatus = "PENDING" | "SHIPPED" | "CANCELLED";
+// T4-01 — la forma la define el contrato. `unitPrice` se declaraba `number` y llega como
+// cadena (`Decimal` de Prisma); ahora es `Importe` y hay que decidir qué se hace con él.
+import type { EstadoOrdenVenta, ItemOrdenVenta, OrdenVenta } from "@/shared/contratos";
 
-export interface SaleOrderItem {
-    id: string;
-    productId: string | null;
-    productName: string;
-    quantity: number;
-    unitPrice: number;
-}
+export type SaleOrderStatus = EstadoOrdenVenta;
+export type SaleOrderItem = ItemOrdenVenta;
+export type SaleOrder = OrdenVenta;
 
-export interface SaleOrder {
-    id: string;
-    status: SaleOrderStatus;
-    customerName: string | null;
-    customerEmail: string | null;
-    customerPhone: string | null;
-    notes: string | null;
-    items: SaleOrderItem[];
-    createdAt: string;
-    updatedAt: string;
-}
-
+/** Lo que se envía al crear, no lo que se recibe: aquí `unitPrice` sí es un número. */
 export interface CreateSaleOrderItemDto {
     productId?: string;
     productName: string;
