@@ -16,6 +16,32 @@
       name="description"
       content="Stockly es un sistema de gestión de inventario: controla productos, stock, órdenes de compra y venta, reportes y alertas de bajo stock."
     />
+    <!--
+      T4-11 — el tema elegido, aplicado antes del primer pintado.
+
+      Tiene que ser un script en línea y bloqueante: `main.tsx` es un módulo, o sea diferido,
+      y para cuando se ejecuta el navegador ya ha pintado. Quien haya elegido un tema
+      distinto al de su sistema vería un fogonazo del otro en cada carga, que es justo lo que
+      el selector existe para evitar.
+
+      Sí, duplica tres literales de `src/shared/lib/tema.ts` —la clave, y los dos valores que
+      llevan atributo—. No hay forma de importar desde aquí sin volver a diferirlo, así que
+      lo que hay es una guardia: `src/tests/tema.test.ts` compara este bloque con el módulo y
+      falla si se separan.
+
+      El `try` es por el almacenamiento bloqueado (Safari privado, cookies desactivadas en un
+      iframe): `localStorage` **lanza** en vez de devolver null. Sin él, no arrancaría nada.
+    -->
+    <script>
+      try {
+        var tema = localStorage.getItem("stockly:tema");
+        if (tema === "claro" || tema === "oscuro") {
+          document.documentElement.dataset.tema = tema;
+        }
+      } catch (e) {
+        /* Sin preferencia legible se usa `auto`, que es no poner atributo. */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

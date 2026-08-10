@@ -69,11 +69,31 @@ Cada estado tiene un color de texto y una superficie propia para el fondo del ba
 > superficie de badge**, donde de hecho se usa. Por eso es `#b91c1c`. Al añadir un color,
 > medir en el fondo real.
 
-### Modo oscuro
+### Modo oscuro y elección de tema
 
-La aplicación sigue la preferencia del sistema (`prefers-color-scheme`). **No hay clases
-`dark:` ni conmutador**: se redefine la capa semántica y ya está, que es exactamente lo que
-hizo posible retirar las 561 utilidades de color crudas.
+**No hay clases `dark:` ni una segunda paleta.** Cada color se declara **una vez, con sus dos
+valores**, y el navegador elige:
+
+```css
+--color-surface: light-dark(#ffffff, #151d2c);
+```
+
+Lo que decide es el `color-scheme` efectivo, que hereda de `:root`. Ahí está todo el
+conmutador — tres reglas de una línea:
+
+```css
+:root                     { color-scheme: light dark; }  /* auto: sigue al sistema */
+:root[data-tema="claro"]  { color-scheme: light; }
+:root[data-tema="oscuro"] { color-scheme: dark; }
+```
+
+El atributo lo pone el usuario desde **Configuración → Apariencia** (T4-11), se guarda en
+`localStorage` y lo aplica un script en línea de `index.html` **antes del primer pintado**.
+Sin ese script habría un fogonazo del tema contrario en cada carga, porque `main.tsx` es un
+módulo y por tanto diferido.
+
+Que la aplicación entera cambie con una variable es exactamente lo que hizo posible retirar
+las 561 utilidades de color crudas.
 
 | Token | Claro | Oscuro | Contraste en oscuro |
 |---|---|---|---|
@@ -90,7 +110,7 @@ hizo posible retirar las 561 utilidades de color crudas.
 | `--color-danger` | `#b91c1c` | `#f87171` | 6.1:1 |
 | `--color-info` | `#1d4ed8` | `#60a5fa` | 6.6:1 |
 
-Cuatro cosas que conviene entender antes de tocarlo:
+Cinco cosas que conviene entender antes de tocarlo:
 
 - **No es la paleta clara invertida.** Los estados se **aclaran y desaturan**: invertir
   daría un rojo casi negro sobre fondo oscuro. Las superficies suben en escalones cortos
@@ -107,20 +127,32 @@ Cuatro cosas que conviene entender antes de tocarlo:
 - **Los colores de etiqueta no cambian.** Los elige el usuario y se guardan en la base:
   son datos, no tema. Su legibilidad la resuelve `textoLegibleSobre()`, que calcula el
   contraste contra el color real de la etiqueta.
+- **`color-scheme` no es solo el interruptor.** Es también lo que arrastra a los controles
+  que ninguna hoja de estilos alcanza: barras de scroll, el desplegable de un `<select>`, el
+  selector de fecha y el relleno automático de formularios.
 
-> **Las sombras no se pueden redefinir por token.** Tailwind incrusta el color literal en
+Y dos trampas que ya costaron caras, las dos invisibles hasta que se miden en el navegador:
+
+> **Las sombras no se pueden redefinir desde fuera.** Tailwind incrusta el color literal en
 > la utilidad (`--tw-shadow: 0 8px 24px var(--tw-shadow-color, #0f172a1f)`) en vez de
-> referenciar `var(--shadow-overlay)`, al revés que los colores. Redefinir el token bajo la
-> media query **no hace nada, y no se nota**. Lo que funciona es sobrescribir
-> `--tw-shadow-color` en `.shadow-raised` / `.shadow-overlay`, que además conserva la
-> composición con `ring-*`.
+> referenciar `var(--shadow-overlay)`, al revés que los colores. Redefinir el token en otro
+> bloque **no hace nada, y no se nota**. Por eso el par va **dentro**:
+> `--shadow-raised: 0 1px 2px light-dark(rgb(15 23 42 / 0.06), rgb(0 0 0 / 0.5))`.
+
+> **`ring-offset-2` no deja un hueco transparente: lo rellena de blanco.**
+> `--tw-ring-offset-color` vale `#fff` de fábrica, así que en oscuro el anillo de foco
+> dibuja un halo. Quien pida hueco nombra también la superficie sobre la que flota:
+> `ring-offset-2 ring-offset-surface`.
 
 **Lo vigila:** [`src/tests/theme.test.ts`](../src/tests/theme.test.ts) recalcula todos los
-ratios desde `index.css` con la fórmula WCAG 2.1 **para los dos temas**, comprueba que el
-bloque oscuro no se deje ningún token de color y que las sombras se oscurezcan por el
-mecanismo que sí funciona. [`src/tests/tokens.test.ts`](../src/tests/tokens.test.ts) recorre
-`src/` y falla si aparece una utilidad cruda de la paleta de Tailwind (`bg-slate-100`,
-`text-red-500`…) o un hexadecimal en los tres componentes de gráficos.
+ratios desde `index.css` con la fórmula WCAG 2.1 **para los dos temas**, exige que todo
+`--color-*` declare sus dos valores, que no reaparezca ningún bloque
+`@media (prefers-color-scheme: …)` —que ignoraría la elección del usuario— y que las sombras
+lleven el par dentro. [`src/tests/tema.test.ts`](../src/tests/tema.test.ts) compara las tres
+copias de la misma decisión: el módulo, el script en línea y los selectores del CSS.
+[`src/tests/tokens.test.ts`](../src/tests/tokens.test.ts) recorre `src/` y falla si aparece
+una utilidad cruda de la paleta de Tailwind (`bg-slate-100`, `text-red-500`…), un hexadecimal
+en los tres componentes de gráficos o un `ring-offset` sin token.
 
 ---
 

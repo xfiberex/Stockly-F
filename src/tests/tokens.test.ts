@@ -75,4 +75,32 @@ describe("Utilidades de color crudas (T2-37)", () => {
 
         expect(infracciones).toEqual([]);
     });
+
+    /**
+     * T4-11 — el otro color literal que no se ve venir.
+     *
+     * `ring-offset-2` no pinta solo un hueco: lo rellena con `--tw-ring-offset-color`, que
+     * Tailwind deja en **`#fff`** de fábrica. En tema claro pasa por transparente; en oscuro
+     * es un halo blanco de 2 px alrededor de lo enfocado. No es una utilidad cruda de la
+     * paleta, así que la guardia de arriba no lo veía, y no es un hexadecimal en el código,
+     * así que la de los gráficos tampoco.
+     *
+     * La regla: quien pida hueco nombra también la superficie sobre la que flota.
+     */
+    it("el hueco del anillo de foco sale del tema, no del blanco por defecto (T4-11)", () => {
+        const infracciones: string[] = [];
+
+        for (const archivo of archivos(SRC)) {
+            const relativo = path.relative(process.cwd(), archivo).replace(/\\/g, "/");
+            if (relativo.endsWith("src/tests/tokens.test.ts")) continue;
+
+            for (const linea of readFileSync(archivo, "utf8").split(/\r?\n/)) {
+                if (/ring-offset-\d/.test(linea) && !/ring-offset-(surface|background)\b/.test(linea)) {
+                    infracciones.push(`${relativo}: …${linea.trim().slice(-70)}`);
+                }
+            }
+        }
+
+        expect(infracciones).toEqual([]);
+    });
 });

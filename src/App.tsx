@@ -308,7 +308,10 @@ function App() {
                     window.scrollTo(0, 0);
                     document.getElementById("contenido")?.focus({ preventScroll: true });
                 }}
-                className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:flex focus:min-h-11 focus:items-center focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-surface focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                // `ring-offset-background` (T4-11): el hueco del anillo lo pinta Tailwind de
+                // blanco por defecto y el enlace flota sobre el fondo de página, así que en
+                // tema oscuro el foco quedaba rodeado de un halo blanco.
+                className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:flex focus:min-h-11 focus:items-center focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-surface focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
             >
                 Saltar al contenido principal
             </a>

@@ -13,32 +13,57 @@ const css = readFileSync(path.join(process.cwd(), "src/index.css"), "utf8");
 // T4-03 los recalcula **para los dos temas**. El criterio de aceptación del modo oscuro
 // es literalmente ese: que la aplicación mantenga AA en claro y en oscuro, no que se vea
 // oscura. Un tema nuevo que no cumpla no llega a `main`.
-
-/** El bloque `@media (prefers-color-scheme: dark)`, donde se redefine la capa semántica. */
-const bloqueOscuro = (() => {
-    const inicio = css.indexOf("@media (prefers-color-scheme: dark)");
-    if (inicio < 0) throw new Error("index.css no declara el bloque de modo oscuro");
-    // Hasta el cierre del `:root` de dentro; basta con cortar en el siguiente `@media`
-    // o en el final del archivo, porque el bloque oscuro es el único que redefine color.
-    const siguiente = css.indexOf("@media", inicio + 1);
-    return css.slice(inicio, siguiente < 0 ? undefined : siguiente);
-})();
+//
+// T4-11 cambia de dónde se leen: ya no hay dos bloques —uno claro y otro bajo una media
+// query— sino una declaración por token con sus dos valores, `light-dark(claro, oscuro)`.
 
 type Tema = "claro" | "oscuro";
 
-/**
- * Valor de un token en un tema. El claro se lee del archivo entero —es donde vive
- * `@theme`— y el oscuro solo del bloque de la media query, de forma que un token que
- * alguien olvide redefinir ahí **no cae en silencio al valor claro**: falla.
- */
-function token(nombre: string, tema: Tema = "claro"): string {
-    const fuente = tema === "claro" ? css : bloqueOscuro;
-    const match = new RegExp(`--${nombre}:\\s*([^;]+);`).exec(fuente);
-    if (!match) throw new Error(`El token --${nombre} no está declarado en el tema ${tema}`);
+const TEMAS: Tema[] = ["claro", "oscuro"];
+
+/** El valor declarado de un token, tal cual, sin interpretar. */
+function declaracion(nombre: string): string {
+    const match = new RegExp(`--${nombre}:\\s*([^;]+);`).exec(css);
+    if (!match) throw new Error(`El token --${nombre} no está declarado`);
     return match[1].trim();
 }
 
-const TEMAS: Tema[] = ["claro", "oscuro"];
+/**
+ * Los dos valores de un `light-dark()`. Se recorre buscando la coma **de nivel cero** en vez
+ * de partir por la primera: los argumentos llevan paréntesis propios (`rgb(0 0 0 / 0.5)`) y
+ * una expresión regular ingenua los troceaba por la mitad en cuanto alguien escribiera un
+ * color con comas dentro.
+ */
+function parDeTemas(valor: string): [string, string] {
+    const APERTURA = "light-dark(";
+    const inicio = valor.indexOf(APERTURA);
+    if (inicio < 0) throw new Error(`«${valor}» no declara los dos temas con light-dark()`);
+
+    let profundidad = 0;
+    let coma = -1;
+    let i = inicio + APERTURA.length;
+
+    for (; i < valor.length; i++) {
+        const caracter = valor[i];
+        if (caracter === "(") profundidad++;
+        else if (caracter === ")") {
+            if (profundidad === 0) break;
+            profundidad--;
+        } else if (caracter === "," && profundidad === 0) coma = i;
+    }
+
+    if (coma < 0) throw new Error(`«${valor}» declara un light-dark() con un solo valor`);
+    return [valor.slice(inicio + APERTURA.length, coma).trim(), valor.slice(coma + 1, i).trim()];
+}
+
+/**
+ * Valor de un token de color en un tema. Que los dos salgan de la **misma** declaración es
+ * justo lo que hace imposible el fallo que la estructura anterior sí permitía: olvidarse de
+ * un token en el bloque oscuro y que cayera en silencio al valor claro.
+ */
+function token(nombre: string, tema: Tema = "claro"): string {
+    return parDeTemas(declaracion(nombre))[tema === "claro" ? 0 : 1];
+}
 
 describe("Capa de tokens semánticos (T2-35)", () => {
     it("declara la paleta completa", () => {
@@ -55,7 +80,7 @@ describe("Capa de tokens semánticos (T2-35)", () => {
         ];
 
         for (const nombre of esperados) {
-            expect(() => token(nombre)).not.toThrow();
+            expect(() => declaracion(nombre), `--${nombre}`).not.toThrow();
         }
     });
 
@@ -66,17 +91,37 @@ describe("Capa de tokens semánticos (T2-35)", () => {
     });
 });
 
-describe("Modo oscuro (T4-03)", () => {
-    it("redefine todos los colores de la capa semántica, sin dejarse ninguno", () => {
-        // Un token de color que no se redefina hereda el valor claro y aparece como una
-        // isla luminosa. Se compara contra la lista real del `@theme`, no contra una
-        // lista escrita a mano, para que un token nuevo entre en la comprobación solo.
-        const bloqueClaro = css.slice(css.indexOf("@theme"), css.indexOf("@media"));
-        const enClaro = [...bloqueClaro.matchAll(/--(color-[a-z0-9-]+):/g)].map((m) => m[1]);
-        const enOscuro = new Set([...bloqueOscuro.matchAll(/--(color-[a-z0-9-]+):/g)].map((m) => m[1]));
+describe("Modo oscuro (T4-03) y elección de tema (T4-11)", () => {
+    it("cada color de la capa semántica declara sus dos temas", () => {
+        // Se recorren los tokens **realmente declarados**, no una lista escrita a mano, para
+        // que un color nuevo entre solo en la comprobación. Un `--color-*` sin `light-dark()`
+        // valdría lo mismo en los dos temas: en claro no se notaría y en oscuro sería una
+        // isla luminosa.
+        const declarados = [...css.matchAll(/^\s*--(color-[a-z0-9-]+):/gm)].map((m) => m[1]);
 
-        expect(enClaro.length).toBeGreaterThan(20);
-        expect(enClaro.filter((t) => !enOscuro.has(t))).toEqual([]);
+        expect(declarados.length).toBeGreaterThan(20);
+        for (const nombre of declarados) {
+            expect(() => parDeTemas(declaracion(nombre)), `--${nombre}`).not.toThrow();
+        }
+    });
+
+    it("ningún tema se declara por media query", () => {
+        // `prefers-color-scheme` fue el mecanismo de T4-03 y ya no lo es: un bloque así
+        // **ignoraría la elección del usuario**, porque el selector de T4-11 conmuta
+        // `color-scheme` y una media query mira la preferencia del sistema, no la nuestra.
+        // Volver a meter uno rompería el tema manual sin romper nada visible en auto.
+        // Se busca la **regla**, no la palabra: los comentarios de `index.css` explican
+        // precisamente por qué ya no se usa, y prohibir el texto haría fallar la explicación.
+        expect(css).not.toMatch(/@media[^{]*prefers-color-scheme/);
+    });
+
+    it("`color-scheme` es todo el conmutador: auto por defecto y dos anulaciones", () => {
+        // Además de resolver los `light-dark()`, es lo que arrastra a los controles nativos
+        // —barras de scroll, el desplegable de un `<select>`, el relleno automático—, que
+        // ninguna hoja de estilos alcanza.
+        expect(css).toMatch(/:root\s*\{\s*color-scheme:\s*light dark;\s*\}/);
+        expect(css).toMatch(/:root\[data-tema="claro"\]\s*\{\s*color-scheme:\s*light;\s*\}/);
+        expect(css).toMatch(/:root\[data-tema="oscuro"\]\s*\{\s*color-scheme:\s*dark;\s*\}/);
     });
 
     it("el `body` pinta el fondo, no solo el envoltorio de cada pantalla", () => {
@@ -85,31 +130,24 @@ describe("Modo oscuro (T4-03)", () => {
         expect(css).toMatch(/body\s*\{[^}]*background-color:\s*var\(--color-background\)/);
     });
 
-    it("declara `color-scheme` para que los controles nativos acompañen", () => {
-        // Sin esto, las barras de scroll y el desplegable de un `<select>` se quedan
-        // claros: son piezas del navegador que ninguna hoja de estilos alcanza.
-        expect(css).toMatch(/color-scheme:\s*light dark/);
-    });
-
-    it("las sombras se oscurecen por `--tw-shadow-color`, no por el token", () => {
+    it("las sombras llevan los dos colores dentro del token", () => {
         // Esta comprobación nació equivocada y conviene que quede dicho: primero afirmaba
-        // que el bloque oscuro redefiniera `--shadow-raised` / `--shadow-overlay`, pasaba
-        // en verde… y la sombra seguía siendo azul translúcida en el navegador.
+        // que un bloque oscuro redefiniera `--shadow-raised` / `--shadow-overlay`, pasaba en
+        // verde… y la sombra seguía siendo azul translúcida en el navegador.
         //
         // El motivo es que Tailwind **no referencia** esos tokens al compilar: incrusta el
         // color literal en la utilidad (`--tw-shadow: 0 8px 24px var(--tw-shadow-color,
-        // #0f172a1f)`), al revés que los colores, que sí salen como `var(--color-…)`. Así
-        // que redefinir el token no hace nada y el test lo daba por bueno igualmente.
-        //
-        // Lo que se afirma ahora es el mecanismo que sí funciona.
-        expect(css).not.toMatch(/@media \(prefers-color-scheme: dark\)[\s\S]*?--shadow-(raised|overlay):/);
+        // #0f172a1f)`), al revés que los colores, que sí salen como `var(--color-…)`. Como el
+        // literal incrustado es el valor del token, la única forma de que la sombra cambie de
+        // tema es que el par vaya **dentro**; redefinirla desde fuera no hace nada.
+        for (const nombre of ["shadow-raised", "shadow-overlay"]) {
+            const [claro, oscuro] = parDeTemas(declaracion(nombre));
 
-        for (const utilidad of ["shadow-raised", "shadow-overlay"]) {
-            expect(css, `${utilidad} en oscuro`).toMatch(
-                new RegExp(`\\.${utilidad}\\s*\\{[^}]*--tw-shadow-color:\\s*rgb\\(0 0 0`),
-            );
+            expect(claro, `${nombre} en claro`).toMatch(/^rgb\(15 23 42 \//);
+            expect(oscuro, `${nombre} en oscuro`).toMatch(/^rgb\(0 0 0 \//);
         }
     });
+
 
     it("no es la paleta clara invertida: los estados se aclaran", () => {
         // Invertir daría un rojo casi negro. La regla es aclarar y desaturar, y se

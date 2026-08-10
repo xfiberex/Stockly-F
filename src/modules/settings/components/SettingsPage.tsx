@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/shared/components/Button";
 import { Spinner } from "@/shared/components/Spinner";
+import { SelectorDeTema } from "@/modules/settings/components/SelectorDeTema";
 import { useSettings, useUpdateSettings } from "@/modules/settings/hooks/useSettings";
 import type { SettingUpdates, SettingValue } from "@/modules/settings/types/settings.types";
 
@@ -24,7 +25,10 @@ function BooleanToggle({ value, onChange }: { value: SettingValue; onChange: (va
             className="group inline-flex min-h-11 items-center rounded-full focus:outline-none md:min-h-0"
         >
             <span
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors group-focus-visible:ring-2 group-focus-visible:ring-accent group-focus-visible:ring-offset-2 ${isOn ? "bg-primary" : "bg-border"}`}
+                // `ring-offset-surface` (T4-11): el hueco de 2px entre el control y el anillo
+                // lo pinta Tailwind de blanco por defecto —`--tw-ring-offset-color: #fff`—,
+                // así que en tema oscuro el foco dibujaba un halo blanco sobre la tarjeta.
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors group-focus-visible:ring-2 group-focus-visible:ring-accent group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-surface ${isOn ? "bg-primary" : "bg-border"}`}
             >
                 <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-surface shadow transition-transform ${isOn ? "translate-x-6" : "translate-x-1"}`}
@@ -67,10 +71,31 @@ export default function SettingsPage() {
 
     return (
         <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
-            <div className="flex items-center justify-between gap-3">
+            <div>
+                <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
+                <p className="text-sm text-foreground-muted mt-1">Preferencias de este dispositivo y ajustes de la aplicación</p>
+            </div>
+
+            {/*
+              * T4-11 — el tema va en su propia tarjeta, y no en la lista de abajo, porque no
+              * es lo mismo: los ajustes de la aplicación los comparten todos los usuarios y
+              * se confirman con «Guardar cambios»; el tema es local y se aplica al instante.
+              * Por eso el botón bajó del encabezado de la página a la tarjeta que le
+              * corresponde: ahí arriba parecía gobernar también esta sección.
+              */}
+            <section className="bg-surface rounded-xl border border-border px-6 py-5">
+                <h2 className="text-base font-semibold text-foreground">Apariencia</h2>
+                <div className="mt-4">
+                    <SelectorDeTema />
+                </div>
+            </section>
+
+            {/* En móvil el título se apila sobre el botón: en una fila, «Ajustes de la
+                aplicación» parte en dos líneas y queda apretado contra «Guardar cambios». */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
-                    <p className="text-sm text-foreground-muted mt-1">Ajustes generales de la aplicación</p>
+                    <h2 className="text-base font-semibold text-foreground">Ajustes de la aplicación</h2>
+                    <p className="text-xs text-foreground-muted mt-0.5">Afectan a todos los usuarios</p>
                 </div>
                 <Button onClick={handleSave} disabled={!isDirty} isLoading={updateMutation.isPending}>
                     Guardar cambios
