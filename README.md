@@ -227,11 +227,26 @@ Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>`. Las rutas 
 
 ---
 
+## Sistema de diseño
+
+**[docs/design-system.md](docs/design-system.md) — léelo antes de añadir una pantalla.**
+
+Recoge los tokens de color con sus contrastes medidos, la escala tipográfica, la convención
+de radios y elevación, el perfil de densidad con su excepción táctil, el semáforo de estado
+y la regla que gobierna el resto: **el color comunica estado, nunca decora**.
+
+No es una guía de estilo opcional. Cada sección dice qué test la vigila, y varias de esas
+reglas ponen `pnpm verify` en rojo si se incumplen: una utilidad cruda de la paleta de
+Tailwind, un radio fuera de los tres permitidos o una sombra que no sea uno de los dos
+tokens de elevación fallan al ejecutar la suite, no en revisión.
+
+---
+
 ## Componentes shared
 
 | Componente | Descripción |
 |---|---|
-| `Badge` | Chip de estado con variantes `success`, `danger`, `orange`, `blue`, `purple`, `teal`, `gray` |
+| `Badge` | Chip de estado con variantes `neutral`, `success`, `warning`, `danger`, `info` (T2-36 retiró las decorativas) y su icono |
 | `Button` | Botón con variantes `primary`, `secondary`, `ghost`, `danger` y estado `isLoading` |
 | `DropdownButton` | Botón con menú desplegable de acciones |
 | `Input` | Campo de texto con label, error y forwarded ref |
@@ -241,6 +256,38 @@ Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>`. Las rutas 
 | `ProtectedRoute` | Wrapper que valida JWT y redirige al login |
 
 ---
+
+## Tooling de IA versionado (`.agents/`, `.claude/`)
+
+**Están en el repositorio a propósito.** No es un descuido ni un `.gitignore` que falta:
+Stockly se trabaja desde varias máquinas y las skills tienen que viajar con el proyecto,
+igual que el `README`. Quien clone Stockly-F se lleva el mismo tooling que quien lo escribió.
+
+La contrapartida está medida: **294 archivos bajo `.agents/` y 164 bajo
+`.claude/`, de 649 rastreados en total**. Eso ensucia dos cosas, y cada una tiene su
+remedio:
+
+| Ruido | Remedio |
+|---|---|
+| GitHub cuenta esos markdown como el lenguaje del proyecto | `.gitattributes` los marca `linguist-vendored` |
+| Las búsquedas por texto devuelven sobre todo documentación | El alias `git buscar` de `.gitconfig-stockly` |
+
+El alias hay que activarlo **una vez por clon**, porque vive en `.git/config`, que no se
+versiona:
+
+```bash
+git config --local include.path ../.gitconfig-stockly
+```
+
+A partir de ahí:
+
+```bash
+git buscar useForm            # solo código de la aplicación
+git buscar-archivos -i zod    # solo los archivos que coinciden
+```
+
+La diferencia es la que hace falta: ``git grep -il z.object` devuelve 59 archivos; `git buscar-archivos` devuelve 6`. Sin activarlo, el equivalente a mano es
+`git grep X -- ':!.agents' ':!.claude'`.
 
 ## Credenciales seed
 

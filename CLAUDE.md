@@ -13,7 +13,7 @@ SPA de React 19 sobre Vite. El backend vive en un repositorio hermano, `Stockly-
 Está en el repositorio del backend, en `Stockly-B/docs/`, y cubre **los dos repositorios**:
 
 - `docs/CONTEXTO.md` — **empieza aquí al retomar el proyecto:** estado actual, decisiones vivas, trampas del entorno ya pagadas y por dónde seguir.
-- `docs/ROADMAP.md` — 104 tareas con dependencias, progreso y métricas. La fuente de verdad del trabajo pendiente.
+- `docs/ROADMAP.md` — 107 tareas con dependencias, progreso y métricas. La fuente de verdad del trabajo pendiente.
 - `docs/INFORME-AUDITORIA.md` — los hallazgos que justifican cada tarea.
 - `docs/README-proyecto.md` — visión de conjunto y arranque.
 
@@ -39,6 +39,7 @@ El E2E sube el techo del rate limit del backend con `RATE_LIMIT_MAX` y `AUTH_RAT
 
 - Gestor de paquetes: **pnpm 11.21.0** (fijado en `packageManager`, igual que el backend). No usar npm ni yarn. Se subió desde 11.2.2 el 2026-08-09: las versiones `<11.8.0` arrastraban avisos de path traversal y de ejecución de lifecycle scripts.
 - Comentarios y documentación **en español**, como el resto del código.
+- **`.agents/` y `.claude/` se versionan a propósito** (T3-06): el proyecto se trabaja desde varias máquinas y el tooling viaja con él. Son la mayoría de los archivos rastreados, así que para buscar en el código conviene excluirlos: `git buscar X` —tras activar una vez `git config --local include.path ../.gitconfig-stockly`— o `git grep X -- ":!.agents" ":!.claude"`.
 - Las credenciales del E2E salen del seed del backend y son sobreescribibles por variables de entorno. **Nunca poner una contraseña real** en `e2e/`: ese directorio está versionado, y una fuga así ya obligó a reescribir el historial (tarea T0-06).
 
 ## CodeGraph

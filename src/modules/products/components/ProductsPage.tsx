@@ -6,6 +6,7 @@ import { ProductForm } from "@/modules/products/components/ProductForm";
 import { ManualMovementModal } from "@/modules/products/components/ManualMovementModal";
 import { BulkStockModal } from "@/modules/products/components/BulkStockModal";
 import { Button } from "@/shared/components/Button";
+import { cn } from "@/shared/lib/cn";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { useProducts } from "@/modules/products/hooks/useProducts";
 import { useImportProducts } from "@/modules/products/hooks/useImportProducts";
@@ -131,8 +132,22 @@ export default function ProductsPage() {
     const totalPages = data?.meta.totalPages ?? 1;
     const allProducts = data?.data ?? [];
 
+    // T3-09 — el botón flotante es `fixed`, así que no ocupa sitio en el flujo y se
+    // planta encima de lo último que haya en la página: los controles de paginación,
+    // que van alineados a la derecha igual que él. **Verificado en navegador antes de
+    // arreglarlo, y no era solo cuestión de verse mal:** `elementFromPoint` en el centro
+    // de «Anterior» y «Siguiente» devolvía el botón flotante, así que la pulsación no
+    // llegaba. Ocurre a 375 px y también a 1280, porque lo que los junta no es el ancho
+    // sino que ambos viven abajo a la derecha.
+    //
+    // El hueco reserva el alto del botón (44 px) más su separación del borde (24 px) y
+    // un margen: al llegar al final del scroll, la paginación queda por encima de él.
+    // Solo se añade cuando el botón existe, para no dejar un hueco muerto el resto del
+    // tiempo — que es lo que pasaría con un `pb` fijo en el contenedor.
+    const flotanteVisible = isAdmin && selectedIds.size === 1;
+
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        <div className={cn("max-w-7xl mx-auto px-6 py-8 space-y-6", flotanteVisible && "pb-28")}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">Productos</h1>
@@ -220,7 +235,7 @@ export default function ProductsPage() {
             )}
 
             {/* Acceso rápido: botón flotante de movimiento manual para el primero seleccionado */}
-            {isAdmin && selectedIds.size === 1 && (
+            {flotanteVisible && (
                 <div className="fixed bottom-6 right-6 z-50">
                     <Button
                         onClick={() => {

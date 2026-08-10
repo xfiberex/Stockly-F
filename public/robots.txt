@@ -1,0 +1,16 @@
+# Stockly — T3-12
+#
+# La aplicación está entera detrás de autenticación y no tiene contenido público
+# indexable. Que no haya SSR, sitemap ni datos estructurados es la decisión correcta,
+# no un descuido; esto lo declara en voz alta para que se lea como tal.
+#
+# Ojo con lo que este archivo **no** hace: prohibir el rastreo no es prohibir la
+# indexación. Un buscador que encuentre un enlace a esta URL puede listarla igualmente,
+# sin descripción, porque no puede entrar a ver que no debe. De ahí el `noindex` del
+# `index.html`, que sí lo prohíbe — y que solo se lee si el rastreador llega a la página.
+# Los dos juntos cubren los dos caminos: este archivo, cuando se sirve desde la raíz; la
+# etiqueta, cuando la aplicación se monta bajo un subdirectorio ajeno donde el
+# `robots.txt` de la raíz no es suyo.
+
+User-agent: *
+Disallow: /

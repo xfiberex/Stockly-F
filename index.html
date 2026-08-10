@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      T3-12 — aplicación privada: nada de esto debe aparecer en un buscador.
+      Acompaña al `Disallow: /` de `public/robots.txt` y cubre el caso que aquel no
+      puede: un rastreador que llegue a la página igualmente. Ver el comentario de ese
+      archivo, que explica por qué hacen falta los dos y no solo uno.
+    -->
+    <meta name="robots" content="noindex, nofollow" />
     <title>Stockly — Gestión de inventario</title>
     <meta
       name="description"

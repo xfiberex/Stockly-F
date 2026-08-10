@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentType, type SVGProps } from "react";
 import { Outlet, NavLink, Link, useLocation } from "react-router-dom";
 import {
     CubeIcon,
@@ -21,29 +21,87 @@ import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 
-const navLinks = [
-    { to: "/", label: "Dashboard", end: true, Icon: HomeIcon },
-    { to: "/reports", label: "Reportes", end: false, Icon: ChartBarIcon },
+/**
+ * T3-04 — la barra de navegación, en un solo array y en su orden real.
+ *
+ * Antes eran cuatro arrays y el orden de la barra no estaba en ninguno: los dos enlaces
+ * sueltos vivían juntos en `navLinks` y se separaban al pintarlos con `navLinks.slice(0, 1)`
+ * y `navLinks.slice(1)` para colar los desplegables en medio. Añadir «Reportes» al final
+ * exigía darse cuenta de que el índice 1 significaba «después de Órdenes».
+ *
+ * Ahora el array **es** el orden. Cada elemento dice de qué tipo es, y quien pinta decide
+ * cómo, no cuándo.
+ */
+type EnlaceDeNav = {
+    kind: "link";
+    to: string;
+    label: string;
+    end: boolean;
+    Icon: ComponentType<SVGProps<SVGSVGElement>>;
+};
+
+type DesplegableDeNav = {
+    kind: "dropdown";
+    label: string;
+    Icon: ComponentType<SVGProps<SVGSVGElement>>;
+    items: { to: string; label: string }[];
+    /** Ancho del panel; lo fija el rótulo más largo de `items`. */
+    width: string;
+    /** Rutas que dejan el disparador marcado. Sin esto, el desplegable nunca se resalta. */
+    activoEn?: (pathname: string) => boolean;
+    soloAdmin?: boolean;
+};
+
+type ElementoDeNav = EnlaceDeNav | DesplegableDeNav;
+
+const NAVEGACION: ElementoDeNav[] = [
+    { kind: "link", to: "/", label: "Dashboard", end: true, Icon: HomeIcon },
+    {
+        kind: "dropdown",
+        label: "Catálogo",
+        Icon: Squares2X2Icon,
+        width: "w-40",
+        activoEn: (pathname) => pathname.startsWith("/catalog"),
+        items: [
+            { to: "/catalog/products", label: "Productos" },
+            { to: "/catalog/categories", label: "Categorías" },
+            { to: "/catalog/brands", label: "Marcas" },
+            { to: "/catalog/suppliers", label: "Proveedores" },
+            { to: "/catalog/tags", label: "Etiquetas" },
+        ],
+    },
+    {
+        kind: "dropdown",
+        label: "Órdenes",
+        Icon: ClipboardDocumentListIcon,
+        width: "w-36",
+        activoEn: (pathname) => pathname === "/purchase-orders" || pathname === "/sale-orders",
+        items: [
+            { to: "/purchase-orders", label: "Compra" },
+            { to: "/sale-orders", label: "Venta" },
+        ],
+    },
+    { kind: "link", to: "/reports", label: "Reportes", end: false, Icon: ChartBarIcon },
+    {
+        kind: "dropdown",
+        label: "Admin",
+        Icon: ShieldCheckIcon,
+        width: "w-44",
+        soloAdmin: true,
+        items: [
+            { to: "/admin/users", label: "Usuarios" },
+            { to: "/audit-logs", label: "Auditoría" },
+            { to: "/settings", label: "Configuración" },
+        ],
+    },
 ];
 
-const catalogLinks = [
-    { to: "/catalog/products", label: "Productos" },
-    { to: "/catalog/categories", label: "Categorías" },
-    { to: "/catalog/brands", label: "Marcas" },
-    { to: "/catalog/suppliers", label: "Proveedores" },
-    { to: "/catalog/tags", label: "Etiquetas" },
-];
+/** Un desplegable de administración solo existe para quien lo es. */
+const visibleDeNav = (elemento: ElementoDeNav, isAdmin: boolean) =>
+    elemento.kind !== "dropdown" || !elemento.soloAdmin || isAdmin;
 
-const orderLinks = [
-    { to: "/purchase-orders", label: "Compra" },
-    { to: "/sale-orders", label: "Venta" },
-];
-
-const adminLinks = [
-    { to: "/admin/users", label: "Usuarios" },
-    { to: "/audit-logs", label: "Auditoría" },
-    { to: "/settings", label: "Configuración" },
-];
+const esEnlace = (elemento: ElementoDeNav): elemento is EnlaceDeNav => elemento.kind === "link";
+const esDesplegable = (elemento: ElementoDeNav): elemento is DesplegableDeNav => elemento.kind === "dropdown";
 
 function UserMenu({ name, email }: { name: string; email?: string }) {
     // T2-16: el cierre al pulsar fuera estaba duplicado con `NavDropdown` y ninguno de
@@ -152,8 +210,12 @@ const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
 function MobileMenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate: () => void }) {
     return (
         <div className="lg:hidden border-t border-border bg-surface px-4 py-3 space-y-4">
+            {/* T3-04: mismo array que el escritorio, agrupado por tipo en vez de por
+                índice. El móvil no respeta el orden de la barra a propósito —los enlaces
+                sueltos arriba y las secciones desplegadas debajo, con subtítulo—, y eso
+                se lee ahora en el `filter`, que dice qué agrupa, no en un `slice`. */}
             <div className="space-y-1">
-                {navLinks.map(({ to, label, end, Icon }) => (
+                {NAVEGACION.filter(esEnlace).map(({ to, label, end, Icon }) => (
                     <NavLink key={to} to={to} end={end} onClick={onNavigate} className={mobileLinkClass}>
                         <Icon className="h-4 w-4" />
                         {label}
@@ -161,9 +223,17 @@ function MobileMenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate: () 
                 ))}
             </div>
 
-            <MobileSection icon={Squares2X2Icon} label="Catálogo" links={catalogLinks} onNavigate={onNavigate} />
-            <MobileSection icon={ClipboardDocumentListIcon} label="Órdenes" links={orderLinks} onNavigate={onNavigate} />
-            {isAdmin && <MobileSection icon={ShieldCheckIcon} label="Admin" links={adminLinks} onNavigate={onNavigate} />}
+            {NAVEGACION.filter(esDesplegable)
+                .filter((elemento) => visibleDeNav(elemento, isAdmin))
+                .map((elemento) => (
+                    <MobileSection
+                        key={elemento.label}
+                        icon={elemento.Icon}
+                        label={elemento.label}
+                        links={elemento.items}
+                        onNavigate={onNavigate}
+                    />
+                ))}
         </div>
     );
 }
@@ -174,7 +244,7 @@ function MobileSection({
     links,
     onNavigate,
 }: {
-    icon: typeof Squares2X2Icon;
+    icon: ComponentType<SVGProps<SVGSVGElement>>;
     label: string;
     links: { to: string; label: string }[];
     onNavigate: () => void;
@@ -200,9 +270,6 @@ function App() {
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
     const { pathname } = useLocation();
-
-    const catalogActive = pathname.startsWith("/catalog");
-    const ordersActive = pathname === "/purchase-orders" || pathname === "/sale-orders";
 
     // El menú se cierra solo al cambiar de ruta, sin sincronizarlo con un efecto:
     // se guarda la ruta en la que se abrió y el estado se deriva en render. Al
@@ -259,23 +326,25 @@ function App() {
                         Stockly
                     </div>
 
-                    {/* Navegación de escritorio */}
+                    {/* Navegación de escritorio: un solo recorrido, en el orden del array. */}
                     <div className="hidden lg:flex gap-1 flex-1 items-center">
-                        {navLinks.slice(0, 1).map(({ to, label, end, Icon }) => (
-                            <NavLink key={to} to={to} end={end} className={desktopLinkClass}>
-                                <Icon className="h-3.5 w-3.5" />
-                                {label}
-                            </NavLink>
-                        ))}
-                        <NavDropdown label="Catálogo" Icon={Squares2X2Icon} items={catalogLinks} isActive={catalogActive} width="w-40" />
-                        <NavDropdown label="Órdenes" Icon={ClipboardDocumentListIcon} items={orderLinks} isActive={ordersActive} width="w-36" />
-                        {navLinks.slice(1).map(({ to, label, end, Icon }) => (
-                            <NavLink key={to} to={to} end={end} className={desktopLinkClass}>
-                                <Icon className="h-3.5 w-3.5" />
-                                {label}
-                            </NavLink>
-                        ))}
-                        {isAdmin && <NavDropdown label="Admin" Icon={ShieldCheckIcon} items={adminLinks} width="w-44" />}
+                        {NAVEGACION.filter((elemento) => visibleDeNav(elemento, isAdmin)).map((elemento) =>
+                            elemento.kind === "link" ? (
+                                <NavLink key={elemento.to} to={elemento.to} end={elemento.end} className={desktopLinkClass}>
+                                    <elemento.Icon className="h-3.5 w-3.5" />
+                                    {elemento.label}
+                                </NavLink>
+                            ) : (
+                                <NavDropdown
+                                    key={elemento.label}
+                                    label={elemento.label}
+                                    Icon={elemento.Icon}
+                                    items={elemento.items}
+                                    isActive={elemento.activoEn?.(pathname) ?? false}
+                                    width={elemento.width}
+                                />
+                            ),
+                        )}
                     </div>
 
                     <div className="flex items-center gap-1 ml-auto lg:ml-0">
