@@ -135,21 +135,35 @@
   --shadow-raised: 0 1px 2px light-dark(rgb(15 23 42 / 0.06), rgb(0 0 0 / 0.5));
   --shadow-overlay: 0 8px 24px light-dark(rgb(15 23 42 / 0.12), rgb(0 0 0 / 0.7));
 
-  /*
-   * Paleta de los gráficos (T4-03).
-   *
-   * Estaba escrita como hexadecimales dentro de los tres componentes de Recharts, y
-   * ningún test lo detectaba: `tokens.test.ts` busca utilidades de Tailwind, y aquí
-   * `fill` y `stroke` son props, no clases. Con el modo oscuro eso dejaba de ser una
-   * deuda estética — los gráficos se quedaban en colores de tema claro sobre un fondo
-   * oscuro.
-   *
-   * Son ocho series **categóricas** —para distinguir cosas que no son estados, como las
-   * categorías de una tarta— más la rejilla. Lo que sí es un estado no sale de aquí: las
-   * entradas de stock van en `--color-success`, las salidas en `--color-danger` y la
-   * línea de stock mínimo en `--color-warning`, que es la regla del sistema de diseño —
-   * el color comunica estado, nunca decora—.
-   */
+  /* Movimiento */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/*
+ * Paleta de los gráficos (T4-03).
+ *
+ * Estaba escrita como hexadecimales dentro de los tres componentes de Recharts, y
+ * ningún test lo detectaba: `tokens.test.ts` busca utilidades de Tailwind, y aquí
+ * `fill` y `stroke` son props, no clases. Con el modo oscuro eso dejaba de ser una
+ * deuda estética — los gráficos se quedaban en colores de tema claro sobre un fondo
+ * oscuro.
+ *
+ * Son ocho series **categóricas** —para distinguir cosas que no son estados, como las
+ * categorías de una tarta— más la rejilla. Lo que sí es un estado no sale de aquí: las
+ * entradas de stock van en `--color-success`, las salidas en `--color-danger` y la
+ * línea de stock mínimo en `--color-warning`, que es la regla del sistema de diseño —
+ * el color comunica estado, nunca decora—.
+ *
+ * **Va en un `@theme static` aparte, y no puede volver al bloque de arriba.** Un `@theme`
+ * normal solo emite las variables cuyo nombre Tailwind encuentra escrito en el código
+ * fuente; las demás desaparecen del CSS compilado. Y estas no están escritas: la paleta
+ * se construye por plantilla en `shared/lib/grafico.ts`
+ * (`var(--color-chart-${i + 1})`), así que el escáner solo veía las tres que además
+ * aparecen literales en un componente —1, 2 y 5—. Las otras cinco quedaban sin declarar,
+ * `fill="var(--color-chart-3)"` no resolvía y Recharts caía a negro: media tarta de
+ * `/reports` en negro sobre fondo oscuro. `static` las emite siempre.
+ */
+@theme static {
   --color-chart-1: light-dark(#3b82f6, #60a5fa);
   --color-chart-2: light-dark(#10b981, #34d399);
   --color-chart-3: light-dark(#f59e0b, #fbbf24);
@@ -159,9 +173,6 @@
   --color-chart-7: light-dark(#06b6d4, #22d3ee);
   --color-chart-8: light-dark(#84cc16, #a3e635);
   --color-chart-grid: light-dark(#f3f4f6, #2f3a4d);
-
-  /* Movimiento */
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
 /*

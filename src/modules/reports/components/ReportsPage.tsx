@@ -112,15 +112,25 @@ export default function ReportsPage() {
                 <div className="bg-surface rounded-xl border border-border p-6">
                     <h2 className="text-base font-semibold text-foreground mb-6">{t("reportes.distribucion")}</h2>
                     <ResponsiveContainer width="100%" height={290}>
-                        <PieChart>
+                        <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                             <Pie
                                 data={stockByCategory}
                                 dataKey="stock"
                                 nameKey="name"
                                 cx="50%"
                                 cy="50%"
-                                outerRadius={90}
-                                label={({ name, percent }) => `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`}
+                                // Radio en porcentaje, no en píxeles: la leyenda ocupa una o dos
+                                // filas según el ancho, y con `outerRadius={90}` fijo la tarta no
+                                // encogía al reducirse el área — se salía por arriba del SVG, que
+                                // no recorta, y las etiquetas acababan encima del título.
+                                outerRadius="70%"
+                                // Solo el porcentaje: los nombres los da la leyenda. «Almacenamiento
+                                // (19%)» dibujado fuera del arco se sale por los lados en cuanto la
+                                // tarjeta se estrecha, y las porciones pequeñas se pisaban entre sí.
+                                // Por debajo del 5% no cabe ni el porcentaje: se calla.
+                                label={({ percent }) =>
+                                    (percent ?? 0) < 0.05 ? "" : `${((percent ?? 0) * 100).toFixed(0)}%`
+                                }
                                 labelLine={false}
                             >
                                 {stockByCategory.map((_, i) => (

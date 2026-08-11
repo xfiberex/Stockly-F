@@ -74,7 +74,8 @@ describe("Capa de tokens semánticos (T2-35)", () => {
             "color-success", "color-warning", "color-danger", "color-info",
             "color-success-surface", "color-warning-surface", "color-danger-surface", "color-info-surface",
             "color-chart-1", "color-chart-2", "color-chart-3", "color-chart-4",
-            "color-chart-5", "color-chart-6", "color-chart-grid",
+            "color-chart-5", "color-chart-6", "color-chart-7", "color-chart-8",
+            "color-chart-grid",
             "shadow-raised", "shadow-overlay", "ease-standard",
             "duration-fast", "duration-base",
         ];
@@ -82,6 +83,23 @@ describe("Capa de tokens semánticos (T2-35)", () => {
         for (const nombre of esperados) {
             expect(() => declaracion(nombre), `--${nombre}`).not.toThrow();
         }
+    });
+
+    it("la paleta de gráficos se declara en un `@theme static`", () => {
+        // No es una preferencia de estilo. Un `@theme` normal solo emite las variables cuyo
+        // nombre Tailwind encuentra escrito en el código, y la paleta se construye por
+        // plantilla en `shared/lib/grafico.ts`: de las ocho, solo salían al CSS compilado las
+        // tres que además aparecen literales en un componente. Las otras cinco no llegaban a
+        // declararse y Recharts pintaba las porciones en negro. El fallo era invisible desde
+        // el CSS —los tokens están escritos ahí, con su comentario— y solo se veía en la
+        // pantalla, así que se vigila desde aquí.
+        const bloque = /@theme static\s*\{([^}]*)\}/.exec(css);
+
+        expect(bloque, "no hay ningún bloque @theme static").not.toBeNull();
+        for (let i = 1; i <= 8; i++) {
+            expect(bloque![1], `--color-chart-${i}`).toContain(`--color-chart-${i}:`);
+        }
+        expect(bloque![1]).toContain("--color-chart-grid:");
     });
 
     // Precisión 1 de la tarea: redefinir los radios de Tailwind cambiaría de golpe
