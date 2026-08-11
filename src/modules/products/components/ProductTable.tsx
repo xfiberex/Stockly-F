@@ -50,7 +50,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
 
     if (products.length === 0) {
         return (
-            <div className="py-16 text-center text-sm text-foreground-muted">No se encontraron productos</div>
+            <div className="py-16 text-center text-sm text-foreground-muted">{t("productos.sinResultados")}</div>
         );
     }
 
@@ -95,7 +95,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                 <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center md:min-h-0 md:min-w-0">
                                     <input
                                         type="checkbox"
-                                        aria-label="Seleccionar todos los productos de esta página"
+                                        aria-label={t("productos.tabla.seleccionarTodos")}
                                         ref={(el) => {
                                             // El estado indeterminado no existe como atributo:
                                             // solo se puede poner por propiedad. Sin él, una
@@ -110,14 +110,14 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                 </label>
                             </th>
                         )}
-                        <th className="px-4 py-3 lg:py-1.5">Imagen</th>
-                        <th className="px-4 py-3 lg:py-1.5">Nombre / SKU</th>
-                        <th className="px-4 py-3 lg:py-1.5">Categoría</th>
-                        <th className="px-4 py-3 lg:py-1.5">Marca</th>
-                        <th className="px-4 py-3 lg:py-1.5 text-right">Precio</th>
-                        <th className="px-4 py-3 lg:py-1.5">Stock / Mín</th>
-                        <th className="px-4 py-3 lg:py-1.5">Estado</th>
-                        <th className="px-4 py-3 lg:py-1.5 text-right">Acciones</th>
+                        <th className="px-4 py-3 lg:py-1.5">{t("productos.tabla.imagen")}</th>
+                        <th className="px-4 py-3 lg:py-1.5">{t("productos.tabla.nombreSku")}</th>
+                        <th className="px-4 py-3 lg:py-1.5">{t("productos.campo.categoria")}</th>
+                        <th className="px-4 py-3 lg:py-1.5">{t("productos.campo.marca")}</th>
+                        <th className="px-4 py-3 lg:py-1.5 text-right">{t("productos.campo.precio")}</th>
+                        <th className="px-4 py-3 lg:py-1.5">{t("productos.tabla.stockMin")}</th>
+                        <th className="px-4 py-3 lg:py-1.5">{t("comun.estado")}</th>
+                        <th className="px-4 py-3 lg:py-1.5 text-right">{t("comun.acciones")}</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-border bg-surface">
@@ -148,7 +148,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                                 // `sr-only` dentro de la etiqueta: ese texto se suma
                                                 // al árbol de texto de la fila y el nombre del
                                                 // producto pasaba a aparecer dos veces en ella.
-                                                aria-label={`Seleccionar ${product.name}`}
+                                                aria-label={t("productos.tabla.seleccionar", { nombre: product.name })}
                                                 checked={selectedIds?.has(product.id) ?? false}
                                                 onChange={() => onToggleSelect!(product.id)}
                                                 className="h-4 w-4 rounded border-border text-info focus:ring-accent"
@@ -240,8 +240,8 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                         <Button
                                             variant="ghost"
                                             type="button"
-                                            title="Ver detalles"
-                                            aria-label={`Ver detalles de ${product.name}`}
+                                            title={t("productos.tabla.verDetalles")}
+                                            aria-label={t("productos.tabla.verDetallesDe", { nombre: product.name })}
                                             onClick={() => setDetailProduct(product)}
                                         >
                                             <EyeIcon className="h-4 w-4 text-foreground-muted" />
@@ -253,8 +253,8 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                             el enlace y toma prestadas las clases del botón. */}
                                         <Link
                                             to={`/catalog/products/${product.id}/movements`}
-                                            title="Historial de movimientos"
-                                            aria-label={`Historial de movimientos de ${product.name}`}
+                                            title={t("productos.tabla.historial")}
+                                            aria-label={t("productos.tabla.historialDe", { nombre: product.name })}
                                             className={clasesDeBoton("ghost")}
                                         >
                                             <ChartBarIcon className="h-4 w-4 text-info" />
@@ -264,8 +264,8 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                                 <Button
                                                     variant="ghost"
                                                     onClick={() => onEdit(product)}
-                                                    title="Editar"
-                                                    aria-label={`Editar ${product.name}`}
+                                                    title={t("comun.editar")}
+                                                    aria-label={t("productos.tabla.editarNombre", { nombre: product.name })}
                                                 >
                                                     <PencilIcon className="h-4 w-4" />
                                                 </Button>
@@ -273,8 +273,8 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                                     variant="ghost"
                                                     isLoading={deleteMutation.isPending}
                                                     onClick={() => deleteMutation.mutate(product.id)}
-                                                    title="Eliminar"
-                                                    aria-label={`Eliminar ${product.name}`}
+                                                    title={t("comun.eliminar")}
+                                                    aria-label={t("productos.tabla.eliminarNombre", { nombre: product.name })}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>
@@ -285,8 +285,8 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                                 variant="ghost"
                                                 isLoading={restoreMutation.isPending}
                                                 onClick={() => restoreMutation.mutate(product.id)}
-                                                title="Restaurar"
-                                                aria-label={`Restaurar ${product.name}`}
+                                                title={t("comun.restaurar")}
+                                                aria-label={t("productos.tabla.restaurarNombre", { nombre: product.name })}
                                             >
                                                 <ArrowPathIcon className="h-4 w-4 text-success" />
                                             </Button>

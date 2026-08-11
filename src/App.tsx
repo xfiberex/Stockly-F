@@ -20,6 +20,8 @@ import { NavDropdown } from "@/shared/components/NavDropdown";
 import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
 import { useAuth } from "@/modules/auth/hooks/useMe";
+import { useT } from "@/shared/hooks/useIdioma";
+import type { Clave } from "@/shared/i18n/traducir";
 
 /**
  * T3-04 — la barra de navegación, en un solo array y en su orden real.
@@ -32,19 +34,23 @@ import { useAuth } from "@/modules/auth/hooks/useMe";
  * Ahora el array **es** el orden. Cada elemento dice de qué tipo es, y quien pinta decide
  * cómo, no cuándo.
  */
+// T4-04: `label` es la **clave** del catálogo, no el rótulo. Este array se construye al
+// cargar el módulo y el idioma se decide al pintar, así que un texto ya traducido se
+// quedaría congelado en el que hubiera al arrancar. Los destinos reutilizan las claves
+// `ruta.*`: el rótulo del enlace y el título de la sección son el mismo texto.
 type EnlaceDeNav = {
     kind: "link";
     to: string;
-    label: string;
+    label: Clave;
     end: boolean;
     Icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
 type DesplegableDeNav = {
     kind: "dropdown";
-    label: string;
+    label: Clave;
     Icon: ComponentType<SVGProps<SVGSVGElement>>;
-    items: { to: string; label: string }[];
+    items: { to: string; label: Clave }[];
     /** Ancho del panel; lo fija el rótulo más largo de `items`. */
     width: string;
     /** Rutas que dejan el disparador marcado. Sin esto, el desplegable nunca se resalta. */
@@ -55,43 +61,43 @@ type DesplegableDeNav = {
 type ElementoDeNav = EnlaceDeNav | DesplegableDeNav;
 
 const NAVEGACION: ElementoDeNav[] = [
-    { kind: "link", to: "/", label: "Dashboard", end: true, Icon: HomeIcon },
+    { kind: "link", to: "/", label: "ruta.dashboard", end: true, Icon: HomeIcon },
     {
         kind: "dropdown",
-        label: "Catálogo",
+        label: "ruta.catalogo",
         Icon: Squares2X2Icon,
         width: "w-40",
         activoEn: (pathname) => pathname.startsWith("/catalog"),
         items: [
-            { to: "/catalog/products", label: "Productos" },
-            { to: "/catalog/categories", label: "Categorías" },
-            { to: "/catalog/brands", label: "Marcas" },
-            { to: "/catalog/suppliers", label: "Proveedores" },
-            { to: "/catalog/tags", label: "Etiquetas" },
+            { to: "/catalog/products", label: "ruta.productos" },
+            { to: "/catalog/categories", label: "ruta.categorias" },
+            { to: "/catalog/brands", label: "ruta.marcas" },
+            { to: "/catalog/suppliers", label: "ruta.proveedores" },
+            { to: "/catalog/tags", label: "ruta.etiquetas" },
         ],
     },
     {
         kind: "dropdown",
-        label: "Órdenes",
+        label: "nav.ordenes",
         Icon: ClipboardDocumentListIcon,
         width: "w-36",
         activoEn: (pathname) => pathname === "/purchase-orders" || pathname === "/sale-orders",
         items: [
-            { to: "/purchase-orders", label: "Compra" },
-            { to: "/sale-orders", label: "Venta" },
+            { to: "/purchase-orders", label: "nav.compra" },
+            { to: "/sale-orders", label: "nav.venta" },
         ],
     },
-    { kind: "link", to: "/reports", label: "Reportes", end: false, Icon: ChartBarIcon },
+    { kind: "link", to: "/reports", label: "ruta.reportes", end: false, Icon: ChartBarIcon },
     {
         kind: "dropdown",
-        label: "Admin",
+        label: "nav.admin",
         Icon: ShieldCheckIcon,
         width: "w-44",
         soloAdmin: true,
         items: [
-            { to: "/admin/users", label: "Usuarios" },
-            { to: "/audit-logs", label: "Auditoría" },
-            { to: "/settings", label: "Configuración" },
+            { to: "/admin/users", label: "ruta.usuarios" },
+            { to: "/audit-logs", label: "nav.auditoria" },
+            { to: "/settings", label: "ruta.configuracion" },
         ],
     },
 ];
@@ -108,6 +114,7 @@ function UserMenu({ name, email }: { name: string; email?: string }) {
     // los dos cerraba con Escape. Los dos usan ahora el mismo hook.
     const { abierto: open, contenedor, disparador, alternar, cerrar } = useMenuDesplegable();
     const logout = useLogout();
+    const { t } = useT();
 
     const initials = name
         .split(" ")
@@ -121,7 +128,7 @@ function UserMenu({ name, email }: { name: string; email?: string }) {
             <button
                 ref={disparador}
                 onClick={alternar}
-                aria-label="Menú de usuario"
+                aria-label={t("nav.menuUsuario")}
                 aria-haspopup="menu"
                 aria-expanded={open}
                 // El disparador se delimita igual que los ítems que abre: borde
@@ -160,7 +167,7 @@ function UserMenu({ name, email }: { name: string; email?: string }) {
                         className={clasesDeItemDeMenu("text-foreground")}
                     >
                         <UserCircleIcon className="h-4 w-4 text-foreground-muted" />
-                        Mi perfil
+                        {t("ruta.perfil")}
                     </Link>
                     <div className="border-t border-border" />
                     <button
@@ -174,7 +181,7 @@ function UserMenu({ name, email }: { name: string; email?: string }) {
                         )}
                     >
                         <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                        Cerrar sesión
+                        {t("nav.cerrarSesion")}
                     </button>
                 </div>
             )}
@@ -208,6 +215,8 @@ const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
 // de forma plana (con subtítulos), evitando la barra apretada que se producía
 // al envolver los enlaces en un contenedor de altura fija.
 function MobileMenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate: () => void }) {
+    const { t } = useT();
+
     return (
         <div className="lg:hidden border-t border-border bg-surface px-4 py-3 space-y-4">
             {/* T3-04: mismo array que el escritorio, agrupado por tipo en vez de por
@@ -218,7 +227,7 @@ function MobileMenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate: () 
                 {NAVEGACION.filter(esEnlace).map(({ to, label, end, Icon }) => (
                     <NavLink key={to} to={to} end={end} onClick={onNavigate} className={mobileLinkClass}>
                         <Icon className="h-4 w-4" />
-                        {label}
+                        {t(label)}
                     </NavLink>
                 ))}
             </div>
@@ -245,20 +254,22 @@ function MobileSection({
     onNavigate,
 }: {
     icon: ComponentType<SVGProps<SVGSVGElement>>;
-    label: string;
-    links: { to: string; label: string }[];
+    label: Clave;
+    links: { to: string; label: Clave }[];
     onNavigate: () => void;
 }) {
+    const { t } = useT();
+
     return (
         <div>
             <p className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-foreground-muted">
                 <Icon className="h-3.5 w-3.5" />
-                {label}
+                {t(label)}
             </p>
             <div className="space-y-1">
                 {links.map(({ to, label: itemLabel }) => (
                     <NavLink key={to} to={to} onClick={onNavigate} className={mobileLinkClass}>
-                        {itemLabel}
+                        {t(itemLabel)}
                     </NavLink>
                 ))}
             </div>
@@ -270,6 +281,7 @@ function App() {
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
     const { pathname } = useLocation();
+    const { t } = useT();
 
     // El menú se cierra solo al cambiar de ruta, sin sincronizarlo con un efecto:
     // se guarda la ruta en la que se abrió y el estado se deriva en render. Al
@@ -313,7 +325,7 @@ function App() {
                 // tema oscuro el foco quedaba rodeado de un halo blanco.
                 className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:flex focus:min-h-11 focus:items-center focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-surface focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
             >
-                Saltar al contenido principal
+                {t("nav.saltarAlContenido")}
             </a>
             {/*
               T2-18 — mueve el foco a `<main>` y anuncia el título en cada cambio de
@@ -335,14 +347,16 @@ function App() {
                             elemento.kind === "link" ? (
                                 <NavLink key={elemento.to} to={elemento.to} end={elemento.end} className={desktopLinkClass}>
                                     <elemento.Icon className="h-3.5 w-3.5" />
-                                    {elemento.label}
+                                    {t(elemento.label)}
                                 </NavLink>
                             ) : (
                                 <NavDropdown
                                     key={elemento.label}
-                                    label={elemento.label}
+                                    label={t(elemento.label)}
                                     Icon={elemento.Icon}
-                                    items={elemento.items}
+                                    // El panel recibe los rótulos ya traducidos: `NavDropdown`
+                                    // es genérico y no tiene por qué saber del catálogo.
+                                    items={elemento.items.map(({ to, label }) => ({ to, label: t(label) }))}
                                     isActive={elemento.activoEn?.(pathname) ?? false}
                                     width={elemento.width}
                                 />
@@ -355,7 +369,7 @@ function App() {
                         {/* Botón hamburguesa — solo móvil/tablet */}
                         <button
                             onClick={toggleMobile}
-                            aria-label={mobileOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
+                            aria-label={mobileOpen ? t("nav.cerrarMenu") : t("nav.abrirMenu")}
                             aria-expanded={mobileOpen}
                             aria-controls="mobile-menu"
                             // Solo existe por debajo de `lg`, así que siempre se pulsa con el dedo.

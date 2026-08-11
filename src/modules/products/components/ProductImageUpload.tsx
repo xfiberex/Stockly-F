@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
+import { useT } from "@/shared/hooks/useIdioma";
 
 interface ProductImageUploadProps {
     currentImageUrl?: string;
@@ -10,6 +11,7 @@ interface ProductImageUploadProps {
 }
 
 export function ProductImageUpload({ currentImageUrl, onChange, onRemoveExisting, error }: ProductImageUploadProps) {
+    const { t } = useT();
     const inputRef = useRef<HTMLInputElement>(null);
     const [preview, setPreview] = useState<string | null>(null);
 
@@ -36,14 +38,15 @@ export function ProductImageUpload({ currentImageUrl, onChange, onRemoveExisting
 
     return (
         <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-foreground">Imagen</span>
+            <span className="text-sm font-medium text-foreground">{t("productos.campo.imagen")}</span>
 
             {displayed ? (
                 <div className="relative w-full h-40 rounded-lg overflow-hidden border border-border">
-                    <img src={displayed} alt="Preview" className="w-full h-full object-cover" />
+                    <img src={displayed} alt={t("productos.imagen.vistaPrevia")} className="w-full h-full object-cover" />
                     <button
                         type="button"
                         onClick={handleRemove}
+                        aria-label={t("productos.imagen.quitar")}
                         className="absolute top-2 right-2 rounded-full bg-surface/80 p-1 text-foreground-muted hover:bg-surface shadow transition"
                     >
                         <XMarkIcon className="h-4 w-4" />
@@ -59,8 +62,8 @@ export function ProductImageUpload({ currentImageUrl, onChange, onRemoveExisting
                     )}
                 >
                     <PhotoIcon className="h-8 w-8" />
-                    <span>Clic para subir imagen</span>
-                    <span className="text-xs">PNG, JPG, WEBP</span>
+                    <span>{t("productos.imagen.subir")}</span>
+                    <span className="text-xs">{t("productos.imagen.formatos")}</span>
                 </button>
             )}
 

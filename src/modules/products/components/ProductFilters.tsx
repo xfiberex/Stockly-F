@@ -4,6 +4,7 @@ import { useTags } from "@/modules/tags/hooks/useTags";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useEffect, useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { useT } from "@/shared/hooks/useIdioma";
 
 interface ProductFiltersProps {
     onFilterChange: (filters: {
@@ -15,6 +16,7 @@ interface ProductFiltersProps {
 }
 
 export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
+    const { t } = useT();
     const [search, setSearch] = useState("");
     const [categoryId, setCategoryId] = useState("");
     const [tagId, setTagId] = useState("");
@@ -25,12 +27,12 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     const { data: tags = [] } = useTags();
 
     const categoryOptions = [
-        { value: "", label: "Todas las categorías" },
+        { value: "", label: t("productos.filtro.todasCategorias") },
         ...categories.map((c) => ({ value: c.id, label: c.name })),
     ];
 
     const tagOptions = [
-        { value: "", label: "Todas las etiquetas" },
+        { value: "", label: t("productos.filtro.todasEtiquetas") },
         ...tags.map((t) => ({ value: t.id, label: t.name })),
     ];
 
@@ -49,7 +51,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted" />
                 <input
                     type="text"
-                    placeholder="Buscar producto..."
+                    placeholder={t("productos.filtro.buscar")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-full min-h-11 rounded-lg border border-border pl-9 pr-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition md:min-h-9"
@@ -79,9 +81,9 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
             <div className="flex-1 min-w-36">
                 <Select
                     options={[
-                        { value: "true", label: "Solo activos" },
-                        { value: "false", label: "Solo inactivos" },
-                        { value: "", label: "Todos" },
+                        { value: "true", label: t("productos.filtro.soloActivos") },
+                        { value: "false", label: t("productos.filtro.soloInactivos") },
+                        { value: "", label: t("comun.todos") },
                     ]}
                     value={activeFilter}
                     onChange={(e) => setActiveFilter(e.target.value as "true" | "false" | "")}

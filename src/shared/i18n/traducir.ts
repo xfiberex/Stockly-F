@@ -100,3 +100,16 @@ export function traducirCantidad(
 export function clavesDelCatalogo(): Clave[] {
     return Object.keys(es) as Clave[];
 }
+
+/**
+ * Si una clave **construida al vuelo** existe en el catálogo.
+ *
+ * Hace falta donde la clave sale de un dato del servidor y no del código: los ajustes de
+ * `/settings` traen su propio rótulo en español y la interfaz prefiere el suyo, pero un
+ * ajuste nuevo que el backend estrene todavía no tendrá traducción. Sin esta comprobación
+ * se vería la clave en crudo —`traducir()` la devuelve tal cual—, que es peor que el texto
+ * del servidor.
+ */
+export function existeClave(clave: string): clave is Clave {
+    return clave in es;
+}

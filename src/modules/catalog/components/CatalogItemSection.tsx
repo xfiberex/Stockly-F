@@ -7,14 +7,19 @@ import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
 import { Spinner } from "@/shared/components/Spinner";
 import { useAuth } from "@/modules/auth/hooks/useMe";
+import { useT } from "@/shared/hooks/useIdioma";
+import type { Clave } from "@/shared/i18n/traducir";
 import { PencilIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 import type { CatalogItemForm } from "@/modules/catalog/types/catalog.types";
 
 // ── Validación ────────────────────────────────────────────────────────────────
 
+// Los mensajes son claves del catálogo (T4-04); ver `auth.schema.ts`.
 const catalogItemSchema = z.object({
-    name: z.string().trim().min(1, "El nombre es obligatorio").max(100, "Máximo 100 caracteres"),
-    description: z.string().trim().max(500, "Máximo 500 caracteres").optional(),
+    name: z.string().trim()
+        .min(1, "validacion.nombreRequerido" satisfies Clave)
+        .max(100, "validacion.maximo100" satisfies Clave),
+    description: z.string().trim().max(500, "validacion.maximo500" satisfies Clave).optional(),
 });
 
 // ── Form modal ────────────────────────────────────────────────────────────────
@@ -29,6 +34,7 @@ interface FormModalProps {
 }
 
 export function CatalogFormModal({ isOpen, onClose, title, item, onSubmit, isPending }: FormModalProps) {
+    const { t, te } = useT();
     const { register, handleSubmit, reset, formState: { errors } } = useForm<CatalogItemForm>({
         resolver: zodResolver(catalogItemSchema),
         defaultValues: item ? { name: item.name, description: item.description ?? "" } : {},
@@ -41,21 +47,21 @@ export function CatalogFormModal({ isOpen, onClose, title, item, onSubmit, isPen
             <form onSubmit={handleSubmit((data) => onSubmit(data))} className="flex flex-col gap-4">
                 <Input
                     id="name"
-                    label="Nombre *"
-                    placeholder="Nombre"
-                    error={errors.name?.message}
+                    label={`${t("comun.nombre")} *`}
+                    placeholder={t("comun.nombre")}
+                    error={te(errors.name?.message)}
                     {...register("name")}
                 />
                 <Input
                     id="description"
-                    label="Descripción"
-                    placeholder="Descripción opcional"
-                    error={errors.description?.message}
+                    label={t("comun.descripcion")}
+                    placeholder={t("catalogo.descripcionOpcional")}
+                    error={te(errors.description?.message)}
                     {...register("description")}
                 />
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                    <Button type="button" variant="secondary" onClick={handleClose}>Cancelar</Button>
-                    <Button type="submit" isLoading={isPending}>Guardar</Button>
+                    <Button type="button" variant="secondary" onClick={handleClose}>{t("comun.cancelar")}</Button>
+                    <Button type="submit" isLoading={isPending}>{t("comun.guardar")}</Button>
                 </div>
             </form>
         </Modal>
@@ -70,10 +76,25 @@ export interface CatalogItem {
     description: string | null;
 }
 
+/**
+ * Los textos de cada entidad, **en frases enteras** (T4-04).
+ *
+ * Antes se componían con el nombre del tipo: `Nueva ${entityLabel.toLowerCase()}` y
+ * `No hay ${entityLabel.toLowerCase()}s registradas`. Eso ya cojeaba en español —el
+ * artículo concuerda en género y el plural no siempre es «+s»—, y con un idioma más
+ * no hay forma de arreglarlo: en inglés el adjetivo va delante y el plural cambia de
+ * palabra. Cada pantalla trae sus claves y aquí solo se pintan.
+ */
+export interface TextosDeCatalogo {
+    titulo: Clave;
+    descripcion: Clave;
+    nueva: Clave;
+    editar: Clave;
+    vacio: Clave;
+}
+
 interface CatalogItemSectionProps {
-    title: string;
-    description: string;
-    entityLabel: string;
+    textos: TextosDeCatalogo;
     items: CatalogItem[];
     isLoading: boolean;
     onCreate: (data: CatalogItemForm) => void;
@@ -84,9 +105,7 @@ interface CatalogItemSectionProps {
 }
 
 export function CatalogItemSection({
-    title,
-    description,
-    entityLabel,
+    textos,
     items,
     isLoading,
     onCreate,
@@ -95,6 +114,7 @@ export function CatalogItemSection({
     isSubmitting,
     isDeleting,
 }: CatalogItemSectionProps) {
+    const { t } = useT();
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<CatalogItem | undefined>();
 
@@ -118,13 +138,13 @@ export function CatalogItemSection({
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-                    <p className="text-sm text-foreground-muted mt-1">{description}</p>
+                    <h1 className="text-2xl font-bold text-foreground">{t(textos.titulo)}</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{t(textos.descripcion)}</p>
                 </div>
                 {isAdmin && (
                     <Button onClick={handleOpenNew}>
                         <PlusIcon className="h-4 w-4" />
-                        {`Nueva ${entityLabel.toLowerCase()}`}
+                        {t(textos.nueva)}
                     </Button>
                 )}
             </div>
@@ -133,16 +153,16 @@ export function CatalogItemSection({
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : items.length === 0 ? (
                 <div className="py-12 text-center text-sm text-foreground-muted">
-                    No hay {entityLabel.toLowerCase()}s registradas. Crea la primera.
+                    {t(textos.vacio)}
                 </div>
             ) : (
                 <div className="overflow-x-auto contain-paint rounded-xl border border-border">
                     <table className="w-full text-sm">
                         <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
-                                <th className="px-4 py-3">Nombre</th>
-                                <th className="px-4 py-3">Descripción</th>
-                                {isAdmin && <th className="px-4 py-3 text-right">Acciones</th>}
+                                <th className="px-4 py-3">{t("comun.nombre")}</th>
+                                <th className="px-4 py-3">{t("comun.descripcion")}</th>
+                                {isAdmin && <th className="px-4 py-3 text-right">{t("comun.acciones")}</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border bg-surface">
@@ -155,14 +175,14 @@ export function CatalogItemSection({
                                     {isAdmin && (
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" onClick={() => handleOpenEdit(item)} title="Editar">
+                                                <Button variant="ghost" onClick={() => handleOpenEdit(item)} title={t("comun.editar")}>
                                                     <PencilIcon className="h-4 w-4" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     isLoading={isDeleting}
                                                     onClick={() => onDelete(item.id)}
-                                                    title="Eliminar"
+                                                    title={t("comun.eliminar")}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>
@@ -177,10 +197,10 @@ export function CatalogItemSection({
             )}
 
             <CatalogFormModal
-                key={editing?.id ?? `new-${title}`}
+                key={editing?.id ?? `new-${textos.titulo}`}
                 isOpen={formOpen}
                 onClose={handleClose}
-                title={editing ? `Editar ${entityLabel.toLowerCase()}` : `Nueva ${entityLabel.toLowerCase()}`}
+                title={t(editing ? textos.editar : textos.nueva)}
                 item={editing}
                 onSubmit={handleSubmit}
                 isPending={isSubmitting}

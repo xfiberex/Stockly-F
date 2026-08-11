@@ -7,6 +7,8 @@ import { NIVEL_STOCK, ACTIVIDAD, nivelDeStock } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import type { Product } from "@/modules/products/types/product.types";
+import { useT } from "@/shared/hooks/useIdioma";
+import { formatearFechaHora } from "@/shared/lib/fechas";
 import {
     ChartBarIcon,
     PencilIcon,
@@ -46,6 +48,7 @@ function Field({ icon: Icon, label, children }: {
 }
 
 export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailModalProps) {
+    const { t, idioma } = useT();
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
 
@@ -54,17 +57,12 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
     // Mismo criterio que la tabla (T2-38): el nivel se nombra, no solo se tiñe.
     const nivel = product.isActive ? nivelDeStock(product.stock, product.minStock) : "correcto";
 
-    const fmt = (dateStr: string) =>
-        new Date(dateStr).toLocaleDateString("es-MX", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
+    // T4-04: el formato sigue al idioma, y vive en `shared/lib/fechas` porque este
+    // mismo juego de opciones estaba copiado en tres pantallas.
+    const fmt = (dateStr: string) => formatearFechaHora(idioma, dateStr);
 
     return (
-        <Modal isOpen={!!product} onClose={onClose} title="Detalle del producto" className="max-w-lg">
+        <Modal isOpen={!!product} onClose={onClose} title={t("productos.detalle.titulo")} className="max-w-lg">
             <div className="flex flex-col gap-5">
 
                 {/* ── Encabezado ── */}
@@ -78,7 +76,7 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                     ) : (
                         <div className="h-20 w-20 rounded-xl bg-surface-muted flex flex-col items-center justify-center text-border text-xs shrink-0 gap-1">
                             <CubeIcon className="h-6 w-6" />
-                            <span>Sin imagen</span>
+                            <span>{t("productos.sinImagen")}</span>
                         </div>
                     )}
 
@@ -109,13 +107,13 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
 
                 {/* ── Campos ── */}
                 <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                    <Field icon={CurrencyDollarIcon} label="Precio">
+                    <Field icon={CurrencyDollarIcon} label={t("productos.campo.precio")}>
                         <span className="font-semibold text-foreground tabular-nums">
                             {formatearImporte(product.price)}
                         </span>
                     </Field>
 
-                    <Field icon={CubeIcon} label="Stock actual">
+                    <Field icon={CubeIcon} label={t("productos.campo.stockActual")}>
                         <div className="flex items-center gap-1.5">
                             <span className={nivel === "correcto" ? "text-foreground" : "font-semibold text-foreground"}>
                                 {product.stock}
@@ -124,15 +122,15 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                         </div>
                     </Field>
 
-                    <Field icon={ExclamationTriangleIcon} label="Stock mínimo">
+                    <Field icon={ExclamationTriangleIcon} label={t("productos.campo.stockMinimo")}>
                         {product.minStock > 0 ? (
                             <span className="text-foreground">{product.minStock}</span>
                         ) : (
-                            <span className="text-foreground-muted">Sin alerta</span>
+                            <span className="text-foreground-muted">{t("productos.sinAlerta")}</span>
                         )}
                     </Field>
 
-                    <Field icon={TagIcon} label="Categoría">
+                    <Field icon={TagIcon} label={t("productos.campo.categoria")}>
                         {product.category ? (
                             <Badge variant="neutral">{product.category.name}</Badge>
                         ) : (
@@ -140,7 +138,7 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                         )}
                     </Field>
 
-                    <Field icon={TagIcon} label="Marca">
+                    <Field icon={TagIcon} label={t("productos.campo.marca")}>
                         {product.brand ? (
                             <span className="text-foreground">{product.brand.name}</span>
                         ) : (
@@ -148,7 +146,7 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                         )}
                     </Field>
 
-                    <Field icon={TruckIcon} label="Proveedor">
+                    <Field icon={TruckIcon} label={t("productos.campo.proveedor")}>
                         {product.supplier ? (
                             <span className="text-foreground">{product.supplier.name}</span>
                         ) : (
@@ -156,11 +154,11 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                         )}
                     </Field>
 
-                    <Field icon={CalendarDaysIcon} label="Creado">
+                    <Field icon={CalendarDaysIcon} label={t("productos.detalle.creado")}>
                         <span className="text-foreground-muted text-xs">{fmt(product.createdAt)}</span>
                     </Field>
 
-                    <Field icon={CalendarDaysIcon} label="Última actualización">
+                    <Field icon={CalendarDaysIcon} label={t("productos.detalle.actualizado")}>
                         <span className="text-foreground-muted text-xs">{fmt(product.updatedAt)}</span>
                     </Field>
                 </div>
@@ -174,7 +172,7 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                     >
                         <Button variant="secondary" type="button" className="w-full">
                             <ChartBarIcon className="h-4 w-4" />
-                            Ver movimientos
+                            {t("productos.detalle.verMovimientos")}
                         </Button>
                     </Link>
 
@@ -185,7 +183,7 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                             onClick={() => { onClose(); onEdit(product); }}
                         >
                             <PencilIcon className="h-4 w-4" />
-                            Editar producto
+                            {t("productos.editar")}
                         </Button>
                     )}
                 </div>

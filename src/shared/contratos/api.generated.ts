@@ -8,7 +8,7 @@
 // Editar este archivo directamente no sirve de nada: `frescura.test.ts` compara
 // su contenido con el del backend y falla, y la próxima generación lo pisa.
 //
-// huella: bab52cb9d42cf451
+// huella: e699f3d94c8dd4f0
 
 /**
  * T4-01 — El contrato de la API, en un solo archivo y en un solo sitio.
@@ -163,6 +163,18 @@ export const CODIGOS_DE_ERROR = [
     // 413 / 422 — el cuerpo o el archivo
     "EXPORT_TOO_LARGE",
     "INVALID_IMAGE_FILE",
+    /**
+     * El cuerpo no pasa el validador (T4-04). Lo pone `validate.middleware`, que es el otro
+     * sitio que escribe respuestas de error y hasta ahora no ponía ninguno: su `message`
+     * («Error de validación») salía en español pasara lo que pasara.
+     *
+     * **Los mensajes de `errors[]` siguen siendo los del validador, en español**, y eso es
+     * deliberado: son de campo y dicen qué regla se incumplió, no hay código por regla. En
+     * la práctica no se ven, porque cada formulario valida antes con su propio esquema —el
+     * 422 es la red de seguridad de quien llama a la API sin interfaz—. Traducirlos exigiría
+     * un código por regla de Zod, y eso es otra tarea.
+     */
+    "VALIDATION_ERROR",
     // 429 / 500 / 503 — el servidor
     "EMAIL_NOT_CONFIGURED",
     "INTERNAL_ERROR",

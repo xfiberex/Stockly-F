@@ -31,10 +31,24 @@ describe("SettingsPage", () => {
         isLoading = false;
     });
 
-    it("renderiza la etiqueta y descripción de cada ajuste", () => {
+    it("traduce el rótulo del ajuste en vez de pintar el que manda el servidor", () => {
+        // T4-04: la API envía `label` y `description` **en español** —son para quien
+        // consulta la API sin interfaz—, así que la pantalla prefiere su propia
+        // traducción. Se comprueba con la descripción, que en el catálogo dice «a todos
+        // los administradores» y en la respuesta del servidor, solo «a los».
         renderWithProviders(<SettingsPage />);
         expect(screen.getByText("Alertas de bajo stock por correo")).toBeInTheDocument();
-        expect(screen.getByText(/Envía un correo a los administradores/i)).toBeInTheDocument();
+        expect(screen.getByText(/a todos los administradores/i)).toBeInTheDocument();
+    });
+
+    it("un ajuste que el catálogo no conoce cae al texto del servidor", () => {
+        // El respaldo importa: si el backend estrena un ajuste antes de que aquí tenga
+        // traducción, lo que se ve es su rótulo en español —no la clave en crudo, que es
+        // lo que devolvería `traducir()` sin esta comprobación.
+        settingsData = [{ ...booleanEntry, key: "ajusteQueNoExisteTodavia" }];
+        renderWithProviders(<SettingsPage />);
+        expect(screen.getByText("Alertas de bajo stock por correo")).toBeInTheDocument();
+        expect(screen.queryByText(/ajuste\.ajusteQueNoExisteTodavia/)).not.toBeInTheDocument();
     });
 
     it("muestra el spinner mientras carga", () => {

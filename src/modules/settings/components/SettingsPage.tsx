@@ -4,6 +4,7 @@ import { Spinner } from "@/shared/components/Spinner";
 import { SelectorDeIdioma } from "@/modules/settings/components/SelectorDeIdioma";
 import { SelectorDeTema } from "@/modules/settings/components/SelectorDeTema";
 import { useT } from "@/shared/hooks/useIdioma";
+import { existeClave, type Clave } from "@/shared/i18n/traducir";
 import { useSettings, useUpdateSettings } from "@/modules/settings/hooks/useSettings";
 import type { SettingUpdates, SettingValue } from "@/modules/settings/types/settings.types";
 
@@ -11,6 +12,17 @@ import type { SettingUpdates, SettingValue } from "@/modules/settings/types/sett
 // llega como cadena. Se aceptan ambas formas para no depender de por dónde vino.
 function esVerdadero(value: SettingValue): boolean {
     return value === true || value === "true";
+}
+
+/** El texto de un ajuste: el del catálogo si existe, y si no el que manda la API. */
+function textoDeAjuste(
+    t: (clave: Clave) => string,
+    key: string,
+    parte: "titulo" | "descripcion",
+    respaldo: string,
+): string {
+    const clave = `ajuste.${key}.${parte}`;
+    return existeClave(clave) ? t(clave) : respaldo;
 }
 
 function BooleanToggle({ value, onChange }: { value: SettingValue; onChange: (value: boolean) => void }) {
@@ -112,9 +124,16 @@ export default function SettingsPage() {
                 <div className="bg-surface rounded-xl border border-border divide-y divide-border">
                     {settings.map((entry) => (
                         <div key={entry.key} className="px-6 py-5 flex items-center justify-between gap-6">
+                            {/*
+                              * T4-04 — el rótulo lo manda la API **en español**, así que la
+                              * interfaz prefiere el suyo y solo cae al del servidor si el
+                              * ajuste es tan nuevo que aquí todavía no tiene traducción. Se
+                              * comprueba con `existeClave` porque la clave se construye con
+                              * un dato del servidor: sin eso saldría la clave en crudo.
+                              */}
                             <div className="flex-1">
-                                <p className="text-sm font-medium text-foreground">{entry.label}</p>
-                                <p className="text-xs text-foreground-muted mt-0.5">{entry.description}</p>
+                                <p className="text-sm font-medium text-foreground">{textoDeAjuste(t, entry.key, "titulo", entry.label)}</p>
+                                <p className="text-xs text-foreground-muted mt-0.5">{textoDeAjuste(t, entry.key, "descripcion", entry.description)}</p>
                             </div>
                             <div className="shrink-0">
                                 {entry.type === "boolean" ? (

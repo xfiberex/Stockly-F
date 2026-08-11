@@ -4,6 +4,7 @@ import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
 import { useBulkStock } from "@/modules/products/hooks/useBulkStock";
 import type { Product } from "@/modules/products/types/product.types";
+import { useT } from "@/shared/hooks/useIdioma";
 
 interface BulkStockModalProps {
     isOpen: boolean;
@@ -13,15 +14,19 @@ interface BulkStockModalProps {
 }
 
 export function BulkStockModal({ isOpen, onClose, products, selectedIds }: BulkStockModalProps) {
+    const { t, tn } = useT();
     const mutation = useBulkStock();
     const [stockValues, setStockValues] = useState<Record<string, string>>({});
-    const [reason, setReason] = useState("Ajuste masivo de inventario");
+    // El motivo se **guarda** con el movimiento, así que su valor inicial sale del idioma
+    // que hubiera al abrir el modal y no se recalcula: es un dato que el usuario puede
+    // editar, no un rótulo. Ver `ManualMovementModal`, donde pasa lo mismo con la lista.
+    const [reason, setReason] = useState(() => t("ajusteMasivo.motivoPorDefecto"));
 
     const selectedProducts = products.filter((p) => selectedIds.has(p.id));
 
     const handleClose = () => {
         setStockValues({});
-        setReason("Ajuste masivo de inventario");
+        setReason(t("ajusteMasivo.motivoPorDefecto"));
         onClose();
     };
 
@@ -36,14 +41,14 @@ export function BulkStockModal({ isOpen, onClose, products, selectedIds }: BulkS
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title={`Ajuste masivo (${selectedProducts.length} productos)`} className="max-w-lg">
+        <Modal isOpen={isOpen} onClose={handleClose} title={tn("ajusteMasivo.titulo", selectedProducts.length)} className="max-w-lg">
             <div className="space-y-4">
                 <Input
                     id="reason"
-                    label="Motivo del ajuste"
+                    label={t("ajusteMasivo.motivo")}
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="Ej: Inventario físico mensual"
+                    placeholder={t("ajusteMasivo.ejemploMotivo")}
                 />
 
                 <div className="max-h-80 overflow-y-auto space-y-2">
@@ -51,7 +56,7 @@ export function BulkStockModal({ isOpen, onClose, products, selectedIds }: BulkS
                         <div key={product.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-foreground truncate">{product.name}</p>
-                                <p className="text-xs text-foreground-muted">Stock actual: {product.stock}</p>
+                                <p className="text-xs text-foreground-muted">{t("ajusteMasivo.stockActual", { stock: product.stock })}</p>
                             </div>
                             <div className="w-24 shrink-0">
                                 <Input
@@ -67,17 +72,17 @@ export function BulkStockModal({ isOpen, onClose, products, selectedIds }: BulkS
                     ))}
                 </div>
 
-                <p className="text-xs text-foreground-muted">Deja vacío para mantener el stock actual de un producto.</p>
+                <p className="text-xs text-foreground-muted">{t("ajusteMasivo.ayuda")}</p>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                    <Button type="button" variant="secondary" onClick={handleClose}>Cancelar</Button>
+                    <Button type="button" variant="secondary" onClick={handleClose}>{t("comun.cancelar")}</Button>
                     <Button
                         type="button"
                         isLoading={mutation.isPending}
                         onClick={handleSubmit}
                         disabled={Object.values(stockValues).every((v) => v === "")}
                     >
-                        Aplicar ajustes
+                        {t("ajusteMasivo.aplicar")}
                     </Button>
                 </div>
             </div>

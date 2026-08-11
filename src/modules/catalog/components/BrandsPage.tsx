@@ -10,9 +10,13 @@ export default function BrandsPage() {
 
     return (
         <CatalogItemSection
-            title="Marcas"
-            description="Gestiona las marcas de tus productos"
-            entityLabel="Marca"
+            textos={{
+                titulo: "ruta.marcas",
+                descripcion: "catalogo.marcas.descripcion",
+                nueva: "catalogo.marcas.nueva",
+                editar: "catalogo.marcas.editar",
+                vacio: "catalogo.marcas.vacio",
+            }}
             items={brands}
             isLoading={isLoading}
             onCreate={(data) => createMutation.mutate(data)}

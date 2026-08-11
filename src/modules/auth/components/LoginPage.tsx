@@ -4,10 +4,12 @@ import { Link } from "react-router-dom";
 import { CubeIcon } from "@heroicons/react/24/outline";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
+import { useT } from "@/shared/hooks/useIdioma";
 import { loginFormSchema, type LoginForm } from "@/modules/auth/schemas/auth.schema";
 import { useLogin } from "@/modules/auth/hooks/useLogin";
 
 export default function LoginPage() {
+    const { t, te } = useT();
     const login = useLogin();
     const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
         resolver: zodResolver(loginFormSchema),
@@ -21,54 +23,55 @@ export default function LoginPage() {
                         <div className="rounded-xl bg-primary p-2">
                             <CubeIcon className="h-6 w-6 text-surface" />
                         </div>
+                        {/* El nombre del producto no se traduce. */}
                         <span className="text-2xl font-bold text-foreground">Stockly</span>
                     </div>
-                    <h1 className="text-xl font-bold text-foreground">Iniciar sesión</h1>
-                    <p className="text-sm text-foreground-muted mt-1">Accede a tu cuenta Stockly</p>
+                    <h1 className="text-xl font-bold text-foreground">{t("ruta.login")}</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{t("auth.login.subtitulo")}</p>
                 </div>
 
                 <form onSubmit={handleSubmit((data) => login.mutate(data))} className="space-y-4">
                     <Input
                         id="email"
-                        label="Correo electrónico"
+                        label={t("auth.campo.correo")}
                         type="email"
                         autoComplete="email"
-                        placeholder="usuario@email.com"
-                        error={errors.email?.message}
+                        placeholder={t("auth.ejemplo.correo")}
+                        error={te(errors.email?.message)}
                         {...register("email")}
                     />
                     <Input
                         id="password"
-                        label="Contraseña"
+                        label={t("auth.campo.contrasena")}
                         type="password"
                         autoComplete="current-password"
-                        placeholder="••••••••"
-                        error={errors.password?.message}
+                        placeholder={t("auth.ejemplo.contrasena")}
+                        error={te(errors.password?.message)}
                         {...register("password")}
                     />
 
                     <div className="text-right">
                         <Link to="/auth/forgot-password" className="text-xs text-info hover:underline">
-                            ¿Olvidaste tu contraseña?
+                            {t("auth.login.olvidaste")}
                         </Link>
                     </div>
 
                     <Button type="submit" className="w-full" isLoading={login.isPending}>
-                        Entrar
+                        {t("auth.login.entrar")}
                     </Button>
                 </form>
 
                 <p className="text-center text-sm text-foreground-muted">
-                    ¿No tienes cuenta?{" "}
+                    {t("auth.login.sinCuenta")}{" "}
                     <Link to="/auth/register" className="text-info hover:underline font-medium">
-                        Regístrate
+                        {t("auth.login.registrate")}
                     </Link>
                 </p>
 
                 <p className="text-center text-xs text-foreground-muted">
-                    ¿No recibiste el correo de verificación?{" "}
+                    {t("auth.login.sinCorreo")}{" "}
                     <Link to="/auth/resend-verification" className="text-info hover:underline">
-                        Reenvíalo
+                        {t("auth.login.reenviar")}
                     </Link>
                 </p>
             </div>

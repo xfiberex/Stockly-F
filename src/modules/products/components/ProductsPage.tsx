@@ -13,6 +13,7 @@ import { useImportProducts } from "@/modules/products/hooks/useImportProducts";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { exportProducts } from "@/modules/products/api/product.api";
 import { toCsv, downloadBlob, blobCsv, parseCsv } from "@/modules/products/utils/importExport";
+import { useT } from "@/shared/hooks/useIdioma";
 import type { Product, ImportProductDto } from "@/modules/products/types/product.types";
 import {
     PlusIcon,
@@ -30,6 +31,7 @@ interface Filters {
 }
 
 export default function ProductsPage() {
+    const { t, tn, te } = useT();
     const [filters, setFilters] = useState<Filters>({ isActive: true });
     const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -85,9 +87,9 @@ export default function ProductsPage() {
                 downloadBlob(blobCsv(toCsv(products)), `${filename}.csv`);
             }
 
-            toast.success(`${products.length} productos exportados como ${format.toUpperCase()}`);
+            toast.success(tn("productos.exportados", products.length, { formato: format.toUpperCase() }));
         } catch {
-            toast.error("Error al exportar productos");
+            toast.error(t("productos.errorExportar"));
         } finally {
             setIsExporting(false);
         }
@@ -118,14 +120,17 @@ export default function ProductsPage() {
             }
 
             if (products.length === 0) {
-                toast.warning("El archivo no contiene productos");
+                toast.warning(t("importacion.sinProductos"));
                 return;
             }
 
             importMutation.mutate(products);
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Archivo inválido";
-            toast.error(`Error al leer el archivo: ${msg}`);
+            // `parseCsv` lanza la **clave** de su motivo (T4-04); un fallo del navegador
+            // —un JSON mal formado— trae su propio texto, que `te()` deja pasar tal cual
+            // porque no está en el catálogo.
+            const motivo = (err instanceof Error ? te(err.message) : undefined) ?? t("importacion.archivoInvalido");
+            toast.error(t("importacion.errorLeer", { motivo }));
         }
     };
 
@@ -150,33 +155,33 @@ export default function ProductsPage() {
         <div className={cn("max-w-7xl mx-auto px-6 py-8 space-y-6", flotanteVisible && "pb-28")}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Productos</h1>
-                    <p className="text-sm text-foreground-muted mt-1">{data?.meta.total ?? 0} productos en total</p>
+                    <h1 className="text-2xl font-bold text-foreground">{t("ruta.productos")}</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{tn("productos.total", data?.meta.total ?? 0)}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <DropdownButton
-                        label="Exportar"
+                        label={t("productos.exportar")}
                         icon={ArrowDownTrayIcon}
                         disabled={isExporting}
                         items={[
-                            { label: "Exportar JSON", onClick: () => handleExport("json") },
-                            { label: "Exportar CSV", onClick: () => handleExport("csv") },
+                            { label: t("productos.exportarJson"), onClick: () => handleExport("json") },
+                            { label: t("productos.exportarCsv"), onClick: () => handleExport("csv") },
                         ]}
                     />
                     {isAdmin && (
                         <>
                             <DropdownButton
-                                label="Importar"
+                                label={t("productos.importar")}
                                 icon={ArrowUpTrayIcon}
                                 disabled={importMutation.isPending}
                                 items={[
-                                    { label: "Importar JSON", onClick: () => handleImportClick("json") },
-                                    { label: "Importar CSV", onClick: () => handleImportClick("csv") },
+                                    { label: t("productos.importarJson"), onClick: () => handleImportClick("json") },
+                                    { label: t("productos.importarCsv"), onClick: () => handleImportClick("csv") },
                                 ]}
                             />
                             <Button onClick={() => setIsFormOpen(true)}>
                                 <PlusIcon className="h-4 w-4" />
-                                Nuevo producto
+                                {t("productos.nuevo")}
                             </Button>
                         </>
                     )}
@@ -186,8 +191,10 @@ export default function ProductsPage() {
             {/* Barra de acciones masivas */}
             {isAdmin && selectedIds.size > 0 && (
                 <div className="flex items-center gap-3 px-4 py-3 bg-info-surface rounded-xl border border-info">
+                    {/* El plural sale de `tn()`: el apaño de sumar «s» a dos palabras no
+                        sobrevive a un idioma donde la marca de plural va en otro sitio. */}
                     <span className="text-sm font-medium text-info">
-                        {selectedIds.size} producto{selectedIds.size !== 1 ? "s" : ""} seleccionado{selectedIds.size !== 1 ? "s" : ""}
+                        {tn("productos.seleccionados", selectedIds.size)}
                     </span>
                     <div className="flex gap-2 ml-auto">
                         <Button
@@ -195,13 +202,13 @@ export default function ProductsPage() {
                             onClick={() => setIsBulkModalOpen(true)}
                         >
                             <AdjustmentsHorizontalIcon className="h-4 w-4" />
-                            Ajuste masivo de stock
+                            {t("productos.ajusteMasivo")}
                         </Button>
                         <Button
                             variant="secondary"
                             onClick={() => setSelectedIds(new Set())}
                         >
-                            Deseleccionar
+                            {t("productos.deseleccionar")}
                         </Button>
                     </div>
                 </div>
@@ -212,7 +219,7 @@ export default function ProductsPage() {
                 type="file"
                 className="hidden"
                 onChange={handleFileChange}
-                aria-label="Seleccionar archivo de importación"
+                aria-label={t("productos.seleccionarArchivo")}
             />
 
             <ProductFilters onFilterChange={handleFilterChange} />
@@ -248,20 +255,20 @@ export default function ProductsPage() {
                         className="shadow-overlay"
                     >
                         <BoltIcon className="h-4 w-4" />
-                        Movimiento manual
+                        {t("productos.movimientoManual")}
                     </Button>
                 </div>
             )}
 
             {totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm text-foreground-muted">
-                    <span>Página {page} de {totalPages}</span>
+                    <span>{t("comun.paginaDeTotal", { pagina: page, total: totalPages })}</span>
                     <div className="flex gap-2">
                         <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                            Anterior
+                            {t("comun.anterior")}
                         </Button>
                         <Button variant="secondary" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>
-                            Siguiente
+                            {t("comun.siguiente")}
                         </Button>
                     </div>
                 </div>

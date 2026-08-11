@@ -18,6 +18,7 @@ import { useSuppliers } from "@/modules/suppliers/hooks/useSuppliers";
 import { useTags } from "@/modules/tags/hooks/useTags";
 import type { Product } from "@/modules/products/types/product.types";
 import type { Resolver } from "react-hook-form";
+import { useT } from "@/shared/hooks/useIdioma";
 
 // Color de una etiqueta sin color propio.
 const COLOR_ETIQUETA_POR_DEFECTO = "#6366f1";
@@ -52,6 +53,7 @@ function valoresIniciales(product?: Product) {
 }
 
 export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
+    const { t, te } = useT();
     const isEditing = !!product;
     const createMutation = useCreateProduct();
     const updateMutation = useUpdateProduct();
@@ -67,15 +69,15 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
     const { data: tags = [] } = useTags();
 
     const categoryOptions = [
-        { value: "", label: "Sin categoría" },
+        { value: "", label: t("productos.sinCategoria") },
         ...categories.map((c) => ({ value: c.id, label: c.name })),
     ];
     const brandOptions = [
-        { value: "", label: "Sin marca" },
+        { value: "", label: t("productos.sinMarca") },
         ...brands.map((b) => ({ value: b.id, label: b.name })),
     ];
     const supplierOptions = [
-        { value: "", label: "Sin proveedor" },
+        { value: "", label: t("productos.sinProveedor") },
         ...suppliers.map((s) => ({ value: s.id, label: s.name })),
     ];
 
@@ -142,26 +144,26 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? "Editar producto" : "Nuevo producto"} className="max-w-xl">
+        <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? t("productos.editar") : t("productos.nuevo")} className="max-w-xl">
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <Input
                     id="name"
-                    label="Nombre *"
-                    placeholder="Ej: Laptop Pro 15"
-                    error={errors.name?.message}
+                    label={`${t("comun.nombre")} *`}
+                    placeholder={t("productos.form.ejemploNombre")}
+                    error={te(errors.name?.message)}
                     {...register("name")}
                 />
                 <Input
                     id="description"
-                    label="Descripción"
-                    placeholder="Descripción del producto"
-                    error={errors.description?.message}
+                    label={t("comun.descripcion")}
+                    placeholder={t("productos.form.ejemploDescripcion")}
+                    error={te(errors.description?.message)}
                     {...register("description")}
                 />
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                         <label htmlFor="sku" className="text-sm font-medium text-foreground">
-                            SKU / Código interno
+                            {t("productos.campo.sku")}
                         </label>
                         <button
                             type="button"
@@ -169,71 +171,71 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                             className="flex items-center gap-1 text-xs font-medium text-info hover:text-info transition-colors"
                         >
                             <SparklesIcon className="h-3.5 w-3.5" />
-                            Generar
+                            {t("productos.form.generarSku")}
                         </button>
                     </div>
                     <Input
                         id="sku"
-                        placeholder="Ej: ELE-SAM-A54"
-                        error={errors.sku?.message}
+                        placeholder={t("productos.form.ejemploSku")}
+                        error={te(errors.sku?.message)}
                         {...register("sku")}
                     />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                     <Input
                         id="price"
-                        label="Precio *"
+                        label={`${t("productos.campo.precio")} *`}
                         type="number"
                         step="0.01"
-                        placeholder="0.00"
-                        error={errors.price?.message}
+                        placeholder={t("productos.form.ejemploPrecio")}
+                        error={te(errors.price?.message)}
                         {...register("price")}
                     />
                     <Input
                         id="stock"
-                        label="Stock inicial"
+                        label={t("productos.campo.stockInicial")}
                         type="number"
-                        placeholder="0"
-                        error={errors.stock?.message}
+                        placeholder={t("productos.form.ejemploCero")}
+                        error={te(errors.stock?.message)}
                         {...register("stock")}
                     />
                 </div>
                 <Input
                     id="minStock"
-                    label="Stock mínimo (alerta)"
+                    label={t("productos.campo.stockMinimoAlerta")}
                     type="number"
-                    placeholder="0"
-                    error={errors.minStock?.message}
+                    placeholder={t("productos.form.ejemploCero")}
+                    error={te(errors.minStock?.message)}
                     {...register("minStock")}
                 />
                 <div className="grid grid-cols-2 gap-3">
                     <Select
                         id="categoryId"
-                        label="Categoría"
+                        label={t("productos.campo.categoria")}
                         options={categoryOptions}
-                        error={errors.categoryId?.message}
+                        error={te(errors.categoryId?.message)}
                         {...register("categoryId")}
                     />
                     <Select
                         id="brandId"
-                        label="Marca"
+                        label={t("productos.campo.marca")}
                         options={brandOptions}
-                        error={errors.brandId?.message}
+                        error={te(errors.brandId?.message)}
                         {...register("brandId")}
                     />
                 </div>
                 <Select
                     id="supplierId"
-                    label="Proveedor"
+                    label={t("productos.campo.proveedor")}
                     options={supplierOptions}
-                    error={errors.supplierId?.message}
+                    error={te(errors.supplierId?.message)}
                     {...register("supplierId")}
                 />
                 {tags.length > 0 && (
                     <div>
                         <p id="etiquetas-label" className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
                             <TagIcon className="h-3.5 w-3.5 text-foreground-muted" />
-                            Etiquetas
+                            {t("productos.campo.etiquetas")}
                         </p>
                         {/* Conmutadores, no botones de acción: `aria-pressed` es lo que
                             comunica la selección a quien no ve el color de fondo. */}
@@ -272,14 +274,14 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                     currentImageUrl={removeImage ? undefined : (product?.imageUrl ?? undefined)}
                     onChange={(file) => setValue("image", file)}
                     onRemoveExisting={() => setRemoveImage(true)}
-                    error={errors.image?.message}
+                    error={te(errors.image?.message)}
                 />
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button type="button" variant="secondary" onClick={onClose}>
-                        Cancelar
+                        {t("comun.cancelar")}
                     </Button>
                     <Button type="submit" isLoading={isPending}>
-                        {isEditing ? "Guardar cambios" : "Crear producto"}
+                        {isEditing ? t("comun.guardarCambios") : t("productos.crear")}
                     </Button>
                 </div>
             </form>

@@ -10,25 +10,26 @@ import type { AppUser, UserRole } from "@/modules/users/types/users.types";
 import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ACTIVIDAD } from "@/shared/lib/estados";
-
-function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-const ROLE_OPTIONS = [
-    { value: "", label: "Todos los roles" },
-    { value: "ADMIN", label: "Admin" },
-    { value: "USER", label: "Usuario" },
-];
-
-const STATUS_OPTIONS = [
-    { value: "", label: "Todos" },
-    { value: "true", label: "Activos" },
-    { value: "false", label: "Inactivos" },
-];
+import { useT } from "@/shared/hooks/useIdioma";
+import { formatearFecha } from "@/shared/lib/fechas";
 
 export default function UsersPage() {
+    const { t, tn, idioma } = useT();
     const { user: currentUser } = useAuth();
+
+    // Las listas se arman dentro del componente (T4-04): fuera se construirían al cargar
+    // el módulo, con el idioma que hubiera entonces, y no cambiarían al elegir otro.
+    const ROLE_OPTIONS = [
+        { value: "", label: t("usuarios.todosLosRoles") },
+        { value: "ADMIN", label: t("usuarios.rol.ADMIN") },
+        { value: "USER", label: t("usuarios.rol.USER") },
+    ];
+
+    const STATUS_OPTIONS = [
+        { value: "", label: t("comun.todos") },
+        { value: "true", label: t("usuarios.activos") },
+        { value: "false", label: t("usuarios.inactivos") },
+    ];
     const [search, setSearch] = useState("");
     const [roleFilter, setRoleFilter] = useState<string>("");
     const [activeFilter, setActiveFilter] = useState<string>("");
@@ -53,8 +54,8 @@ export default function UsersPage() {
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-foreground">Gestión de usuarios</h1>
-                <p className="text-sm text-foreground-muted mt-1">{meta?.total ?? 0} usuario{(meta?.total ?? 0) !== 1 ? "s" : ""} registrados</p>
+                <h1 className="text-2xl font-bold text-foreground">{t("usuarios.titulo")}</h1>
+                <p className="text-sm text-foreground-muted mt-1">{tn("usuarios.registrados", meta?.total ?? 0)}</p>
             </div>
 
             {/* Filtros */}
@@ -63,7 +64,7 @@ export default function UsersPage() {
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted" />
                     <input
                         type="text"
-                        placeholder="Buscar por nombre o correo..."
+                        placeholder={t("usuarios.buscar")}
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         className="w-full min-h-11 rounded-lg border border-border pl-9 pr-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition md:min-h-9"
@@ -88,17 +89,17 @@ export default function UsersPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : users.length === 0 ? (
-                <div className="py-16 text-center text-sm text-foreground-muted">No se encontraron usuarios.</div>
+                <div className="py-16 text-center text-sm text-foreground-muted">{t("usuarios.sinResultados")}</div>
             ) : (
                 <div className="bg-surface rounded-xl border border-border overflow-hidden">
                     <table className="w-full text-sm">
                         <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
-                                <th className="px-6 py-3">Usuario</th>
-                                <th className="px-6 py-3">Rol</th>
-                                <th className="px-6 py-3">Estado</th>
-                                <th className="px-6 py-3 hidden md:table-cell">Registrado</th>
-                                <th className="px-6 py-3 text-right">Acciones</th>
+                                <th className="px-6 py-3">{t("usuarios.columna.usuario")}</th>
+                                <th className="px-6 py-3">{t("usuarios.columna.rol")}</th>
+                                <th className="px-6 py-3">{t("comun.estado")}</th>
+                                <th className="px-6 py-3 hidden md:table-cell">{t("usuarios.columna.registrado")}</th>
+                                <th className="px-6 py-3 text-right">{t("comun.acciones")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -114,7 +115,7 @@ export default function UsersPage() {
                                                     </span>
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-foreground">{u.name}{isSelf && <span className="ml-1.5 text-xs text-foreground-muted">(tú)</span>}</p>
+                                                    <p className="font-medium text-foreground">{u.name}{isSelf && <span className="ml-1.5 text-xs text-foreground-muted">{t("usuarios.tu")}</span>}</p>
                                                     <p className="text-xs text-foreground-muted">{u.email}</p>
                                                 </div>
                                             </div>
@@ -125,22 +126,22 @@ export default function UsersPage() {
                                                 variant={u.role === "ADMIN" ? "info" : "neutral"}
                                                 Icon={u.role === "ADMIN" ? ShieldCheckIcon : UserIcon}
                                             >
-                                                {u.role === "ADMIN" ? "Admin" : "Usuario"}
+                                                {t(u.role === "ADMIN" ? "usuarios.rol.ADMIN" : "usuarios.rol.USER")}
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-3">
                                             <EstadoBadge estado={u.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
                                             {!u.isVerified && (
-                                                <Badge variant="warning" Icon={EnvelopeIcon} className="ml-1.5">Sin verificar</Badge>
+                                                <Badge variant="warning" Icon={EnvelopeIcon} className="ml-1.5">{t("usuarios.sinVerificar")}</Badge>
                                             )}
                                         </td>
-                                        <td className="px-6 py-3 text-foreground-muted hidden md:table-cell">{formatDate(u.createdAt)}</td>
+                                        <td className="px-6 py-3 text-foreground-muted hidden md:table-cell">{formatearFecha(idioma, u.createdAt)}</td>
                                         <td className="px-6 py-3">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Select
                                                     options={[
-                                                        { value: "ADMIN", label: "Admin" },
-                                                        { value: "USER", label: "Usuario" },
+                                                        { value: "ADMIN", label: t("usuarios.rol.ADMIN") },
+                                                        { value: "USER", label: t("usuarios.rol.USER") },
                                                     ]}
                                                     value={u.role}
                                                     disabled={isSelf || roleMutation.isPending}
@@ -153,7 +154,7 @@ export default function UsersPage() {
                                                     onClick={() => activeMutation.mutate({ id: u.id, active: !u.isActive })}
                                                     className="text-xs px-2.5 py-1 h-auto"
                                                 >
-                                                    {u.isActive ? "Desactivar" : "Activar"}
+                                                    {t(u.isActive ? "usuarios.desactivar" : "usuarios.activar")}
                                                 </Button>
                                             </div>
                                         </td>
@@ -167,10 +168,10 @@ export default function UsersPage() {
 
             {meta && meta.totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm text-foreground-muted">
-                    <span>Página {page} de {meta.totalPages}</span>
+                    <span>{t("comun.paginaDeTotal", { pagina: page, total: meta.totalPages })}</span>
                     <div className="flex gap-2">
-                        <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Anterior</Button>
-                        <Button variant="secondary" disabled={page === meta.totalPages} onClick={() => setPage((p) => p + 1)}>Siguiente</Button>
+                        <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>{t("comun.anterior")}</Button>
+                        <Button variant="secondary" disabled={page === meta.totalPages} onClick={() => setPage((p) => p + 1)}>{t("comun.siguiente")}</Button>
                     </div>
                 </div>
             )}

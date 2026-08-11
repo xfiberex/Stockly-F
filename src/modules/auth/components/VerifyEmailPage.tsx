@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import axios from "axios";
 import { Spinner } from "@/shared/components/Spinner";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
+import { useT } from "@/shared/hooks/useIdioma";
+import { mensajeDeError } from "@/shared/lib/errorApi";
 
 export default function VerifyEmailPage() {
+    const { t, idioma } = useT();
     const [params] = useSearchParams();
     const token = params.get("token") ?? "";
     const [status, setStatus] = useState<"loading" | "success" | "error">(
         token ? "loading" : "error"
     );
-    const [message, setMessage] = useState(token ? "" : "Token no proporcionado.");
+    // Solo se guarda el motivo que **viene de la API**, ya resuelto por `mensajeDeError`.
+    // El caso de «no hay token» no se guarda: es una condición, no un mensaje, y se
+    // traduce al pintar para que siga al idioma si se cambia con la página delante.
+    const [motivo, setMotivo] = useState("");
 
     useEffect(() => {
         if (!token) return;
@@ -26,40 +31,37 @@ export default function VerifyEmailPage() {
             .catch((e) => {
                 if (!mounted) return;
                 setStatus("error");
-                // Extraer el mensaje real de la API en vez del genérico de Axios
-                const apiMessage = axios.isAxiosError(e)
-                    ? (e.response?.data?.message as string | undefined)
-                    : undefined;
-                setMessage(apiMessage || "El enlace es inválido o expiró.");
+                // El `code` de la API traducido; si no lo trae, el respaldo de esta pantalla.
+                setMotivo(mensajeDeError(idioma, e, "auth.verificar.invalido"));
             });
 
         return () => {
             mounted = false;
         };
-    }, [token]);
+    }, [token, idioma]);
 
     return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
             {status === "loading" && <Spinner size="lg" />}
             {status === "success" && (
                 <>
-                    <p className="text-success font-medium text-xl">¡Cuenta confirmada!</p>
+                    <p className="text-success font-medium text-xl">{t("auth.verificar.confirmada")}</p>
                     <Link to="/auth/login" className="text-info hover:underline text-sm">
-                        Inicia sesión
+                        {t("auth.registro.inicia")}
                     </Link>
                 </>
             )}
             {status === "error" && (
                 <>
-                    <p className="text-danger font-medium">{message}</p>
+                    <p className="text-danger font-medium">{motivo || t("auth.verificar.sinToken")}</p>
                     <Link
                         to="/auth/resend-verification"
                         className="text-info hover:underline text-sm"
                     >
-                        Solicitar nuevo enlace de verificación
+                        {t("auth.verificar.solicitarEnlace")}
                     </Link>
                     <Link to="/auth/login" className="text-foreground-muted hover:underline text-sm">
-                        Volver al inicio de sesión
+                        {t("auth.volverAlLogin")}
                     </Link>
                 </>
             )}

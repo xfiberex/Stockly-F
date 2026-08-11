@@ -4,6 +4,8 @@ import { toast } from "react-toastify";
 import { env } from "@/config/env";
 import { queryClient } from "@/shared/lib/queryClient";
 import { queryKeys } from "@/shared/constants/queryKeys";
+import { idiomaEfectivo } from "@/shared/i18n/idioma";
+import { traducir } from "@/shared/i18n/traducir";
 
 declare module "axios" {
     interface InternalAxiosRequestConfig {
@@ -94,7 +96,10 @@ api.interceptors.response.use(
         }
 
         if (status === 429) {
-            toast.warn("Demasiadas solicitudes. Espera un momento e intenta de nuevo.", {
+            // T4-04 — este módulo no es un componente y no puede usar el hook, así que el
+            // idioma se lee del almacenamiento en el momento de avisar. Da igual: la
+            // preferencia vive ahí, no en React, y aquí se necesita una sola vez.
+            toast.warn(traducir(idiomaEfectivo(), "error.RATE_LIMITED"), {
                 toastId: "rate-limit",
             });
         }

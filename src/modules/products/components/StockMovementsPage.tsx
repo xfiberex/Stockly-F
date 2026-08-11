@@ -17,15 +17,13 @@ import { downloadBlob, blobCsv } from "@/modules/products/utils/importExport";
 import type { StockMovementType } from "@/modules/products/types/product.types";
 import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
 import { useT } from "@/shared/hooks/useIdioma";
-import { IDIOMA_POR_DEFECTO } from "@/shared/i18n/idioma";
+import { IDIOMA_POR_DEFECTO, type Idioma } from "@/shared/i18n/idioma";
 import { traducir, type Clave } from "@/shared/i18n/traducir";
+import { formatearFecha, IDIOMA_DE_EXPORTACION, LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
 
-function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function formatDateShort(iso: string) {
-    return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
+/** El eje del gráfico va sin año: son puntos de una serie, no fechas que haya que leer. */
+function formatDateShort(idioma: Idioma, iso: string) {
+    return new Date(iso).toLocaleDateString(LOCALE_DE_GRAFICO[idioma], { day: "2-digit", month: "short" });
 }
 
 function exportMovementsCsv(
@@ -40,7 +38,7 @@ function exportMovementsCsv(
     const header = "Fecha,Tipo,Cambio,Stock resultante,Nota";
     const rows = movements.map((m) =>
         [
-            formatDate(m.createdAt),
+            formatearFecha(IDIOMA_DE_EXPORTACION, m.createdAt),
             traducir(IDIOMA_POR_DEFECTO, TIPO_MOVIMIENTO[m.type as StockMovementType]?.clave ?? (m.type as Clave)),
             m.delta,
             m.stockAfter,
@@ -53,7 +51,7 @@ function exportMovementsCsv(
 }
 
 export default function StockMovementsPage() {
-    const { t } = useT();
+    const { t, tn, idioma } = useT();
     const { id } = useParams<{ id: string }>();
     const { data, isLoading, isError } = useStockMovements(id!);
     const { data: priceData } = usePriceHistory(id!);
@@ -84,9 +82,9 @@ export default function StockMovementsPage() {
     if (isError || !data) {
         return (
             <div className="max-w-4xl mx-auto px-6 py-8">
-                <p className="text-danger">No se pudo cargar el historial de movimientos.</p>
+                <p className="text-danger">{t("movimientos.errorCargar")}</p>
                 <Link to="/catalog/products" className="text-info text-sm hover:underline mt-2 inline-block">
-                    ← Volver a productos
+                    ← {t("movimientos.volverAProductos")}
                 </Link>
             </div>
         );
@@ -96,13 +94,13 @@ export default function StockMovementsPage() {
     const priceHistory = priceData?.history ?? [];
 
     const chartData = movements.map((m) => ({
-        date: formatDateShort(m.createdAt),
+        date: formatDateShort(idioma, m.createdAt),
         stock: m.stockAfter,
         type: m.type,
     }));
 
     const priceChartData = priceHistory.map((h) => ({
-        date: formatDateShort(h.createdAt),
+        date: formatDateShort(idioma, h.createdAt),
         precio: Number(h.newPrice),
     }));
 
@@ -117,7 +115,7 @@ export default function StockMovementsPage() {
                     className="inline-flex items-center gap-1 text-sm text-foreground-muted hover:text-info transition-colors mb-4"
                 >
                     <ArrowLeftIcon className="h-4 w-4" />
-                    Volver a productos
+                    {t("movimientos.volverAProductos")}
                 </Link>
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
@@ -125,7 +123,7 @@ export default function StockMovementsPage() {
                         {product.sku && (
                             <p className="text-xs text-foreground-muted font-mono mt-0.5">{product.sku}</p>
                         )}
-                        <p className="text-sm text-foreground-muted mt-1">Historial de movimientos de stock</p>
+                        <p className="text-sm text-foreground-muted mt-1">{t("movimientos.subtitulo")}</p>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">
                         <div className="text-right">
@@ -133,7 +131,8 @@ export default function StockMovementsPage() {
                                 {product.stock}
                             </p>
                             <p className="text-xs text-foreground-muted">
-                                Stock actual {product.minStock > 0 ? `(mín: ${product.minStock})` : ""}
+                                {t("productos.campo.stockActual")}{" "}
+                                {product.minStock > 0 ? t("movimientos.minimo", { minimo: product.minStock }) : ""}
                             </p>
                         </div>
                         <EstadoBadge estado={product.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
@@ -143,7 +142,7 @@ export default function StockMovementsPage() {
                                 onClick={() => exportMovementsCsv(product.name, movements)}
                             >
                                 <ArrowDownTrayIcon className="h-4 w-4" />
-                                Exportar CSV
+                                {t("productos.exportarCsv")}
                             </Button>
                         )}
                     </div>
@@ -162,7 +161,9 @@ export default function StockMovementsPage() {
                                 : "border-transparent text-foreground-muted hover:text-foreground"
                         }`}
                     >
-                        {tab === "movements" ? `Movimientos (${movements.length})` : `Historial de precios (${priceHistory.length})`}
+                        {tab === "movements"
+                            ? t("movimientos.pestanaMovimientos", { cantidad: movements.length })
+                            : t("movimientos.pestanaPrecios", { cantidad: priceHistory.length })}
                     </button>
                 ))}
             </div>
@@ -172,7 +173,7 @@ export default function StockMovementsPage() {
                     {/* Gráfico de stock */}
                     {movements.length > 0 && (
                         <div className="bg-surface rounded-xl border border-border p-6">
-                            <h2 className="text-base font-semibold text-foreground mb-6">Evolución del stock</h2>
+                            <h2 className="text-base font-semibold text-foreground mb-6">{t("movimientos.evolucionStock")}</h2>
                             <ResponsiveContainer width="100%" height={260}>
                                 <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
@@ -180,14 +181,14 @@ export default function StockMovementsPage() {
                                     <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                                     <Tooltip
                                         contentStyle={{ ...ESTILO_DE_TOOLTIP, fontSize: 13 }}
-                                        formatter={(value) => [`${Number(value)} unidades`, "Stock"]}
+                                        formatter={(value) => [tn("movimientos.unidades", Number(value)), t("productos.campo.stock")]}
                                     />
                                     {(product.minStock ?? 0) > 0 && (
                                         <ReferenceLine
                                             y={product.minStock}
                                             stroke="var(--color-warning)"
                                             strokeDasharray="4 4"
-                                            label={{ value: `Mín (${product.minStock})`, position: "right", fontSize: 11 }}
+                                            label={{ value: t("movimientos.etiquetaMinimo", { minimo: product.minStock ?? 0 }), position: "right", fontSize: 11 }}
                                         />
                                     )}
                                     <Line
@@ -209,7 +210,7 @@ export default function StockMovementsPage() {
                             <div className="min-w-36">
                                 <Select
                                     options={[
-                                        { value: "", label: "Todos los tipos" },
+                                        { value: "", label: t("movimientos.todosLosTipos") },
                                         // Las opciones salen del descriptor para que el filtro no
                                         // pueda decir una cosa y la insignia de la tabla otra.
                                         ...Object.entries(TIPO_MOVIMIENTO).map(([value, { clave }]) => ({ value, label: t(clave) })),
@@ -219,7 +220,7 @@ export default function StockMovementsPage() {
                                 />
                             </div>
                             <div className="flex items-center gap-2">
-                                <label className="text-xs text-foreground-muted whitespace-nowrap">Desde</label>
+                                <label className="text-xs text-foreground-muted whitespace-nowrap">{t("movimientos.desde")}</label>
                                 <input
                                     type="date"
                                     value={dateFrom}
@@ -228,7 +229,7 @@ export default function StockMovementsPage() {
                                 />
                             </div>
                             <div className="flex items-center gap-2">
-                                <label className="text-xs text-foreground-muted whitespace-nowrap">Hasta</label>
+                                <label className="text-xs text-foreground-muted whitespace-nowrap">{t("movimientos.hasta")}</label>
                                 <input
                                     type="date"
                                     value={dateTo}
@@ -241,7 +242,7 @@ export default function StockMovementsPage() {
                                     variant="secondary"
                                     onClick={() => { setTypeFilter(""); setDateFrom(""); setDateTo(""); }}
                                 >
-                                    Limpiar filtros
+                                    {t("movimientos.limpiarFiltros")}
                                 </Button>
                             )}
                         </div>
@@ -252,26 +253,30 @@ export default function StockMovementsPage() {
                         <div className="bg-surface rounded-xl border border-border overflow-hidden">
                             <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                                 <h2 className="text-base font-semibold text-foreground">
-                                    Movimientos ({filteredMovements.length}
-                                    {filteredMovements.length !== movements.length && ` de ${movements.length}`})
+                                    {filteredMovements.length === movements.length
+                                        ? t("movimientos.pestanaMovimientos", { cantidad: filteredMovements.length })
+                                        : t("movimientos.tablaFiltrada", {
+                                            cantidad: filteredMovements.length,
+                                            total: movements.length,
+                                        })}
                                 </h2>
                             </div>
                             <div className="overflow-x-auto contain-paint">
                                 <table className="w-full text-sm">
                                     <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                         <tr>
-                                            <th className="px-6 py-3">Fecha</th>
-                                            <th className="px-6 py-3">Tipo</th>
-                                            <th className="px-6 py-3">Cambio</th>
-                                            <th className="px-6 py-3">Stock resultante</th>
-                                            <th className="px-6 py-3">Nota</th>
+                                            <th className="px-6 py-3">{t("comun.fecha")}</th>
+                                            <th className="px-6 py-3">{t("movimientos.columnaTipo")}</th>
+                                            <th className="px-6 py-3">{t("movimientos.columnaCambio")}</th>
+                                            <th className="px-6 py-3">{t("movimientos.columnaStockResultante")}</th>
+                                            <th className="px-6 py-3">{t("movimientos.columnaNota")}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
                                         {[...filteredMovements].reverse().map((m) => (
                                             <tr key={m.id} className="hover:bg-surface-muted transition-colors">
                                                 <td className="px-6 py-3 text-foreground-muted whitespace-nowrap">
-                                                    {formatDate(m.createdAt)}
+                                                    {formatearFecha(idioma, m.createdAt)}
                                                 </td>
                                                 <td className="px-6 py-3">
                                                     <EstadoBadge estado={TIPO_MOVIMIENTO[m.type as StockMovementType]} />
@@ -292,8 +297,8 @@ export default function StockMovementsPage() {
                     ) : (
                         <div className="bg-surface rounded-xl border border-border p-6 text-center text-sm text-foreground-muted">
                             {movements.length === 0
-                                ? "Aún no hay movimientos registrados para este producto."
-                                : "No hay movimientos que coincidan con los filtros aplicados."}
+                                ? t("movimientos.sinMovimientos")
+                                : t("movimientos.sinCoincidencias")}
                         </div>
                     )}
                 </>
@@ -304,7 +309,7 @@ export default function StockMovementsPage() {
                     {priceHistory.length > 0 ? (
                         <>
                             <div className="bg-surface rounded-xl border border-border p-6">
-                                <h2 className="text-base font-semibold text-foreground mb-6">Evolución del precio</h2>
+                                <h2 className="text-base font-semibold text-foreground mb-6">{t("precios.evolucion")}</h2>
                                 <ResponsiveContainer width="100%" height={240}>
                                     <AreaChart data={priceChartData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
                                         <defs>
@@ -318,7 +323,7 @@ export default function StockMovementsPage() {
                                         <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
                                         <Tooltip
                                             contentStyle={{ ...ESTILO_DE_TOOLTIP, fontSize: 13 }}
-                                            formatter={(value) => [formatearImporte(Number(value)), "Precio"]}
+                                            formatter={(value) => [formatearImporte(Number(value)), t("productos.campo.precio")]}
                                         />
                                         <Area
                                             type="monotone"
@@ -334,15 +339,15 @@ export default function StockMovementsPage() {
 
                             <div className="bg-surface rounded-xl border border-border overflow-hidden">
                                 <div className="px-6 py-4 border-b border-border">
-                                    <h2 className="text-base font-semibold text-foreground">Cambios de precio ({priceHistory.length})</h2>
+                                    <h2 className="text-base font-semibold text-foreground">{t("precios.cambios", { cantidad: priceHistory.length })}</h2>
                                 </div>
                                 <table className="w-full text-sm">
                                     <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                         <tr>
-                                            <th className="px-6 py-3">Fecha</th>
-                                            <th className="px-6 py-3">Precio anterior</th>
-                                            <th className="px-6 py-3">Precio nuevo</th>
-                                            <th className="px-6 py-3">Variación</th>
+                                            <th className="px-6 py-3">{t("comun.fecha")}</th>
+                                            <th className="px-6 py-3">{t("precios.anterior")}</th>
+                                            <th className="px-6 py-3">{t("precios.nuevo")}</th>
+                                            <th className="px-6 py-3">{t("precios.variacion")}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
@@ -352,7 +357,7 @@ export default function StockMovementsPage() {
                                             return (
                                                 <tr key={h.id} className="hover:bg-surface-muted">
                                                     <td className="px-6 py-3 text-foreground-muted whitespace-nowrap">
-                                                        {formatDate(h.createdAt)}
+                                                        {formatearFecha(idioma, h.createdAt)}
                                                     </td>
                                                     <td className="px-6 py-3 text-foreground-muted">
                                                         {formatearImporte(h.oldPrice)}
@@ -374,7 +379,7 @@ export default function StockMovementsPage() {
                         </>
                     ) : (
                         <div className="bg-surface rounded-xl border border-border p-6 text-center text-sm text-foreground-muted">
-                            Aún no hay cambios de precio registrados para este producto.
+                            {t("precios.sinCambios")}
                         </div>
                     )}
                 </>

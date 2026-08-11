@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { getUsers, updateUserRole, activateUser, deactivateUser } from "../api/users.api";
 import type { UserRole, UsersQuery } from "../types/users.types";
+import { useT } from "@/shared/hooks/useIdioma";
+import { mensajeDeError } from "@/shared/lib/errorApi";
 
 export const USERS_KEY = ["users"] as const;
 
@@ -14,27 +16,27 @@ export function useUsers(params?: UsersQuery) {
 
 export function useUpdateUserRole() {
     const qc = useQueryClient();
+    const { t, idioma } = useT();
     return useMutation({
         mutationFn: ({ id, role }: { id: string; role: UserRole }) => updateUserRole(id, role),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: USERS_KEY });
-            toast.success("Rol actualizado");
+            toast.success(t("usuarios.rolActualizado"));
         },
-        onError: (err: { response?: { data?: { message?: string } } }) =>
-            toast.error(err?.response?.data?.message ?? "Error al cambiar el rol"),
+        onError: (error) => toast.error(mensajeDeError(idioma, error)),
     });
 }
 
 export function useSetUserActive() {
     const qc = useQueryClient();
+    const { t, idioma } = useT();
     return useMutation({
         mutationFn: ({ id, active }: { id: string; active: boolean }) =>
             active ? activateUser(id) : deactivateUser(id),
         onSuccess: (_data, vars) => {
             qc.invalidateQueries({ queryKey: USERS_KEY });
-            toast.success(vars.active ? "Usuario activado" : "Usuario desactivado");
+            toast.success(t(vars.active ? "usuarios.activado" : "usuarios.desactivado"));
         },
-        onError: (err: { response?: { data?: { message?: string } } }) =>
-            toast.error(err?.response?.data?.message ?? "Error al cambiar el estado del usuario"),
+        onError: (error) => toast.error(mensajeDeError(idioma, error)),
     });
 }

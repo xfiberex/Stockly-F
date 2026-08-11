@@ -21,14 +21,13 @@ import {
 import { exportPurchaseOrdersCsv } from "@/modules/purchase-orders/api/purchase-orders.api";
 import type { PurchaseOrder, CreatePurchaseOrderForm } from "@/modules/purchase-orders/types/purchase-orders.types";
 import { PlusIcon, TrashIcon, CheckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { useT } from "@/shared/hooks/useIdioma";
+import type { Clave } from "@/shared/i18n/traducir";
+import { formatearFecha } from "@/shared/lib/fechas";
 
 // Etiqueta, color e icono del estado salen del mismo descriptor (T2-38): pendiente
 // es un aviso —hay algo por hacer—, recibida es el final correcto y cancelada, el
 // negativo.
-
-function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
-}
 
 function orderTotal(order: PurchaseOrder): number {
     return order.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
@@ -42,6 +41,7 @@ interface OrderFormModalProps {
 }
 
 function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
+    const { t, te } = useT();
     const { data: suppliers = [] } = useSuppliers();
     const { data: productsData } = useProducts({ limit: 100, isActive: true });
     const products = productsData?.data ?? [];
@@ -54,12 +54,12 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
     const supplierOptions = [
-        { value: "", label: "Sin proveedor" },
+        { value: "", label: t("productos.sinProveedor") },
         ...suppliers.map((s) => ({ value: s.id, label: s.name })),
     ];
 
     const productOptions = [
-        { value: "", label: "Escribir manualmente" },
+        { value: "", label: t("ordenes.escribirManualmente") },
         ...products.map((p) => ({ value: p.id, label: p.name })),
     ];
 
@@ -89,33 +89,33 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Nueva orden de compra" className="max-w-2xl">
+        <Modal isOpen={isOpen} onClose={onClose} title={t("compras.nuevaOrden")} className="max-w-2xl">
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-3">
                     <Select
                         id="supplierId"
-                        label="Proveedor"
+                        label={t("productos.campo.proveedor")}
                         options={supplierOptions}
                         {...register("supplierId")}
                     />
                     <Input
                         id="notes"
-                        label="Notas"
-                        placeholder="Observaciones..."
+                        label={t("ordenes.notas")}
+                        placeholder={t("ordenes.ejemploNotas")}
                         {...register("notes")}
                     />
                 </div>
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-foreground">Ítems</p>
+                        <p className="text-sm font-medium text-foreground">{t("ordenes.items")}</p>
                         <Button
                             type="button"
                             variant="secondary"
                             onClick={() => append({ productName: "", quantity: 1, unitPrice: 0 })}
                         >
                             <PlusIcon className="h-3.5 w-3.5" />
-                            Agregar ítem
+                            {t("ordenes.agregarItem")}
                         </Button>
                     </div>
                     <div className="space-y-3">
@@ -123,22 +123,24 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                             <div key={field.id} className="grid grid-cols-2 gap-2 items-end border border-border rounded-lg p-3 bg-surface-muted md:grid-cols-12">
                                 <div className="col-span-2 md:col-span-4">
                                     <Select
-                                        label="Producto"
+                                        label={t("ordenes.producto")}
                                         options={productOptions}
                                         onChange={(e) => handleProductSelect(idx, e.target.value)}
                                     />
                                 </div>
                                 <div className="col-span-2 md:col-span-3">
                                     <Input
-                                        label="Nombre"
-                                        placeholder="Nombre del ítem"
-                                        error={errors.items?.[idx]?.productName?.message}
-                                        {...register(`items.${idx}.productName`, { required: "Obligatorio" })}
+                                        label={t("comun.nombre")}
+                                        placeholder={t("ordenes.nombreItem")}
+                                        error={te(errors.items?.[idx]?.productName?.message)}
+                                        {...register(`items.${idx}.productName`, {
+                                            required: "validacion.obligatorio" satisfies Clave,
+                                        })}
                                     />
                                 </div>
                                 <div className="col-span-1 md:col-span-2">
                                     <Input
-                                        label="Cant."
+                                        label={t("ordenes.cantidadCorta")}
                                         type="number"
                                         min="1"
                                         {...register(`items.${idx}.quantity`)}
@@ -146,7 +148,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                 </div>
                                 <div className="col-span-1 md:col-span-2">
                                     <Input
-                                        label="P. unit."
+                                        label={t("ordenes.precioUnitario")}
                                         type="number"
                                         step="0.01"
                                         min="0"
@@ -169,8 +171,8 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                    <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-                    <Button type="submit" isLoading={createMutation.isPending}>Crear orden</Button>
+                    <Button type="button" variant="secondary" onClick={onClose}>{t("comun.cancelar")}</Button>
+                    <Button type="submit" isLoading={createMutation.isPending}>{t("ordenes.crear")}</Button>
                 </div>
             </form>
         </Modal>
@@ -183,6 +185,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
 const PAGE_SIZE = 10;
 
 export default function PurchaseOrdersPage() {
+    const { t, tn, idioma } = useT();
     const [formOpen, setFormOpen] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -222,20 +225,21 @@ export default function PurchaseOrdersPage() {
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Órdenes de compra</h1>
-                    {/* El plural de «orden» lleva tilde: concatenar "es" daba «ordenes». */}
-                    <p className="text-sm text-foreground-muted mt-1">{total} {total === 1 ? "orden" : "órdenes"} en total</p>
+                    <h1 className="text-2xl font-bold text-foreground">{t("ruta.ordenesCompra")}</h1>
+                    {/* El plural sale de `tn()`: «orden»/«órdenes» no se distinguen por una
+                        «s», y en otro idioma tampoco. */}
+                    <p className="text-sm text-foreground-muted mt-1">{tn("ordenes.total", total)}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <DropdownButton
-                        label="Exportar"
+                        label={t("ordenes.exportar")}
                         icon={ArrowDownTrayIcon}
-                        items={[{ label: "Exportar CSV", onClick: exportPurchaseOrdersCsv }]}
+                        items={[{ label: t("ordenes.exportarCsv"), onClick: exportPurchaseOrdersCsv }]}
                     />
                     {isAdmin && (
                         <Button onClick={() => setFormOpen(true)}>
                             <PlusIcon className="h-4 w-4" />
-                            Nueva orden
+                            {t("ordenes.nueva")}
                         </Button>
                     )}
                 </div>
@@ -244,7 +248,7 @@ export default function PurchaseOrdersPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : orders.length === 0 ? (
-                <div className="py-16 text-center text-sm text-foreground-muted">No hay órdenes de compra. Crea la primera.</div>
+                <div className="py-16 text-center text-sm text-foreground-muted">{t("compras.vacio")}</div>
             ) : (
                 <div className="space-y-3">
                     {orders.map((order) => (
@@ -258,10 +262,10 @@ export default function PurchaseOrdersPage() {
                                     <EstadoBadge estado={buscarEstado(ESTADO_ORDEN_COMPRA, order.status)} />
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-foreground">
-                                            Orden #{order.id.slice(0, 8).toUpperCase()}
+                                            {t("compras.numero", { numero: order.id.slice(0, 8).toUpperCase() })}
                                         </p>
                                         <p className="text-xs text-foreground-muted">
-                                            {order.supplier?.name ?? "Sin proveedor"} · {formatDate(order.createdAt)}
+                                            {order.supplier?.name ?? t("productos.sinProveedor")} · {formatearFecha(idioma, order.createdAt)}
                                         </p>
                                     </div>
                                 </div>
@@ -270,13 +274,13 @@ export default function PurchaseOrdersPage() {
                                         <p className="text-sm font-semibold text-foreground tabular-nums">
                                             {formatearImporte(orderTotal(order))}
                                         </p>
-                                        <p className="text-xs text-foreground-muted">{order.items.length} ítem{order.items.length !== 1 ? "s" : ""}</p>
+                                        <p className="text-xs text-foreground-muted">{tn("ordenes.items", order.items.length)}</p>
                                     </div>
                                     {isAdmin && order.status === "PENDING" && (
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 variant="ghost"
-                                                title="Marcar como recibida"
+                                                title={t("compras.marcarRecibida")}
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleReceive(order.id)}
                                             >
@@ -284,7 +288,7 @@ export default function PurchaseOrdersPage() {
                                             </Button>
                                             <Button
                                                 variant="ghost"
-                                                title="Cancelar orden"
+                                                title={t("compras.cancelarOrden")}
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleCancel(order.id)}
                                             >
@@ -292,7 +296,7 @@ export default function PurchaseOrdersPage() {
                                             </Button>
                                             <Button
                                                 variant="ghost"
-                                                title="Eliminar"
+                                                title={t("comun.eliminar")}
                                                 isLoading={deleteMutation.isPending}
                                                 onClick={() => handleDelete(order.id)}
                                             >
@@ -312,10 +316,10 @@ export default function PurchaseOrdersPage() {
                                     <table className="w-full text-sm">
                                         <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
                                             <tr>
-                                                <th className="pb-2">Producto</th>
-                                                <th className="pb-2 text-right">Cant.</th>
-                                                <th className="pb-2 text-right">P. unit.</th>
-                                                <th className="pb-2 text-right">Subtotal</th>
+                                                <th className="pb-2">{t("ordenes.producto")}</th>
+                                                <th className="pb-2 text-right">{t("ordenes.cantidadCorta")}</th>
+                                                <th className="pb-2 text-right">{t("ordenes.precioUnitario")}</th>
+                                                <th className="pb-2 text-right">{t("ordenes.subtotal")}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
@@ -332,7 +336,7 @@ export default function PurchaseOrdersPage() {
                                         </tbody>
                                         <tfoot className="border-t border-border">
                                             <tr>
-                                                <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">Total</td>
+                                                <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">{t("comun.total")}</td>
                                                 <td className="pt-2 text-right font-bold text-foreground">
                                                     {formatearImporte(orderTotal(order))}
                                                 </td>
@@ -348,13 +352,13 @@ export default function PurchaseOrdersPage() {
 
             {totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm text-foreground-muted">
-                    <span>Página {page} de {totalPages}</span>
+                    <span>{t("comun.paginaDeTotal", { pagina: page, total: totalPages })}</span>
                     <div className="flex gap-2">
                         <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                            Anterior
+                            {t("comun.anterior")}
                         </Button>
                         <Button variant="secondary" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>
-                            Siguiente
+                            {t("comun.siguiente")}
                         </Button>
                     </div>
                 </div>

@@ -20,13 +20,12 @@ import {
 import { exportSaleOrdersCsv } from "@/modules/sale-orders/api/sale-orders.api";
 import type { SaleOrder, CreateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
 import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { useT } from "@/shared/hooks/useIdioma";
+import type { Clave } from "@/shared/i18n/traducir";
+import { formatearFecha } from "@/shared/lib/fechas";
 
 // Mismo criterio que en las órdenes de compra: el descriptor de `shared/lib/estados`
 // lleva etiqueta, color e icono juntos (T2-38).
-
-function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
-}
 
 function orderTotal(order: SaleOrder): number {
     return order.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
@@ -63,23 +62,27 @@ interface CancelarEnvioModalProps {
  * es el movimiento de stock, y el diálogo dice exactamente cuánto se va a reponer.
  */
 function CancelarEnvioModal({ orden, isPending, onConfirm, onClose }: CancelarEnvioModalProps) {
+    const { t, tn } = useT();
     const items = orden ? itemsQueReponen(orden) : [];
     const unidades = items.reduce((sum, item) => sum + item.quantity, 0);
 
     return (
-        <Modal isOpen={orden !== null} onClose={onClose} title="Cancelar una orden ya enviada">
+        <Modal isOpen={orden !== null} onClose={onClose} title={t("ventas.cancelar.titulo")}>
             {orden && (
                 <div className="flex flex-col gap-4">
+                    {/* La frase entera va en el catálogo con el número de orden interpolado:
+                        partirla para poder poner el `<span>` en negrita la volvería
+                        intraducible, y resaltar la orden no vale ese precio. */}
                     <p className="text-sm text-foreground">
-                        La orden <span className="font-semibold">Venta #{numeroDeOrden(orden.id)}</span> ya
-                        fue enviada, así que su mercancía salió del inventario. Cancelarla la devuelve.
+                        {t("ventas.cancelar.explicacion", {
+                            orden: t("ventas.numero", { numero: numeroDeOrden(orden.id) }),
+                        })}
                     </p>
 
                     {unidades > 0 ? (
                         <div className="rounded-lg border border-border bg-surface-muted p-3">
                             <p className="text-xs font-medium uppercase tracking-wide text-foreground-muted">
-                                Se repondrán <span className="tabular-nums">{unidades}</span>{" "}
-                                {unidades === 1 ? "unidad" : "unidades"}
+                                {tn("ventas.cancelar.repondran", unidades)}
                             </p>
                             <ul className="mt-2 space-y-1">
                                 {items.map((item) => (
@@ -92,19 +95,18 @@ function CancelarEnvioModal({ orden, isPending, onConfirm, onClose }: CancelarEn
                         </div>
                     ) : (
                         <p className="text-sm text-foreground-muted">
-                            Ningún ítem de esta orden está ligado a un producto del catálogo, así que el
-                            inventario no cambiará.
+                            {t("ventas.cancelar.sinInventario")}
                         </p>
                     )}
 
                     <p className="text-xs text-foreground-muted">
-                        Una orden cancelada ya no se puede modificar.
+                        {t("ventas.cancelar.irreversible")}
                     </p>
 
                     <div className="flex justify-end gap-2 border-t border-border pt-3">
-                        <Button type="button" variant="secondary" onClick={onClose}>Volver</Button>
+                        <Button type="button" variant="secondary" onClick={onClose}>{t("comun.volver")}</Button>
                         <Button type="button" variant="danger" isLoading={isPending} onClick={onConfirm}>
-                            Cancelar la orden
+                            {t("ventas.cancelar.confirmar")}
                         </Button>
                     </div>
                 </div>
@@ -118,6 +120,7 @@ function CancelarEnvioModal({ orden, isPending, onConfirm, onClose }: CancelarEn
 interface OrderFormModalProps { isOpen: boolean; onClose: () => void; }
 
 function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
+    const { t, te } = useT();
     const { data: productsData } = useProducts({ limit: 200, isActive: true });
     const products = productsData?.data ?? [];
     const createMutation = useCreateSaleOrder();
@@ -129,7 +132,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
     const productOptions = [
-        { value: "", label: "Escribir manualmente" },
+        { value: "", label: t("ordenes.escribirManualmente") },
         ...products.map((p) => ({ value: p.id, label: p.name })),
     ];
 
@@ -161,27 +164,27 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Nueva orden de venta" className="max-w-2xl">
+        <Modal isOpen={isOpen} onClose={onClose} title={t("ventas.nuevaOrden")} className="max-w-2xl">
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-3">
-                    <Input id="customerName" label="Nombre del cliente" placeholder="Ej: Juan García" {...register("customerName")} />
-                    <Input id="customerEmail" label="Correo" type="email" placeholder="cliente@email.com" {...register("customerEmail")} />
+                    <Input id="customerName" label={t("ventas.cliente")} placeholder={t("ventas.ejemploCliente")} {...register("customerName")} />
+                    <Input id="customerEmail" label={t("ventas.correo")} type="email" placeholder={t("ventas.ejemploCorreo")} {...register("customerEmail")} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                    <Input id="customerPhone" label="Teléfono" placeholder="+52 55 ..." {...register("customerPhone")} />
-                    <Input id="notes" label="Notas" placeholder="Observaciones..." {...register("notes")} />
+                    <Input id="customerPhone" label={t("ventas.telefono")} placeholder={t("ventas.ejemploTelefono")} {...register("customerPhone")} />
+                    <Input id="notes" label={t("ordenes.notas")} placeholder={t("ordenes.ejemploNotas")} {...register("notes")} />
                 </div>
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-foreground">Ítems *</p>
+                        <p className="text-sm font-medium text-foreground">{t("ordenes.items")} *</p>
                         <Button
                             type="button"
                             variant="secondary"
                             onClick={() => append({ productName: "", quantity: 1, unitPrice: 0 })}
                         >
                             <PlusIcon className="h-3.5 w-3.5" />
-                            Agregar ítem
+                            {t("ordenes.agregarItem")}
                         </Button>
                     </div>
                     <div className="space-y-3">
@@ -189,24 +192,26 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                             <div key={field.id} className="grid grid-cols-2 gap-2 items-end border border-border rounded-lg p-3 bg-surface-muted md:grid-cols-12">
                                 <div className="col-span-2 md:col-span-4">
                                     <Select
-                                        label="Producto"
+                                        label={t("ordenes.producto")}
                                         options={productOptions}
                                         onChange={(e) => handleProductSelect(idx, e.target.value)}
                                     />
                                 </div>
                                 <div className="col-span-2 md:col-span-3">
                                     <Input
-                                        label="Nombre"
-                                        placeholder="Nombre del ítem"
-                                        error={errors.items?.[idx]?.productName?.message}
-                                        {...register(`items.${idx}.productName`, { required: "Obligatorio" })}
+                                        label={t("comun.nombre")}
+                                        placeholder={t("ordenes.nombreItem")}
+                                        error={te(errors.items?.[idx]?.productName?.message)}
+                                        {...register(`items.${idx}.productName`, {
+                                            required: "validacion.obligatorio" satisfies Clave,
+                                        })}
                                     />
                                 </div>
                                 <div className="col-span-1 md:col-span-2">
-                                    <Input label="Cant." type="number" min="1" {...register(`items.${idx}.quantity`)} />
+                                    <Input label={t("ordenes.cantidadCorta")} type="number" min="1" {...register(`items.${idx}.quantity`)} />
                                 </div>
                                 <div className="col-span-1 md:col-span-2">
-                                    <Input label="P. unit." type="number" step="0.01" min="0" {...register(`items.${idx}.unitPrice`)} />
+                                    <Input label={t("ordenes.precioUnitario")} type="number" step="0.01" min="0" {...register(`items.${idx}.unitPrice`)} />
                                 </div>
                                 <div className="col-span-2 flex justify-end md:col-span-1">
                                     <Button
@@ -224,8 +229,8 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                    <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-                    <Button type="submit" isLoading={createMutation.isPending}>Crear orden</Button>
+                    <Button type="button" variant="secondary" onClick={onClose}>{t("comun.cancelar")}</Button>
+                    <Button type="submit" isLoading={createMutation.isPending}>{t("ordenes.crear")}</Button>
                 </div>
             </form>
         </Modal>
@@ -235,6 +240,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
 // ── Página principal ──────────────────────────────────────────────────────────
 
 export default function SaleOrdersPage() {
+    const { t, tn, idioma } = useT();
     const [formOpen, setFormOpen] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [ordenACancelar, setOrdenACancelar] = useState<SaleOrder | null>(null);
@@ -264,19 +270,19 @@ export default function SaleOrdersPage() {
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Órdenes de venta</h1>
-                    <p className="text-sm text-foreground-muted mt-1">{orders.length} orden{orders.length !== 1 ? "es" : ""}</p>
+                    <h1 className="text-2xl font-bold text-foreground">{t("ruta.ordenesVenta")}</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{tn("ordenes.cantidad", orders.length)}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <DropdownButton
-                        label="Exportar"
+                        label={t("ordenes.exportar")}
                         icon={ArrowDownTrayIcon}
-                        items={[{ label: "Exportar CSV", onClick: exportSaleOrdersCsv }]}
+                        items={[{ label: t("ordenes.exportarCsv"), onClick: exportSaleOrdersCsv }]}
                     />
                     {isAdmin && (
                         <Button onClick={() => setFormOpen(true)}>
                             <PlusIcon className="h-4 w-4" />
-                            Nueva orden
+                            {t("ordenes.nueva")}
                         </Button>
                     )}
                 </div>
@@ -285,7 +291,7 @@ export default function SaleOrdersPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : orders.length === 0 ? (
-                <div className="py-16 text-center text-sm text-foreground-muted">No hay órdenes de venta. Crea la primera.</div>
+                <div className="py-16 text-center text-sm text-foreground-muted">{t("ventas.vacio")}</div>
             ) : (
                 <div className="space-y-3">
                     {orders.map((order) => (
@@ -298,10 +304,10 @@ export default function SaleOrdersPage() {
                                     <EstadoBadge estado={buscarEstado(ESTADO_ORDEN_VENTA, order.status)} />
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-foreground">
-                                            Venta #{order.id.slice(0, 8).toUpperCase()}
+                                            {t("ventas.numero", { numero: numeroDeOrden(order.id) })}
                                         </p>
                                         <p className="text-xs text-foreground-muted">
-                                            {order.customerName ?? "Cliente sin nombre"} · {formatDate(order.createdAt)}
+                                            {order.customerName ?? t("ventas.clienteSinNombre")} · {formatearFecha(idioma, order.createdAt)}
                                         </p>
                                     </div>
                                 </div>
@@ -310,7 +316,7 @@ export default function SaleOrdersPage() {
                                         <p className="text-sm font-semibold text-foreground tabular-nums">
                                             {formatearImporte(orderTotal(order))}
                                         </p>
-                                        <p className="text-xs text-foreground-muted">{order.items.length} ítem{order.items.length !== 1 ? "s" : ""}</p>
+                                        <p className="text-xs text-foreground-muted">{tn("ordenes.items", order.items.length)}</p>
                                     </div>
                                     {isAdmin && order.status === "PENDING" && (
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
@@ -320,8 +326,8 @@ export default function SaleOrdersPage() {
                                                 se actúa. El `title` se queda para el ratón. */}
                                             <Button
                                                 variant="ghost"
-                                                title="Marcar como enviado"
-                                                aria-label={`Marcar como enviada la Venta #${numeroDeOrden(order.id)}`}
+                                                title={t("ventas.marcarEnviada")}
+                                                aria-label={t("ventas.marcarEnviadaDe", { numero: numeroDeOrden(order.id) })}
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleShip(order.id)}
                                             >
@@ -329,8 +335,8 @@ export default function SaleOrdersPage() {
                                             </Button>
                                             <Button
                                                 variant="ghost"
-                                                title="Cancelar orden"
-                                                aria-label={`Cancelar la Venta #${numeroDeOrden(order.id)}`}
+                                                title={t("compras.cancelarOrden")}
+                                                aria-label={t("ventas.cancelarDe", { numero: numeroDeOrden(order.id) })}
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleCancel(order.id)}
                                             >
@@ -338,8 +344,8 @@ export default function SaleOrdersPage() {
                                             </Button>
                                             <Button
                                                 variant="ghost"
-                                                title="Eliminar"
-                                                aria-label={`Eliminar la Venta #${numeroDeOrden(order.id)}`}
+                                                title={t("comun.eliminar")}
+                                                aria-label={t("ventas.eliminarDe", { numero: numeroDeOrden(order.id) })}
                                                 isLoading={deleteMutation.isPending}
                                                 onClick={() => deleteMutation.mutate(order.id)}
                                             >
@@ -354,8 +360,8 @@ export default function SaleOrdersPage() {
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 variant="ghost"
-                                                title="Cancelar orden enviada"
-                                                aria-label={`Cancelar la orden enviada Venta #${numeroDeOrden(order.id)}`}
+                                                title={t("ventas.cancelarEnviada")}
+                                                aria-label={t("ventas.cancelarEnviadaDe", { numero: numeroDeOrden(order.id) })}
                                                 onClick={() => setOrdenACancelar(order)}
                                             >
                                                 <XMarkIcon className="h-4 w-4 text-warning" />
@@ -379,10 +385,10 @@ export default function SaleOrdersPage() {
                                     <table className="w-full text-sm">
                                         <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
                                             <tr>
-                                                <th className="pb-2">Producto</th>
-                                                <th className="pb-2 text-right">Cant.</th>
-                                                <th className="pb-2 text-right">P. unit.</th>
-                                                <th className="pb-2 text-right">Subtotal</th>
+                                                <th className="pb-2">{t("ordenes.producto")}</th>
+                                                <th className="pb-2 text-right">{t("ordenes.cantidadCorta")}</th>
+                                                <th className="pb-2 text-right">{t("ordenes.precioUnitario")}</th>
+                                                <th className="pb-2 text-right">{t("ordenes.subtotal")}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
@@ -399,7 +405,7 @@ export default function SaleOrdersPage() {
                                         </tbody>
                                         <tfoot className="border-t border-border">
                                             <tr>
-                                                <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">Total</td>
+                                                <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">{t("comun.total")}</td>
                                                 <td className="pt-2 text-right font-bold text-foreground">
                                                     {formatearImporte(orderTotal(order))}
                                                 </td>

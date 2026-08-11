@@ -6,6 +6,11 @@ import {
     updateProfileSchema,
     updatePasswordSchema,
 } from "@/modules/auth/schemas/auth.schema";
+import { traducir } from "@/shared/i18n/traducir";
+
+// T4-04: el esquema guarda **la clave** del catálogo, no la frase. Estas dos pruebas
+// comprueban las dos mitades: que el mensaje sea la clave que toca, y que esa clave
+// tenga traducción — sin lo segundo, una errata pasaría desapercibida.
 
 describe("Auth Schemas — validación con Zod", () => {
     describe("loginFormSchema", () => {
@@ -15,7 +20,8 @@ describe("Auth Schemas — validación con Zod", () => {
         it("rechaza email con formato inválido", () => {
             const result = loginFormSchema.safeParse({ email: "no-es-email", password: "secret" });
             expect(result.success).toBe(false);
-            expect(result.error?.issues[0].message).toBe("Email no válido");
+            expect(result.error?.issues[0].message).toBe("validacion.correoInvalido");
+            expect(traducir("es", "validacion.correoInvalido")).toBe("Email no válido");
         });
         it("rechaza email vacío", () => {
             expect(loginFormSchema.safeParse({ email: "", password: "secret" }).success).toBe(false);
@@ -54,7 +60,8 @@ describe("Auth Schemas — validación con Zod", () => {
             });
             expect(result.success).toBe(false);
             const issue = result.error?.issues.find((i) => i.path[0] === "passwordConfirmation");
-            expect(issue?.message).toBe("Las contraseñas no coinciden");
+            expect(issue?.message).toBe("validacion.contrasenasNoCoinciden");
+            expect(traducir("es", "validacion.contrasenasNoCoinciden")).toBe("Las contraseñas no coinciden");
         });
         it("rechaza email inválido", () => {
             expect(registerFormSchema.safeParse({ ...valid, email: "mal" }).success).toBe(false);

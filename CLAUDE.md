@@ -13,7 +13,7 @@ SPA de React 19 sobre Vite. El backend vive en un repositorio hermano, `Stockly-
 Está en el repositorio del backend, en `Stockly-B/docs/`, y cubre **los dos repositorios**:
 
 - `docs/CONTEXTO.md` — **empieza aquí al retomar el proyecto:** estado actual, decisiones vivas, trampas del entorno ya pagadas y por dónde seguir.
-- `docs/ROADMAP.md` — 108 tareas con dependencias, progreso y métricas. La fuente de verdad del trabajo pendiente.
+- `docs/ROADMAP.md` — 109 tareas con dependencias, progreso y métricas. La fuente de verdad del trabajo pendiente.
 - `docs/adr/` — decisiones de arquitectura no obvias: léelas antes de simplificar algo que parezca complicado de más.
 - `docs/INFORME-AUDITORIA.md` — los hallazgos que justifican cada tarea. **Congelado a propósito:** está escrito en presente y describe el 2026-08-04, no el estado actual.
 - `docs/README-proyecto.md` — arranque desde cero de los dos repositorios.
@@ -47,6 +47,7 @@ El E2E sube el techo del rate limit del backend con `RATE_LIMIT_MAX` y `AUTH_RAT
 - Las credenciales del E2E salen del seed del backend y son sobreescribibles por variables de entorno. **Nunca poner una contraseña real** en `e2e/`: ese directorio está versionado, y una fuga así ya obligó a reescribir el historial (tarea T0-06).
 - **Los tipos de las respuestas de la API no se escriben aquí** (T4-01). `src/shared/contratos/api.generated.ts` es una copia literal de `Stockly-B/src/contratos/api.ts`, que es la fuente de verdad; los tipos de cada módulo (`Product`, `SaleOrder`, …) son alias de los suyos. Para cambiar la forma de una respuesta se edita **en el backend** y se ejecuta allí `pnpm contratos:generar`. Editar el archivo generado no sirve: `frescura.test.ts` lo detecta y la próxima generación lo pisa.
 - **`price` y los `unitPrice` son `string | number`**, no `number`: los `Decimal` de Prisma llegan como cadena. Para convertir, `aNumero()` del contrato. `/reports` es la excepción y sí manda números.
+- **Ningún texto de interfaz se escribe en un componente** (T4-04). Todo sale de `src/shared/i18n/es.ts` —el catálogo de referencia— y se pinta con `t()` / `tn()` de `useT()`; los mensajes de los esquemas Zod guardan **la clave** y los traduce `te()` en el campo. `en.ts` es un `Record` sobre las claves de `es.ts`, así que una traducción que falte **no compila**, y `src/tests/i18n/literales.test.ts` falla si vuelve a aparecer una cadena a mano en un nodo JSX, en una prop visible (`label`, `placeholder`, `title`, `aria-label`, `alt`, `summary`) o en un `toast`. Las fechas van por `shared/lib/fechas.ts`, que sigue al idioma. El porqué del motor propio, en [ADR 0007](../Stockly-B/docs/adr/0007-i18n-propio.md).
 
 ## CodeGraph
 

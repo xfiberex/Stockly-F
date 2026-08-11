@@ -11,14 +11,22 @@ import { useCreateSupplier, useUpdateSupplier, useDeleteSupplier } from "@/modul
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { PencilIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 import type { Supplier, SupplierForm } from "@/modules/suppliers/types/supplier.types";
+import { useT } from "@/shared/hooks/useIdioma";
+import type { Clave } from "@/shared/i18n/traducir";
 
 // ── Validación ────────────────────────────────────────────────────────────────
 
+// Los mensajes son claves del catálogo (T4-04); ver `auth.schema.ts`.
 const supplierSchema = z.object({
-    name: z.string().trim().min(1, "El nombre es obligatorio").max(200, "Máximo 200 caracteres"),
-    email: z.union([z.string().trim().email("Email no válido"), z.literal("")]).optional(),
-    phone: z.string().trim().max(30, "Máximo 30 caracteres").optional(),
-    notes: z.string().trim().max(1000, "Máximo 1000 caracteres").optional(),
+    name: z.string().trim()
+        .min(1, "validacion.nombreRequerido" satisfies Clave)
+        .max(200, "validacion.maximo200" satisfies Clave),
+    email: z.union([
+        z.string().trim().email("validacion.correoInvalido" satisfies Clave),
+        z.literal(""),
+    ]).optional(),
+    phone: z.string().trim().max(30, "validacion.maximo30" satisfies Clave).optional(),
+    notes: z.string().trim().max(1000, "validacion.maximo1000" satisfies Clave).optional(),
 });
 
 // ── Modal de formulario ───────────────────────────────────────────────────────
@@ -32,6 +40,7 @@ interface SupplierFormModalProps {
 }
 
 function SupplierFormModal({ isOpen, onClose, supplier, onSubmit, isPending }: SupplierFormModalProps) {
+    const { t, te } = useT();
     const { register, handleSubmit, reset, formState: { errors } } = useForm<SupplierForm>({
         resolver: zodResolver(supplierSchema),
         defaultValues: supplier
@@ -45,44 +54,44 @@ function SupplierFormModal({ isOpen, onClose, supplier, onSubmit, isPending }: S
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title={supplier ? "Editar proveedor" : "Nuevo proveedor"}
+            title={supplier ? t("proveedores.editar") : t("proveedores.nuevo")}
             className="max-w-md"
         >
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <Input
                     id="name"
-                    label="Nombre *"
-                    placeholder="Nombre del proveedor"
-                    error={errors.name?.message}
+                    label={`${t("comun.nombre")} *`}
+                    placeholder={t("proveedores.ejemploNombre")}
+                    error={te(errors.name?.message)}
                     {...register("name")}
                 />
                 <div className="grid grid-cols-2 gap-3">
                     <Input
                         id="email"
-                        label="Email"
+                        label={t("proveedores.email")}
                         type="email"
-                        placeholder="contacto@proveedor.com"
-                        error={errors.email?.message}
+                        placeholder={t("proveedores.ejemploEmail")}
+                        error={te(errors.email?.message)}
                         {...register("email")}
                     />
                     <Input
                         id="phone"
-                        label="Teléfono"
-                        placeholder="+1-555-0100"
-                        error={errors.phone?.message}
+                        label={t("proveedores.telefono")}
+                        placeholder={t("proveedores.ejemploTelefono")}
+                        error={te(errors.phone?.message)}
                         {...register("phone")}
                     />
                 </div>
                 <Input
                     id="notes"
-                    label="Notas"
-                    placeholder="Notas o comentarios adicionales"
-                    error={errors.notes?.message}
+                    label={t("proveedores.notas")}
+                    placeholder={t("proveedores.ejemploNotas")}
+                    error={te(errors.notes?.message)}
                     {...register("notes")}
                 />
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                    <Button type="button" variant="secondary" onClick={handleClose}>Cancelar</Button>
-                    <Button type="submit" isLoading={isPending}>Guardar</Button>
+                    <Button type="button" variant="secondary" onClick={handleClose}>{t("comun.cancelar")}</Button>
+                    <Button type="submit" isLoading={isPending}>{t("comun.guardar")}</Button>
                 </div>
             </form>
         </Modal>
@@ -92,6 +101,7 @@ function SupplierFormModal({ isOpen, onClose, supplier, onSubmit, isPending }: S
 // ── Página ────────────────────────────────────────────────────────────────────
 
 export default function SuppliersPage() {
+    const { t, tn } = useT();
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<Supplier | undefined>();
 
@@ -121,13 +131,13 @@ export default function SuppliersPage() {
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Proveedores</h1>
-                    <p className="text-sm text-foreground-muted mt-1">{suppliers.length} proveedor{suppliers.length !== 1 ? "es" : ""} registrado{suppliers.length !== 1 ? "s" : ""}</p>
+                    <h1 className="text-2xl font-bold text-foreground">{t("ruta.proveedores")}</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{tn("proveedores.registrados", suppliers.length)}</p>
                 </div>
                 {isAdmin && (
                     <Button onClick={handleOpenNew}>
                         <PlusIcon className="h-4 w-4" />
-                        Nuevo proveedor
+                        {t("proveedores.nuevo")}
                     </Button>
                 )}
             </div>
@@ -135,17 +145,17 @@ export default function SuppliersPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : suppliers.length === 0 ? (
-                <div className="py-12 text-center text-sm text-foreground-muted">No hay proveedores. Crea el primero.</div>
+                <div className="py-12 text-center text-sm text-foreground-muted">{t("proveedores.vacio")}</div>
             ) : (
                 <div className="overflow-x-auto contain-paint rounded-xl border border-border">
                     <table className="w-full text-sm">
                         <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
-                                <th className="px-4 py-3">Nombre</th>
-                                <th className="px-4 py-3">Email</th>
-                                <th className="px-4 py-3">Teléfono</th>
-                                <th className="px-4 py-3">Notas</th>
-                                {isAdmin && <th className="px-4 py-3 text-right">Acciones</th>}
+                                <th className="px-4 py-3">{t("comun.nombre")}</th>
+                                <th className="px-4 py-3">{t("proveedores.email")}</th>
+                                <th className="px-4 py-3">{t("proveedores.telefono")}</th>
+                                <th className="px-4 py-3">{t("proveedores.notas")}</th>
+                                {isAdmin && <th className="px-4 py-3 text-right">{t("comun.acciones")}</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border bg-surface">
@@ -158,14 +168,14 @@ export default function SuppliersPage() {
                                     {isAdmin && (
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" onClick={() => handleOpenEdit(supplier)} title="Editar">
+                                                <Button variant="ghost" onClick={() => handleOpenEdit(supplier)} title={t("comun.editar")}>
                                                     <PencilIcon className="h-4 w-4" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     isLoading={deleteMutation.isPending}
                                                     onClick={() => deleteMutation.mutate(supplier.id)}
-                                                    title="Eliminar"
+                                                    title={t("comun.eliminar")}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>

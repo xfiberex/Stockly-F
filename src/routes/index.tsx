@@ -43,6 +43,7 @@ function S({ children }: { children: ReactNode }) {
 
 export const router = createBrowserRouter([
     {
+        // --- Rutas de la autenticación  ---
         path: "/auth",
         children: [
             { path: "login", element: <S><LoginPage /></S> },
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
         ],
     },
     {
+        // --- Rutas del usuario autenticado dependiendo del Rol ---
         path: "/",
         element: (
             <ProtectedRoute>

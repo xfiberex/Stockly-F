@@ -11,8 +11,11 @@ import {
     TagIcon,
     CurrencyDollarIcon,
 } from "@heroicons/react/24/outline";
+import { useT } from "@/shared/hooks/useIdioma";
+import type { Clave } from "@/shared/i18n/traducir";
 
 export default function DashboardPage() {
+    const { t, tn } = useT();
     const { data, isLoading } = useReports();
 
     if (isLoading || !data) {
@@ -26,8 +29,11 @@ export default function DashboardPage() {
     const { totals, stockByCategory, lowStockProducts } = data;
     const lowStockCount = totals.lowStockCount;
 
+    // La `label` es la clave; se traduce al pintar. Como esta lista se arma en cada
+    // render tampoco haría falta, pero deja el criterio a la vista y hace que la `key`
+    // del `map` no dependa del idioma.
     const stats: {
-        label: string;
+        label: Clave;
         value: number;
         bg: string;
         text: string;
@@ -35,19 +41,19 @@ export default function DashboardPage() {
         to: string;
         highlight?: boolean;
     }[] = [
-        { label: "Total productos", value: totals.totalProducts, bg: "bg-info-surface", text: "text-info", Icon: CubeIcon, to: "/catalog/products" },
-        { label: "Productos activos", value: totals.activeProducts, bg: "bg-success-surface", text: "text-success", Icon: CheckCircleIcon, to: "/catalog/products" },
-        { label: "Stock bajo", value: lowStockCount, bg: "bg-warning-surface", text: "text-warning", Icon: ExclamationTriangleIcon, to: "/reports", highlight: lowStockCount > 0 },
+        { label: "dashboard.totalProductos", value: totals.totalProducts, bg: "bg-info-surface", text: "text-info", Icon: CubeIcon, to: "/catalog/products" },
+        { label: "dashboard.productosActivos", value: totals.activeProducts, bg: "bg-success-surface", text: "text-success", Icon: CheckCircleIcon, to: "/catalog/products" },
+        { label: "dashboard.stockBajo", value: lowStockCount, bg: "bg-warning-surface", text: "text-warning", Icon: ExclamationTriangleIcon, to: "/reports", highlight: lowStockCount > 0 },
         // Categorías es un recuento, no un estado: se queda en la variante neutra en
         // vez de repetir el informativo de «Total productos».
-        { label: "Categorías", value: stockByCategory.length, bg: "bg-surface-muted", text: "text-foreground-muted", Icon: TagIcon, to: "/catalog/categories" },
+        { label: "ruta.categorias", value: stockByCategory.length, bg: "bg-surface-muted", text: "text-foreground-muted", Icon: TagIcon, to: "/catalog/categories" },
     ];
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
             <div>
-                <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-                <p className="text-sm text-foreground-muted mt-1">Resumen general del inventario</p>
+                <h1 className="text-2xl font-bold text-foreground">{t("ruta.dashboard")}</h1>
+                <p className="text-sm text-foreground-muted mt-1">{t("dashboard.subtitulo")}</p>
             </div>
 
             {/* Stats cards */}
@@ -67,7 +73,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="min-w-0">
                             <p className={`text-xl sm:text-2xl font-bold tabular-nums ${highlight ? "text-warning" : "text-foreground"}`}>{value}</p>
-                            <p className="text-xs sm:text-sm text-foreground-muted leading-tight">{label}</p>
+                            <p className="text-xs sm:text-sm text-foreground-muted leading-tight">{t(label)}</p>
                         </div>
                     </Link>
                 ))}
@@ -84,18 +90,18 @@ export default function DashboardPage() {
                     <p className="text-2xl font-bold text-foreground tabular-nums">
                         {formatearImporte(totals.inventoryValue)}
                     </p>
-                    <p className="text-sm text-foreground-muted">Valor total del inventario activo</p>
+                    <p className="text-sm text-foreground-muted">{t("dashboard.valorInventario")}</p>
                 </div>
                 <div className="ml-auto text-right hidden sm:block">
                     <Link to="/reports" className="text-sm text-info hover:underline">
-                        Ver reporte completo →
+                        {t("dashboard.verReporte")}
                     </Link>
                 </div>
             </div>
 
             {/* Gráfico stock por categoría */}
             <div className="bg-surface rounded-xl border border-border p-6">
-                <h2 className="text-base font-semibold text-foreground mb-6">Stock y valor por categoría</h2>
+                <h2 className="text-base font-semibold text-foreground mb-6">{t("dashboard.stockPorCategoria")}</h2>
                 <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={stockByCategory} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
@@ -104,14 +110,17 @@ export default function DashboardPage() {
                         <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                         <Tooltip
                             contentStyle={ESTILO_DE_TOOLTIP}
+                            // La serie se identifica por su `dataKey`, no por el nombre
+                            // visible: ese ya viene traducido y compararlo con un literal
+                            // en español dejaría de casar en inglés.
                             formatter={(value, name) =>
-                                name === "Valor"
-                                    ? [formatearImporte(Number(value)), "Valor"]
-                                    : [Number(value), "Stock"]
+                                name === t("grafico.valor")
+                                    ? [formatearImporte(Number(value)), t("grafico.valor")]
+                                    : [Number(value), t("productos.campo.stock")]
                             }
                         />
-                        <Bar yAxisId="left" dataKey="stock" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} name="Stock" />
-                        <Bar yAxisId="right" dataKey="value" fill="var(--color-chart-2)" radius={[4, 4, 0, 0]} name="Valor" />
+                        <Bar yAxisId="left" dataKey="stock" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} name={t("productos.campo.stock")} />
+                        <Bar yAxisId="right" dataKey="value" fill="var(--color-chart-2)" radius={[4, 4, 0, 0]} name={t("grafico.valor")} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -122,7 +131,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2 mb-3">
                         <ExclamationTriangleIcon className="h-5 w-5 text-warning" />
                         <h2 className="text-sm font-semibold text-warning">
-                            {lowStockCount} producto{lowStockCount !== 1 ? "s" : ""} con stock bajo o agotado
+                            {tn("dashboard.alerta", lowStockCount)}
                         </h2>
                     </div>
                     <div className="space-y-1">
@@ -135,13 +144,13 @@ export default function DashboardPage() {
                                     {p.name}
                                 </Link>
                                 <span className="text-warning font-semibold tabular-nums">
-                                    {p.stock} uds. — mín. {p.minStock}
+                                    {t("dashboard.unidadesMinimo", { stock: p.stock, minimo: p.minStock })}
                                 </span>
                             </div>
                         ))}
                         {lowStockCount > 5 && (
                             <Link to="/reports" className="text-xs text-warning hover:underline">
-                                Ver {lowStockCount - 5} más →
+                                {t("dashboard.verMas", { cantidad: lowStockCount - 5 })}
                             </Link>
                         )}
                     </div>
@@ -150,7 +159,7 @@ export default function DashboardPage() {
 
             <div className="text-right">
                 <Link to="/catalog/products" className="text-sm text-info hover:underline">
-                    Gestionar productos →
+                    {t("dashboard.gestionarProductos")}
                 </Link>
             </div>
         </div>

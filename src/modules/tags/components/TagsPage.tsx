@@ -7,21 +7,23 @@ import { Spinner } from "@/shared/components/Spinner";
 import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from "@/modules/tags/hooks/useTags";
 import type { Tag } from "@/modules/tags/types/tags.types";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { useT } from "@/shared/hooks/useIdioma";
+import type { Clave } from "@/shared/i18n/traducir";
 
 // T2-13: el color no puede ser lo único que identifique a cada opción. Un botón sin
 // texto se anuncia como «botón» a secas, y quien no distingue los tonos —o no ve la
 // pantalla— no tiene forma de saber cuál está eligiendo ni cuál está elegido.
-const PRESET_COLORS: ReadonlyArray<{ valor: string; nombre: string }> = [
-    { valor: "#3b82f6", nombre: "Azul" },
-    { valor: "#10b981", nombre: "Verde" },
-    { valor: "#f59e0b", nombre: "Ámbar" },
-    { valor: "#ef4444", nombre: "Rojo" },
-    { valor: "#8b5cf6", nombre: "Violeta" },
-    { valor: "#ec4899", nombre: "Rosa" },
-    { valor: "#06b6d4", nombre: "Cian" },
-    { valor: "#84cc16", nombre: "Lima" },
-    { valor: "#f97316", nombre: "Naranja" },
-    { valor: "#6366f1", nombre: "Índigo" },
+const PRESET_COLORS: ReadonlyArray<{ valor: string; nombre: Clave }> = [
+    { valor: "#3b82f6", nombre: "color.azul" },
+    { valor: "#10b981", nombre: "color.verde" },
+    { valor: "#f59e0b", nombre: "color.ambar" },
+    { valor: "#ef4444", nombre: "color.rojo" },
+    { valor: "#8b5cf6", nombre: "color.violeta" },
+    { valor: "#ec4899", nombre: "color.rosa" },
+    { valor: "#06b6d4", nombre: "color.cian" },
+    { valor: "#84cc16", nombre: "color.lima" },
+    { valor: "#f97316", nombre: "color.naranja" },
+    { valor: "#6366f1", nombre: "color.indigo" },
 ];
 
 interface TagFormData {
@@ -36,6 +38,7 @@ interface TagFormModalProps {
 }
 
 function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
+    const { t, te } = useT();
     const isEditing = !!tag;
     const createMutation = useCreateTag();
     const updateMutation = useUpdateTag();
@@ -60,18 +63,18 @@ function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? "Editar etiqueta" : "Nueva etiqueta"} className="max-w-sm">
+        <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? t("etiquetas.editar") : t("etiquetas.nueva")} className="max-w-sm">
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <Input
                     id="name"
-                    label="Nombre *"
-                    placeholder="Ej: Electrónica"
-                    error={errors.name?.message}
-                    {...register("name", { required: "El nombre es obligatorio" })}
+                    label={`${t("comun.nombre")} *`}
+                    placeholder={t("etiquetas.ejemploNombre")}
+                    error={te(errors.name?.message)}
+                    {...register("name", { required: "validacion.nombreRequerido" satisfies Clave })}
                 />
 
                 <div>
-                    <p id="color-etiqueta" className="text-sm font-medium text-foreground mb-2">Color</p>
+                    <p id="color-etiqueta" className="text-sm font-medium text-foreground mb-2">{t("etiquetas.color")}</p>
                     {/* Conmutadores, como los de etiqueta de T2-17: `aria-pressed` es lo
                         que comunica cuál está elegido a quien no ve el contorno. */}
                     <div role="group" aria-labelledby="color-etiqueta" className="flex flex-wrap gap-2">
@@ -79,7 +82,7 @@ function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
                             <button
                                 key={valor}
                                 type="button"
-                                aria-label={nombre}
+                                aria-label={t(nombre)}
                                 aria-pressed={selectedColor === valor}
                                 onClick={() => setValue("color", valor)}
                                 className="flex min-h-11 min-w-11 items-center justify-center rounded-lg md:min-h-0 md:min-w-0"
@@ -100,9 +103,9 @@ function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                    <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+                    <Button type="button" variant="secondary" onClick={onClose}>{t("comun.cancelar")}</Button>
                     <Button type="submit" isLoading={isPending}>
-                        {isEditing ? "Guardar cambios" : "Crear etiqueta"}
+                        {isEditing ? t("comun.guardarCambios") : t("etiquetas.crear")}
                     </Button>
                 </div>
             </form>
@@ -111,6 +114,7 @@ function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
 }
 
 export default function TagsPage() {
+    const { t, tn } = useT();
     const [formOpen, setFormOpen] = useState(false);
     const [editingTag, setEditingTag] = useState<Tag | undefined>();
     const { data: tags = [], isLoading } = useTags();
@@ -130,12 +134,12 @@ export default function TagsPage() {
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Etiquetas</h1>
-                    <p className="text-sm text-foreground-muted mt-1">{tags.length} etiqueta{tags.length !== 1 ? "s" : ""}</p>
+                    <h1 className="text-2xl font-bold text-foreground">{t("ruta.etiquetas")}</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{tn("etiquetas.cantidad", tags.length)}</p>
                 </div>
                 <Button onClick={() => setFormOpen(true)}>
                     <PlusIcon className="h-4 w-4" />
-                    Nueva etiqueta
+                    {t("etiquetas.nueva")}
                 </Button>
             </div>
 
@@ -143,7 +147,7 @@ export default function TagsPage() {
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : tags.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">
-                    No hay etiquetas. Crea la primera para organizar tus productos.
+                    {t("etiquetas.vacio")}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -158,12 +162,12 @@ export default function TagsPage() {
                                 {/* Botones solo de icono: sin `aria-label` un lector de
                                     pantalla los anuncia como «botón», sin decir sobre
                                     qué etiqueta actúan. */}
-                                <Button variant="ghost" aria-label={`Editar ${tag.name}`} onClick={() => handleEdit(tag)}>
+                                <Button variant="ghost" aria-label={t("etiquetas.editarNombre", { nombre: tag.name })} onClick={() => handleEdit(tag)}>
                                     <PencilIcon className="h-3.5 w-3.5 text-foreground-muted hover:text-info" />
                                 </Button>
                                 <Button
                                     variant="ghost"
-                                    aria-label={`Eliminar ${tag.name}`}
+                                    aria-label={t("etiquetas.eliminarNombre", { nombre: tag.name })}
                                     isLoading={deleteMutation.isPending}
                                     onClick={() => deleteMutation.mutate(tag.id)}
                                 >

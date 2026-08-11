@@ -1,43 +1,57 @@
 import { z } from "zod";
+import type { Clave } from "@/shared/i18n/traducir";
+
+/**
+ * T4-04 — los mensajes de validación son **claves del catálogo**, no frases.
+ *
+ * Un esquema se construye al cargar el módulo, cuando todavía no hay idioma elegido —y
+ * cambiar de idioma después no volvería a ejecutarlo—, así que aquí no puede haber texto
+ * traducido. Quien traduce es el campo, con `te()` de `useT()`.
+ *
+ * `mensaje()` existe solo para que el compilador vea estas cadenas como `Clave`: escritas
+ * sueltas dentro del `.min(…)` serían un `string` cualquiera y una errata pasaría inadvertida
+ * hasta que apareciera en pantalla.
+ */
+const mensaje = (clave: Clave): string => clave;
 
 export const loginFormSchema = z.object({
-    email: z.string().min(1, "El email es obligatorio").email("Email no válido"),
-    password: z.string().min(1, "La contraseña es obligatoria"),
+    email: z.string().min(1, mensaje("validacion.correoRequerido")).email(mensaje("validacion.correoInvalido")),
+    password: z.string().min(1, mensaje("validacion.contrasenaRequerida")),
 });
 
 export const registerFormSchema = z.object({
-    name: z.string().min(1, "El nombre es obligatorio"),
-    email: z.string().min(1, "El email es obligatorio").email("Email no válido"),
-    password: z.string().min(8, "Mínimo 8 caracteres"),
-    passwordConfirmation: z.string().min(1, "Confirma tu contraseña"),
+    name: z.string().min(1, mensaje("validacion.nombreRequerido")),
+    email: z.string().min(1, mensaje("validacion.correoRequerido")).email(mensaje("validacion.correoInvalido")),
+    password: z.string().min(8, mensaje("validacion.contrasenaMinima")),
+    passwordConfirmation: z.string().min(1, mensaje("validacion.confirmaContrasena")),
 }).refine((d) => d.password === d.passwordConfirmation, {
-    message: "Las contraseñas no coinciden",
+    message: mensaje("validacion.contrasenasNoCoinciden"),
     path: ["passwordConfirmation"],
 });
 
 export const forgotPasswordSchema = z.object({
-    email: z.string().min(1, "El email es obligatorio").email("Email no válido"),
+    email: z.string().min(1, mensaje("validacion.correoRequerido")).email(mensaje("validacion.correoInvalido")),
 });
 
 export const resetPasswordSchema = z.object({
-    password: z.string().min(8, "Mínimo 8 caracteres"),
-    passwordConfirmation: z.string().min(1, "Confirma tu contraseña"),
+    password: z.string().min(8, mensaje("validacion.contrasenaMinima")),
+    passwordConfirmation: z.string().min(1, mensaje("validacion.confirmaContrasena")),
 }).refine((d) => d.password === d.passwordConfirmation, {
-    message: "Las contraseñas no coinciden",
+    message: mensaje("validacion.contrasenasNoCoinciden"),
     path: ["passwordConfirmation"],
 });
 
 export const updateProfileSchema = z.object({
-    name: z.string().min(1, "El nombre es obligatorio"),
-    email: z.string().min(1, "El email es obligatorio").email("Email no válido"),
+    name: z.string().min(1, mensaje("validacion.nombreRequerido")),
+    email: z.string().min(1, mensaje("validacion.correoRequerido")).email(mensaje("validacion.correoInvalido")),
 });
 
 export const updatePasswordSchema = z.object({
-    currentPassword: z.string().min(1, "La contraseña actual es obligatoria"),
-    password: z.string().min(8, "Mínimo 8 caracteres"),
-    passwordConfirmation: z.string().min(1, "Confirma tu contraseña"),
+    currentPassword: z.string().min(1, mensaje("validacion.contrasenaActualRequerida")),
+    password: z.string().min(8, mensaje("validacion.contrasenaMinima")),
+    passwordConfirmation: z.string().min(1, mensaje("validacion.confirmaContrasena")),
 }).refine((d) => d.password === d.passwordConfirmation, {
-    message: "Las contraseñas no coinciden",
+    message: mensaje("validacion.contrasenasNoCoinciden"),
     path: ["passwordConfirmation"],
 });
 

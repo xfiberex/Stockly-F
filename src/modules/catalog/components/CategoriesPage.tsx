@@ -10,9 +10,13 @@ export default function CategoriesPage() {
 
     return (
         <CatalogItemSection
-            title="Categorías"
-            description="Organiza tus productos por tipo"
-            entityLabel="Categoría"
+            textos={{
+                titulo: "ruta.categorias",
+                descripcion: "catalogo.categorias.descripcion",
+                nueva: "catalogo.categorias.nueva",
+                editar: "catalogo.categorias.editar",
+                vacio: "catalogo.categorias.vacio",
+            }}
             items={categories}
             isLoading={isLoading}
             onCreate={(data) => createMutation.mutate(data)}

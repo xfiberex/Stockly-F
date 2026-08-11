@@ -1,22 +1,35 @@
 import { z } from "zod";
+import type { Clave } from "@/shared/i18n/traducir";
+
+// T4-04 — los mensajes son **claves del catálogo**, no frases; los traduce el campo con
+// `te()`. Ver la cabecera de `auth.schema.ts`, donde está el porqué completo.
+const mensaje = (clave: Clave): string => clave;
 
 // Los <select> de categoría/marca/proveedor emiten "" cuando se elige "Sin …".
 // Se normaliza "" → undefined para que esas opciones (válidas) no fallen la
 // validación de UUID.
 const uuidOptional = z.preprocess(
     (v) => (v === "" ? undefined : v),
-    z.string().uuid("Debe ser un UUID válido").optional(),
+    z.string().uuid(mensaje("validacion.uuid")).optional(),
 );
 
 export const createProductSchema = z.object({
-    name: z.string().min(1, "El nombre es obligatorio").max(200, "Máximo 200 caracteres"),
-    description: z.string().max(1000, "Máximo 1000 caracteres").optional(),
-    sku: z.string().max(100, "Máximo 100 caracteres").optional(),
+    name: z.string().min(1, mensaje("validacion.nombreRequerido")).max(200, mensaje("validacion.maximo200")),
+    description: z.string().max(1000, mensaje("validacion.maximo1000")).optional(),
+    sku: z.string().max(100, mensaje("validacion.maximo100")).optional(),
     price: z.coerce
-        .number({ error: "El precio es obligatorio" })
-        .min(0.01, "El precio debe ser mayor a 0"),
-    stock: z.coerce.number().int("Debe ser un número entero").min(0, "El stock no puede ser negativo").optional(),
-    minStock: z.coerce.number().int("Debe ser un número entero").min(0, "No puede ser negativo").optional(),
+        .number({ error: mensaje("validacion.precioRequerido") })
+        .min(0.01, mensaje("validacion.precioMayorQueCero")),
+    stock: z.coerce
+        .number()
+        .int(mensaje("validacion.numeroEntero"))
+        .min(0, mensaje("validacion.stockNoNegativo"))
+        .optional(),
+    minStock: z.coerce
+        .number()
+        .int(mensaje("validacion.numeroEntero"))
+        .min(0, mensaje("validacion.noNegativo"))
+        .optional(),
     categoryId: uuidOptional,
     brandId: uuidOptional,
     supplierId: uuidOptional,
@@ -24,10 +37,10 @@ export const createProductSchema = z.object({
 });
 
 export const updateProductSchema = z.object({
-    name: z.string().min(1, "El nombre no puede estar vacío").max(200).optional(),
+    name: z.string().min(1, mensaje("validacion.nombreVacio")).max(200).optional(),
     description: z.string().max(1000).optional(),
     sku: z.string().max(100).optional(),
-    price: z.coerce.number().min(0.01, "El precio debe ser mayor a 0").optional(),
+    price: z.coerce.number().min(0.01, mensaje("validacion.precioMayorQueCero")).optional(),
     stock: z.coerce.number().int().min(0).optional(),
     minStock: z.coerce.number().int().min(0).optional(),
     categoryId: uuidOptional,

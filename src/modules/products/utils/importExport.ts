@@ -1,4 +1,5 @@
 import type { ExportedProduct, ImportProductDto } from "../types/product.types";
+import type { Clave } from "@/shared/i18n/traducir";
 
 // ── Export ────────────────────────────────────────────────────────────────────
 
@@ -117,7 +118,10 @@ function parseCsvLine(line: string): string[] {
 
 export function parseCsv(text: string): ImportProductDto[] {
     const lines = text.trim().split(/\r?\n/);
-    if (lines.length < 2) throw new Error("El CSV debe tener encabezado y al menos una fila de datos");
+    // T4-04 — lo que se lanza es la **clave** del motivo, no la frase: este módulo no es un
+    // componente y no tiene idioma. Quien lo llama la traduce con `te()`, que además deja
+    // pasar tal cual el mensaje de un error que no venga de aquí.
+    if (lines.length < 2) throw new Error("importacion.csvIncompleto" satisfies Clave);
 
     const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim());
 

@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
+import { useT } from "@/shared/hooks/useIdioma";
+import { mensajeDeError } from "@/shared/lib/errorApi";
 import {
     getPurchaseOrders,
     createPurchaseOrder,
@@ -20,39 +22,40 @@ export function usePurchaseOrders(params?: PurchaseOrderQuery) {
 
 export function useCreatePurchaseOrder() {
     const qc = useQueryClient();
+    const { t, idioma } = useT();
     return useMutation({
         mutationFn: (dto: CreatePurchaseOrderForm) => createPurchaseOrder(dto),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: QUERY_KEY });
-            toast.success("Orden de compra creada");
+            toast.success(t("compras.creada"));
         },
-        onError: () => toast.error("Error al crear la orden"),
+        onError: (error) => toast.error(mensajeDeError(idioma, error)),
     });
 }
 
 export function useUpdatePurchaseOrder() {
     const qc = useQueryClient();
+    const { t, idioma } = useT();
     return useMutation({
         mutationFn: ({ id, dto }: { id: string; dto: { supplierId?: string; notes?: string; status?: string } }) =>
             updatePurchaseOrder(id, dto),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: QUERY_KEY });
-            toast.success("Orden actualizada");
+            toast.success(t("ordenes.actualizada"));
         },
-        onError: (err: { response?: { data?: { message?: string } } }) =>
-            toast.error(err?.response?.data?.message ?? "Error al actualizar la orden"),
+        onError: (error) => toast.error(mensajeDeError(idioma, error)),
     });
 }
 
 export function useDeletePurchaseOrder() {
     const qc = useQueryClient();
+    const { t, idioma } = useT();
     return useMutation({
         mutationFn: (id: string) => deletePurchaseOrder(id),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: QUERY_KEY });
-            toast.success("Orden eliminada");
+            toast.success(t("ordenes.eliminada"));
         },
-        onError: (err: { response?: { data?: { message?: string } } }) =>
-            toast.error(err?.response?.data?.message ?? "Error al eliminar la orden"),
+        onError: (error) => toast.error(mensajeDeError(idioma, error)),
     });
 }

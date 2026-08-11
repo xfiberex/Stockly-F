@@ -5,13 +5,9 @@ import { Select } from "@/shared/components/Select";
 import { Spinner } from "@/shared/components/Spinner";
 import { useAuditLogs } from "@/modules/audit-logs/hooks/useAuditLogs";
 import type { AuditAction, AuditEntity } from "@/modules/audit-logs/types/audit-logs.types";
-
-function formatDate(iso: string) {
-    return new Date(iso).toLocaleString("es-MX", {
-        day: "2-digit", month: "short", year: "numeric",
-        hour: "2-digit", minute: "2-digit",
-    });
-}
+import { useT } from "@/shared/hooks/useIdioma";
+import type { Clave } from "@/shared/i18n/traducir";
+import { formatearFechaHora } from "@/shared/lib/fechas";
 
 // El color dice qué clase de acción fue: la que crea o completa algo, la que
 // destruye o cancela, y la que solo modifica. `RESTORE` deshace un borrado, así
@@ -40,42 +36,32 @@ const ACTION_VARIANTS: Record<AuditAction, BadgeVariant> = {
     REFRESH_REUSE: "danger",
 };
 
-const ACTION_OPTIONS: ReadonlyArray<{ value: AuditAction | ""; label: string }> = [
-    { value: "", label: "Todas las acciones" },
-    { value: "CREATE", label: "Crear" },
-    { value: "UPDATE", label: "Actualizar" },
-    { value: "DELETE", label: "Eliminar" },
-    { value: "RESTORE", label: "Restaurar" },
-    { value: "STOCK_MOVEMENT", label: "Movimiento de stock" },
-    { value: "BULK_STOCK", label: "Ajuste masivo" },
-    { value: "ORDER_RECEIVE", label: "Orden recibida" },
-    { value: "ORDER_CANCEL", label: "Orden cancelada" },
-    { value: "SALE_SHIP", label: "Venta enviada" },
-    { value: "SALE_CANCEL", label: "Venta cancelada" },
-    { value: "USER_ROLE_CHANGE", label: "Cambio de rol" },
-    { value: "USER_ACTIVATE", label: "Activar usuario" },
-    { value: "USER_DEACTIVATE", label: "Desactivar usuario" },
-    { value: "REFRESH_REUSE", label: "Reuso de token detectado" },
+/**
+ * T4-04 — las acciones y las entidades se nombran **una sola vez**.
+ *
+ * Antes había tres listas: las opciones del filtro de acción, las del de entidad y un
+ * `ENTITY_LABELS` con nombres más cortos para la tabla («Orden compra» frente a «Orden de
+ * compra»). Con dos idiomas eso son seis listas que mantener a la par, así que se quedan
+ * los enums y la clave se compone: el compilador sigue exigiendo que estén todos —los
+ * `Record` de color son sobre el enum— y el catálogo, que exista la traducción.
+ *
+ * De paso, la insignia de la tabla deja de pintar el enum en crudo («USER_ROLE_CHANGE»).
+ */
+const ACCIONES: readonly AuditAction[] = [
+    "CREATE", "UPDATE", "DELETE", "RESTORE", "STOCK_MOVEMENT", "BULK_STOCK",
+    "ORDER_RECEIVE", "ORDER_CANCEL", "SALE_SHIP", "SALE_CANCEL",
+    "USER_ROLE_CHANGE", "USER_ACTIVATE", "USER_DEACTIVATE", "REFRESH_REUSE",
 ];
 
-const ENTITY_OPTIONS: ReadonlyArray<{ value: AuditEntity | ""; label: string }> = [
-    { value: "", label: "Todas las entidades" },
-    { value: "Product", label: "Producto" },
-    { value: "PurchaseOrder", label: "Orden de compra" },
-    { value: "SaleOrder", label: "Orden de venta" },
-    { value: "User", label: "Usuario" },
-    { value: "Tag", label: "Etiqueta" },
-    { value: "Category", label: "Categoría" },
-    { value: "Brand", label: "Marca" },
-    { value: "Supplier", label: "Proveedor" },
+const ENTIDADES: readonly AuditEntity[] = [
+    "Product", "PurchaseOrder", "SaleOrder", "User", "Tag", "Category", "Brand", "Supplier",
 ];
 
-const ENTITY_LABELS: Record<AuditEntity, string> = {
-    Product: "Producto", PurchaseOrder: "Orden compra", SaleOrder: "Orden venta",
-    User: "Usuario", Tag: "Etiqueta", Category: "Categoría", Brand: "Marca", Supplier: "Proveedor",
-};
+const claveDeAccion = (accion: AuditAction) => `auditoria.accion.${accion}` as Clave;
+const claveDeEntidad = (entidad: AuditEntity) => `auditoria.entidad.${entidad}` as Clave;
 
 export default function AuditLogsPage() {
+    const { t, idioma } = useT();
     // El `""` es «sin filtro»; el resto solo admite valores del enum, así que un filtro
     // mal escrito deja de compilar en vez de acabar en un 400 del backend.
     const [action, setAction] = useState<AuditAction | "">("");
@@ -92,11 +78,23 @@ export default function AuditLogsPage() {
     const logs = data?.data ?? [];
     const meta = data?.meta;
 
+    // Dentro del componente: fuera se armarían al cargar el módulo, con el idioma que
+    // hubiera entonces, y no cambiarían al elegir otro.
+    const ACTION_OPTIONS = [
+        { value: "", label: t("auditoria.todasLasAcciones") },
+        ...ACCIONES.map((accion) => ({ value: accion, label: t(claveDeAccion(accion)) })),
+    ];
+
+    const ENTITY_OPTIONS = [
+        { value: "", label: t("auditoria.todasLasEntidades") },
+        ...ENTIDADES.map((entidad) => ({ value: entidad, label: t(claveDeEntidad(entidad)) })),
+    ];
+
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-foreground">Registro de auditoría</h1>
-                <p className="text-sm text-foreground-muted mt-1">Historial de acciones realizadas en el sistema</p>
+                <h1 className="text-2xl font-bold text-foreground">{t("ruta.auditoria")}</h1>
+                <p className="text-sm text-foreground-muted mt-1">{t("auditoria.subtitulo")}</p>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -119,17 +117,17 @@ export default function AuditLogsPage() {
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : logs.length === 0 ? (
-                <div className="py-16 text-center text-sm text-foreground-muted">No hay registros de auditoría.</div>
+                <div className="py-16 text-center text-sm text-foreground-muted">{t("auditoria.sinRegistros")}</div>
             ) : (
                 <div className="bg-surface rounded-xl border border-border overflow-hidden">
                     <table className="w-full text-sm">
                         <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
-                                <th className="px-5 py-3">Acción</th>
-                                <th className="px-5 py-3">Entidad</th>
-                                <th className="px-5 py-3">Usuario</th>
-                                <th className="px-5 py-3 hidden lg:table-cell">Detalles</th>
-                                <th className="px-5 py-3 hidden md:table-cell">Fecha</th>
+                                <th className="px-5 py-3">{t("auditoria.columna.accion")}</th>
+                                <th className="px-5 py-3">{t("auditoria.columna.entidad")}</th>
+                                <th className="px-5 py-3">{t("usuarios.columna.usuario")}</th>
+                                <th className="px-5 py-3 hidden lg:table-cell">{t("auditoria.columna.detalles")}</th>
+                                <th className="px-5 py-3 hidden md:table-cell">{t("comun.fecha")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -137,11 +135,11 @@ export default function AuditLogsPage() {
                                 <tr key={log.id} className="hover:bg-surface-muted">
                                     <td className="px-5 py-3">
                                         <Badge variant={ACTION_VARIANTS[log.action] ?? "neutral"}>
-                                            {log.action.replace(/_/g, " ")}
+                                            {t(claveDeAccion(log.action))}
                                         </Badge>
                                     </td>
                                     <td className="px-5 py-3 text-foreground">
-                                        {ENTITY_LABELS[log.entity] ?? log.entity}
+                                        {t(claveDeEntidad(log.entity))}
                                         {log.entityId && (
                                             <span className="ml-1.5 text-xs text-foreground-muted font-mono">
                                                 #{log.entityId.slice(0, 8)}
@@ -149,12 +147,12 @@ export default function AuditLogsPage() {
                                         )}
                                     </td>
                                     <td className="px-5 py-3 text-foreground-muted">
-                                        {log.userEmail ?? <span className="text-foreground-muted italic">Sistema</span>}
+                                        {log.userEmail ?? <span className="text-foreground-muted italic">{t("auditoria.sistema")}</span>}
                                     </td>
                                     <td className="px-5 py-3 hidden lg:table-cell">
                                         {log.details ? (
                                             <details className="cursor-pointer">
-                                                <summary className="text-xs text-info hover:underline">Ver detalles</summary>
+                                                <summary className="text-xs text-info hover:underline">{t("auditoria.verDetalles")}</summary>
                                                 <pre className="mt-1 text-xs text-foreground-muted bg-surface-muted rounded p-2 max-w-xs overflow-auto">
                                                     {JSON.stringify(log.details, null, 2)}
                                                 </pre>
@@ -164,7 +162,7 @@ export default function AuditLogsPage() {
                                         )}
                                     </td>
                                     <td className="px-5 py-3 text-foreground-muted hidden md:table-cell whitespace-nowrap">
-                                        {formatDate(log.createdAt)}
+                                        {formatearFechaHora(idioma, log.createdAt)}
                                     </td>
                                 </tr>
                             ))}
@@ -175,10 +173,10 @@ export default function AuditLogsPage() {
 
             {meta && meta.totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm text-foreground-muted">
-                    <span>Página {page} de {meta.totalPages} — {meta.total} registros</span>
+                    <span>{t("auditoria.paginacion", { pagina: page, total: meta.totalPages, registros: meta.total })}</span>
                     <div className="flex gap-2">
-                        <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Anterior</Button>
-                        <Button variant="secondary" disabled={page === meta.totalPages} onClick={() => setPage((p) => p + 1)}>Siguiente</Button>
+                        <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>{t("comun.anterior")}</Button>
+                        <Button variant="secondary" disabled={page === meta.totalPages} onClick={() => setPage((p) => p + 1)}>{t("comun.siguiente")}</Button>
                     </div>
                 </div>
             )}
