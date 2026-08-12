@@ -13,8 +13,9 @@ SPA de React 19 sobre Vite. El backend vive en un repositorio hermano, `Stockly-
 Está en el repositorio del backend, en `Stockly-B/docs/`, y cubre **los dos repositorios**:
 
 - `docs/CONTEXTO.md` — **empieza aquí al retomar el proyecto:** estado actual, decisiones vivas, trampas del entorno ya pagadas y por dónde seguir.
-- `docs/ROADMAP.md` — 110 tareas con dependencias, progreso y métricas. La fuente de verdad del trabajo pendiente.
+- `docs/ROADMAP.md` — 113 tareas con dependencias, progreso y métricas. La fuente de verdad del trabajo pendiente.
 - `docs/operaciones.md` — copia de seguridad, restauración y reversión. Es del backend, pero la política de despliegue que describe afecta a los dos repositorios.
+- `docs/dependencias.md` — vulnerabilidades y licencias de las dependencias de producción de **los dos** repositorios, y cómo funciona la puerta de `pnpm auditoria`. Léelo antes de añadir una dependencia.
 - `docs/adr/` — decisiones de arquitectura no obvias: léelas antes de simplificar algo que parezca complicado de más.
 - `docs/INFORME-AUDITORIA.md` — los hallazgos que justifican cada tarea. **Congelado a propósito:** está escrito en presente y describe el 2026-08-04, no el estado actual.
 - `docs/README-proyecto.md` — arranque desde cero de los dos repositorios.
@@ -34,7 +35,7 @@ Este proyecto **no usa CI**. No hay GitHub Actions ni pipeline de ningún provee
 pnpm verify
 ```
 
-Encadena `check → lint → test:coverage → build`. **Está en verde** desde el 2026-08-07 (T1-09): `pnpm lint` debe terminar con 0 errores y 0 avisos, así que cualquier aviso nuevo es una regresión, no ruido de fondo.
+Encadena `check → lint → test:coverage → build → auditoria`. El último paso ([scripts/auditoria.js](scripts/auditoria.js), T4-07) rompe la compilación ante una vulnerabilidad **alta o crítica** en dependencias de producción o ante una licencia fuera de la lista permitida; sin red avisa en vez de fallar, salvo con `--estricto`. Con `--informe` regenera `public/AVISOS-DE-TERCEROS.txt`, que **hay que regenerar al cambiar las dependencias**: la aplicación distribuye los `.woff2` de Inter y su licencia OFL exige que el aviso la acompañe. **Está en verde** desde el 2026-08-07 (T1-09): `pnpm lint` debe terminar con 0 errores y 0 avisos, así que cualquier aviso nuevo es una regresión, no ruido de fondo.
 
 El E2E de Playwright (`pnpm test:e2e:full`) **no necesita levantar nada a mano** desde T1-24: `e2e/global-setup.ts` prepara la base de datos (migraciones + seed, recurriendo a Docker solo si no hay PostgreSQL escuchando) y el `webServer` arranca backend y frontend. Se ejecuta en dos proyectos, `chromium` y `Mobile Chrome`.
 

@@ -2,6 +2,8 @@
   "name": "stockly-f",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
+  "author": "Ricky Angel Jiménez Bueno",
   "type": "module",
   "packageManager": "pnpm@11.21.0",
   "scripts": {
@@ -16,7 +18,8 @@
     "test:e2e": "playwright test",
     "test:e2e:full": "playwright test",
     "test:e2e:desktop": "playwright test --project=chromium",
-    "verify": "pnpm run check && pnpm run lint && pnpm run test:coverage && pnpm run build"
+    "auditoria": "node scripts/auditoria.js",
+    "verify": "pnpm run check && pnpm run lint && pnpm run test:coverage && pnpm run build && pnpm run auditoria"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
