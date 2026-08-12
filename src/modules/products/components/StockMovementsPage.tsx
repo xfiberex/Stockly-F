@@ -1,5 +1,5 @@
 import { formatearImporte } from "@/shared/lib/moneda";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeftIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import {
@@ -14,13 +14,15 @@ import { Select } from "@/shared/components/Select";
 import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { useStockMovements } from "@/modules/products/hooks/useStockMovements";
 import { usePriceHistory } from "@/modules/products/hooks/usePriceHistory";
-import { downloadBlob, blobCsv } from "@/modules/products/utils/importExport";
+import { exportProductMovementsCsv } from "@/modules/products/api/product.api";
 import type { StockMovementType } from "@/modules/products/types/product.types";
 import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
 import { useT } from "@/shared/hooks/useIdioma";
-import { IDIOMA_POR_DEFECTO, type Idioma } from "@/shared/i18n/idioma";
-import { traducir, type Clave } from "@/shared/i18n/traducir";
-import { formatearFecha, IDIOMA_DE_EXPORTACION, LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
+import { type Idioma } from "@/shared/i18n/idioma";
+// T4-15: el CSV ya no se construye aquí, así que se van con él `traducir`,
+// `IDIOMA_POR_DEFECTO` y `IDIOMA_DE_EXPORTACION`. El archivo lo escribe el backend, que es
+// quien puede recorrer el histórico entero por lotes.
+import { formatearFecha, LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
 /** El eje del gráfico va sin año: son puntos de una serie, no fechas que haya que leer. */
@@ -28,50 +30,35 @@ function formatDateShort(idioma: Idioma, iso: string) {
     return new Date(iso).toLocaleDateString(LOCALE_DE_GRAFICO[idioma], { day: "2-digit", month: "short" });
 }
 
-function exportMovementsCsv(
-    productName: string,
-    movements: Array<{ createdAt: string; type: string; delta: number; stockAfter: number; note?: string | null }>,
-) {
-    // T4-04 — **las exportaciones no se traducen: salen siempre en español.** Un CSV no es
-    // pantalla, es un formato de intercambio, y sus columnas están emparejadas con las que
-    // produce el backend por el test de T3-05. Traducirlas según quién pulse el botón
-    // rompería ese emparejamiento y haría que dos exportaciones del mismo dato no se
-    // pudieran juntar en la misma hoja de cálculo.
-    const header = "Fecha,Tipo,Cambio,Stock resultante,Nota";
-    const rows = movements.map((m) =>
-        [
-            formatearFecha(IDIOMA_DE_EXPORTACION, m.createdAt),
-            traducir(IDIOMA_POR_DEFECTO, TIPO_MOVIMIENTO[m.type as StockMovementType]?.clave ?? (m.type as Clave)),
-            m.delta,
-            m.stockAfter,
-            m.note ?? "",
-        ].join(","),
-    );
-    const csv = [header, ...rows].join("\n");
-    const date = new Date().toISOString().split("T")[0];
-    downloadBlob(blobCsv(csv), `movimientos-${productName.replace(/\s+/g, "-").toLowerCase()}-${date}.csv`);
-}
-
 export default function StockMovementsPage() {
     const { t, tn, idioma } = useT();
     const { id } = useParams<{ id: string }>();
-    const { data, isLoading, isError } = useStockMovements(id!);
-    const { data: priceData } = usePriceHistory(id!);
 
     const [typeFilter, setTypeFilter] = useState<string>("");
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
+    const [page, setPage] = useState(1);
     const [activeTab, setActiveTab] = useState<"movements" | "prices">("movements");
 
-    const filteredMovements = useMemo(() => {
-        if (!data) return [];
-        return data.movements.filter((m) => {
-            if (typeFilter && m.type !== typeFilter) return false;
-            if (dateFrom && new Date(m.createdAt) < new Date(dateFrom)) return false;
-            if (dateTo && new Date(m.createdAt) > new Date(dateTo + "T23:59:59")) return false;
-            return true;
-        });
-    }, [data, typeFilter, dateFrom, dateTo]);
+    // T4-15 — página y filtros van al servidor. La pantalla filtraba en memoria sobre el
+    // histórico entero, y eso solo funcionaba porque el endpoint lo devolvía entero.
+    const { data, isLoading, isError } = useStockMovements(id!, {
+        page,
+        type: typeFilter,
+        dateFrom,
+        dateTo,
+    });
+    const { data: priceData } = usePriceHistory(id!);
+
+    /**
+     * Cambiar un filtro vuelve a la página 1. Sin esto, filtrar desde la página 4 pide la
+     * página 4 del resultado filtrado —que a menudo no existe— y la tabla sale vacía con
+     * los filtros puestos: parece que no hay nada cuando sí lo hay.
+     */
+    function filtrar(aplicar: () => void) {
+        aplicar();
+        setPage(1);
+    }
 
     if (isLoading) {
         return (
@@ -92,10 +79,14 @@ export default function StockMovementsPage() {
         );
     }
 
-    const { product, movements } = data;
+    const { product, movements, meta } = data;
     const priceHistory = priceData?.history ?? [];
+    const hayFiltros = Boolean(typeFilter || dateFrom || dateTo);
 
-    const chartData = movements.map((m) => ({
+    // El servidor los manda del más reciente al más antiguo —la primera página es lo último
+    // que pasó—, así que una serie temporal hay que invertirla: un gráfico de evolución
+    // dibujado al revés cuenta la historia del revés.
+    const chartData = [...movements].reverse().map((m) => ({
         date: formatDateShort(idioma, m.createdAt),
         stock: m.stockAfter,
         type: m.type,
@@ -138,13 +129,22 @@ export default function StockMovementsPage() {
                             </p>
                         </div>
                         <EstadoBadge estado={product.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
-                        {movements.length > 0 && (
+                        {meta.total > 0 && (
+                            /*
+                             * T4-15 — la exportación pasa al endpoint del servidor.
+                             *
+                             * Construía el CSV aquí, a partir del array que tenía en pantalla.
+                             * Con el histórico paginado eso exportaría **la página visible**
+                             * creyendo exportarlo todo, que es la peor forma de perder datos:
+                             * el archivo se abre, tiene filas y parece correcto. El botón dice
+                             * ahora «Exportar todo» porque eso es exactamente lo que hace.
+                             */
                             <Button
                                 variant="secondary"
-                                onClick={() => exportMovementsCsv(product.name, movements)}
+                                onClick={() => exportProductMovementsCsv(product.id, product.name, { type: typeFilter, dateFrom, dateTo })}
                             >
                                 <ArrowDownTrayIcon className="h-4 w-4" />
-                                {t("productos.exportarCsv")}
+                                {t("movimientos.exportarTodo")}
                             </Button>
                         )}
                     </div>
@@ -163,8 +163,10 @@ export default function StockMovementsPage() {
                                 : "border-transparent text-foreground-muted hover:text-foreground"
                         }`}
                     >
+                        {/* El recuento sale de `meta.total`, no de la página: la pestaña dice
+                            cuántos movimientos hay, no cuántos se han traído. */}
                         {tab === "movements"
-                            ? t("movimientos.pestanaMovimientos", { cantidad: movements.length })
+                            ? t("movimientos.pestanaMovimientos", { cantidad: meta.total })
                             : t("movimientos.pestanaPrecios", { cantidad: priceHistory.length })}
                     </button>
                 ))}
@@ -175,7 +177,16 @@ export default function StockMovementsPage() {
                     {/* Gráfico de stock */}
                     {movements.length > 0 && (
                         <div className="bg-surface rounded-xl border border-border p-6">
-                            <h2 className="text-base font-semibold text-foreground mb-6">{t("movimientos.evolucionStock")}</h2>
+                            <h2 className="text-base font-semibold text-foreground">{t("movimientos.evolucionStock")}</h2>
+                            {/* T4-15 — el gráfico dibuja **la página**, y hay que decirlo. Un
+                                gráfico rotulado «Evolución del stock» que en realidad enseña 50
+                                de 100 000 movimientos no está mal dibujado: está mintiendo. */}
+                            {(meta.totalPages > 1 || hayFiltros) && (
+                                <p className="mt-1 text-xs text-foreground-muted">
+                                    {t("movimientos.graficoDeLaPagina", { cantidad: movements.length })}
+                                </p>
+                            )}
+                            <div className="mb-6" />
                             <ResponsiveContainer width="100%" height={260}>
                                 <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
@@ -206,8 +217,10 @@ export default function StockMovementsPage() {
                         </div>
                     )}
 
-                    {/* Filtros */}
-                    {movements.length > 0 && (
+                    {/* Filtros — se pintan si el producto tiene histórico, aunque el filtro
+                        actual no devuelva nada: si desaparecieran al quedarse sin resultados,
+                        no habría forma de deshacer el filtro que los vació. */}
+                    {(meta.total > 0 || hayFiltros) && (
                         /*
                          * Rejilla, como los filtros de Productos. Con `flex-wrap` y las
                          * etiquetas «Desde»/«Hasta» **al lado** del campo, a 412 px cada
@@ -227,23 +240,23 @@ export default function StockMovementsPage() {
                                         ...Object.entries(TIPO_MOVIMIENTO).map(([value, { clave }]) => ({ value, label: t(clave) })),
                                     ]}
                                     value={typeFilter}
-                                    onChange={(e) => setTypeFilter(e.target.value)}
+                                    onChange={(e) => filtrar(() => setTypeFilter(e.target.value))}
                                 />
                             </div>
                             <CampoDeFecha
                                 label={t("movimientos.desde")}
                                 value={dateFrom}
-                                onChange={(e) => setDateFrom(e.target.value)}
+                                onChange={(e) => filtrar(() => setDateFrom(e.target.value))}
                             />
                             <CampoDeFecha
                                 label={t("movimientos.hasta")}
                                 value={dateTo}
-                                onChange={(e) => setDateTo(e.target.value)}
+                                onChange={(e) => filtrar(() => setDateTo(e.target.value))}
                             />
-                            {(typeFilter || dateFrom || dateTo) && (
+                            {hayFiltros && (
                                 <Button
                                     variant="secondary"
-                                    onClick={() => { setTypeFilter(""); setDateFrom(""); setDateTo(""); }}
+                                    onClick={() => filtrar(() => { setTypeFilter(""); setDateFrom(""); setDateTo(""); })}
                                 >
                                     {t("movimientos.limpiarFiltros")}
                                 </Button>
@@ -252,16 +265,17 @@ export default function StockMovementsPage() {
                     )}
 
                     {/* Tabla de movimientos */}
-                    {filteredMovements.length > 0 ? (
+                    {movements.length > 0 ? (
                         <div className="bg-surface rounded-xl border border-border overflow-hidden">
                             <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                                {/* El recuento es `meta.total`, el del servidor. El rótulo
+                                    «X de Y» de antes comparaba longitudes de array —lo filtrado
+                                    contra lo cargado—, y con el histórico paginado «Y» sería el
+                                    tamaño de la página: diría «50 de 50» sobre 100 000. Sin la
+                                    lista entera en memoria ese «de Y» no existe, así que se
+                                    retiró en vez de rellenarlo con el número que había a mano. */}
                                 <h2 className="text-base font-semibold text-foreground">
-                                    {filteredMovements.length === movements.length
-                                        ? t("movimientos.pestanaMovimientos", { cantidad: filteredMovements.length })
-                                        : t("movimientos.tablaFiltrada", {
-                                            cantidad: filteredMovements.length,
-                                            total: movements.length,
-                                        })}
+                                    {t("movimientos.pestanaMovimientos", { cantidad: meta.total })}
                                 </h2>
                             </div>
                             <div className={CLASES_TABLA_DESPLAZABLE}>
@@ -276,7 +290,9 @@ export default function StockMovementsPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
-                                        {[...filteredMovements].reverse().map((m) => (
+                                        {/* Sin `reverse()`: el servidor ya los manda del más
+                                            reciente al más antiguo, que es el orden de la tabla. */}
+                                        {movements.map((m) => (
                                             <tr key={m.id} className="hover:bg-surface-muted transition-colors">
                                                 <td className="px-6 py-3 text-foreground-muted whitespace-nowrap">
                                                     {formatearFecha(idioma, m.createdAt)}
@@ -299,9 +315,22 @@ export default function StockMovementsPage() {
                         </div>
                     ) : (
                         <div className="bg-surface rounded-xl border border-border p-6 text-center text-sm text-foreground-muted">
-                            {movements.length === 0
-                                ? t("movimientos.sinMovimientos")
-                                : t("movimientos.sinCoincidencias")}
+                            {hayFiltros ? t("movimientos.sinCoincidencias") : t("movimientos.sinMovimientos")}
+                        </div>
+                    )}
+
+                    {/* Paginación — mismo patrón que auditoría y usuarios. */}
+                    {meta.totalPages > 1 && (
+                        <div className="flex flex-col gap-3 text-sm text-foreground-muted sm:flex-row sm:items-center sm:justify-between">
+                            <span>{t("movimientos.paginacion", { pagina: meta.page, total: meta.totalPages, registros: meta.total })}</span>
+                            <div className="grid grid-cols-2 gap-2 sm:flex">
+                                <Button variant="secondary" disabled={meta.page === 1} onClick={() => setPage((p) => p - 1)}>
+                                    {t("comun.anterior")}
+                                </Button>
+                                <Button variant="secondary" disabled={meta.page === meta.totalPages} onClick={() => setPage((p) => p + 1)}>
+                                    {t("comun.siguiente")}
+                                </Button>
+                            </div>
                         </div>
                     )}
                 </>

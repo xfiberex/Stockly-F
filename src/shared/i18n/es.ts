@@ -466,7 +466,6 @@ export const es = {
     "movimientos.minimo": "(mín: {minimo})",
     "movimientos.pestanaMovimientos": "Movimientos ({cantidad})",
     "movimientos.pestanaPrecios": "Historial de precios ({cantidad})",
-    "movimientos.tablaFiltrada": "Movimientos ({cantidad} de {total})",
     "movimientos.evolucionStock": "Evolución del stock",
     "movimientos.unidades_one": "{cantidad} unidad",
     "movimientos.unidades_other": "{cantidad} unidades",
@@ -481,6 +480,10 @@ export const es = {
     "movimientos.columnaNota": "Nota",
     "movimientos.sinMovimientos": "Aún no hay movimientos registrados para este producto.",
     "movimientos.sinCoincidencias": "No hay movimientos que coincidan con los filtros aplicados.",
+    // T4-15 — el histórico llega paginado, así que hay que decir qué se está mirando.
+    "movimientos.paginacion": "Página {pagina} de {total} — {registros} movimientos",
+    "movimientos.graficoDeLaPagina": "Solo los {cantidad} movimientos de esta página, del más antiguo al más reciente.",
+    "movimientos.exportarTodo": "Exportar (todas las páginas)",
     "precios.evolucion": "Evolución del precio",
     "precios.cambios": "Cambios de precio ({cantidad})",
     "precios.anterior": "Precio anterior",

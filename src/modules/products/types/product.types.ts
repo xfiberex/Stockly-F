@@ -9,6 +9,7 @@ import type {
     EtiquetaRef,
     HistorialPrecio,
     MovimientoStock,
+    MovimientosDeProducto,
     Producto,
     ProductoExportado,
     Referencia,
@@ -28,9 +29,23 @@ export type PriceHistoryEntry = HistorialPrecio;
 export type ExportedProduct = ProductoExportado;
 export type ImportResult = ResultadoImportacion;
 
-export interface MovementsResponse {
-    product: Product;
-    movements: StockMovement[];
+/**
+ * T4-15 — ya no es `{ product, movements }`: trae también `meta`, porque el histórico
+ * llega paginado. Se toma del contrato en vez de repetirse aquí; así, si el backend
+ * cambia la forma, esto deja de compilar en lugar de fallar en ejecución.
+ */
+export type MovementsResponse = MovimientosDeProducto;
+
+/**
+ * Los filtros del histórico **viajan al servidor**. Filtrarlos en el navegador filtraría
+ * solo la página traída: el resultado dependería de en qué página estás, sin avisar.
+ */
+export interface MovementsQuery {
+    page?: number;
+    limit?: number;
+    type?: string;
+    dateFrom?: string;
+    dateTo?: string;
 }
 
 export interface PriceHistoryResponse {

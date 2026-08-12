@@ -10,6 +10,7 @@ import type {
     ExportedProduct,
     ImportResult,
     MovementsResponse,
+    MovementsQuery,
     PriceHistoryResponse,
     CreateManualMovementDto,
     BulkStockDto,
@@ -79,8 +80,14 @@ export const importProducts = async (products: ImportProductDto[]): Promise<Impo
     return data.data!;
 };
 
-export const getProductMovements = async (productId: string): Promise<MovementsResponse> => {
-    const { data } = await api.get<ApiResponse<MovementsResponse>>(`/products/${productId}/movements`);
+export const getProductMovements = async (
+    productId: string,
+    query: MovementsQuery = {},
+): Promise<MovementsResponse> => {
+    // T4-15: página y filtros van en la query. Los vacíos se quitan para no mandar
+    // `?type=` —cadena vacía—, que el backend interpretaría como filtro presente.
+    const params = Object.fromEntries(Object.entries(query).filter(([, v]) => v !== "" && v !== undefined));
+    const { data } = await api.get<ApiResponse<MovementsResponse>>(`/products/${productId}/movements`, { params });
     return data.data!;
 };
 
@@ -112,11 +119,22 @@ export const bulkUpdateStock = async (dto: BulkStockDto): Promise<Array<{ produc
  * Pidiéndolo como `blob` por axios, el interceptor vuelve a ver la respuesta y el archivo
  * se construye aquí, con `blobCsv`, que es el mismo camino que las otras dos descargas.
  */
-export const exportProductMovementsCsv = async (productId: string): Promise<void> => {
+export const exportProductMovementsCsv = async (
+    productId: string,
+    productName: string,
+    query: MovementsQuery = {},
+): Promise<void> => {
+    // T4-15 — se exportan **todas las páginas de lo que hay filtrado**, no la página en
+    // pantalla ni el histórico entero ignorando los filtros. Es también lo que hace
+    // accionable el 413 del tope: un producto con más movimientos que el máximo se exporta
+    // por tramos de fecha.
+    const filtros = Object.fromEntries(
+        Object.entries(query).filter(([clave, v]) => clave !== "page" && clave !== "limit" && v !== "" && v !== undefined),
+    );
     const { data } = await api.get<string>(`/products/${productId}/movements/export`, {
-        params: { format: "csv" },
+        params: { format: "csv", ...filtros },
         responseType: "text",
     });
     const fecha = new Date().toISOString().split("T")[0];
-    downloadBlob(blobCsv(data), `stockly-movimientos-${productId.slice(0, 8)}-${fecha}.csv`);
+    downloadBlob(blobCsv(data), `movimientos-${productName.replace(/\s+/g, "-").toLowerCase()}-${fecha}.csv`);
 };
