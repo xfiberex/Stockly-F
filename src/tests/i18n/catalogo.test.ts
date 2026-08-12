@@ -62,6 +62,34 @@ describe("Catálogo de traducción (T4-04)", () => {
 
         expect(huerfanas).toEqual([]);
     });
+
+    it("ninguna clave del catálogo se ha quedado sin usar", () => {
+        // El compilador vigila que las dos copias digan lo mismo, pero **no que alguien las
+        // lea**: una clave cuya pantalla se rediseñó se queda ahí para siempre, y con ella su
+        // traducción, que alguien mantendrá sin saber que no se ve. Se encontraron ocho al
+        // limpiar el proyecto —`comun.buscar`, `comun.cargando`, `ordenes.eliminar`…—, todas
+        // de pantallas que cambiaron de forma.
+        //
+        // **Las familias dinámicas quedan fuera y hay que nombrarlas una a una**, porque su
+        // clave se compone en tiempo de ejecución (`error.${code}`, `auditoria.accion.${a}`)
+        // y una búsqueda por texto nunca las encontraría. Esa exención es justo lo que hace
+        // falsa a esta guardia si se amplía a la ligera: un prefijo de más aquí apaga la
+        // comprobación para todo un módulo.
+        const DINAMICAS = [/^error\./, /^auditoria\.(accion|entidad)\./, /^ajuste\./];
+
+        const fuentes = import.meta.glob("/src/**/*.{ts,tsx}", { eager: true, query: "?raw", import: "default" });
+        const codigo = Object.entries(fuentes)
+            .filter(([ruta]) => !ruta.includes("/shared/i18n/"))
+            .map(([, texto]) => texto as string)
+            .join("\n");
+
+        const sinUsar = clavesDelCatalogo()
+            .filter((c) => !DINAMICAS.some((re) => re.test(c)))
+            // Los plurales se piden por su raíz: `tn("movimientos.unidades", n)`.
+            .filter((c) => !codigo.includes(c.replace(/_(one|other)$/, "")));
+
+        expect(sinUsar, `Sobran en el catálogo:\n${sinUsar.join("\n")}`).toEqual([]);
+    });
 });
 
 describe("traducir", () => {
