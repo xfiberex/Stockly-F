@@ -72,6 +72,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
 
             <div>
                 <Select
+                    aria-label={t("productos.filtro.porCategoria")}
                     options={categoryOptions}
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
@@ -82,6 +83,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
             {tags.length > 0 && (
                 <div>
                     <Select
+                        aria-label={t("productos.filtro.porEtiqueta")}
                         options={tagOptions}
                         value={tagId}
                         onChange={(e) => setTagId(e.target.value)}
@@ -92,6 +94,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
 
             <div>
                 <Select
+                    aria-label={t("productos.filtro.porEstado")}
                     options={[
                         { value: "true", label: t("productos.filtro.soloActivos") },
                         { value: "false", label: t("productos.filtro.soloInactivos") },

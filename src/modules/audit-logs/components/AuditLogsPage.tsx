@@ -102,6 +102,7 @@ export default function AuditLogsPage() {
             <div className="flex flex-wrap gap-3">
                 <div className="flex-1 min-w-44">
                     <Select
+                        aria-label={t("auditoria.todasLasAcciones")}
                         options={ACTION_OPTIONS}
                         value={action}
                         onChange={(e) => { setAction(e.target.value as AuditAction | ""); setPage(1); }}
@@ -109,6 +110,7 @@ export default function AuditLogsPage() {
                 </div>
                 <div className="flex-1 min-w-44">
                     <Select
+                        aria-label={t("auditoria.todasLasEntidades")}
                         options={ENTITY_OPTIONS}
                         value={entity}
                         onChange={(e) => { setEntity(e.target.value as AuditEntity | ""); setPage(1); }}

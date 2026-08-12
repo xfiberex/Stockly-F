@@ -219,6 +219,7 @@ export default function StockMovementsPage() {
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
                             <div>
                                 <Select
+                                    aria-label={t("movimientos.tipo")}
                                     options={[
                                         { value: "", label: t("movimientos.todosLosTipos") },
                                         // Las opciones salen del descriptor para que el filtro no

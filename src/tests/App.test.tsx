@@ -120,7 +120,7 @@ describe("App — menú de usuario (T2-16)", () => {
         const user = userEvent.setup();
         renderWithProviders(layoutConEnlaceExterno());
 
-        const boton = screen.getByRole("button", { name: "Menú de usuario" });
+        const boton = screen.getByRole("button", { name: /menú de usuario/i });
         await user.click(boton);
         expect(screen.getByRole("menu")).toBeInTheDocument();
 

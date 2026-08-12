@@ -84,7 +84,7 @@ describe("Menú de usuario — disparador y cabecera", () => {
         const user = userEvent.setup();
         renderWithProviders(<UserMenuDePrueba />);
 
-        const boton = screen.getByRole("button", { name: "Menú de usuario" });
+        const boton = screen.getByRole("button", { name: /menú de usuario/i });
         expect(boton.className).toContain("border-transparent");
         expect(boton.className).toContain("hover:border-border");
 
@@ -94,11 +94,26 @@ describe("Menú de usuario — disparador y cabecera", () => {
         expect(boton.className).toContain("border-border");
     });
 
+    it("su nombre accesible contiene el texto visible (WCAG 2.5.3)", async () => {
+        // T4-09, encontrado con Lighthouse sobre el build de producción
+        // (`label-content-name-mismatch`): el botón enseñaba el nombre del usuario y se
+        // anunciaba «Menú de usuario». Quien maneja el ordenador **por voz** dice lo que ve
+        // —«pulsa Admin Principal»— y no pasaba nada, porque ese texto no estaba en el
+        // nombre accesible.
+        renderWithProviders(<UserMenuDePrueba />);
+
+        const boton = screen.getByRole("button", { name: /menú de usuario/i });
+        const visible = boton.querySelector("span")?.textContent?.trim() ?? "";
+
+        expect(visible).not.toBe("");
+        expect(boton.getAttribute("aria-label")).toContain(visible);
+    });
+
     it("la cabecera dice de quién es la sesión, con el correo entero", async () => {
         const user = userEvent.setup();
         renderWithProviders(<UserMenuDePrueba />);
 
-        await user.click(screen.getByRole("button", { name: "Menú de usuario" }));
+        await user.click(screen.getByRole("button", { name: /menú de usuario/i }));
 
         const menu = screen.getByRole("menu");
         expect(within(menu).getByText("Ana Pérez")).toBeInTheDocument();
@@ -110,7 +125,7 @@ describe("Menú de usuario — disparador y cabecera", () => {
         const user = userEvent.setup();
         renderWithProviders(<UserMenuDePrueba />);
 
-        await user.click(screen.getByRole("button", { name: "Menú de usuario" }));
+        await user.click(screen.getByRole("button", { name: /menú de usuario/i }));
 
         // Dos ítems, los de siempre: la cabecera no se pulsa y no debe contarse.
         expect(screen.getAllByRole("menuitem")).toHaveLength(2);

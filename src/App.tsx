@@ -128,7 +128,13 @@ function UserMenu({ name, email }: { name: string; email?: string }) {
             <button
                 ref={disparador}
                 onClick={alternar}
-                aria-label={t("nav.menuUsuario")}
+                // **El nombre visible va dentro del accesible** (WCAG 2.5.3, «Label in
+                // Name»). Con `aria-label="Menú de usuario"` a secas, el botón enseñaba
+                // «Admin Principal» y se anunciaba con otro texto: quien maneja el
+                // ordenador por voz dice lo que ve —«pulsa Admin Principal»— y no pasa
+                // nada, porque ese texto no está en el nombre. Lighthouse lo marca como
+                // `label-content-name-mismatch`.
+                aria-label={t("nav.menuUsuarioDe", { nombre: name })}
                 aria-haspopup="menu"
                 aria-expanded={open}
                 // El disparador se delimita igual que los ítems que abre: borde

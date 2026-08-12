@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { CubeIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
+import { CLASES_MARCO_CENTRADO_COLUMNA } from "@/shared/lib/clasesDeMarco";
 
 export default function NotFoundPage() {
     const { t } = useT();
 
     return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
+        <main className={CLASES_MARCO_CENTRADO_COLUMNA}>
             <div className="flex items-center gap-2 font-bold text-foreground-muted">
                 <CubeIcon className="h-5 w-5" />
                 Stockly
@@ -26,6 +27,6 @@ export default function NotFoundPage() {
             >
                 {t("noEncontrada.volver")}
             </Link>
-        </div>
+        </main>
     );
 }

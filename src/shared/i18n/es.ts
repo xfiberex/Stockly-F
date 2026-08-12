@@ -104,6 +104,7 @@ export const es = {
     "nav.admin": "Admin",
     "nav.auditoria": "Auditoría",
     "nav.menuUsuario": "Menú de usuario",
+    "nav.menuUsuarioDe": "{nombre} — menú de usuario",
     "nav.abrirMenu": "Abrir menú de navegación",
     "nav.cerrarMenu": "Cerrar menú de navegación",
     "nav.saltarAlContenido": "Saltar al contenido principal",
@@ -284,6 +285,7 @@ export const es = {
     "usuarios.todosLosRoles": "Todos los roles",
     "usuarios.rol.ADMIN": "Admin",
     "usuarios.rol.USER": "Usuario",
+    "usuarios.filtrarPorEstado": "Filtrar por estado",
     "usuarios.activos": "Activos",
     "usuarios.inactivos": "Inactivos",
     "usuarios.sinResultados": "No se encontraron usuarios.",
@@ -409,6 +411,9 @@ export const es = {
     "productos.imagen.quitar": "Quitar imagen",
 
     // Filtros
+    "productos.filtro.porCategoria": "Filtrar por categoría",
+    "productos.filtro.porEtiqueta": "Filtrar por etiqueta",
+    "productos.filtro.porEstado": "Filtrar por estado",
     "productos.filtro.buscar": "Buscar producto...",
     "productos.filtro.todasCategorias": "Todas las categorías",
     "productos.filtro.todasEtiquetas": "Todas las etiquetas",

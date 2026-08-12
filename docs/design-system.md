@@ -313,6 +313,34 @@ movimientos salían vacíos y con un chevron de desplegable donde debía ir un c
   se estira invisible sobre el campo entero. Un objetivo táctil de 16 px en una esquina es
   lo que el mínimo de 44 px quiere evitar.
 
+### Un desplegable de filtro necesita nombre aunque se entienda mirándolo
+
+**Todo `<Select>` lleva `label` o `aria-label`.** Lo vigila
+[`accesibilidad.test.ts`](../src/tests/accesibilidad.test.ts), y no es una regla teórica: la
+auditoría de T4-09 encontró **ocho sin ninguno de los dos**, en los filtros de productos,
+auditoría, movimientos y usuarios.
+
+Cuesta verlo porque el desplegable **sí enseña texto**: el de la opción elegida. Pero eso dice
+el **valor** —«Todas las categorías»—, no de qué es el filtro. Mirando la pantalla se deduce
+por su posición; sin mirarla, se anuncia «cuadro combinado» y se acabó.
+
+Cuando no cabe una etiqueta visible, `aria-label` desde el catálogo. Nunca una cadena a mano:
+`literales.test.ts` la caza.
+
+### Las pantallas sin sesión también son pantallas
+
+Las siete de autenticación y el 404 no pasan por `App.tsx`, así que **no heredan su `<main>`**
+— y hasta T4-09 no tenían ningún landmark. Lighthouse lo marcaba en el login, que es la
+primera pantalla del producto. Su marco es
+[`CLASES_MARCO_CENTRADO`](../src/shared/lib/clasesDeMarco.ts), y el elemento es `<main>`.
+
+**Un enlace metido en un párrafo lleva subrayado permanente**
+(`CLASES_ENLACE_EN_TEXTO`). Con `hover:underline` a secas, en reposo lo único que lo separa
+del texto de alrededor es el color: la misma regla —WCAG 1.4.1— por la que ningún estado de
+este proyecto se comunica solo con color. Al pasar el ratón el subrayado **se quita**, que es
+lo que confirma que responde. Un enlace suelto en un `div` no lo necesita: no hay texto del
+que distinguirlo.
+
 ### Un campo con `w-full` no reclama anchura
 
 `w-full` es un porcentaje, y un porcentaje **no aporta anchura intrínseca**: dentro de una
@@ -393,6 +421,10 @@ sus iconos, así que **un icono nunca se anuncia**. Lo que sí hay que poner tú
 
 - Un icono junto a texto no necesita nada. El texto ya lo dice.
 - Un botón de **solo icono** necesita `aria-label`, o se anuncia como «botón» y nada más.
+- **Y si el control sí enseña texto, el `aria-label` tiene que contenerlo** (WCAG 2.5.3). El
+  menú de usuario enseñaba «Admin Principal» y se anunciaba «Menú de usuario»: quien maneja
+  el ordenador **por voz** dice lo que ve y no pasaba nada. Un `aria-label` no sustituye al
+  texto visible, lo amplía.
 - En una lista o tabla, ese `aria-label` debe **nombrar la fila**: `Editar Monitor LG`, no
   `Editar`. Cincuenta botones llamados «Editar» no dicen cuál.
 - `title` da tooltip con el ratón y cuenta como nombre accesible de último recurso, pero

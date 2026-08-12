@@ -6,6 +6,8 @@ import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
 import { registerFormSchema, type RegisterForm } from "@/modules/auth/schemas/auth.schema";
 import { useRegister } from "@/modules/auth/hooks/useRegister";
+import { cn } from "@/shared/lib/cn";
+import { CLASES_MARCO_CENTRADO, CLASES_ENLACE_EN_TEXTO } from "@/shared/lib/clasesDeMarco";
 
 export default function RegisterPage() {
     const { t, te } = useT();
@@ -15,7 +17,7 @@ export default function RegisterPage() {
     });
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <main className={CLASES_MARCO_CENTRADO}>
             <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-raised p-8 space-y-6">
                 <div className="text-center">
                     <h1 className="text-xl font-bold text-foreground">{t("ruta.registro")}</h1>
@@ -66,11 +68,11 @@ export default function RegisterPage() {
 
                 <p className="text-center text-sm text-foreground-muted">
                     {t("auth.registro.yaTienes")}{" "}
-                    <Link to="/auth/login" className="text-info hover:underline font-medium">
+                    <Link to="/auth/login" className={cn(CLASES_ENLACE_EN_TEXTO, "font-medium")}>
                         {t("auth.registro.inicia")}
                     </Link>
                 </p>
             </div>
-        </div>
+        </main>
     );
 }

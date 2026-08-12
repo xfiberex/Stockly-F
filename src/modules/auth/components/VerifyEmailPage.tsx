@@ -4,6 +4,7 @@ import { Spinner } from "@/shared/components/Spinner";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
 import { useT } from "@/shared/hooks/useIdioma";
 import { mensajeDeError } from "@/shared/lib/errorApi";
+import { CLASES_MARCO_CENTRADO_COLUMNA } from "@/shared/lib/clasesDeMarco";
 
 export default function VerifyEmailPage() {
     const { t, idioma } = useT();
@@ -41,7 +42,7 @@ export default function VerifyEmailPage() {
     }, [token, idioma]);
 
     return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
+        <main className={CLASES_MARCO_CENTRADO_COLUMNA}>
             {status === "loading" && <Spinner size="lg" />}
             {status === "success" && (
                 <>
@@ -65,6 +66,6 @@ export default function VerifyEmailPage() {
                     </Link>
                 </>
             )}
-        </div>
+        </main>
     );
 }

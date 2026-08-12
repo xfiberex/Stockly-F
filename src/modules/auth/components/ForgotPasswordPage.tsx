@@ -6,6 +6,7 @@ import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
 import { forgotPasswordSchema, type ForgotPasswordForm } from "@/modules/auth/schemas/auth.schema";
 import { useForgotPassword } from "@/modules/auth/hooks/useForgotPassword";
+import { CLASES_MARCO_CENTRADO } from "@/shared/lib/clasesDeMarco";
 
 export default function ForgotPasswordPage() {
     const { t, te } = useT();
@@ -15,7 +16,7 @@ export default function ForgotPasswordPage() {
     });
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <main className={CLASES_MARCO_CENTRADO}>
             <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-raised p-8 space-y-6">
                 <div className="text-center">
                     <h1 className="text-xl font-bold text-foreground">{t("ruta.recuperar")}</h1>
@@ -50,6 +51,6 @@ export default function ForgotPasswordPage() {
                     </Link>
                 </p>
             </div>
-        </div>
+        </main>
     );
 }

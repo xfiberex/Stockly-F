@@ -7,6 +7,8 @@ import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
 import { loginFormSchema, type LoginForm } from "@/modules/auth/schemas/auth.schema";
 import { useLogin } from "@/modules/auth/hooks/useLogin";
+import { cn } from "@/shared/lib/cn";
+import { CLASES_MARCO_CENTRADO, CLASES_ENLACE_EN_TEXTO } from "@/shared/lib/clasesDeMarco";
 
 export default function LoginPage() {
     const { t, te } = useT();
@@ -16,7 +18,7 @@ export default function LoginPage() {
     });
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <main className={CLASES_MARCO_CENTRADO}>
             <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-raised p-8 space-y-6">
                 <div className="text-center">
                     <div className="flex items-center justify-center gap-2 mb-4">
@@ -63,18 +65,18 @@ export default function LoginPage() {
 
                 <p className="text-center text-sm text-foreground-muted">
                     {t("auth.login.sinCuenta")}{" "}
-                    <Link to="/auth/register" className="text-info hover:underline font-medium">
+                    <Link to="/auth/register" className={cn(CLASES_ENLACE_EN_TEXTO, "font-medium")}>
                         {t("auth.login.registrate")}
                     </Link>
                 </p>
 
                 <p className="text-center text-xs text-foreground-muted">
                     {t("auth.login.sinCorreo")}{" "}
-                    <Link to="/auth/resend-verification" className="text-info hover:underline">
+                    <Link to="/auth/resend-verification" className={CLASES_ENLACE_EN_TEXTO}>
                         {t("auth.login.reenviar")}
                     </Link>
                 </p>
             </div>
-        </div>
+        </main>
     );
 }

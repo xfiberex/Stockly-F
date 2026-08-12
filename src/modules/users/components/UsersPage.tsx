@@ -74,6 +74,7 @@ export default function UsersPage() {
                 </div>
                 <div className="flex-1 min-w-36">
                     <Select
+                        aria-label={t("usuarios.todosLosRoles")}
                         options={ROLE_OPTIONS}
                         value={roleFilter}
                         onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
@@ -81,6 +82,7 @@ export default function UsersPage() {
                 </div>
                 <div className="flex-1 min-w-36">
                     <Select
+                        aria-label={t("usuarios.filtrarPorEstado")}
                         options={STATUS_OPTIONS}
                         value={activeFilter}
                         onChange={(e) => { setActiveFilter(e.target.value); setPage(1); }}
