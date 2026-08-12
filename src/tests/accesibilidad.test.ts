@@ -96,4 +96,24 @@ describe("accesibilidad (T4-09)", () => {
 
         expect(infractores).toEqual([]);
     });
+
+    it("ningún <Button> vive dentro de un <Link>", () => {
+        // T2-14 quitó este patrón de la tabla de productos y **volvió** en el modal de
+        // detalle, que es lo que lo convierte en regla en vez de en arreglo. Un `<button>`
+        // dentro de un `<a>` es HTML inválido y deja **dos paradas de tabulación para una
+        // sola acción**; el navegador, además, no garantiza qué gana al pulsar.
+        //
+        // Lo que hay que usar es `clasesDeBoton()` en el propio `<a>`: se ve igual, es una
+        // sola parada y no copia la cadena de clases.
+        // La apertura se cierra con `[^/]>` a propósito: sin eso, un `<Link … />` sin hijos
+        // abriría la búsqueda y la cerraría en el `</Link>` de otro enlace más abajo,
+        // señalando un archivo donde el anidamiento no existe.
+        const enlaces = /<Link\b[^>]*[^/]>([\s\S]*?)<\/Link>/g;
+
+        const infractores = fuentes()
+            .filter(({ texto }) => Array.from(texto.matchAll(enlaces)).some(([, dentro]) => /<Button\b/.test(dentro)))
+            .map(({ ruta }) => ruta);
+
+        expect(infractores, "Usa clasesDeBoton() en el <Link>, no un <Button> dentro").toEqual([]);
+    });
 });

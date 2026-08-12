@@ -5,6 +5,7 @@ import { Badge } from "@/shared/components/Badge";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { NIVEL_STOCK, ACTIVIDAD, nivelDeStock } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
+import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import type { Product } from "@/modules/products/types/product.types";
 import { useT } from "@/shared/hooks/useIdioma";
@@ -66,15 +67,17 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
             <div className="flex flex-col gap-5">
 
                 {/* ── Encabezado ── */}
-                <div className="flex items-start gap-4">
+                {/* La miniatura baja a 64 px hasta `sm`: son 16 px más para el nombre, que es
+                    lo que decide si cabe en dos líneas o en tres. */}
+                <div className="flex items-start gap-3 sm:gap-4">
                     {product.imageUrl ? (
                         <img
                             src={product.imageUrl}
                             alt={product.name}
-                            className="h-20 w-20 rounded-xl object-cover shrink-0 border border-border"
+                            className="h-16 w-16 rounded-xl object-cover shrink-0 border border-border sm:h-20 sm:w-20"
                         />
                     ) : (
-                        <div className="h-20 w-20 rounded-xl bg-surface-muted flex flex-col items-center justify-center text-border text-xs shrink-0 gap-1">
+                        <div className="h-16 w-16 rounded-xl bg-surface-muted flex flex-col items-center justify-center text-border text-xs shrink-0 gap-1 sm:h-20 sm:w-20">
                             <CubeIcon className="h-6 w-6" />
                             <span>{t("productos.sinImagen")}</span>
                         </div>
@@ -105,8 +108,12 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
 
                 <div className="border-t border-border" />
 
-                {/* ── Campos ── */}
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                {/* ── Campos ──
+                    Una columna hasta `sm`. A 412 px, dos columnas dejaban 116 px de texto
+                    por campo —medido—: «TechDistribuidor SA» se partía en dos líneas y cada
+                    fecha en tres. No hay recorte de gap que arregle eso, porque
+                    «12 ago 2026, 10:36 a.m.» no cabe en 116 px ni en `text-xs`. */}
+                <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                     <Field icon={CurrencyDollarIcon} label={t("productos.campo.precio")}>
                         <span className="font-semibold text-foreground tabular-nums">
                             {formatearImporte(product.price)}
@@ -163,23 +170,30 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                     </Field>
                 </div>
 
-                {/* ── Acciones ── */}
-                <div className="flex items-center gap-2 pt-1 border-t border-border">
+                {/* ── Acciones ──
+                    Apiladas hasta `sm`. En fila, `flex-1` **no reparte a partes iguales**: el
+                    mínimo de un elemento flexible es su contenido, así que el reparto lo decide
+                    lo larga que sea cada etiqueta. Medido a 412 px: «Ver movimientos» salía a
+                    146 px y partido en dos líneas, y «Editar producto» a 178 en una. Es el mismo
+                    mecanismo por el que las acciones de encabezado van en rejilla y no en
+                    `flex-wrap`. */}
+                <div className="flex flex-col gap-2 pt-1 border-t border-border sm:flex-row sm:items-center">
+                    {/* T2-14, otra vez: esto era un `<button>` dentro de un `<a>`, que es HTML
+                        inválido y deja dos paradas de tabulación para una sola acción. Como
+                        navega, se queda el enlace y toma prestadas las clases del botón. */}
                     <Link
                         to={`/catalog/products/${product.id}/movements`}
-                        className="flex-1"
+                        className={clasesDeBoton("secondary", "sm:flex-1")}
                         onClick={onClose}
                     >
-                        <Button variant="secondary" type="button" className="w-full">
-                            <ChartBarIcon className="h-4 w-4" />
-                            {t("productos.detalle.verMovimientos")}
-                        </Button>
+                        <ChartBarIcon className="h-4 w-4" />
+                        {t("productos.detalle.verMovimientos")}
                     </Link>
 
                     {isAdmin && product.isActive && (
                         <Button
                             type="button"
-                            className="flex-1"
+                            className="sm:flex-1"
                             onClick={() => { onClose(); onEdit(product); }}
                         >
                             <PencilIcon className="h-4 w-4" />

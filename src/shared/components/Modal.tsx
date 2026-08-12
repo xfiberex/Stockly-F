@@ -80,7 +80,10 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
                     className,
                 )}
             >
-                <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-4">
+                {/* `px-4` hasta `sm`, como el contenedor de página: el relleno de escritorio
+                    se come 48 de los 412 px de un teléfono, y aquí se los quita a un panel
+                    que ya solo mide 380. */}
+                <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-4 sm:px-6">
                     <h2 id={titleId} className="text-base font-semibold text-foreground">{title}</h2>
                     <button
                         onClick={onClose}
@@ -90,7 +93,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
                         <XMarkIcon className="h-5 w-5" />
                     </button>
                 </div>
-                <div className="overflow-y-auto px-6 py-4">{children}</div>
+                <div className="overflow-y-auto px-4 py-4 sm:px-6">{children}</div>
             </div>
         </div>,
         document.body,

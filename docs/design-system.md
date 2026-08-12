@@ -306,6 +306,32 @@ es donde viven esos botones en escritorio.
 pantallas más con el relleno de escritorio fijado —`audit-logs`, `dashboard` y `users`— que
 no estaban en el repaso inicial.
 
+### Un modal es una pantalla estrecha, no una pantalla pequeña
+
+A 412 px el panel mide **380**, y con el relleno se queda en **348 de contenido**. Todo lo
+que en la página cabe en dos columnas, aquí no. Por eso `Modal` lleva `px-4` hasta `sm`
+—la misma regla que el contenedor de página— y el detalle de producto pasa a **una
+columna** por debajo de `sm`: a dos quedaban 116 px de texto por campo, y no hay recorte de
+`gap` que arregle eso, porque `12 ago 2026, 10:36 a.m.` no cabe en 116 px ni en `text-xs`.
+
+**Las acciones de un modal se apilan hasta `sm`, y `flex-1` no es el reparto que parece.**
+En una fila flexible el mínimo de un elemento es su contenido, así que dos botones `flex-1`
+se reparten según **lo larga que sea su etiqueta**: medido, «Ver movimientos» a 146 px y
+partido en dos líneas frente a «Editar producto» a 178 en una. Es el mismo mecanismo por el
+que las acciones de encabezado van en rejilla y no en `flex-wrap`. Apilados miden los dos
+348, y de `sm` en adelante vuelven a la fila con `sm:flex-1`.
+
+Esto solo aplica a los modales con **acciones anchas**. Los ocho de formulario —`Cancelar` +
+`Guardar`— caben de sobra alineados a la derecha: medido, 233 px de los 348.
+
+**Un `<Button>` nunca va dentro de un `<Link>`.** Es HTML inválido y deja **dos paradas de
+tabulación para una sola acción**. Una acción que navega es un enlace con `clasesDeBoton()`,
+como dice el paso 4 de «Cómo añadir una página nueva». T2-14 lo quitó de la tabla de
+productos y volvió en el modal de detalle; por eso ahora es una guardia y no un arreglo.
+
+**Lo vigila:** [`accesibilidad.test.ts`](../src/tests/accesibilidad.test.ts) recorre `src/` y
+falla nombrando el archivo si aparece un `<Button>` dentro de un `<Link>`.
+
 ### Tablas
 
 Una tabla no cabe en un teléfono y no se pretende que quepa: **se desplaza a lo ancho**. Dos
