@@ -7,6 +7,11 @@ import { useEffect, useRef, useState } from "react";
  * los dos el cierre con Escape, que es la única salida para quien navega con teclado:
  * sin él, un menú abierto obliga a tabular por todas sus opciones para salir.
  *
+ * T4-10 retiró `NavDropdown` —la barra lateral no despliega nada— y el hook se quedó con
+ * un solo usuario, `UserMenu`. **No se inlinea a propósito:** lo que guarda no es código
+ * compartido sino el comportamiento de teclado que costó la tarea T2-16, y volverlo a
+ * meter en el cuerpo del componente es la vía por la que se pierde al siguiente retoque.
+ *
  * Al cerrar con Escape **el foco vuelve al botón que lo abrió**. Sin eso el foco se
  * queda en un elemento que acaba de desaparecer del DOM, el navegador lo manda al
  * `<body>` y la siguiente pulsación de Tab reempieza por el principio de la página.

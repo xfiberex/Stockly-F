@@ -5,15 +5,18 @@ import { renderWithProviders } from "@/tests/utils";
 import App from "@/App";
 
 /**
- * T3-04 — el orden de la barra, fijado.
+ * T3-04 — el orden de la navegación, fijado.
  *
- * El refactor sustituye `navLinks.slice(0, 1)` y `navLinks.slice(1)` por un único array
- * de elementos con `kind`. El criterio de aceptación pide que la navegación siga
- * renderizando en el mismo orden, y hasta ahora **nada lo comprobaba**: el orden vivía en
- * dos expresiones de índices que había que leer juntas para reconstruirlo.
+ * El refactor sustituyó `navLinks.slice(0, 1)` y `navLinks.slice(1)` por un único array de
+ * elementos con `kind`. El criterio de aceptación pedía que la navegación siguiera
+ * renderizando en el mismo orden, y hasta entonces **nada lo comprobaba**: el orden vivía
+ * en dos expresiones de índices que había que leer juntas para reconstruirlo.
  *
- * Estos tests son el guardián que faltaba. Sin ellos, el refactor se «verifica» abriendo
- * la aplicación y mirando, que es justo lo que no sobrevive a la siguiente sesión.
+ * T4-10 — y ahora el orden es **uno**. La barra lateral y el panel de móvil pintan la
+ * misma lista, así que lo que estos tests vigilan ya no es que dos recorridos coincidan
+ * con lo esperado por separado, sino que sigan siendo el mismo. Hasta T4-10 el móvil
+ * agrupaba por tipo —enlaces sueltos arriba, secciones debajo— y el escritorio los
+ * intercalaba; mantener dos órdenes obligaba a dar de alta cada destino nuevo dos veces.
  */
 
 let rol = "ADMIN";
@@ -39,42 +42,52 @@ function layout() {
     );
 }
 
-/**
- * Con el menú móvil cerrado, lo único que hay en el DOM es la navegación de escritorio:
- * jsdom no aplica `lg:hidden`, pero el panel móvil solo se monta al abrirlo.
- */
-function rotulosDeEscritorio(): string[] {
-    const barra = document.querySelector("nav");
-    if (!barra) throw new Error("no hay barra de navegación");
-
-    return Array.from(barra.querySelectorAll("a[href], button"))
-        .map((el) => el.textContent?.trim() ?? "")
-        // Fuera la marca, el menú de usuario y la hamburguesa: no son navegación de sección.
-        .filter((texto) => ["Dashboard", "Catálogo", "Órdenes", "Reportes", "Admin"].includes(texto));
+/** La barra lateral es el único `<nav>` montado mientras el panel móvil está cerrado. */
+function barraLateral(): HTMLElement {
+    const navs = Array.from(document.querySelectorAll("nav"));
+    const lateral = navs.find((nav) => nav.id !== "mobile-menu");
+    if (!lateral) throw new Error("no hay barra lateral");
+    return lateral;
 }
+
+/** Rótulos de un recorrido, subtítulos de grupo incluidos y en el orden en que se leen. */
+function recorrido(raiz: HTMLElement): string[] {
+    return Array.from(raiz.querySelectorAll("a[href], p"))
+        .map((el) => el.textContent?.trim() ?? "")
+        .filter(Boolean);
+}
+
+const RECORRIDO_ADMIN = [
+    "Dashboard",
+    "Catálogo", "Productos", "Categorías", "Marcas", "Proveedores", "Etiquetas",
+    "Órdenes", "Compra", "Venta",
+    "Reportes",
+    "Admin", "Usuarios", "Auditoría", "Configuración",
+];
 
 beforeEach(() => {
     rol = "ADMIN";
 });
 
-describe("Orden de la barra de navegación (T3-04)", () => {
-    it("escritorio: los desplegables van entre Dashboard y Reportes", () => {
+describe("Orden de la navegación (T3-04, T4-10)", () => {
+    it("la barra lateral sigue el orden del array, con los grupos desplegados donde están", () => {
         renderWithProviders(layout());
 
-        expect(rotulosDeEscritorio()).toEqual(["Dashboard", "Catálogo", "Órdenes", "Reportes", "Admin"]);
+        expect(recorrido(barraLateral())).toEqual(RECORRIDO_ADMIN);
     });
 
-    it("un USER ve lo mismo menos Admin", () => {
+    it("un USER ve lo mismo menos el grupo de administración", () => {
         rol = "USER";
         renderWithProviders(layout());
 
-        expect(rotulosDeEscritorio()).toEqual(["Dashboard", "Catálogo", "Órdenes", "Reportes"]);
+        expect(recorrido(barraLateral())).toEqual(
+            RECORRIDO_ADMIN.filter((rotulo) => !["Admin", "Usuarios", "Auditoría", "Configuración"].includes(rotulo)),
+        );
     });
 
-    it("móvil: los enlaces sueltos arriba y las secciones debajo", async () => {
-        // El móvil agrupa por tipo a propósito, no respeta el orden de la barra: los dos
-        // enlaces juntos y luego las secciones con subtítulo. Se fija para que el
-        // refactor no lo alinee con el escritorio sin querer.
+    it("el panel de móvil pinta exactamente el mismo recorrido", async () => {
+        // Es lo que impide que vuelvan a ser dos listas. Antes de T4-10 este test
+        // afirmaba lo contrario a propósito: el móvil agrupaba por tipo.
         const user = userEvent.setup();
         renderWithProviders(layout());
 
@@ -82,42 +95,59 @@ describe("Orden de la barra de navegación (T3-04)", () => {
         const panel = document.getElementById("mobile-menu");
         if (!panel) throw new Error("el menú móvil no está en el DOM");
 
-        const rotulos = Array.from(panel.querySelectorAll("a[href], p"))
-            .map((el) => el.textContent?.trim() ?? "")
-            .filter(Boolean);
+        expect(recorrido(panel)).toEqual(RECORRIDO_ADMIN);
+    });
+});
 
-        expect(rotulos.slice(0, 2)).toEqual(["Dashboard", "Reportes"]);
-        expect(rotulos.indexOf("Catálogo")).toBeGreaterThan(rotulos.indexOf("Reportes"));
-        expect(rotulos.indexOf("Órdenes")).toBeGreaterThan(rotulos.indexOf("Catálogo"));
-        expect(rotulos.indexOf("Admin")).toBeGreaterThan(rotulos.indexOf("Órdenes"));
+describe("Barra lateral (T4-10)", () => {
+    it("cada sección se alcanza en un solo clic: son doce enlaces, sin disparadores que abrir", () => {
+        renderWithProviders(layout());
+        const lateral = barraLateral();
+
+        // Ni un `<button>`: lo que había antes eran tres, y cada uno costaba una
+        // interacción extra para llegar a lo que guardaba.
+        expect(lateral.querySelectorAll("button")).toHaveLength(0);
+        expect(lateral.querySelectorAll("a[href]")).toHaveLength(12);
     });
 
-    it("los desplegables conservan sus destinos", async () => {
-        const user = userEvent.setup();
+    it("los destinos de los grupos están en el DOM sin desplegar nada", () => {
         renderWithProviders(layout());
-
-        await user.click(screen.getByRole("button", { name: /Catálogo/ }));
-        const panel = screen.getByRole("button", { name: /Catálogo/ }).parentElement;
-        if (!panel) throw new Error("sin panel");
+        const lateral = barraLateral();
 
         for (const destino of ["Productos", "Categorías", "Marcas", "Proveedores", "Etiquetas"]) {
-            expect(within(panel).getByRole("link", { name: destino })).toBeInTheDocument();
+            expect(within(lateral).getByRole("link", { name: destino })).toBeInTheDocument();
         }
     });
 
-    it("el desplegable se resalta cuando la ruta activa le pertenece", async () => {
-        // Es lo que antes daban `catalogActive` y `ordersActive`, dos variables sueltas en
-        // el cuerpo del componente. Ahora cada desplegable trae su propia regla, y sin un
-        // test nadie notaría que se perdió al mover la lógica al array.
+    it("la sección actual queda destacada, y no solo por el color", async () => {
         const user = userEvent.setup();
         renderWithProviders(layout());
 
-        await user.click(screen.getByRole("button", { name: /Catálogo/ }));
-        await user.click(screen.getByRole("link", { name: "Productos" }));
-
+        await user.click(within(barraLateral()).getByRole("link", { name: "Productos" }));
         expect(await screen.findByText("Contenido del catálogo")).toBeInTheDocument();
-        // `text-info` es el color de estado que marca la sección activa (T2-36).
-        expect(screen.getByRole("button", { name: /Catálogo/ })).toHaveClass("text-info");
-        expect(screen.getByRole("button", { name: /Órdenes/ })).not.toHaveClass("text-info");
+
+        const activo = within(barraLateral()).getByRole("link", { name: "Productos" });
+        // `text-info` es el color de estado que marca la sección activa (T2-36)…
+        expect(activo).toHaveClass("text-info");
+        // …y `aria-current` es lo que la marca para quien no lo ve (WCAG 1.4.1).
+        expect(activo).toHaveAttribute("aria-current", "page");
+
+        expect(within(barraLateral()).getByRole("link", { name: "Marcas" })).not.toHaveAttribute("aria-current");
+    });
+
+    it("tiene nombre propio: con dos recorridos en la página, «navegación» a secas no distingue", () => {
+        renderWithProviders(layout());
+
+        expect(barraLateral()).toHaveAttribute("aria-label", "Secciones");
+    });
+
+    it("la cabecera ya no es un landmark de navegación", () => {
+        // De `lg` en adelante no lleva ningún destino. Dejarla como `<nav>` ofrecería a un
+        // lector de pantalla una región de navegación que no navega a ninguna parte.
+        renderWithProviders(layout());
+
+        expect(document.querySelector("header")).not.toBeNull();
+        // Con el panel cerrado, el único recorrido montado es el lateral.
+        expect(document.querySelectorAll("nav")).toHaveLength(1);
     });
 });

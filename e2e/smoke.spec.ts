@@ -23,8 +23,11 @@ test.describe("Smoke: flujo principal autenticado", () => {
             const menu = page.locator("#mobile-menu");
             await menu.getByRole("link", { name: "Productos", exact: true }).click();
         } else {
-            await page.getByRole("button", { name: "Catálogo" }).click();
-            await page.getByRole("link", { name: "Productos", exact: true }).click();
+            // T4-10: en escritorio ya no hay desplegable que abrir. El enlace está en la
+            // barra lateral, a un solo clic — que es exactamente lo que pedía la tarea.
+            await page.getByRole("navigation", { name: "Secciones" })
+                .getByRole("link", { name: "Productos", exact: true })
+                .click();
         }
         await expect(page.getByRole("heading", { name: "Productos", level: 1 })).toBeVisible();
         await expect(page.getByText(/productos en total/)).toBeVisible();

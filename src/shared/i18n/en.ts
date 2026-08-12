@@ -95,6 +95,7 @@ export const en: Record<keyof typeof es, string> = {
     "nav.auditoria": "Audit",
     "nav.menuUsuario": "User menu",
     "nav.menuUsuarioDe": "{nombre} — user menu",
+    "nav.secciones": "Sections",
     "nav.abrirMenu": "Open navigation menu",
     "nav.cerrarMenu": "Close navigation menu",
     "nav.saltarAlContenido": "Skip to main content",

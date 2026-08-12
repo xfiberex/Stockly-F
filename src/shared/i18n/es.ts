@@ -105,6 +105,10 @@ export const es = {
     "nav.auditoria": "Auditoría",
     "nav.menuUsuario": "Menú de usuario",
     "nav.menuUsuarioDe": "{nombre} — menú de usuario",
+    // T4-10: nombre de los dos recorridos de secciones —la barra lateral de escritorio y
+    // el panel de móvil—. Con dos `<nav>` en la página, uno sin nombre se anuncia
+    // «navegación» a secas y no hay forma de distinguirlos en la lista de regiones.
+    "nav.secciones": "Secciones",
     "nav.abrirMenu": "Abrir menú de navegación",
     "nav.cerrarMenu": "Cerrar menú de navegación",
     "nav.saltarAlContenido": "Saltar al contenido principal",

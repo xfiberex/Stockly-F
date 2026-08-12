@@ -16,7 +16,6 @@ import {
 import { cn } from "@/shared/lib/cn";
 import { useMenuDesplegable } from "@/shared/hooks/useMenuDesplegable";
 import { clasesDeItemDeMenu, CLASES_PANEL_DE_MENU } from "@/shared/lib/clasesDeItemDeMenu";
-import { NavDropdown } from "@/shared/components/NavDropdown";
 import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
 import { useAuth } from "@/modules/auth/hooks/useMe";
@@ -24,7 +23,7 @@ import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 
 /**
- * T3-04 — la barra de navegación, en un solo array y en su orden real.
+ * T3-04 — la navegación, en un solo array y en su orden real.
  *
  * Antes eran cuatro arrays y el orden de la barra no estaba en ninguno: los dos enlaces
  * sueltos vivían juntos en `navLinks` y se separaban al pintarlos con `navLinks.slice(0, 1)`
@@ -33,6 +32,12 @@ import type { Clave } from "@/shared/i18n/traducir";
  *
  * Ahora el array **es** el orden. Cada elemento dice de qué tipo es, y quien pinta decide
  * cómo, no cuándo.
+ *
+ * T4-10 — y el orden es **uno solo**. Hasta ahora el móvil agrupaba por tipo —los enlaces
+ * sueltos arriba y las secciones debajo— y el escritorio los intercalaba, así que había dos
+ * recorridos que mantener sincronizados a mano. Con la barra lateral los dos envoltorios
+ * pintan la misma lista, en el orden del array, y un destino nuevo aparece en los dos sitios
+ * sin tocar nada más.
  */
 // T4-04: `label` es la **clave** del catálogo, no el rótulo. Este array se construye al
 // cargar el módulo y el idioma se decide al pintar, así que un texto ya traducido se
@@ -46,28 +51,30 @@ type EnlaceDeNav = {
     Icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
-type DesplegableDeNav = {
-    kind: "dropdown";
+/**
+ * T4-10: antes esto era un `dropdown` —un botón que abría un panel—. Ahora es un
+ * **grupo**: un subtítulo con sus destinos debajo, siempre desplegado. Se cayeron con él
+ * dos campos que solo tenían sentido en un panel flotante: `width`, que fijaba el ancho
+ * al rótulo más largo, y `activoEn`, que existía para resaltar el disparador cuando la
+ * ruta activa pertenecía al menú. Sin disparador que resaltar, la marca la pone cada
+ * `NavLink` en su propio enlace, que además es donde el usuario la busca.
+ */
+type GrupoDeNav = {
+    kind: "group";
     label: Clave;
     Icon: ComponentType<SVGProps<SVGSVGElement>>;
     items: { to: string; label: Clave }[];
-    /** Ancho del panel; lo fija el rótulo más largo de `items`. */
-    width: string;
-    /** Rutas que dejan el disparador marcado. Sin esto, el desplegable nunca se resalta. */
-    activoEn?: (pathname: string) => boolean;
     soloAdmin?: boolean;
 };
 
-type ElementoDeNav = EnlaceDeNav | DesplegableDeNav;
+type ElementoDeNav = EnlaceDeNav | GrupoDeNav;
 
 const NAVEGACION: ElementoDeNav[] = [
     { kind: "link", to: "/", label: "ruta.dashboard", end: true, Icon: HomeIcon },
     {
-        kind: "dropdown",
+        kind: "group",
         label: "ruta.catalogo",
         Icon: Squares2X2Icon,
-        width: "w-40",
-        activoEn: (pathname) => pathname.startsWith("/catalog"),
         items: [
             { to: "/catalog/products", label: "ruta.productos" },
             { to: "/catalog/categories", label: "ruta.categorias" },
@@ -77,11 +84,9 @@ const NAVEGACION: ElementoDeNav[] = [
         ],
     },
     {
-        kind: "dropdown",
+        kind: "group",
         label: "nav.ordenes",
         Icon: ClipboardDocumentListIcon,
-        width: "w-36",
-        activoEn: (pathname) => pathname === "/purchase-orders" || pathname === "/sale-orders",
         items: [
             { to: "/purchase-orders", label: "nav.compra" },
             { to: "/sale-orders", label: "nav.venta" },
@@ -89,10 +94,9 @@ const NAVEGACION: ElementoDeNav[] = [
     },
     { kind: "link", to: "/reports", label: "ruta.reportes", end: false, Icon: ChartBarIcon },
     {
-        kind: "dropdown",
+        kind: "group",
         label: "nav.admin",
         Icon: ShieldCheckIcon,
-        width: "w-44",
         soloAdmin: true,
         items: [
             { to: "/admin/users", label: "ruta.usuarios" },
@@ -102,12 +106,9 @@ const NAVEGACION: ElementoDeNav[] = [
     },
 ];
 
-/** Un desplegable de administración solo existe para quien lo es. */
+/** El grupo de administración solo existe para quien lo es. */
 const visibleDeNav = (elemento: ElementoDeNav, isAdmin: boolean) =>
-    elemento.kind !== "dropdown" || !elemento.soloAdmin || isAdmin;
-
-const esEnlace = (elemento: ElementoDeNav): elemento is EnlaceDeNav => elemento.kind === "link";
-const esDesplegable = (elemento: ElementoDeNav): elemento is DesplegableDeNav => elemento.kind === "dropdown";
+    elemento.kind !== "group" || !elemento.soloAdmin || isAdmin;
 
 function UserMenu({ name, email }: { name: string; email?: string }) {
     // T2-16: el cierre al pulsar fuera estaba duplicado con `NavDropdown` y ninguno de
@@ -195,110 +196,78 @@ function UserMenu({ name, email }: { name: string; email?: string }) {
     );
 }
 
-// Dashboard y Reportes son enlaces sueltos de la barra, no disparadores de menú, pero
-// se delimitan igual que ellos: si no, en la misma fila conviven controles que muestran
-// su caja y controles que no, y la barra se lee desigual.
-const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
+// Mismo trato que los ítems de un menú: la caja se delimita al señalarla o al llegar
+// con el teclado. `min-h-11` es el mínimo táctil del sistema de diseño; en la barra
+// lateral, que solo se maneja con ratón y teclado, la lista se aprieta a 36 px para que
+// las doce entradas quepan sin desplazamiento en una pantalla de portátil.
+const claseDeEnlaceDeNav = ({ isActive }: { isActive: boolean }) =>
     cn(
-        "flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-1.5 text-sm font-medium transition-colors",
+        "flex min-h-11 items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium transition-colors lg:min-h-9 lg:py-1.5",
         "focus-visible:border-border focus-visible:outline-none",
         isActive
             // La sección en la que estás lleva su borde puesto, sin esperar al cursor.
-            ? "border-info/30 bg-info-surface text-info"
-            : "text-foreground-muted hover:border-border hover:bg-surface-muted",
-    );
-
-const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
-    cn(
-        // Mismo trato que los ítems de los desplegables: la caja se delimita al tocarla.
-        "flex min-h-11 items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium transition-colors",
-        isActive
+            // `NavLink` añade además `aria-current="page"`: el color no puede ser la
+            // única señal (WCAG 1.4.1) y quien no lo ve necesita que se lo digan.
             ? "border-info/30 bg-info-surface text-info"
             : "text-foreground hover:border-border hover:bg-surface-muted",
     );
 
-// Menú desplegable a pantalla completa para móvil. Lista todas las secciones
-// de forma plana (con subtítulos), evitando la barra apretada que se producía
-// al envolver los enlaces en un contenedor de altura fija.
-function MobileMenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate: () => void }) {
+/**
+ * T4-10 — el recorrido de secciones, escrito una sola vez.
+ *
+ * Lo pintan los dos envoltorios: el panel desplegable de móvil y la barra lateral de
+ * escritorio. Son dos cajas distintas alrededor de la **misma** lista, y esa es la razón
+ * de que ahora haya un solo orden: mientras cada uno tenía el suyo, cada destino nuevo
+ * había que darlo de alta dos veces y nada avisaba si se olvidaba uno.
+ */
+function ListaDeSecciones({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?: () => void }) {
     const { t } = useT();
 
     return (
-        /*
-         * **El menú se desplaza por dentro; la página, no.**
-         *
-         * Con doce entradas, el panel es más alto que la pantalla de un teléfono. Antes no
-         * tenía altura máxima, así que al arrastrar sobre él lo que se movía era la página
-         * de detrás —el menú se iba con ella y el contenido pasaba por debajo—, que es
-         * justo lo que no debe hacer algo que está por encima.
-         *
-         * Tres piezas, y hacen falta las tres:
-         *
-         * - `max-h` restado a la altura de la barra (56 px) para que el panel quepa y sea
-         *   él quien tenga desplazamiento propio. En **`dvh` y no `vh`**: en móvil la barra
-         *   del navegador aparece y desaparece, y `vh` se queda con la ventana grande, así
-         *   que las últimas entradas caen debajo del borde y no hay forma de llegar.
-         * - `overscroll-contain` corta el *encadenamiento*: al llegar al final del panel, el
-         *   gesto **no** continúa desplazando el documento.
-         * - El bloqueo del `<body>` mientras está abierto, en el efecto de `App`. El
-         *   encadenamiento no es el único camino: sin bloqueo, un gesto que empiece fuera
-         *   del panel sigue moviendo la página detrás del menú.
-         */
-        <div className="lg:hidden max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain sin-barra border-t border-border bg-surface px-4 py-3 space-y-4">
-            {/* T3-04: mismo array que el escritorio, agrupado por tipo en vez de por
-                índice. El móvil no respeta el orden de la barra a propósito —los enlaces
-                sueltos arriba y las secciones desplegadas debajo, con subtítulo—, y eso
-                se lee ahora en el `filter`, que dice qué agrupa, no en un `slice`. */}
-            <div className="space-y-1">
-                {NAVEGACION.filter(esEnlace).map(({ to, label, end, Icon }) => (
-                    <NavLink key={to} to={to} end={end} onClick={onNavigate} className={mobileLinkClass}>
-                        <Icon className="h-4 w-4" />
-                        {t(label)}
-                    </NavLink>
-                ))}
-            </div>
-
-            {NAVEGACION.filter(esDesplegable)
-                .filter((elemento) => visibleDeNav(elemento, isAdmin))
-                .map((elemento) => (
-                    <MobileSection
-                        key={elemento.label}
-                        icon={elemento.Icon}
-                        label={elemento.label}
-                        links={elemento.items}
-                        onNavigate={onNavigate}
-                    />
-                ))}
-        </div>
-    );
-}
-
-function MobileSection({
-    icon: Icon,
-    label,
-    links,
-    onNavigate,
-}: {
-    icon: ComponentType<SVGProps<SVGSVGElement>>;
-    label: Clave;
-    links: { to: string; label: Clave }[];
-    onNavigate: () => void;
-}) {
-    const { t } = useT();
-
-    return (
-        <div>
-            <p className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-foreground-muted">
-                <Icon className="h-3.5 w-3.5" />
-                {t(label)}
-            </p>
-            <div className="space-y-1">
-                {links.map(({ to, label: itemLabel }) => (
-                    <NavLink key={to} to={to} onClick={onNavigate} className={mobileLinkClass}>
-                        {t(itemLabel)}
-                    </NavLink>
-                ))}
-            </div>
+        <div className="space-y-4">
+            {NAVEGACION.filter((elemento) => visibleDeNav(elemento, isAdmin)).map((elemento) =>
+                elemento.kind === "link" ? (
+                    <div key={elemento.to} className="space-y-1">
+                        <NavLink to={elemento.to} end={elemento.end} onClick={onNavigate} className={claseDeEnlaceDeNav}>
+                            <elemento.Icon className="h-4 w-4" />
+                            {t(elemento.label)}
+                        </NavLink>
+                    </div>
+                ) : (
+                    <div key={elemento.label}>
+                        {/* El subtítulo **no es un encabezado**. Rotula un grupo de enlaces
+                            dentro de una navegación, no abre una sección de contenido:
+                            colarlo como `<h2>` lo mete en el esquema del documento y en el
+                            listado de encabezados con el que un lector de pantalla recorre
+                            la página, por delante del `<h1>` de la pantalla. */}
+                        <p className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-foreground-muted">
+                            <elemento.Icon className="h-3.5 w-3.5" />
+                            {t(elemento.label)}
+                        </p>
+                        <div className="space-y-1">
+                            {elemento.items.map(({ to, label }) => (
+                                <NavLink
+                                    key={to}
+                                    to={to}
+                                    onClick={onNavigate}
+                                    className={(estado) =>
+                                        // Los destinos de un grupo no llevan icono, así que su
+                                        // texto arrancaba 26 px a la izquierda del de «Dashboard»
+                                        // y «Reportes» —el icono más su hueco—: la lista se leía
+                                        // como si los hijos fueran los de fuera. `pl-9.5` son los
+                                        // 12 px del relleno más esos 26: alinea los rótulos en
+                                        // una sola columna y deja el subtítulo mandando sobre lo
+                                        // que tiene debajo.
+                                        cn(claseDeEnlaceDeNav(estado), "pl-9.5")
+                                    }
+                                >
+                                    {t(label)}
+                                </NavLink>
+                            ))}
+                        </div>
+                    </div>
+                ),
+            )}
         </div>
     );
 }
@@ -390,38 +359,22 @@ function App() {
               carencia: en una SPA nada avisa de que la página ha cambiado.
             */}
             <AnuncioDeRuta />
-            <nav className="sticky top-0 z-40 border-b border-border bg-surface">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-14 items-center gap-6">
+            {/*
+              T4-10: la barra superior deja de ser navegación y pasa a ser `<header>`.
+              De `lg` en adelante ya no lleva ningún destino —se los ha llevado la barra
+              lateral— y lo que queda es la marca, la sesión y, por debajo de `lg`, el
+              botón que abre el panel. Marcarla como `<nav>` cuando no navega dejaría un
+              *landmark* vacío que un lector de pantalla ofrece y no lleva a ninguna parte.
+            */}
+            <header className="sticky top-0 z-40 border-b border-border bg-surface">
+                <div className="px-4 sm:px-6 flex h-14 items-center gap-6">
                     <div className="flex items-center gap-2 font-bold text-foreground">
                         {/* La marca va en el acento de la paleta, no en el informativo. */}
                         <CubeIcon className="h-5 w-5 text-accent" />
                         Stockly
                     </div>
 
-                    {/* Navegación de escritorio: un solo recorrido, en el orden del array. */}
-                    <div className="hidden lg:flex gap-1 flex-1 items-center">
-                        {NAVEGACION.filter((elemento) => visibleDeNav(elemento, isAdmin)).map((elemento) =>
-                            elemento.kind === "link" ? (
-                                <NavLink key={elemento.to} to={elemento.to} end={elemento.end} className={desktopLinkClass}>
-                                    <elemento.Icon className="h-3.5 w-3.5" />
-                                    {t(elemento.label)}
-                                </NavLink>
-                            ) : (
-                                <NavDropdown
-                                    key={elemento.label}
-                                    label={t(elemento.label)}
-                                    Icon={elemento.Icon}
-                                    // El panel recibe los rótulos ya traducidos: `NavDropdown`
-                                    // es genérico y no tiene por qué saber del catálogo.
-                                    items={elemento.items.map(({ to, label }) => ({ to, label: t(label) }))}
-                                    isActive={elemento.activoEn?.(pathname) ?? false}
-                                    width={elemento.width}
-                                />
-                            ),
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-1 ml-auto lg:ml-0">
+                    <div className="flex items-center gap-1 ml-auto">
                         {user && <UserMenu name={user.name} email={user.email} />}
                         {/* Botón hamburguesa — solo móvil/tablet */}
                         <button
@@ -438,21 +391,77 @@ function App() {
                 </div>
 
                 {mobileOpen && (
-                    <div id="mobile-menu">
-                        <MobileMenu isAdmin={isAdmin} onNavigate={closeMobile} />
-                    </div>
+                    /*
+                     * **El menú se desplaza por dentro; la página, no.**
+                     *
+                     * Con doce entradas, el panel es más alto que la pantalla de un teléfono.
+                     * Antes no tenía altura máxima, así que al arrastrar sobre él lo que se
+                     * movía era la página de detrás —el menú se iba con ella y el contenido
+                     * pasaba por debajo—, que es justo lo que no debe hacer algo que está
+                     * por encima.
+                     *
+                     * Tres piezas, y hacen falta las tres:
+                     *
+                     * - `max-h` restado a la altura de la barra (56 px) para que el panel
+                     *   quepa y sea él quien tenga desplazamiento propio. En **`dvh` y no
+                     *   `vh`**: en móvil la barra del navegador aparece y desaparece, y `vh`
+                     *   se queda con la ventana grande, así que las últimas entradas caen
+                     *   debajo del borde y no hay forma de llegar.
+                     * - `overscroll-contain` corta el *encadenamiento*: al llegar al final
+                     *   del panel, el gesto **no** continúa desplazando el documento.
+                     * - El bloqueo de `<html>` mientras está abierto, en el efecto de arriba.
+                     */
+                    <nav
+                        id="mobile-menu"
+                        aria-label={t("nav.secciones")}
+                        className="lg:hidden max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain sin-barra border-t border-border bg-surface px-4 py-3"
+                    >
+                        <ListaDeSecciones isAdmin={isAdmin} onNavigate={closeMobile} />
+                    </nav>
                 )}
-            </nav>
-            {/*
-              `tabIndex={-1}` no lo mete en el orden de tabulación: lo hace
-              enfocable *por programa*, que es lo que necesita el salto. Sin él, el
-              navegador desplaza la página pero deja el foco donde estaba y la
-              siguiente pulsación de Tab vuelve al principio de la navegación —el
-              fallo clásico que hace inútil un enlace de salto.
-            */}
-            <main id="contenido" tabIndex={-1} className="outline-none">
-                <Outlet />
-            </main>
+            </header>
+
+            <div className="lg:flex">
+                {/*
+                  T4-10 — la barra lateral, de 1024 px en adelante.
+                  Con doce módulos repartidos en tres desplegables, alcanzar la mayoría de
+                  destinos costaba dos interacciones y la barra no decía dónde estabas.
+                  Desplegada, cada sección está a un clic y la actual va marcada.
+
+                  `sticky top-14` la ancla justo debajo de la cabecera, y la altura restada
+                  —la misma cuenta que el panel móvil— es lo que le da desplazamiento
+                  propio: sin ella, en una pantalla corta las últimas entradas quedan fuera
+                  y solo se llega bajando la página entera, con la barra yéndose con ella.
+
+                  **`aria-hidden` no hace falta y sería un error:** por debajo de `lg` el
+                  `hidden` de Tailwind es `display: none`, así que ni se anuncia ni se
+                  tabula. El panel móvil, que lleva el mismo `aria-label`, es el único
+                  visible ahí, y al revés de `lg` en adelante.
+                */}
+                <nav
+                    aria-label={t("nav.secciones")}
+                    className="hidden lg:block sticky top-14 h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto overscroll-contain sin-barra border-r border-border bg-surface px-3 py-4"
+                >
+                    <ListaDeSecciones isAdmin={isAdmin} />
+                </nav>
+
+                {/*
+                  `tabIndex={-1}` no lo mete en el orden de tabulación: lo hace
+                  enfocable *por programa*, que es lo que necesita el salto. Sin él, el
+                  navegador desplaza la página pero deja el foco donde estaba y la
+                  siguiente pulsación de Tab vuelve al principio de la navegación —el
+                  fallo clásico que hace inútil un enlace de salto.
+
+                  **`min-w-0` no es adorno.** En una fila flexible el mínimo de un elemento
+                  es su contenido, no cero: sin esto, las tablas de `min-w-160` empujan el
+                  `<main>` más allá del ancho de la ventana y la página entera se desplaza
+                  a lo ancho, arrastrando la cabecera. Es el mismo mecanismo que dejó los
+                  selects sin texto, visto desde el otro lado.
+                */}
+                <main id="contenido" tabIndex={-1} className="outline-none min-w-0 flex-1">
+                    <Outlet />
+                </main>
+            </div>
         </div>
     );
 }

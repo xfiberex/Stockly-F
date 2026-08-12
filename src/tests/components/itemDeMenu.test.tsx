@@ -1,8 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Squares2X2Icon } from "@heroicons/react/24/outline";
 import { renderWithProviders } from "@/tests/utils";
-import { NavDropdown } from "@/shared/components/NavDropdown";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { clasesDeItemDeMenu, CLASES_PANEL_DE_MENU } from "@/shared/lib/clasesDeItemDeMenu";
 import App from "@/App";
@@ -43,19 +41,13 @@ describe("Ítems de menú delimitados", () => {
         expect(clases).not.toContain("focus:border-border");
     });
 
-    it("los enlaces de un desplegable de navegación lo llevan", async () => {
-        const user = userEvent.setup();
-        renderWithProviders(
-            <NavDropdown
-                label="Catálogo"
-                Icon={Squares2X2Icon}
-                items={[{ to: "/catalog/products", label: "Productos" }]}
-            />,
-        );
+    it("los enlaces de la navegación lo llevan", () => {
+        // Hasta T4-10 esto se comprobaba sobre `NavDropdown`, el desplegable de la barra
+        // superior. La barra lateral lo sustituyó y el componente se retiró; los enlaces
+        // que hereda su papel se delimitan igual.
+        renderWithProviders(<UserMenuDePrueba />);
 
-        await user.click(screen.getByRole("button", { name: /Catálogo/ }));
-
-        expect(screen.getByRole("link", { name: "Productos" }).className).toContain("hover:border-border");
+        expect(screen.getAllByRole("link", { name: "Productos" })[0].className).toContain("hover:border-border");
     });
 
     it("los de un menú de acciones también", async () => {

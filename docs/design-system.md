@@ -237,6 +237,48 @@ Un botón **de solo icono** no es un botón estrecho: es cuadrado. `CLASES_BOTON
 el relleno lateral y pone `min-w-11`. Los tres de cada fila de órdenes salían a 56 px cada
 uno por el `px-4` heredado, y esos 168 px se los quitaban al texto de la fila.
 
+### La navegación cambia de envoltorio, no de contenido
+
+**A partir de 1024 px, barra lateral; por debajo, el panel desplegable de siempre.** Los dos
+pintan la misma lista —`ListaDeSecciones`, en [`App.tsx`](../src/App.tsx)— a partir del mismo
+array. Un destino nuevo se da de alta **una vez** y aparece en los dos sitios.
+
+Hasta T4-10 no era así: la barra superior repartía los doce módulos en tres desplegables, de
+modo que la mayoría de destinos costaban **dos interacciones** y ninguna decía dónde estabas;
+y el panel de móvil los listaba en un orden distinto al de la barra, así que había dos
+recorridos que mantener sincronizados a mano.
+
+```
+lg:  <header> marca + sesión   |  <nav aria-label="Secciones"> lateral, 240 px, sticky
+     <main min-w-0 flex-1>
+< lg: <header> marca + sesión + hamburguesa, con el panel colgando
+```
+
+Cuatro cosas que no son adorno:
+
+- **La cabecera es `<header>`, no `<nav>`.** De `lg` en adelante ya no lleva ningún destino:
+  marcarla como navegación deja un *landmark* que un lector de pantalla ofrece y que no
+  lleva a ninguna parte.
+- **Los dos `<nav>` llevan el mismo `aria-label`.** No chocan porque solo uno está visible a
+  la vez: por debajo de `lg` el lateral es `display: none` y por encima lo es el panel, y lo
+  que no se pinta no entra en el árbol de accesibilidad. `aria-hidden` sobraría.
+- **`min-w-0` en el `<main>`.** En una fila flexible el mínimo de un elemento es su
+  contenido, no cero: sin él, las tablas de `min-w-160` empujan el `<main>` fuera de la
+  ventana y la página entera se desplaza a lo ancho, cabecera incluida. Es el mismo mecanismo
+  del apartado «Un campo con `w-full` no reclama anchura», visto desde el otro lado.
+- **Los subtítulos de grupo son `<p>`, no encabezados.** Rotulan un grupo de enlaces, no
+  abren una sección de contenido: como `<h2>` se colarían en el listado de encabezados con el
+  que se recorre la página, por delante del `<h1>` de la pantalla.
+
+La sección actual se marca **dos veces**: `text-info` y el `aria-current="page"` que pone
+`NavLink`. El color solo no vale (WCAG 1.4.1), y aquí quien no lo ve necesita saber en qué
+sección está tanto como quien lo ve.
+
+**Lo vigila:** [`navegacion.test.tsx`](../src/tests/components/navegacion.test.tsx) — el
+orden, que los dos envoltorios pinten el mismo recorrido, que no quede ningún botón en el
+lateral (un botón es la interacción de más que la tarea vino a quitar) y que la cabecera haya
+dejado de ser un landmark de navegación.
+
 ### El armazón de una pantalla
 
 Tres constantes en [`shared/lib/clasesDeEncabezado.ts`](../src/shared/lib/clasesDeEncabezado.ts),
