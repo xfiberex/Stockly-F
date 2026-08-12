@@ -36,7 +36,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                             // appearance-none oculta el indicador nativo (que se alinea distinto
                             // según el navegador); pr-9 deja sitio para el chevron propio.
                             // `min-h-11` hasta `md`: mínimo táctil (T2-40).
-                            "w-full min-h-11 appearance-none rounded-lg border border-border pl-3 pr-9 py-2 text-sm text-foreground outline-none transition bg-surface md:min-h-9",
+                            //
+                            // **`min-w-28` es lo que impide que el campo se quede en su relleno.**
+                            // `w-full` es un porcentaje, así que no aporta anchura intrínseca: en
+                            // una fila flexible el envoltorio no reclama sitio y el select colapsa
+                            // a 50 px, de los que 48 son `pl-3` + `pr-9`. Le pasaba a la columna de
+                            // acciones de usuarios: se veía el chevron y **ni una letra del rol**.
+                            "w-full min-w-28 min-h-11 appearance-none rounded-lg border border-border pl-3 pr-9 py-2 text-sm text-foreground outline-none transition bg-surface md:min-h-9",
                             "focus:border-accent focus:ring-2 focus:ring-accent/20",
                             error && "border-danger focus:border-danger focus:ring-danger/20",
                             className,

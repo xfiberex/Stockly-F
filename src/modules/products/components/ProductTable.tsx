@@ -15,6 +15,7 @@ import { cn } from "@/shared/lib/cn";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { NIVEL_STOCK, ACTIVIDAD, nivelDeStock, type NivelStock } from "@/shared/lib/estados";
 import { useT } from "@/shared/hooks/useIdioma";
+import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
 // Clases literales, no `text-${variant}`: el escáner de Tailwind lee el código
 // fuente como texto y no genera las utilidades que se construyen al vuelo.
@@ -79,8 +80,8 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
             sus botones fuera del borde derecho. Medido: contenedor fijo 663 px en una
             pantalla de 393. Va en todos los scrollers horizontales; `desbordes.test.ts`
             lo vigila. */}
-        <div className="overflow-x-auto contain-paint rounded-xl border border-border">
-            <table className="w-full min-w-160 text-sm">
+        <div className={cn(CLASES_TABLA_DESPLAZABLE, "rounded-xl border border-border")}>
+            <table className={CLASES_TABLA}>
                 {/* `whitespace-nowrap` en la cabecera entera —`white-space` se hereda— y no
                     columna a columna: con reparto automático de anchos, un nombre de producto
                     largo le quita sitio a las demás y la primera en partirse es la única

@@ -24,6 +24,9 @@ import { PlusIcon, TrashIcon, CheckIcon, XMarkIcon, ArrowDownTrayIcon } from "@h
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearFecha } from "@/shared/lib/fechas";
+import { CLASES_BOTON_ICONO } from "@/shared/lib/clasesDeBoton";
+import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
+import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
 // Etiqueta, color e icono del estado salen del mismo descriptor (T2-38): pendiente
 // es un aviso —hay algo por hacer—, recibida es el final correcto y cancelada, el
@@ -159,6 +162,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                     <Button
                                         type="button"
                                         variant="ghost"
+                                        className={CLASES_BOTON_ICONO}
                                         disabled={fields.length === 1}
                                         onClick={() => remove(idx)}
                                     >
@@ -222,15 +226,15 @@ export default function PurchaseOrdersPage() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className={CLASES_CONTENEDOR_DE_PAGINA}>
+            <div className={CLASES_ENCABEZADO_DE_PAGINA}>
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">{t("ruta.ordenesCompra")}</h1>
                     {/* El plural sale de `tn()`: «orden»/«órdenes» no se distinguen por una
                         «s», y en otro idioma tampoco. */}
                     <p className="text-sm text-foreground-muted mt-1">{tn("ordenes.total", total)}</p>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
                     <DropdownButton
                         label={t("ordenes.exportar")}
                         icon={ArrowDownTrayIcon}
@@ -255,11 +259,11 @@ export default function PurchaseOrdersPage() {
                         <div key={order.id} className="bg-surface rounded-xl border border-border overflow-hidden">
                             {/* Row header */}
                             <div
-                                className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer hover:bg-surface-muted transition-colors"
+                                className="flex flex-col gap-3 px-4 py-4 cursor-pointer hover:bg-surface-muted transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
                                 onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <EstadoBadge estado={buscarEstado(ESTADO_ORDEN_COMPRA, order.status)} />
+                                    <span className="shrink-0"><EstadoBadge estado={buscarEstado(ESTADO_ORDEN_COMPRA, order.status)} /></span>
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-foreground">
                                             {t("compras.numero", { numero: order.id.slice(0, 8).toUpperCase() })}
@@ -269,8 +273,8 @@ export default function PurchaseOrdersPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 shrink-0">
-                                    <div className="text-right hidden sm:block">
+                                <div className="flex items-center justify-between gap-4 sm:shrink-0 sm:justify-end">
+                                    <div className="sm:text-right">
                                         <p className="text-sm font-semibold text-foreground tabular-nums">
                                             {formatearImporte(orderTotal(order))}
                                         </p>
@@ -280,6 +284,7 @@ export default function PurchaseOrdersPage() {
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 variant="ghost"
+                                                className={CLASES_BOTON_ICONO}
                                                 title={t("compras.marcarRecibida")}
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleReceive(order.id)}
@@ -288,6 +293,7 @@ export default function PurchaseOrdersPage() {
                                             </Button>
                                             <Button
                                                 variant="ghost"
+                                                className={CLASES_BOTON_ICONO}
                                                 title={t("compras.cancelarOrden")}
                                                 isLoading={updateMutation.isPending}
                                                 onClick={() => handleCancel(order.id)}
@@ -296,6 +302,7 @@ export default function PurchaseOrdersPage() {
                                             </Button>
                                             <Button
                                                 variant="ghost"
+                                                className={CLASES_BOTON_ICONO}
                                                 title={t("comun.eliminar")}
                                                 isLoading={deleteMutation.isPending}
                                                 onClick={() => handleDelete(order.id)}
@@ -313,36 +320,38 @@ export default function PurchaseOrdersPage() {
                                     {order.notes && (
                                         <p className="text-xs text-foreground-muted mb-3 italic">"{order.notes}"</p>
                                     )}
-                                    <table className="w-full text-sm">
-                                        <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
-                                            <tr>
-                                                <th className="pb-2">{t("ordenes.producto")}</th>
-                                                <th className="pb-2 text-right">{t("ordenes.cantidadCorta")}</th>
-                                                <th className="pb-2 text-right">{t("ordenes.precioUnitario")}</th>
-                                                <th className="pb-2 text-right">{t("ordenes.subtotal")}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-border">
-                                            {order.items.map((item) => (
-                                                <tr key={item.id}>
-                                                    <td className="py-2 text-foreground">{item.productName}</td>
-                                                    <td className="py-2 text-right text-foreground-muted">{item.quantity}</td>
-                                                    <td className="py-2 text-right text-foreground-muted">{formatearImporte(item.unitPrice)}</td>
-                                                    <td className="py-2 text-right font-medium text-foreground">
-                                                        {formatearImporte(Number(item.unitPrice) * item.quantity)}
+                                    <div className={CLASES_TABLA_DESPLAZABLE}>
+                                        <table className={CLASES_TABLA}>
+                                            <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
+                                                <tr>
+                                                    <th className="pb-2">{t("ordenes.producto")}</th>
+                                                    <th className="pb-2 text-right">{t("ordenes.cantidadCorta")}</th>
+                                                    <th className="pb-2 text-right">{t("ordenes.precioUnitario")}</th>
+                                                    <th className="pb-2 text-right">{t("ordenes.subtotal")}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-border">
+                                                {order.items.map((item) => (
+                                                    <tr key={item.id}>
+                                                        <td className="py-2 text-foreground">{item.productName}</td>
+                                                        <td className="py-2 text-right text-foreground-muted">{item.quantity}</td>
+                                                        <td className="py-2 text-right text-foreground-muted">{formatearImporte(item.unitPrice)}</td>
+                                                        <td className="py-2 text-right font-medium text-foreground">
+                                                            {formatearImporte(Number(item.unitPrice) * item.quantity)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot className="border-t border-border">
+                                                <tr>
+                                                    <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">{t("comun.total")}</td>
+                                                    <td className="pt-2 text-right font-bold text-foreground">
+                                                        {formatearImporte(orderTotal(order))}
                                                     </td>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                        <tfoot className="border-t border-border">
-                                            <tr>
-                                                <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">{t("comun.total")}</td>
-                                                <td className="pt-2 text-right font-bold text-foreground">
-                                                    {formatearImporte(orderTotal(order))}
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
+                                            </tfoot>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
                         </div>

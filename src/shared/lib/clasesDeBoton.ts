@@ -20,6 +20,18 @@ const BASE =
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed md:min-h-9";
 
 /**
+ * Botón de solo icono: cuadrado, no una cápsula con `px-4`.
+ *
+ * Los tres de cada fila de órdenes —recibir, cancelar, eliminar— salían a 56 px de ancho
+ * cada uno por el relleno horizontal del botón normal. A 412 px eso son 168 px de la fila
+ * para tres iconos de 16, y lo que se quedaba sin sitio era el nombre del proveedor, que
+ * se partía en seis líneas. Sin texto que acompañar, el relleno lateral no pinta nada;
+ * el mínimo táctil lo sostiene `min-w-11`, que es la regla del sistema de diseño para los
+ * controles cuadrados —cumplir de alto y fallar de ancho es el descuido habitual—.
+ */
+export const CLASES_BOTON_ICONO = "px-0 min-w-11 md:min-w-9";
+
+/**
  * Las clases del botón, para lo que **no puede ser un `<button>`**.
  *
  * El caso que lo trajo (T2-14): una acción que navega tiene que ser un enlace, y un

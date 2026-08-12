@@ -9,6 +9,7 @@ import type { Tag } from "@/modules/tags/types/tags.types";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
+import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 
 // T2-13: el color no puede ser lo único que identifique a cada opción. Un botón sin
 // texto se anuncia como «botón» a secas, y quien no distingue los tonos —o no ve la
@@ -131,8 +132,8 @@ export default function TagsPage() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className={CLASES_CONTENEDOR_DE_PAGINA}>
+            <div className={CLASES_ENCABEZADO_DE_PAGINA}>
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">{t("ruta.etiquetas")}</h1>
                     <p className="text-sm text-foreground-muted mt-1">{tn("etiquetas.cantidad", tags.length)}</p>

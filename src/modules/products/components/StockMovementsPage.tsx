@@ -11,6 +11,7 @@ import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { TIPO_MOVIMIENTO, ACTIVIDAD } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
+import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { useStockMovements } from "@/modules/products/hooks/useStockMovements";
 import { usePriceHistory } from "@/modules/products/hooks/usePriceHistory";
 import { downloadBlob, blobCsv } from "@/modules/products/utils/importExport";
@@ -20,6 +21,7 @@ import { useT } from "@/shared/hooks/useIdioma";
 import { IDIOMA_POR_DEFECTO, type Idioma } from "@/shared/i18n/idioma";
 import { traducir, type Clave } from "@/shared/i18n/traducir";
 import { formatearFecha, IDIOMA_DE_EXPORTACION, LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
+import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
 /** El eje del gráfico va sin año: son puntos de una serie, no fechas que haya que leer. */
 function formatDateShort(idioma: Idioma, iso: string) {
@@ -81,7 +83,7 @@ export default function StockMovementsPage() {
 
     if (isError || !data) {
         return (
-            <div className="max-w-4xl mx-auto px-6 py-8">
+            <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6">
                 <p className="text-danger">{t("movimientos.errorCargar")}</p>
                 <Link to="/catalog/products" className="text-info text-sm hover:underline mt-2 inline-block">
                     ← {t("movimientos.volverAProductos")}
@@ -107,7 +109,7 @@ export default function StockMovementsPage() {
     const isLowStock = product.stock <= (product.minStock ?? 0);
 
     return (
-        <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+        <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 space-y-8">
             {/* Header */}
             <div>
                 <Link
@@ -206,8 +208,16 @@ export default function StockMovementsPage() {
 
                     {/* Filtros */}
                     {movements.length > 0 && (
-                        <div className="flex flex-wrap gap-3 items-end">
-                            <div className="min-w-36">
+                        /*
+                         * Rejilla, como los filtros de Productos. Con `flex-wrap` y las
+                         * etiquetas «Desde»/«Hasta» **al lado** del campo, a 412 px cada
+                         * fecha se quedaba en unos 120 px: un `input[type=date]` ahí no
+                         * enseña ni el año, y en Chrome de Android el icono del calendario
+                         * tapa parte del valor. La etiqueta pasa a ir encima, que es donde
+                         * cabe, y cada control ocupa su fila en móvil.
+                         */
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+                            <div>
                                 <Select
                                     options={[
                                         { value: "", label: t("movimientos.todosLosTipos") },
@@ -219,24 +229,16 @@ export default function StockMovementsPage() {
                                     onChange={(e) => setTypeFilter(e.target.value)}
                                 />
                             </div>
-                            <div className="flex items-center gap-2">
-                                <label className="text-xs text-foreground-muted whitespace-nowrap">{t("movimientos.desde")}</label>
-                                <input
-                                    type="date"
-                                    value={dateFrom}
-                                    onChange={(e) => setDateFrom(e.target.value)}
-                                    className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 md:min-h-9"
-                                />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <label className="text-xs text-foreground-muted whitespace-nowrap">{t("movimientos.hasta")}</label>
-                                <input
-                                    type="date"
-                                    value={dateTo}
-                                    onChange={(e) => setDateTo(e.target.value)}
-                                    className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 md:min-h-9"
-                                />
-                            </div>
+                            <CampoDeFecha
+                                label={t("movimientos.desde")}
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                            />
+                            <CampoDeFecha
+                                label={t("movimientos.hasta")}
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                            />
                             {(typeFilter || dateFrom || dateTo) && (
                                 <Button
                                     variant="secondary"
@@ -261,8 +263,8 @@ export default function StockMovementsPage() {
                                         })}
                                 </h2>
                             </div>
-                            <div className="overflow-x-auto contain-paint">
-                                <table className="w-full text-sm">
+                            <div className={CLASES_TABLA_DESPLAZABLE}>
+                                <table className={CLASES_TABLA}>
                                     <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                         <tr>
                                             <th className="px-6 py-3">{t("comun.fecha")}</th>
@@ -341,7 +343,8 @@ export default function StockMovementsPage() {
                                 <div className="px-6 py-4 border-b border-border">
                                     <h2 className="text-base font-semibold text-foreground">{t("precios.cambios", { cantidad: priceHistory.length })}</h2>
                                 </div>
-                                <table className="w-full text-sm">
+                                <div className={CLASES_TABLA_DESPLAZABLE}>
+                                <table className={CLASES_TABLA}>
                                     <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                         <tr>
                                             <th className="px-6 py-3">{t("comun.fecha")}</th>
@@ -375,6 +378,7 @@ export default function StockMovementsPage() {
                                         })}
                                     </tbody>
                                 </table>
+                                </div>
                             </div>
                         </>
                     ) : (

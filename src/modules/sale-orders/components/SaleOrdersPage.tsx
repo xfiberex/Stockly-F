@@ -23,6 +23,9 @@ import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon } from "@h
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearFecha } from "@/shared/lib/fechas";
+import { CLASES_BOTON_ICONO } from "@/shared/lib/clasesDeBoton";
+import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
+import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
 // Mismo criterio que en las órdenes de compra: el descriptor de `shared/lib/estados`
 // lleva etiqueta, color e icono juntos (T2-38).
@@ -217,6 +220,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                     <Button
                                         type="button"
                                         variant="ghost"
+                                        className={CLASES_BOTON_ICONO}
                                         disabled={fields.length === 1}
                                         onClick={() => remove(idx)}
                                     >
@@ -267,13 +271,13 @@ export default function SaleOrdersPage() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className={CLASES_CONTENEDOR_DE_PAGINA}>
+            <div className={CLASES_ENCABEZADO_DE_PAGINA}>
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">{t("ruta.ordenesVenta")}</h1>
                     <p className="text-sm text-foreground-muted mt-1">{tn("ordenes.cantidad", orders.length)}</p>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
                     <DropdownButton
                         label={t("ordenes.exportar")}
                         icon={ArrowDownTrayIcon}
@@ -297,11 +301,11 @@ export default function SaleOrdersPage() {
                     {orders.map((order) => (
                         <div key={order.id} className="bg-surface rounded-xl border border-border overflow-hidden">
                             <div
-                                className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer hover:bg-surface-muted transition-colors"
+                                className="flex flex-col gap-3 px-4 py-4 cursor-pointer hover:bg-surface-muted transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
                                 onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <EstadoBadge estado={buscarEstado(ESTADO_ORDEN_VENTA, order.status)} />
+                                    <span className="shrink-0"><EstadoBadge estado={buscarEstado(ESTADO_ORDEN_VENTA, order.status)} /></span>
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-foreground">
                                             {t("ventas.numero", { numero: numeroDeOrden(order.id) })}
@@ -311,8 +315,8 @@ export default function SaleOrdersPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 shrink-0">
-                                    <div className="text-right hidden sm:block">
+                                <div className="flex items-center justify-between gap-4 sm:shrink-0 sm:justify-end">
+                                    <div className="sm:text-right">
                                         <p className="text-sm font-semibold text-foreground tabular-nums">
                                             {formatearImporte(orderTotal(order))}
                                         </p>
@@ -326,6 +330,7 @@ export default function SaleOrdersPage() {
                                                 se actúa. El `title` se queda para el ratón. */}
                                             <Button
                                                 variant="ghost"
+                                                className={CLASES_BOTON_ICONO}
                                                 title={t("ventas.marcarEnviada")}
                                                 aria-label={t("ventas.marcarEnviadaDe", { numero: numeroDeOrden(order.id) })}
                                                 isLoading={updateMutation.isPending}
@@ -335,6 +340,7 @@ export default function SaleOrdersPage() {
                                             </Button>
                                             <Button
                                                 variant="ghost"
+                                                className={CLASES_BOTON_ICONO}
                                                 title={t("compras.cancelarOrden")}
                                                 aria-label={t("ventas.cancelarDe", { numero: numeroDeOrden(order.id) })}
                                                 isLoading={updateMutation.isPending}
@@ -344,6 +350,7 @@ export default function SaleOrdersPage() {
                                             </Button>
                                             <Button
                                                 variant="ghost"
+                                                className={CLASES_BOTON_ICONO}
                                                 title={t("comun.eliminar")}
                                                 aria-label={t("ventas.eliminarDe", { numero: numeroDeOrden(order.id) })}
                                                 isLoading={deleteMutation.isPending}
@@ -360,6 +367,7 @@ export default function SaleOrdersPage() {
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 variant="ghost"
+                                                className={CLASES_BOTON_ICONO}
                                                 title={t("ventas.cancelarEnviada")}
                                                 aria-label={t("ventas.cancelarEnviadaDe", { numero: numeroDeOrden(order.id) })}
                                                 onClick={() => setOrdenACancelar(order)}
@@ -382,36 +390,38 @@ export default function SaleOrdersPage() {
                                     {order.notes && (
                                         <p className="text-xs text-foreground-muted mb-3 italic">"{order.notes}"</p>
                                     )}
-                                    <table className="w-full text-sm">
-                                        <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
-                                            <tr>
-                                                <th className="pb-2">{t("ordenes.producto")}</th>
-                                                <th className="pb-2 text-right">{t("ordenes.cantidadCorta")}</th>
-                                                <th className="pb-2 text-right">{t("ordenes.precioUnitario")}</th>
-                                                <th className="pb-2 text-right">{t("ordenes.subtotal")}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-border">
-                                            {order.items.map((item) => (
-                                                <tr key={item.id}>
-                                                    <td className="py-2 text-foreground">{item.productName}</td>
-                                                    <td className="py-2 text-right text-foreground-muted">{item.quantity}</td>
-                                                    <td className="py-2 text-right text-foreground-muted">{formatearImporte(item.unitPrice)}</td>
-                                                    <td className="py-2 text-right font-medium text-foreground">
-                                                        {formatearImporte(Number(item.unitPrice) * item.quantity)}
+                                    <div className={CLASES_TABLA_DESPLAZABLE}>
+                                        <table className={CLASES_TABLA}>
+                                            <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
+                                                <tr>
+                                                    <th className="pb-2">{t("ordenes.producto")}</th>
+                                                    <th className="pb-2 text-right">{t("ordenes.cantidadCorta")}</th>
+                                                    <th className="pb-2 text-right">{t("ordenes.precioUnitario")}</th>
+                                                    <th className="pb-2 text-right">{t("ordenes.subtotal")}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-border">
+                                                {order.items.map((item) => (
+                                                    <tr key={item.id}>
+                                                        <td className="py-2 text-foreground">{item.productName}</td>
+                                                        <td className="py-2 text-right text-foreground-muted">{item.quantity}</td>
+                                                        <td className="py-2 text-right text-foreground-muted">{formatearImporte(item.unitPrice)}</td>
+                                                        <td className="py-2 text-right font-medium text-foreground">
+                                                            {formatearImporte(Number(item.unitPrice) * item.quantity)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot className="border-t border-border">
+                                                <tr>
+                                                    <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">{t("comun.total")}</td>
+                                                    <td className="pt-2 text-right font-bold text-foreground">
+                                                        {formatearImporte(orderTotal(order))}
                                                     </td>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                        <tfoot className="border-t border-border">
-                                            <tr>
-                                                <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">{t("comun.total")}</td>
-                                                <td className="pt-2 text-right font-bold text-foreground">
-                                                    {formatearImporte(orderTotal(order))}
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
+                                            </tfoot>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
                         </div>

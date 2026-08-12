@@ -85,7 +85,7 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+        <div className="max-w-3xl mx-auto px-4 py-8 sm:px-6 space-y-6">
             <div>
                 <h1 className="text-2xl font-bold text-foreground">{t("configuracion.titulo")}</h1>
                 <p className="text-sm text-foreground-muted mt-1">{t("configuracion.subtitulo")}</p>

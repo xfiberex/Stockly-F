@@ -30,6 +30,9 @@ export const es = {
     "comun.filtrar": "Filtrar",
     "comun.limpiar": "Limpiar",
     "comun.aceptar": "Aceptar",
+    // El formato que espera el campo de fecha. Se pinta como pista cuando está vacío:
+    // `input[type=date]` no admite `placeholder` y en Android no muestra nada de por sí.
+    "comun.formatoFecha": "dd/mm/aaaa",
     "comun.volver": "Volver",
     "comun.cargando": "Cargando…",
     "comun.sinResultados": "No hay resultados",
@@ -291,6 +294,7 @@ export const es = {
     "usuarios.sinVerificar": "Sin verificar",
     "usuarios.activar": "Activar",
     "usuarios.desactivar": "Desactivar",
+    "usuarios.cambiarRolDe": "Cambiar el rol de {nombre}",
     "usuarios.rolActualizado": "Rol actualizado",
     "usuarios.activado": "Usuario activado",
     "usuarios.desactivado": "Usuario desactivado",

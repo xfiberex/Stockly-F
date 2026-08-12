@@ -199,6 +199,62 @@
   color-scheme: light dark;
 }
 
+/*
+ * Desplazamiento sin barra visible.
+ *
+ * Se aplica a los contenedores de tabla, que en móvil se desplazan a lo ancho. La barra
+ * horizontal de escritorio se come 15 px del alto de la caja y, sobre una tabla de filas
+ * bajas, se lee como si formara parte del contenido.
+ *
+ * **Lo que se oculta es la barra, no el desplazamiento.** El contenedor sigue siendo
+ * desplazable con el dedo, con la rueda —`Shift`+rueda—, con el teclado al tabular a una
+ * celda de más allá del borde y para un lector de pantalla, porque `overflow-x: auto`
+ * sigue puesto. Aun así **se pierde una señal visual**: nada indica que hay más a la
+ * derecha salvo el propio contenido cortado. Es la contrapartida aceptada.
+ *
+ * Dos declaraciones porque no hay una sola que valga: `scrollbar-width` es la estándar y
+ * la entienden Firefox y los Chromium modernos; el pseudoelemento cubre los WebKit que no.
+ */
+/*
+ * Campo de fecha (ver `CampoDeFecha.tsx`).
+ *
+ * `appearance: none` quita el adorno nativo en los navegadores que lo respetan, pero **el
+ * indicador del calendario de WebKit/Blink no se va con eso**: es un pseudoelemento aparte
+ * y hay que tratarlo por su nombre. En lugar de ocultarlo —lo que dejaría el campo sin
+ * forma de abrir el calendario en escritorio—, se estira **invisible sobre todo el campo**.
+ *
+ * El efecto secundario es el que interesa en un teléfono: pulsar en cualquier punto del
+ * campo abre el selector, no solo un icono de 16 px en la esquina. El icono que se ve lo
+ * pinta el componente y no recibe pulsaciones.
+ *
+ * `::-webkit-date-and-time-value` alinea el texto a la izquierda: WebKit lo centra
+ * verticalmente en una caja propia y, con un campo de 44 px de alto, el valor quedaba
+ * flotando en medio y desalineado respecto al resto de controles de la fila.
+ */
+.campo-de-fecha::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.campo-de-fecha::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+}
+
+@utility sin-barra {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 :root[data-tema="claro"] {
   color-scheme: light;
 }

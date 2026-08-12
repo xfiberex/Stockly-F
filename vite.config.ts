@@ -16,6 +16,40 @@ export default defineConfig(({ mode }) => ({
             "@": path.resolve(__dirname, "./src"),
         },
     },
+    /*
+     * Servidor de desarrollo: **un solo origen**, igual que en producción.
+     *
+     * Hasta aquí el navegador hablaba con dos: la SPA en 5173 y la API en 3000, con
+     * `VITE_API_URL` apuntando a `http://localhost:3000/api/v1`. Eso funciona mientras el
+     * navegador **sea el de esta máquina**, y deja de funcionar en cuanto se mira desde
+     * otro sitio —un móvil en la misma red, un túnel de VS Code—: `localhost` pasa a ser
+     * el del teléfono, que no tiene ninguna API escuchando.
+     *
+     * Con el proxy, la SPA pide `/api/v1/...` a su propio origen y Vite reenvía al backend.
+     * Es la misma topología que monta nginx en el compose (T2-28), y por el mismo motivo:
+     * un solo origen significa **sin CORS y sin cookies entre sitios**, así que la sesión
+     * sigue viajando con `SameSite=Lax` sin tocar `COOKIE_SECURE` ni `COOKIE_SAMESITE`.
+     * Compartir dos puertos por separado obliga a lo contrario y es donde se atasca todo
+     * el mundo: el login parece fallar por credenciales cuando lo que pasa es que el
+     * navegador descartó la cookie sin decir nada.
+     */
+    server: {
+        // `true` escucha en todas las interfaces, no solo en 127.0.0.1: es lo que permite
+        // abrirlo desde el móvil por la IP de la red local.
+        host: true,
+        // Vite rechaza las peticiones cuyo `Host` no reconoce —defensa contra reenlace de
+        // DNS—, y un túnel llega con un nombre inventado. Sin esto, la respuesta es un
+        // «Blocked request» que no dice qué hay que añadir ni dónde.
+        allowedHosts: [".devtunnels.ms", ".loca.lt", ".ngrok-free.app"],
+        proxy: {
+            "/api": {
+                target: "http://localhost:3000",
+                // Se conserva el `Host` original. La API no necesita reescribirlo y así
+                // sus registros siguen diciendo desde dónde entró la petición.
+                changeOrigin: false,
+            },
+        },
+    },
     build: {
         rollupOptions: {
             output: {

@@ -22,6 +22,7 @@ import {
     AdjustmentsHorizontalIcon,
     BoltIcon,
 } from "@heroicons/react/24/outline";
+import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 
 interface Filters {
     search?: string;
@@ -152,13 +153,13 @@ export default function ProductsPage() {
     const flotanteVisible = isAdmin && selectedIds.size === 1;
 
     return (
-        <div className={cn("max-w-7xl mx-auto px-6 py-8 space-y-6", flotanteVisible && "pb-28")}>
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, flotanteVisible && "pb-28")}>
+            <div className={CLASES_ENCABEZADO_DE_PAGINA}>
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">{t("ruta.productos")}</h1>
                     <p className="text-sm text-foreground-muted mt-1">{tn("productos.total", data?.meta.total ?? 0)}</p>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
                     <DropdownButton
                         label={t("productos.exportar")}
                         icon={ArrowDownTrayIcon}

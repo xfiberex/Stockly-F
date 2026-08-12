@@ -233,6 +233,122 @@ alto y seguirían fallando de ancho — que es como estaba el de cerrar, 28×28.
 variante por variante. Los píxeles reales se midieron en navegador; jsdom no resuelve `md:`,
 así que el test blinda el par de clases que produce esa medida.
 
+Un botón **de solo icono** no es un botón estrecho: es cuadrado. `CLASES_BOTON_ICONO` quita
+el relleno lateral y pone `min-w-11`. Los tres de cada fila de órdenes salían a 56 px cada
+uno por el `px-4` heredado, y esos 168 px se los quitaban al texto de la fila.
+
+### El armazón de una pantalla
+
+Tres constantes en [`shared/lib/clasesDeEncabezado.ts`](../src/shared/lib/clasesDeEncabezado.ts),
+no una cadena copiada en cada página. Medido a **412 px** (Galaxy S20 Ultra), que es el
+ancho contra el que se revisa el móvil:
+
+```
+CLASES_CONTENEDOR_DE_PAGINA   px-4 en móvil, px-6 desde sm
+CLASES_ENCABEZADO_DE_PAGINA   título y acciones apilados hasta sm
+CLASES_ACCIONES_DE_ENCABEZADO rejilla de 2 columnas iguales hasta sm; la última impar, entera
+```
+
+**Las acciones van en rejilla y no en `flex-wrap`.** Con `flex-wrap` cada botón mide lo que
+mide su palabra, así que el reparto de la fila lo decide la longitud del texto: «Exportar» e
+«Importar» arriba y «Nuevo producto» descolgado debajo, a media anchura. En rejilla son dos
+por fila del mismo ancho, y la impar de más ocupa la fila entera.
+
+**Un desplegable se ancla al lado donde hay sitio.** El panel de `DropdownButton` mide 176 px
+fijos: con `right-0` a secas y el disparador cerca del margen izquierdo, se dibujaba en
+`left: -13px` y la primera letra de cada opción quedaba fuera de la pantalla. Hasta `sm` se
+ancla a la izquierda —crece hacia el centro— y de `sm` en adelante vuelve a la derecha, que
+es donde viven esos botones en escritorio.
+
+**Lo vigila:** [`src/tests/desbordes.test.ts`](../src/tests/desbordes.test.ts). Encontró tres
+pantallas más con el relleno de escritorio fijado —`audit-logs`, `dashboard` y `users`— que
+no estaban en el repaso inicial.
+
+### Tablas
+
+Una tabla no cabe en un teléfono y no se pretende que quepa: **se desplaza a lo ancho**. Dos
+constantes en [`shared/lib/clasesDeTabla.ts`](../src/shared/lib/clasesDeTabla.ts), y hacen
+falta las dos:
+
+```
+CLASES_TABLA_DESPLAZABLE   el contenedor:  overflow-x-auto contain-paint sin-barra
+CLASES_TABLA               la tabla:       w-full min-w-160 text-sm
+```
+
+**El ancho mínimo no es opcional.** Un `overflow-x-auto` sobre una tabla `w-full` no
+desplaza nada: la tabla encoge hasta caber y lo que se rompe es el texto de las celdas,
+partido por sílabas. El desplazamiento existe porque `min-w-160` la obliga a medir 640 px.
+
+**Y el desplazador va dentro de la tarjeta, nunca en ella.** Media docena de tablas vivían
+dentro de un `overflow-hidden` —puesto para recortar las esquinas redondeadas— que **anula
+el desplazamiento**: a las columnas de la derecha no había forma de llegar. La tarjeta
+conserva su `overflow-hidden` y el desplazador es un `div` interior.
+
+**`sin-barra`** (utilidad propia, en `index.css`) oculta la barra sin quitar el
+desplazamiento: sigue funcionando con el dedo, con `Shift`+rueda, con el teclado y para un
+lector de pantalla. Lo que se pierde es la **señal visual** de que hay más a la derecha; es
+una contrapartida aceptada a cambio de que la barra no se lea como parte de una tabla de
+filas bajas.
+
+**Ninguna columna se esconde en móvil.** Desde que las tablas se desplazan, un
+`hidden md:table-cell` es una pérdida de información sin contrapartida: la fecha de un
+registro de auditoría no es un adorno, y quien mira desde el teléfono la necesita igual.
+Se quitaron los tres que quedaban —«Detalles» y «Fecha» en auditoría, «Registrado» en
+usuarios—.
+
+### Fechas
+
+**Ningún campo de fecha usa el `<input type="date">` pelado.** Va por
+[`CampoDeFecha`](../src/shared/components/CampoDeFecha.tsx), por el mismo motivo que
+`Select` lleva `appearance-none`: el adorno nativo se alinea distinto en cada navegador —y
+con las fechas, además, cambia de forma—. Reportado desde un Android real: los filtros de
+movimientos salían vacíos y con un chevron de desplegable donde debía ir un calendario.
+
+- El icono lo pinta el componente; el nativo se apaga.
+- **Pista de formato propia** cuando el campo está vacío: `type="date"` ignora
+  `placeholder` y Android no dibuja nada. Sale del catálogo, porque el formato cambia con
+  el idioma. Y el texto nativo se apaga con `text-transparent` mientras la pista está
+  puesta: Chrome de escritorio sí pinta el suyo y se veían **los dos superpuestos**.
+- **Toda la caja abre el calendario**, no solo el icono: en `index.css` el indicador nativo
+  se estira invisible sobre el campo entero. Un objetivo táctil de 16 px en una esquina es
+  lo que el mínimo de 44 px quiere evitar.
+
+### Un campo con `w-full` no reclama anchura
+
+`w-full` es un porcentaje, y un porcentaje **no aporta anchura intrínseca**: dentro de una
+fila flexible el envoltorio no pide sitio y el campo se queda en su relleno. Al `Select` de
+la columna de acciones de usuarios le pasaba exactamente eso —medido: **50 px de ancho, 48
+de los cuales son `pl-3` + `pr-9`**—, así que se veía el chevron y ni una letra del rol.
+
+Por eso `Select` lleva **`min-w-28`** en su clase base. Es del componente y no de la página:
+el fallo no es de esa tabla, es de cualquier `Select` que caiga en un `flex`, y se rompe en
+silencio —el desplegable sigue abriéndose y funcionando—.
+
+Que la tabla crezca a lo ancho al hacerle sitio **no es un problema**: se desplaza, que es
+justo lo que dice el apartado de tablas.
+
+**Lo vigila:** [`Select.test.tsx`](../src/tests/components/Select.test.tsx).
+
+### Lo que se pone encima, bloquea lo de debajo
+
+El menú de navegación en móvil tapa la pantalla, y aun así la página seguía desplazándose
+detrás: el gesto arrastraba el documento y el menú se iba con él. Hacen falta las tres
+piezas, y ninguna sobra:
+
+```
+max-h-[calc(100dvh-3.5rem)]   el panel cabe y se desplaza por dentro   (dvh, no vh)
+overscroll-contain            el gesto no continúa en el documento al llegar al final
+overflow:hidden en <html>     bloqueo mientras está abierto            (no en <body>)
+```
+
+**`dvh` y no `vh`,** porque la barra del navegador móvil aparece y desaparece: con `vh` el
+panel se dimensiona contra la ventana grande y las últimas entradas quedan bajo el borde.
+
+**El bloqueo va en `<html>`, no en `<body>`,** y esto se midió: aquí el que desplaza es el
+elemento raíz —`document.scrollingElement` es `<html>`—, así que bloquear el `body` deja
+todo igual y parece hecho. Con el menú abierto, `overflow-y` de `<html>` pasa a `hidden` y
+una rueda sobre el fondo mueve **0 px**.
+
 ---
 
 ## 5. Estados: el semáforo

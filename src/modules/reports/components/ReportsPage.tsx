@@ -21,6 +21,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import { LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
+import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
+import { cn } from "@/shared/lib/cn";
+import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
 export default function ReportsPage() {
     const { t, idioma } = useT();
@@ -53,8 +56,8 @@ export default function ReportsPage() {
     });
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, "space-y-8")}>
+            <div className={CLASES_ENCABEZADO_DE_PAGINA}>
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">{t("ruta.reportes")}</h1>
                     <p className="text-sm text-foreground-muted mt-1">{t("reportes.subtitulo")}</p>
@@ -65,8 +68,10 @@ export default function ReportsPage() {
                 </Button>
             </div>
 
-            {/* KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* KPIs — mismas dos densidades que las del dashboard, que ya las tenía y estas
+                no: a 412 px, `p-5` con un icono de 24 px dejaba 70 px para el número y
+                `$2.211.974` se salía de la tarjeta por la derecha. */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {[
                     { label: t("dashboard.totalProductos"), value: totals.totalProducts, Icon: CubeIcon, bg: "bg-info-surface", text: "text-info" },
                     { label: t("dashboard.productosActivos"), value: totals.activeProducts, Icon: CheckCircleIcon, bg: "bg-success-surface", text: "text-success" },
@@ -79,13 +84,19 @@ export default function ReportsPage() {
                         text: "text-success",
                     },
                 ].map(({ label, value, Icon, bg, text }) => (
-                    <div key={label} className="bg-surface rounded-xl border border-border p-5 flex items-center gap-4">
-                        <div className={`rounded-lg p-2.5 shrink-0 ${bg}`}>
-                            <Icon className={`h-6 w-6 ${text}`} />
+                    <div key={label} className="bg-surface rounded-xl border border-border p-3 sm:p-5 flex items-center gap-3 sm:gap-4">
+                        <div className={`rounded-lg p-2 sm:p-2.5 shrink-0 ${bg}`}>
+                            <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${text}`} />
                         </div>
-                        <div>
-                            <p className="text-xl font-bold text-foreground tabular-nums">{value}</p>
-                            <p className="text-xs text-foreground-muted">{label}</p>
+                        {/* `min-w-0`: sin esto el bloque de texto no puede encoger por debajo
+                            de su contenido —regla de los elementos flex— y el importe se sale
+                            de la tarjeta en vez de ajustarse a ella. */}
+                        <div className="min-w-0">
+                            {/* `text-base` en móvil y no `text-lg`: T2-41 dejó fuera de la
+                                escala los tamaños que no sostenían ningún papel, y
+                                `tipografia.test.ts` lo comprueba. */}
+                            <p className="text-base sm:text-xl font-bold text-foreground tabular-nums">{value}</p>
+                            <p className="text-xs text-foreground-muted leading-tight">{label}</p>
                         </div>
                     </div>
                 ))}
@@ -169,38 +180,40 @@ export default function ReportsPage() {
                     <div className="px-6 py-4 border-b border-border">
                         <h2 className="text-base font-semibold text-foreground">{t("reportes.topPorValor")}</h2>
                     </div>
-                    <table className="w-full text-sm">
-                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
-                            <tr>
-                                <th className="px-6 py-3">#</th>
-                                <th className="px-6 py-3">{t("ordenes.producto")}</th>
-                                <th className="px-6 py-3 text-right">{t("reportes.precioUnitario")}</th>
-                                <th className="px-6 py-3 text-right">{t("productos.campo.stock")}</th>
-                                <th className="px-6 py-3 text-right">{t("reportes.valorTotal")}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {topByValue.map((p, i) => (
-                                <tr key={p.id} className="hover:bg-surface-muted">
-                                    <td className="px-6 py-3 text-foreground-muted font-medium">{i + 1}</td>
-                                    <td className="px-6 py-3">
-                                        <Link
-                                            to={`/catalog/products/${p.id}/movements`}
-                                            className="font-medium text-foreground hover:text-info"
-                                        >
-                                            {p.name}
-                                        </Link>
-                                        {p.sku && <div className="text-xs text-foreground-muted font-mono">{p.sku}</div>}
-                                    </td>
-                                    <td className="px-6 py-3 text-right text-foreground-muted">{formatearImporte(p.price)}</td>
-                                    <td className="px-6 py-3 text-right text-foreground">{p.stock}</td>
-                                    <td className="px-6 py-3 text-right font-semibold text-foreground">
-                                        {formatearImporte(p.totalValue)}
-                                    </td>
+                    <div className={CLASES_TABLA_DESPLAZABLE}>
+                        <table className={CLASES_TABLA}>
+                            <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
+                                <tr>
+                                    <th className="px-6 py-3">#</th>
+                                    <th className="px-6 py-3">{t("ordenes.producto")}</th>
+                                    <th className="px-6 py-3 text-right">{t("reportes.precioUnitario")}</th>
+                                    <th className="px-6 py-3 text-right">{t("productos.campo.stock")}</th>
+                                    <th className="px-6 py-3 text-right">{t("reportes.valorTotal")}</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {topByValue.map((p, i) => (
+                                    <tr key={p.id} className="hover:bg-surface-muted">
+                                        <td className="px-6 py-3 text-foreground-muted font-medium">{i + 1}</td>
+                                        <td className="px-6 py-3">
+                                            <Link
+                                                to={`/catalog/products/${p.id}/movements`}
+                                                className="font-medium text-foreground hover:text-info"
+                                            >
+                                                {p.name}
+                                            </Link>
+                                            {p.sku && <div className="text-xs text-foreground-muted font-mono">{p.sku}</div>}
+                                        </td>
+                                        <td className="px-6 py-3 text-right text-foreground-muted">{formatearImporte(p.price)}</td>
+                                        <td className="px-6 py-3 text-right text-foreground">{p.stock}</td>
+                                        <td className="px-6 py-3 text-right font-semibold text-foreground">
+                                            {formatearImporte(p.totalValue)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
@@ -212,38 +225,40 @@ export default function ReportsPage() {
                             {t("reportes.stockBajoTabla", { cantidad: lowStockProducts.length })}
                         </h2>
                     </div>
-                    <table className="w-full text-sm">
-                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
-                            <tr>
-                                <th className="px-6 py-3">{t("ordenes.producto")}</th>
-                                <th className="px-6 py-3">{t("productos.campo.categoria")}</th>
-                                <th className="px-6 py-3 text-right">{t("productos.campo.stockActual")}</th>
-                                <th className="px-6 py-3 text-right">{t("productos.campo.stockMinimo")}</th>
-                                <th className="px-6 py-3">{t("comun.estado")}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {lowStockProducts.map((p) => (
-                                <tr key={p.id} className="hover:bg-surface-muted bg-warning-surface/30">
-                                    <td className="px-6 py-3">
-                                        <Link
-                                            to={`/catalog/products/${p.id}/movements`}
-                                            className="font-medium text-foreground hover:text-info"
-                                        >
-                                            {p.name}
-                                        </Link>
-                                        {p.sku && <div className="text-xs text-foreground-muted font-mono">{p.sku}</div>}
-                                    </td>
-                                    <td className="px-6 py-3 text-foreground-muted">{p.category ?? "—"}</td>
-                                    <td className="px-6 py-3 text-right font-semibold text-warning">{p.stock}</td>
-                                    <td className="px-6 py-3 text-right text-foreground-muted">{p.minStock}</td>
-                                    <td className="px-6 py-3">
-                                        <EstadoBadge estado={NIVEL_STOCK[nivelDeStock(p.stock, p.minStock)]} />
-                                    </td>
+                    <div className={CLASES_TABLA_DESPLAZABLE}>
+                        <table className={CLASES_TABLA}>
+                            <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
+                                <tr>
+                                    <th className="px-6 py-3">{t("ordenes.producto")}</th>
+                                    <th className="px-6 py-3">{t("productos.campo.categoria")}</th>
+                                    <th className="px-6 py-3 text-right">{t("productos.campo.stockActual")}</th>
+                                    <th className="px-6 py-3 text-right">{t("productos.campo.stockMinimo")}</th>
+                                    <th className="px-6 py-3">{t("comun.estado")}</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {lowStockProducts.map((p) => (
+                                    <tr key={p.id} className="hover:bg-surface-muted bg-warning-surface/30">
+                                        <td className="px-6 py-3">
+                                            <Link
+                                                to={`/catalog/products/${p.id}/movements`}
+                                                className="font-medium text-foreground hover:text-info"
+                                            >
+                                                {p.name}
+                                            </Link>
+                                            {p.sku && <div className="text-xs text-foreground-muted font-mono">{p.sku}</div>}
+                                        </td>
+                                        <td className="px-6 py-3 text-foreground-muted">{p.category ?? "—"}</td>
+                                        <td className="px-6 py-3 text-right font-semibold text-warning">{p.stock}</td>
+                                        <td className="px-6 py-3 text-right text-foreground-muted">{p.minStock}</td>
+                                        <td className="px-6 py-3">
+                                            <EstadoBadge estado={NIVEL_STOCK[nivelDeStock(p.stock, p.minStock)]} />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
@@ -254,54 +269,56 @@ export default function ReportsPage() {
                         <h2 className="text-base font-semibold text-foreground">{t("reportes.rotacion")}</h2>
                         <p className="text-xs text-foreground-muted mt-0.5">{t("reportes.rotacionAyuda")}</p>
                     </div>
-                    <table className="w-full text-sm">
-                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
-                            <tr>
-                                <th className="px-6 py-3">{t("ordenes.producto")}</th>
-                                <th className="px-6 py-3 text-right">{t("reportes.salidas30")}</th>
-                                <th className="px-6 py-3 text-right">{t("reportes.velocidadDiaria")}</th>
-                                <th className="px-6 py-3 text-right">{t("productos.campo.stockActual")}</th>
-                                <th className="px-6 py-3 text-right">{t("reportes.diasRestantes")}</th>
-                                <th className="px-6 py-3">{t("reportes.alerta")}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {stockMetrics
-                                .filter((m) => m.totalOutLast30Days > 0)
-                                .map((m) => (
-                                    <tr key={m.productId} className={m.reorderSoon ? "bg-warning-surface/40 hover:bg-warning-surface" : "hover:bg-surface-muted"}>
-                                        <td className="px-6 py-3">
-                                            <Link
-                                                to={`/catalog/products/${m.productId}/movements`}
-                                                className="font-medium text-foreground hover:text-info"
-                                            >
-                                                {m.productName}
-                                            </Link>
-                                            {m.sku && <div className="text-xs text-foreground-muted font-mono">{m.sku}</div>}
-                                        </td>
-                                        <td className="px-6 py-3 text-right text-foreground">{m.totalOutLast30Days}</td>
-                                        <td className="px-6 py-3 text-right text-foreground-muted">{t("reportes.porDia", { valor: m.dailyVelocity.toFixed(2) })}</td>
-                                        <td className="px-6 py-3 text-right font-semibold text-foreground">{m.currentStock}</td>
-                                        <td className="px-6 py-3 text-right">
-                                            {m.daysToStockout !== null ? (
-                                                <span className={m.daysToStockout <= 7 ? "font-semibold text-danger" : m.daysToStockout <= 14 ? "font-medium text-warning" : "text-foreground-muted"}>
-                                                    {t("reportes.dias", { cantidad: m.daysToStockout })}
-                                                </span>
-                                            ) : (
-                                                <span className="text-foreground-muted">—</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-3">
-                                            {m.reorderSoon ? (
-                                                <Badge variant="warning" Icon={ExclamationTriangleIcon}>{t("reportes.reabastecer")}</Badge>
-                                            ) : (
-                                                <span className="text-foreground-muted text-xs">—</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                        </tbody>
-                    </table>
+                    <div className={CLASES_TABLA_DESPLAZABLE}>
+                        <table className={CLASES_TABLA}>
+                            <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
+                                <tr>
+                                    <th className="px-6 py-3">{t("ordenes.producto")}</th>
+                                    <th className="px-6 py-3 text-right">{t("reportes.salidas30")}</th>
+                                    <th className="px-6 py-3 text-right">{t("reportes.velocidadDiaria")}</th>
+                                    <th className="px-6 py-3 text-right">{t("productos.campo.stockActual")}</th>
+                                    <th className="px-6 py-3 text-right">{t("reportes.diasRestantes")}</th>
+                                    <th className="px-6 py-3">{t("reportes.alerta")}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {stockMetrics
+                                    .filter((m) => m.totalOutLast30Days > 0)
+                                    .map((m) => (
+                                        <tr key={m.productId} className={m.reorderSoon ? "bg-warning-surface/40 hover:bg-warning-surface" : "hover:bg-surface-muted"}>
+                                            <td className="px-6 py-3">
+                                                <Link
+                                                    to={`/catalog/products/${m.productId}/movements`}
+                                                    className="font-medium text-foreground hover:text-info"
+                                                >
+                                                    {m.productName}
+                                                </Link>
+                                                {m.sku && <div className="text-xs text-foreground-muted font-mono">{m.sku}</div>}
+                                            </td>
+                                            <td className="px-6 py-3 text-right text-foreground">{m.totalOutLast30Days}</td>
+                                            <td className="px-6 py-3 text-right text-foreground-muted">{t("reportes.porDia", { valor: m.dailyVelocity.toFixed(2) })}</td>
+                                            <td className="px-6 py-3 text-right font-semibold text-foreground">{m.currentStock}</td>
+                                            <td className="px-6 py-3 text-right">
+                                                {m.daysToStockout !== null ? (
+                                                    <span className={m.daysToStockout <= 7 ? "font-semibold text-danger" : m.daysToStockout <= 14 ? "font-medium text-warning" : "text-foreground-muted"}>
+                                                        {t("reportes.dias", { cantidad: m.daysToStockout })}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-foreground-muted">—</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                {m.reorderSoon ? (
+                                                    <Badge variant="warning" Icon={ExclamationTriangleIcon}>{t("reportes.reabastecer")}</Badge>
+                                                ) : (
+                                                    <span className="text-foreground-muted text-xs">—</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

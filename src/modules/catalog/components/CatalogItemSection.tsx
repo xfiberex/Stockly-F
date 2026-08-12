@@ -11,6 +11,9 @@ import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { PencilIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 import type { CatalogItemForm } from "@/modules/catalog/types/catalog.types";
+import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
+import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
+import { cn } from "@/shared/lib/cn";
 
 // ── Validación ────────────────────────────────────────────────────────────────
 
@@ -135,8 +138,8 @@ export function CatalogItemSection({
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className={CLASES_CONTENEDOR_DE_PAGINA}>
+            <div className={CLASES_ENCABEZADO_DE_PAGINA}>
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">{t(textos.titulo)}</h1>
                     <p className="text-sm text-foreground-muted mt-1">{t(textos.descripcion)}</p>
@@ -156,8 +159,8 @@ export function CatalogItemSection({
                     {t(textos.vacio)}
                 </div>
             ) : (
-                <div className="overflow-x-auto contain-paint rounded-xl border border-border">
-                    <table className="w-full text-sm">
+                <div className={cn(CLASES_TABLA_DESPLAZABLE, "rounded-xl border border-border")}>
+                    <table className={CLASES_TABLA}>
                         <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                             <tr>
                                 <th className="px-4 py-3">{t("comun.nombre")}</th>

@@ -46,8 +46,20 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     }, [debouncedSearch, categoryId, tagId, activeFilter, onFilterChange]);
 
     return (
-        <div className="flex flex-wrap items-end gap-3">
-            <div className="relative flex-1 min-w-48">
+        /*
+         * Rejilla, no `flex-wrap`.
+         *
+         * Con `flex-wrap` y `min-w-36`, a 412 px caben dos controles por fila —144 + 144 +
+         * 12 de hueco entra en los 364 útiles— y ninguno de los dos llega a mostrar su
+         * texto: «Todas las categorías» se quedaba en «Todas las catego…». Un desplegable
+         * que no deja leer la opción elegida no filtra nada.
+         *
+         * En móvil va uno por fila. De `sm` en adelante, dos columnas con el buscador
+         * ocupando la de arriba entera —es el control que más se usa y el que más se
+         * agradece ancho—, y de `lg` en adelante los cuatro en línea, como estaban.
+         */
+        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="relative sm:col-span-2 lg:col-span-1">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted" />
                 <input
                     type="text"
@@ -58,7 +70,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
                 />
             </div>
 
-            <div className="flex-1 min-w-36">
+            <div>
                 <Select
                     options={categoryOptions}
                     value={categoryId}
@@ -68,7 +80,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
             </div>
 
             {tags.length > 0 && (
-                <div className="flex-1 min-w-36">
+                <div>
                     <Select
                         options={tagOptions}
                         value={tagId}
@@ -78,7 +90,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
                 </div>
             )}
 
-            <div className="flex-1 min-w-36">
+            <div>
                 <Select
                     options={[
                         { value: "true", label: t("productos.filtro.soloActivos") },

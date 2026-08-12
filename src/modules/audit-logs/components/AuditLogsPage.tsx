@@ -8,6 +8,8 @@ import type { AuditAction, AuditEntity } from "@/modules/audit-logs/types/audit-
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearFechaHora } from "@/shared/lib/fechas";
+import { CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
+import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
 // El color dice qué clase de acción fue: la que crea o completa algo, la que
 // destruye o cancela, y la que solo modifica. `RESTORE` deshace un borrado, así
@@ -91,7 +93,7 @@ export default function AuditLogsPage() {
     ];
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        <div className={CLASES_CONTENEDOR_DE_PAGINA}>
             <div>
                 <h1 className="text-2xl font-bold text-foreground">{t("ruta.auditoria")}</h1>
                 <p className="text-sm text-foreground-muted mt-1">{t("auditoria.subtitulo")}</p>
@@ -120,54 +122,56 @@ export default function AuditLogsPage() {
                 <div className="py-16 text-center text-sm text-foreground-muted">{t("auditoria.sinRegistros")}</div>
             ) : (
                 <div className="bg-surface rounded-xl border border-border overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
-                            <tr>
-                                <th className="px-5 py-3">{t("auditoria.columna.accion")}</th>
-                                <th className="px-5 py-3">{t("auditoria.columna.entidad")}</th>
-                                <th className="px-5 py-3">{t("usuarios.columna.usuario")}</th>
-                                <th className="px-5 py-3 hidden lg:table-cell">{t("auditoria.columna.detalles")}</th>
-                                <th className="px-5 py-3 hidden md:table-cell">{t("comun.fecha")}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {logs.map((log) => (
-                                <tr key={log.id} className="hover:bg-surface-muted">
-                                    <td className="px-5 py-3">
-                                        <Badge variant={ACTION_VARIANTS[log.action] ?? "neutral"}>
-                                            {t(claveDeAccion(log.action))}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-5 py-3 text-foreground">
-                                        {t(claveDeEntidad(log.entity))}
-                                        {log.entityId && (
-                                            <span className="ml-1.5 text-xs text-foreground-muted font-mono">
-                                                #{log.entityId.slice(0, 8)}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-5 py-3 text-foreground-muted">
-                                        {log.userEmail ?? <span className="text-foreground-muted italic">{t("auditoria.sistema")}</span>}
-                                    </td>
-                                    <td className="px-5 py-3 hidden lg:table-cell">
-                                        {log.details ? (
-                                            <details className="cursor-pointer">
-                                                <summary className="text-xs text-info hover:underline">{t("auditoria.verDetalles")}</summary>
-                                                <pre className="mt-1 text-xs text-foreground-muted bg-surface-muted rounded p-2 max-w-xs overflow-auto">
-                                                    {JSON.stringify(log.details, null, 2)}
-                                                </pre>
-                                            </details>
-                                        ) : (
-                                            <span className="text-foreground-muted">—</span>
-                                        )}
-                                    </td>
-                                    <td className="px-5 py-3 text-foreground-muted hidden md:table-cell whitespace-nowrap">
-                                        {formatearFechaHora(idioma, log.createdAt)}
-                                    </td>
+                    <div className={CLASES_TABLA_DESPLAZABLE}>
+                        <table className={CLASES_TABLA}>
+                            <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
+                                <tr>
+                                    <th className="px-5 py-3">{t("auditoria.columna.accion")}</th>
+                                    <th className="px-5 py-3">{t("auditoria.columna.entidad")}</th>
+                                    <th className="px-5 py-3">{t("usuarios.columna.usuario")}</th>
+                                    <th className="px-5 py-3">{t("auditoria.columna.detalles")}</th>
+                                    <th className="px-5 py-3">{t("comun.fecha")}</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {logs.map((log) => (
+                                    <tr key={log.id} className="hover:bg-surface-muted">
+                                        <td className="px-5 py-3">
+                                            <Badge variant={ACTION_VARIANTS[log.action] ?? "neutral"}>
+                                                {t(claveDeAccion(log.action))}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-5 py-3 text-foreground">
+                                            {t(claveDeEntidad(log.entity))}
+                                            {log.entityId && (
+                                                <span className="ml-1.5 text-xs text-foreground-muted font-mono">
+                                                    #{log.entityId.slice(0, 8)}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-5 py-3 text-foreground-muted">
+                                            {log.userEmail ?? <span className="text-foreground-muted italic">{t("auditoria.sistema")}</span>}
+                                        </td>
+                                        <td className="px-5 py-3">
+                                            {log.details ? (
+                                                <details className="cursor-pointer">
+                                                    <summary className="text-xs text-info hover:underline">{t("auditoria.verDetalles")}</summary>
+                                                    <pre className="mt-1 text-xs text-foreground-muted bg-surface-muted rounded p-2 max-w-xs overflow-auto">
+                                                        {JSON.stringify(log.details, null, 2)}
+                                                    </pre>
+                                                </details>
+                                            ) : (
+                                                <span className="text-foreground-muted">—</span>
+                                            )}
+                                        </td>
+                                        <td className="px-5 py-3 text-foreground-muted whitespace-nowrap">
+                                            {formatearFechaHora(idioma, log.createdAt)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 

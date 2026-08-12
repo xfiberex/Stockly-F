@@ -33,7 +33,7 @@ export default function ProfilePage() {
     });
 
     return (
-        <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
+        <div className="max-w-2xl mx-auto px-4 py-8 sm:px-6 space-y-8">
             <div>
                 <h1 className="text-2xl font-bold text-foreground">{t("ruta.perfil")}</h1>
                 <p className="text-sm text-foreground-muted mt-1">{t("auth.perfil.subtitulo")}</p>

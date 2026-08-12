@@ -49,6 +49,16 @@ describe("Select", () => {
         expect(handleChange).toHaveBeenCalledTimes(1);
     });
 
+    it("reserva anchura mínima para el texto de la opción", () => {
+        // `w-full` es un porcentaje y no aporta anchura intrínseca: dentro de una fila
+        // flexible el campo se quedaba en sus 48 px de relleno —`pl-3` + `pr-9`— y se veía
+        // el chevron **sin una sola letra**. Reportado desde la columna de acciones de
+        // usuarios. Se rompe en silencio: el desplegable sigue funcionando.
+        render(<Select options={options} />);
+
+        expect(screen.getByRole("combobox")).toHaveClass("min-w-28");
+    });
+
     // T1-14, igual que en `Input`: el error debe estar atado al campo.
     describe("accesibilidad del error", () => {
         it("marca el campo como inválido y ata el mensaje al select", () => {

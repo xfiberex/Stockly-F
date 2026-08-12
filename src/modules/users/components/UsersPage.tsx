@@ -12,6 +12,8 @@ import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ACTIVIDAD } from "@/shared/lib/estados";
 import { useT } from "@/shared/hooks/useIdioma";
 import { formatearFecha } from "@/shared/lib/fechas";
+import { CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
+import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
 export default function UsersPage() {
     const { t, tn, idioma } = useT();
@@ -52,7 +54,7 @@ export default function UsersPage() {
     const meta = data?.meta;
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        <div className={CLASES_CONTENEDOR_DE_PAGINA}>
             <div>
                 <h1 className="text-2xl font-bold text-foreground">{t("usuarios.titulo")}</h1>
                 <p className="text-sm text-foreground-muted mt-1">{tn("usuarios.registrados", meta?.total ?? 0)}</p>
@@ -92,77 +94,83 @@ export default function UsersPage() {
                 <div className="py-16 text-center text-sm text-foreground-muted">{t("usuarios.sinResultados")}</div>
             ) : (
                 <div className="bg-surface rounded-xl border border-border overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
-                            <tr>
-                                <th className="px-6 py-3">{t("usuarios.columna.usuario")}</th>
-                                <th className="px-6 py-3">{t("usuarios.columna.rol")}</th>
-                                <th className="px-6 py-3">{t("comun.estado")}</th>
-                                <th className="px-6 py-3 hidden md:table-cell">{t("usuarios.columna.registrado")}</th>
-                                <th className="px-6 py-3 text-right">{t("comun.acciones")}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {users.map((u: AppUser) => {
-                                const isSelf = u.id === currentUser?.id;
-                                return (
-                                    <tr key={u.id} className="hover:bg-surface-muted">
-                                        <td className="px-6 py-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-info-surface flex items-center justify-center shrink-0">
-                                                    <span className="text-xs font-semibold text-info">
-                                                        {u.name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()}
-                                                    </span>
+                    <div className={CLASES_TABLA_DESPLAZABLE}>
+                        <table className={CLASES_TABLA}>
+                            <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
+                                <tr>
+                                    <th className="px-6 py-3">{t("usuarios.columna.usuario")}</th>
+                                    <th className="px-6 py-3">{t("usuarios.columna.rol")}</th>
+                                    <th className="px-6 py-3">{t("comun.estado")}</th>
+                                    <th className="px-6 py-3">{t("usuarios.columna.registrado")}</th>
+                                    <th className="px-6 py-3 text-right">{t("comun.acciones")}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {users.map((u: AppUser) => {
+                                    const isSelf = u.id === currentUser?.id;
+                                    return (
+                                        <tr key={u.id} className="hover:bg-surface-muted">
+                                            <td className="px-6 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-8 w-8 rounded-full bg-info-surface flex items-center justify-center shrink-0">
+                                                        <span className="text-xs font-semibold text-info">
+                                                            {u.name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-foreground">{u.name}{isSelf && <span className="ml-1.5 text-xs text-foreground-muted">{t("usuarios.tu")}</span>}</p>
+                                                        <p className="text-xs text-foreground-muted">{u.email}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-medium text-foreground">{u.name}{isSelf && <span className="ml-1.5 text-xs text-foreground-muted">{t("usuarios.tu")}</span>}</p>
-                                                    <p className="text-xs text-foreground-muted">{u.email}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-3">
-                                            {/* Ser ADMIN es un dato relevante que conviene distinguir; USER es lo corriente. */}
-                                            <Badge
-                                                variant={u.role === "ADMIN" ? "info" : "neutral"}
-                                                Icon={u.role === "ADMIN" ? ShieldCheckIcon : UserIcon}
-                                            >
-                                                {t(u.role === "ADMIN" ? "usuarios.rol.ADMIN" : "usuarios.rol.USER")}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-3">
-                                            <EstadoBadge estado={u.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
-                                            {!u.isVerified && (
-                                                <Badge variant="warning" Icon={EnvelopeIcon} className="ml-1.5">{t("usuarios.sinVerificar")}</Badge>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-3 text-foreground-muted hidden md:table-cell">{formatearFecha(idioma, u.createdAt)}</td>
-                                        <td className="px-6 py-3">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Select
-                                                    options={[
-                                                        { value: "ADMIN", label: t("usuarios.rol.ADMIN") },
-                                                        { value: "USER", label: t("usuarios.rol.USER") },
-                                                    ]}
-                                                    value={u.role}
-                                                    disabled={isSelf || roleMutation.isPending}
-                                                    onChange={(e) => roleMutation.mutate({ id: u.id, role: e.target.value as UserRole })}
-                                                    className="text-xs py-1 h-auto"
-                                                />
-                                                <Button
-                                                    variant={u.isActive ? "danger" : "secondary"}
-                                                    disabled={isSelf || activeMutation.isPending}
-                                                    onClick={() => activeMutation.mutate({ id: u.id, active: !u.isActive })}
-                                                    className="text-xs px-2.5 py-1 h-auto"
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                {/* Ser ADMIN es un dato relevante que conviene distinguir; USER es lo corriente. */}
+                                                <Badge
+                                                    variant={u.role === "ADMIN" ? "info" : "neutral"}
+                                                    Icon={u.role === "ADMIN" ? ShieldCheckIcon : UserIcon}
                                                 >
-                                                    {t(u.isActive ? "usuarios.desactivar" : "usuarios.activar")}
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                                    {t(u.role === "ADMIN" ? "usuarios.rol.ADMIN" : "usuarios.rol.USER")}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                <EstadoBadge estado={u.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
+                                                {!u.isVerified && (
+                                                    <Badge variant="warning" Icon={EnvelopeIcon} className="ml-1.5">{t("usuarios.sinVerificar")}</Badge>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-3 text-foreground-muted">{formatearFecha(idioma, u.createdAt)}</td>
+                                            <td className="px-6 py-3">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Select
+                                                        // Nombra la fila, como los botones de solo icono: sin esto un
+                                                        // lector de pantalla anuncia tres desplegables llamados «Admin»
+                                                        // y no dice de quién es el rol que se está cambiando.
+                                                        aria-label={t("usuarios.cambiarRolDe", { nombre: u.name })}
+                                                        options={[
+                                                            { value: "ADMIN", label: t("usuarios.rol.ADMIN") },
+                                                            { value: "USER", label: t("usuarios.rol.USER") },
+                                                        ]}
+                                                        value={u.role}
+                                                        disabled={isSelf || roleMutation.isPending}
+                                                        onChange={(e) => roleMutation.mutate({ id: u.id, role: e.target.value as UserRole })}
+                                                        className="text-xs py-1 h-auto"
+                                                    />
+                                                    <Button
+                                                        variant={u.isActive ? "danger" : "secondary"}
+                                                        disabled={isSelf || activeMutation.isPending}
+                                                        onClick={() => activeMutation.mutate({ id: u.id, active: !u.isActive })}
+                                                        className="text-xs px-2.5 py-1 h-auto"
+                                                    >
+                                                        {t(u.isActive ? "usuarios.desactivar" : "usuarios.activar")}
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 

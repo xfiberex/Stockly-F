@@ -1,4 +1,4 @@
-import { useState, type ComponentType, type SVGProps } from "react";
+import { useState, useEffect, type ComponentType, type SVGProps } from "react";
 import { Outlet, NavLink, Link, useLocation } from "react-router-dom";
 import {
     CubeIcon,
@@ -218,7 +218,27 @@ function MobileMenu({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate: () 
     const { t } = useT();
 
     return (
-        <div className="lg:hidden border-t border-border bg-surface px-4 py-3 space-y-4">
+        /*
+         * **El menú se desplaza por dentro; la página, no.**
+         *
+         * Con doce entradas, el panel es más alto que la pantalla de un teléfono. Antes no
+         * tenía altura máxima, así que al arrastrar sobre él lo que se movía era la página
+         * de detrás —el menú se iba con ella y el contenido pasaba por debajo—, que es
+         * justo lo que no debe hacer algo que está por encima.
+         *
+         * Tres piezas, y hacen falta las tres:
+         *
+         * - `max-h` restado a la altura de la barra (56 px) para que el panel quepa y sea
+         *   él quien tenga desplazamiento propio. En **`dvh` y no `vh`**: en móvil la barra
+         *   del navegador aparece y desaparece, y `vh` se queda con la ventana grande, así
+         *   que las últimas entradas caen debajo del borde y no hay forma de llegar.
+         * - `overscroll-contain` corta el *encadenamiento*: al llegar al final del panel, el
+         *   gesto **no** continúa desplazando el documento.
+         * - El bloqueo del `<body>` mientras está abierto, en el efecto de `App`. El
+         *   encadenamiento no es el único camino: sin bloqueo, un gesto que empiece fuera
+         *   del panel sigue moviendo la página detrás del menú.
+         */
+        <div className="lg:hidden max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain sin-barra border-t border-border bg-surface px-4 py-3 space-y-4">
             {/* T3-04: mismo array que el escritorio, agrupado por tipo en vez de por
                 índice. El móvil no respeta el orden de la barra a propósito —los enlaces
                 sueltos arriba y las secciones desplegadas debajo, con subtítulo—, y eso
@@ -292,6 +312,37 @@ function App() {
 
     const toggleMobile = () => setOpenedAt((actual) => (actual === pathname ? null : pathname));
     const closeMobile = () => setOpenedAt(null);
+
+    /*
+     * Con el menú abierto, la página de detrás se queda quieta.
+     *
+     * El panel tapa la pantalla entera y aun así el documento seguía desplazándose debajo:
+     * se arrastraba sobre el menú y lo que se movía era el contenido, con el menú yéndose
+     * con él. `overscroll-contain` en el panel evita el encadenamiento cuando el gesto
+     * empieza *dentro*; esto cubre el resto de la superficie.
+     *
+     * Es un efecto y no una clase porque el elemento está fuera del árbol de React. La
+     * limpieza **restaura el valor anterior en vez de borrarlo**: escribir `""` a ciegas
+     * pisaría cualquier otro bloqueo —el de un modal abierto a la vez—, y el fallo saldría
+     * como una página que ya no se desplaza y nadie sabe por qué.
+     *
+     * **Se bloquea `<html>`, no `<body>`, y esto costó una medición.** Con `overflow:
+     * hidden` solo en el `<body>` el resultado parece correcto y no lo es: quien desplaza
+     * aquí es el elemento raíz —`document.scrollingElement` es `<html>`—, así que la
+     * página seguía moviéndose 800 px con el menú abierto. Comprobado en el navegador
+     * antes y después.
+     */
+    useEffect(() => {
+        if (!mobileOpen) return;
+
+        const raiz = document.documentElement;
+        const anterior = raiz.style.overflow;
+        raiz.style.overflow = "hidden";
+
+        return () => {
+            raiz.style.overflow = anterior;
+        };
+    }, [mobileOpen]);
 
     return (
         <div className="min-h-screen bg-background">

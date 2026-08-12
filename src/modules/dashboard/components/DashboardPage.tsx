@@ -13,6 +13,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
+import { CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
+import { cn } from "@/shared/lib/cn";
 
 export default function DashboardPage() {
     const { t, tn } = useT();
@@ -50,7 +52,7 @@ export default function DashboardPage() {
     ];
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, "space-y-8")}>
             <div>
                 <h1 className="text-2xl font-bold text-foreground">{t("ruta.dashboard")}</h1>
                 <p className="text-sm text-foreground-muted mt-1">{t("dashboard.subtitulo")}</p>
