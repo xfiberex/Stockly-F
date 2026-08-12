@@ -19,6 +19,7 @@ import { clasesDeItemDeMenu, CLASES_PANEL_DE_MENU } from "@/shared/lib/clasesDeI
 import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
 import { useAuth } from "@/modules/auth/hooks/useMe";
+import { useSincronizarIdioma } from "@/modules/auth/hooks/useSincronizarIdioma";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 
@@ -277,6 +278,11 @@ function App() {
     const isAdmin = user?.role === "ADMIN";
     const { pathname } = useLocation();
     const { t } = useT();
+
+    // T4-12: el idioma de la interfaz vive en el navegador, pero los correos se redactan en
+    // el servidor y a veces sin nadie delante. Este hook deja allí el idioma efectivo cuando
+    // deja de coincidir con el guardado; el resto del tiempo no manda nada.
+    useSincronizarIdioma();
 
     // El menú se cierra solo al cambiar de ruta, sin sincronizarlo con un efecto:
     // se guarda la ruta en la que se abrió y el estado se deriva en render. Al

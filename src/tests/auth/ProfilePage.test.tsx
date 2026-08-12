@@ -20,7 +20,7 @@ import { useUpdatePassword } from "@/modules/auth/hooks/useUpdatePassword";
 const mockProfileMutate = vi.fn();
 const mockPasswordMutate = vi.fn();
 
-const mockUser = { id: "u1", name: "Juan García", email: "juan@example.com", role: "USER", isVerified: true, createdAt: "2024-01-01T00:00:00Z" };
+const mockUser = { id: "u1", name: "Juan García", email: "juan@example.com", role: "USER", idioma: "ES" as const, isVerified: true, createdAt: "2024-01-01T00:00:00Z" };
 
 beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue({ user: mockUser, isLoading: false, isError: false });

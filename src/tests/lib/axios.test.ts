@@ -56,6 +56,24 @@ describe("interceptor de axios", () => {
         expect(captured?.headers.get("x-csrf-token")).toBe("abc123");
     });
 
+    it("manda el idioma **de la aplicación** en `Accept-Language`, también en un GET", async () => {
+        // T4-12. El navegador ya pone su propio `Accept-Language` con el idioma del sistema,
+        // y no sirve: lo que decide en qué idioma se escribe a un usuario es el idioma con
+        // el que está usando Stockly. Es lo que permite que el correo de verificación —el
+        // único que sale hacia alguien sin fila en la base— llegue en el idioma correcto.
+        window.localStorage.setItem("stockly:idioma", "en");
+        let captured: InternalAxiosRequestConfig | undefined;
+        setAdapter((config) => {
+            captured = config;
+            return Promise.resolve(ok(config));
+        });
+
+        await api.get("/auth/me");
+
+        expect(captured?.headers.get("Accept-Language")).toBe("en");
+        window.localStorage.removeItem("stockly:idioma");
+    });
+
     it("NO añade la cabecera CSRF en peticiones GET (método seguro)", async () => {
         document.cookie = "csrfToken=abc123";
         let captured: InternalAxiosRequestConfig | undefined;

@@ -12,6 +12,7 @@ import type {
     UpdateProfileResponse,
     UpdatePasswordResponse,
 } from "@/modules/auth/types/auth.types";
+import type { IdiomaDeCorreo, IdiomaGuardado } from "@/shared/contratos/api.generated";
 
 export const AuthAPI = {
     register: async (form: Omit<RegisterForm, "passwordConfirmation">) => {
@@ -65,5 +66,16 @@ export const AuthAPI = {
     updatePassword: async (form: Omit<UpdatePasswordForm, "passwordConfirmation">) => {
         const { data } = await api.patch<UpdatePasswordResponse>("/auth/me/password", form);
         return data;
+    },
+
+    /**
+     * T4-12 — deja en el servidor el idioma en el que escribirle a este usuario.
+     *
+     * Va por su propio endpoint y no por `updateProfile`: ese pide nombre y correo, y tocar
+     * el correo invalida la verificación de la cuenta.
+     */
+    guardarIdioma: async (idioma: IdiomaDeCorreo) => {
+        const { data } = await api.patch<{ data: IdiomaGuardado }>("/auth/me/idioma", { idioma });
+        return data.data;
     },
 };

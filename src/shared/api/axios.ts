@@ -35,6 +35,22 @@ api.interceptors.request.use((config) => {
         const csrf = readCookie("csrfToken");
         if (csrf) config.headers.set("x-csrf-token", csrf);
     }
+
+    /*
+     * T4-12 — el idioma **efectivo de la aplicación**, no el del sistema operativo.
+     *
+     * El navegador ya manda un `Accept-Language` propio, y no sirve: dice en qué idioma está
+     * configurado el equipo, no en cuál se está usando Stockly. Quien tiene Chrome en inglés
+     * y la aplicación en español espera el correo en español, y es esta línea la que hace que
+     * eso ocurra.
+     *
+     * Solo lo necesita el registro —el único correo que sale hacia alguien que todavía no
+     * tiene fila en la base—, pero se manda en todas las peticiones porque un interceptor que
+     * distingue rutas es una lista que se queda desactualizada. `Accept-Language` está en la
+     * lista blanca de CORS, así que esto no provoca ninguna petición de sondeo.
+     */
+    config.headers.set("Accept-Language", idiomaEfectivo());
+
     return config;
 });
 

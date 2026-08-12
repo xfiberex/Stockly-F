@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Clave } from "@/shared/i18n/traducir";
+import { idiomaSchema } from "@/shared/contratos/api.generated";
 
 /**
  * T4-04 — los mensajes de validación son **claves del catálogo**, no frases.
@@ -61,6 +62,9 @@ export const userSchema = z.object({
     email: z.string().email(),
     name: z.string(),
     role: z.string(),
+    // T4-12 — el idioma en el que el servidor le escribe a este usuario. El enum sale del
+    // contrato generado, no se reescribe aquí: es de la base y sus valores van en mayúsculas.
+    idioma: idiomaSchema,
     isVerified: z.boolean(),
     createdAt: z.string(),
 });
