@@ -20,13 +20,14 @@ import {
     ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
+import { MargenRealizado } from "./MargenRealizado";
 import { LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { cn } from "@/shared/lib/cn";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
 export default function ReportsPage() {
-    const { t, idioma } = useT();
+    const { t, tn, idioma } = useT();
     const { data, isLoading } = useReports();
 
     if (isLoading) {
@@ -39,7 +40,7 @@ export default function ReportsPage() {
 
     if (!data) return null;
 
-    const { totals, stockByCategory, topByValue, movementsByMonth, lowStockProducts, stockMetrics } = data;
+    const { totals, stockByCategory, topByValue, movementsByMonth, lowStockProducts, stockMetrics, margin } = data;
 
     // Consolidar movimientos por mes para el chart
     const fmtMonth = (m: string) => {
@@ -101,6 +102,28 @@ export default function ReportsPage() {
                     </div>
                 ))}
             </div>
+
+            {/* T5-02 — segunda fila: lo invertido y lo ganado. Mismas tarjetas que la primera. */}
+            <div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {[
+                        { label: t("reportes.valorACoste"), value: formatearImporte(totals.inventoryCostValue, { decimales: 0 }) },
+                        { label: t("reportes.margenPotencial"), value: formatearImporte(totals.potentialMargin, { decimales: 0 }) },
+                        { label: t("reportes.margenPeriodo", { dias: margin.days }), value: formatearImporte(margin.margin, { decimales: 0 }) },
+                        { label: t("reportes.porcentajeMargen"), value: margin.marginPercent === null ? "—" : `${margin.marginPercent.toFixed(1)} %` },
+                    ].map(({ label, value }) => (
+                        <div key={label} className="bg-surface rounded-xl border border-border p-3 sm:p-5">
+                            <p className="text-base sm:text-xl font-bold text-foreground tabular-nums">{value}</p>
+                            <p className="text-xs text-foreground-muted leading-tight">{label}</p>
+                        </div>
+                    ))}
+                </div>
+                {totals.productsWithoutCost > 0 && (
+                    <p className="mt-2 text-xs text-warning">{tn("dashboard.sinCoste", totals.productsWithoutCost)}</p>
+                )}
+            </div>
+
+            <MargenRealizado margen={margin} />
 
             {/* Valor por categoría + distribución */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

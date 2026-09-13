@@ -14,6 +14,9 @@ const RESUMEN: ReportSummary = {
         activeProducts: 45,
         inactiveProducts: 3,
         inventoryValue: 2211974.5,
+        inventoryCostValue: 1400000,
+        potentialMargin: 650000.25,
+        productsWithoutCost: 3,
         lowStockCount: 2,
     },
     stockByCategory: [
@@ -46,6 +49,25 @@ const RESUMEN: ReportSummary = {
             reorderSoon: true,
         },
     ],
+    // T5-02 — con los casos que la interfaz tiene que saber enseñar: una categoría null,
+    // un producto borrado (sin id) y un margen negativo.
+    margin: {
+        days: 30,
+        revenue: 50000,
+        cost: 35000,
+        margin: 15000,
+        marginPercent: 30,
+        revenueWithoutCost: 4200,
+        byCategory: [
+            { name: "Electrónica", revenue: 40000, cost: 26000, margin: 14000, marginPercent: 35 },
+            { name: null, revenue: 10000, cost: 9000, margin: 1000, marginPercent: 10 },
+        ],
+        topProducts: [
+            { productId: "p8", name: "Portátil Lenovo", units: 3, revenue: 44997, cost: 30000, margin: 14997, marginPercent: 33.3 },
+            { productId: null, name: "Producto retirado", units: 1, revenue: 500, cost: 400, margin: 100, marginPercent: 20 },
+            { productId: "p9", name: "Cable en oferta", units: 10, revenue: 100, cost: 120, margin: -20, marginPercent: -20 },
+        ],
+    },
 };
 
 let resumen: ReportSummary | undefined = RESUMEN;
@@ -100,6 +122,28 @@ describe("DashboardPage (T2-21)", () => {
         renderWithProviders(<DashboardPage />);
 
         expect(screen.getByText("$2,211,974.50")).toBeInTheDocument();
+    });
+
+    it("da el valor a coste y a precio de venta, cada uno con su nombre (T5-02)", () => {
+        renderWithProviders(<DashboardPage />);
+
+        const valor = (nombre: string) => screen.getByText(nombre).nextElementSibling;
+        expect(valor("Valor a coste")).toHaveTextContent("$1,400,000.00");
+        expect(valor("Valor a precio de venta")).toHaveTextContent("$2,211,974.50");
+        expect(valor("Margen potencial")).toHaveTextContent("$650,000.25");
+    });
+
+    it("avisa de los productos con stock que quedan fuera por no tener coste (T5-02)", () => {
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByText(/3 productos con stock no tienen coste/)).toBeInTheDocument();
+    });
+
+    it("sin productos sin coste no pinta el aviso (T5-02)", () => {
+        resumen = { ...RESUMEN, totals: { ...RESUMEN.totals, productsWithoutCost: 0 } };
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.queryByText(/no tienen? coste/)).not.toBeInTheDocument();
     });
 
     it("cada KPI lleva a la sección que lo explica", () => {
@@ -182,6 +226,52 @@ describe("ReportsPage (T2-21)", () => {
             "href",
             "/catalog/products/p4/movements",
         );
+    });
+
+    describe("margen realizado (T5-02)", () => {
+        it("pinta el total del periodo y la parte de las ventas que queda fuera", () => {
+            renderWithProviders(<ReportsPage />);
+
+            expect(screen.getByRole("heading", { name: "Margen realizado — últimos 30 días" })).toBeInTheDocument();
+            expect(screen.getByText((texto) => texto.startsWith("Fuera del cálculo: $4,200.00 en ventas enviadas"))).toBeInTheDocument();
+            const total = screen.getByText("Total").closest("tr")!;
+            expect(within(total).getByText("$15,000.00")).toBeInTheDocument();
+            expect(within(total).getByText("30.0 %")).toBeInTheDocument();
+        });
+
+        it("la categoría null se rotula en el idioma de la interfaz, no con un literal del servidor", () => {
+            renderWithProviders(<ReportsPage />);
+
+            const fila = screen.getByText("Sin categoría").closest("tr")!;
+            expect(within(fila).getByText("$1,000.00")).toBeInTheDocument();
+        });
+
+        it("un producto borrado sale por su nombre pero sin enlace", () => {
+            renderWithProviders(<ReportsPage />);
+
+            expect(screen.getByText("Producto retirado")).toBeInTheDocument();
+            expect(screen.queryByRole("link", { name: "Producto retirado" })).not.toBeInTheDocument();
+            expect(screen.getByRole("link", { name: "Cable en oferta" })).toHaveAttribute("href", "/catalog/products/p9/movements");
+        });
+
+        it("un margen negativo lleva su signo, no solo el color", () => {
+            renderWithProviders(<ReportsPage />);
+
+            const fila = screen.getByRole("link", { name: "Cable en oferta" }).closest("tr")!;
+            expect(within(fila).getByText("-$20.00")).toHaveClass("text-danger");
+            expect(within(fila).getByText("-20.0 %")).toBeInTheDocument();
+        });
+
+        it("sin ventas con coste lo dice, y el porcentaje no es un 0 %", () => {
+            resumen = {
+                ...RESUMEN,
+                margin: { ...RESUMEN.margin, revenue: 0, cost: 0, margin: 0, marginPercent: null, revenueWithoutCost: 0, byCategory: [], topProducts: [] },
+            };
+            renderWithProviders(<ReportsPage />);
+
+            expect(screen.getByText("No hay ventas enviadas con coste conocido en los últimos 30 días.")).toBeInTheDocument();
+            expect(screen.getByText("% margen realizado").previousElementSibling).toHaveTextContent("—");
+        });
     });
 
     it("mientras carga no se pinta el informe", () => {

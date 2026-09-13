@@ -81,21 +81,36 @@ export default function DashboardPage() {
                 ))}
             </div>
 
-            {/* Valor del inventario */}
-            <div className="bg-surface rounded-xl border border-border p-5 flex items-center gap-4">
-                <div className="rounded-lg p-2.5 shrink-0 bg-success-surface">
-                    <CurrencyDollarIcon className="h-6 w-6 text-success" />
+            {/* Valor del inventario — T5-02: a coste y a precio de venta, cada uno con su
+                nombre. Solo había el de venta, rotulado «Valor total», y se leía como lo
+                invertido cuando incluye un beneficio que todavía no existe. */}
+            <div className="bg-surface rounded-xl border border-border p-5">
+                <div className="flex items-start gap-4">
+                    <div className="rounded-lg p-2.5 shrink-0 bg-success-surface">
+                        <CurrencyDollarIcon className="h-6 w-6 text-success" />
+                    </div>
+                    <dl className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
+                        {[
+                            { clave: "dashboard.valorACoste" as const, valor: totals.inventoryCostValue },
+                            { clave: "dashboard.valorInventario" as const, valor: totals.inventoryValue },
+                            { clave: "dashboard.margenPotencial" as const, valor: totals.potentialMargin },
+                        ].map(({ clave, valor }) => (
+                            <div key={clave} className="min-w-0">
+                                <dt className="text-sm text-foreground-muted">{t(clave)}</dt>
+                                {/* El KPI que más se refresca: sin cifras tabulares cambiaba de ancho
+                                    con cada actualización, y el bloque entero se movía. */}
+                                <dd className="text-2xl font-bold text-foreground tabular-nums">{formatearImporte(valor)}</dd>
+                            </div>
+                        ))}
+                    </dl>
                 </div>
-                <div>
-                    {/* El KPI que más se refresca: sin cifras tabulares cambiaba de ancho
-                        con cada actualización, y el bloque entero se movía. */}
-                    <p className="text-2xl font-bold text-foreground tabular-nums">
-                        {formatearImporte(totals.inventoryValue)}
-                    </p>
-                    <p className="text-sm text-foreground-muted">{t("dashboard.valorInventario")}</p>
-                </div>
-                <div className="ml-auto text-right hidden sm:block">
-                    <Link to="/reports" className="text-sm text-info hover:underline">
+                <div className="mt-3 flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    {totals.productsWithoutCost > 0 ? (
+                        <p className="text-warning">{tn("dashboard.sinCoste", totals.productsWithoutCost)}</p>
+                    ) : (
+                        <span />
+                    )}
+                    <Link to="/reports" className="text-info hover:underline">
                         {t("dashboard.verReporte")}
                     </Link>
                 </div>
