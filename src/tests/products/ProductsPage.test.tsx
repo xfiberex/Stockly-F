@@ -27,6 +27,7 @@ const mockProductos: Product[] = [
         description: null,
         sku: "PER-LOG",
         price: "100.00",
+        costPrice: null,
         stock: 5,
         minStock: 1,
         imageUrl: null,

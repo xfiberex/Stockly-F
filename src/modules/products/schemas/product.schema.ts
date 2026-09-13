@@ -13,6 +13,14 @@ const uuidOptional = z.preprocess(
     z.string().uuid(mensaje("validacion.uuid")).optional(),
 );
 
+// T5-01 — el coste es opcional y un campo numérico vacío llega como "": sin el
+// `preprocess`, `z.coerce` lo convertiría en 0 y un producto sin coste pasaría a costar cero,
+// que no es lo mismo que no saberlo.
+const costeOpcional = z.preprocess(
+    (v) => (v === "" || v === null ? undefined : v),
+    z.coerce.number().min(0, mensaje("validacion.noNegativo")).optional(),
+);
+
 export const createProductSchema = z.object({
     name: z.string().min(1, mensaje("validacion.nombreRequerido")).max(200, mensaje("validacion.maximo200")),
     description: z.string().max(1000, mensaje("validacion.maximo1000")).optional(),
@@ -20,6 +28,7 @@ export const createProductSchema = z.object({
     price: z.coerce
         .number({ error: mensaje("validacion.precioRequerido") })
         .min(0.01, mensaje("validacion.precioMayorQueCero")),
+    costPrice: costeOpcional,
     stock: z.coerce
         .number()
         .int(mensaje("validacion.numeroEntero"))
@@ -41,6 +50,7 @@ export const updateProductSchema = z.object({
     description: z.string().max(1000).optional(),
     sku: z.string().max(100).optional(),
     price: z.coerce.number().min(0.01, mensaje("validacion.precioMayorQueCero")).optional(),
+    costPrice: costeOpcional,
     stock: z.coerce.number().int().min(0).optional(),
     minStock: z.coerce.number().int().min(0).optional(),
     categoryId: uuidOptional,

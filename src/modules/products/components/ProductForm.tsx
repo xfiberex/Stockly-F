@@ -44,6 +44,7 @@ function valoresIniciales(product?: Product) {
         // del esquema tapaba la diferencia al validar; la conversión va ahora donde
         // corresponde, al entrar el dato, y no escondida en la validación de salida.
         price: aNumero(product.price),
+        costPrice: product.costPrice === null ? undefined : aNumero(product.costPrice),
         stock: product.stock,
         minStock: product.minStock ?? 0,
         categoryId: product.category?.id ?? "",
@@ -132,8 +133,12 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
         };
 
         if (isEditing) {
+            // T5-01 — vaciar el campo de un producto que tenía coste es **quitarlo**. El
+            // esquema convierte el vacío en `undefined`, que en la API significa «no tocar»,
+            // así que la intención se traduce aquí a la cadena vacía que el backend entiende.
+            const costPrice = formData.costPrice ?? (product.costPrice !== null ? "" : undefined);
             updateMutation.mutate(
-                { id: product.id, dto: { ...normalized, tagIds: selectedTagIds, removeImage } },
+                { id: product.id, dto: { ...normalized, costPrice, tagIds: selectedTagIds, removeImage } },
                 { onSuccess: () => { onClose(); reset({}); setRemoveImage(false); setSelectedTagIds([]); } },
             );
         } else {
@@ -192,6 +197,18 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                         {...register("price")}
                     />
                     <Input
+                        id="costPrice"
+                        label={t("productos.campo.costeMedio")}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder={t("productos.form.sinCoste")}
+                        error={te(errors.costPrice?.message)}
+                        {...register("costPrice")}
+                    />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <Input
                         id="stock"
                         label={t("productos.campo.stockInicial")}
                         type="number"
@@ -199,15 +216,15 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                         error={te(errors.stock?.message)}
                         {...register("stock")}
                     />
+                    <Input
+                        id="minStock"
+                        label={t("productos.campo.stockMinimoAlerta")}
+                        type="number"
+                        placeholder={t("productos.form.ejemploCero")}
+                        error={te(errors.minStock?.message)}
+                        {...register("minStock")}
+                    />
                 </div>
-                <Input
-                    id="minStock"
-                    label={t("productos.campo.stockMinimoAlerta")}
-                    type="number"
-                    placeholder={t("productos.form.ejemploCero")}
-                    error={te(errors.minStock?.message)}
-                    {...register("minStock")}
-                />
                 <div className="grid grid-cols-2 gap-3">
                     <Select
                         id="categoryId"

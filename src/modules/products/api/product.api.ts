@@ -12,6 +12,7 @@ import type {
     MovementsResponse,
     MovementsQuery,
     PriceHistoryResponse,
+    CostHistoryResponse,
     CreateManualMovementDto,
     BulkStockDto,
 } from "../types/product.types";
@@ -88,6 +89,13 @@ export const getProductMovements = async (
     // `?type=` —cadena vacía—, que el backend interpretaría como filtro presente.
     const params = Object.fromEntries(Object.entries(query).filter(([, v]) => v !== "" && v !== undefined));
     const { data } = await api.get<ApiResponse<MovementsResponse>>(`/products/${productId}/movements`, { params });
+    return data.data!;
+};
+
+export const getCostHistory = async (productId: string, page = 1): Promise<CostHistoryResponse> => {
+    const { data } = await api.get<ApiResponse<CostHistoryResponse>>(`/products/${productId}/cost-history`, {
+        params: { page },
+    });
     return data.data!;
 };
 

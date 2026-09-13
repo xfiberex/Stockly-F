@@ -14,6 +14,7 @@ import { Select } from "@/shared/components/Select";
 import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { useStockMovements } from "@/modules/products/hooks/useStockMovements";
 import { usePriceHistory } from "@/modules/products/hooks/usePriceHistory";
+import { useCostHistory } from "@/modules/products/hooks/useCostHistory";
 import { exportProductMovementsCsv } from "@/modules/products/api/product.api";
 import type { StockMovementType } from "@/modules/products/types/product.types";
 import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
@@ -38,7 +39,8 @@ export default function StockMovementsPage() {
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
     const [page, setPage] = useState(1);
-    const [activeTab, setActiveTab] = useState<"movements" | "prices">("movements");
+    const [activeTab, setActiveTab] = useState<"movements" | "prices" | "costs">("movements");
+    const [costPage, setCostPage] = useState(1);
 
     // T4-15 — página y filtros van al servidor. La pantalla filtraba en memoria sobre el
     // histórico entero, y eso solo funcionaba porque el endpoint lo devolvía entero.
@@ -49,6 +51,7 @@ export default function StockMovementsPage() {
         dateTo,
     });
     const { data: priceData } = usePriceHistory(id!);
+    const { data: costData } = useCostHistory(id!, costPage);
 
     /**
      * Cambiar un filtro vuelve a la página 1. Sin esto, filtrar desde la página 4 pide la
@@ -81,6 +84,8 @@ export default function StockMovementsPage() {
 
     const { product, movements, meta } = data;
     const priceHistory = priceData?.history ?? [];
+    const costHistory = costData?.history ?? [];
+    const costMeta = costData?.meta;
     const hayFiltros = Boolean(typeFilter || dateFrom || dateTo);
 
     // El servidor los manda del más reciente al más antiguo —la primera página es lo último
@@ -128,6 +133,16 @@ export default function StockMovementsPage() {
                                 {product.minStock > 0 ? t("movimientos.minimo", { minimo: product.minStock }) : ""}
                             </p>
                         </div>
+                        {/* T5-01 — el coste va junto al stock porque se lee con él: cuánto hay y
+                            a cuánto salió de media. Sin coste se dice, no se pinta un cero. */}
+                        <div className="text-right">
+                            <p className="text-2xl font-bold tabular-nums text-foreground">
+                                {product.costPrice === null ? "—" : formatearImporte(product.costPrice)}
+                            </p>
+                            <p className="text-xs text-foreground-muted">
+                                {product.costPrice === null ? t("productos.sinCoste") : t("productos.campo.costeMedio")}
+                            </p>
+                        </div>
                         <EstadoBadge estado={product.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
                         {meta.total > 0 && (
                             /*
@@ -153,7 +168,7 @@ export default function StockMovementsPage() {
 
             {/* Tabs */}
             <div className="flex gap-1 border-b border-border">
-                {(["movements", "prices"] as const).map((tab) => (
+                {(["movements", "prices", "costs"] as const).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -167,7 +182,9 @@ export default function StockMovementsPage() {
                             cuántos movimientos hay, no cuántos se han traído. */}
                         {tab === "movements"
                             ? t("movimientos.pestanaMovimientos", { cantidad: meta.total })
-                            : t("movimientos.pestanaPrecios", { cantidad: priceHistory.length })}
+                            : tab === "prices"
+                              ? t("movimientos.pestanaPrecios", { cantidad: priceHistory.length })
+                              : t("movimientos.pestanaCostes", { cantidad: costMeta?.total ?? 0 })}
                     </button>
                 ))}
             </div>
@@ -414,6 +431,76 @@ export default function StockMovementsPage() {
                     ) : (
                         <div className="bg-surface rounded-xl border border-border p-6 text-center text-sm text-foreground-muted">
                             {t("precios.sinCambios")}
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* T5-01 — sin gráfico, a diferencia de los precios: el histórico llega paginado,
+                y una curva dibujada con una página entera haría creer que es la serie completa
+                (la trampa de T4-15). La tabla dice lo que hay y de dónde salió cada cambio. */}
+            {activeTab === "costs" && (
+                <>
+                    <p className="text-sm text-foreground-muted">{t("costes.explicacion")}</p>
+                    {costHistory.length > 0 && costMeta ? (
+                        <>
+                            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                                <div className="px-6 py-4 border-b border-border">
+                                    <h2 className="text-base font-semibold text-foreground">{t("costes.cambios", { cantidad: costMeta.total })}</h2>
+                                </div>
+                                <div className={CLASES_TABLA_DESPLAZABLE}>
+                                    <table className={CLASES_TABLA}>
+                                        <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
+                                            <tr>
+                                                <th className="px-6 py-3">{t("comun.fecha")}</th>
+                                                <th className="px-6 py-3">{t("costes.anterior")}</th>
+                                                <th className="px-6 py-3">{t("costes.nuevo")}</th>
+                                                <th className="px-6 py-3">{t("costes.origen")}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border">
+                                            {costHistory.map((h) => (
+                                                <tr key={h.id} className="hover:bg-surface-muted">
+                                                    <td className="px-6 py-3 text-foreground-muted whitespace-nowrap">
+                                                        {formatearFecha(idioma, h.createdAt)}
+                                                    </td>
+                                                    <td className="px-6 py-3 text-foreground-muted tabular-nums">
+                                                        {h.oldCost === null ? t("productos.sinCoste") : formatearImporte(h.oldCost)}
+                                                    </td>
+                                                    <td className="px-6 py-3 font-medium text-foreground tabular-nums">
+                                                        {h.newCost === null ? t("productos.sinCoste") : formatearImporte(h.newCost)}
+                                                    </td>
+                                                    <td className="px-6 py-3 text-foreground-muted text-xs">
+                                                        {h.source === "MANUAL"
+                                                            ? t("costes.origenManual")
+                                                            : h.purchaseOrderId
+                                                              ? t("costes.origenRecepcion", { numero: h.purchaseOrderId.slice(0, 8).toUpperCase() })
+                                                              : t("costes.origenRecepcionSinOrden")}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {costMeta.totalPages > 1 && (
+                                <div className="flex flex-col gap-3 text-sm text-foreground-muted sm:flex-row sm:items-center sm:justify-between">
+                                    <span>{t("comun.paginaDeTotal", { pagina: costMeta.page, total: costMeta.totalPages })}</span>
+                                    <div className="grid grid-cols-2 gap-2 sm:flex">
+                                        <Button variant="secondary" disabled={costMeta.page === 1} onClick={() => setCostPage((p) => p - 1)}>
+                                            {t("comun.anterior")}
+                                        </Button>
+                                        <Button variant="secondary" disabled={costMeta.page === costMeta.totalPages} onClick={() => setCostPage((p) => p + 1)}>
+                                            {t("comun.siguiente")}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <div className="bg-surface rounded-xl border border-border p-6 text-center text-sm text-foreground-muted">
+                            {t("costes.sinCambios")}
                         </div>
                     )}
                 </>

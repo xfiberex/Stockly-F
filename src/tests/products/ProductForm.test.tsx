@@ -22,6 +22,7 @@ const productoExistente: Product = {
     // Cadena, como la envía el backend (T4-01): así el test ejercita de verdad el
     // `aNumero()` que el formulario aplica al precargar los valores.
     price: "49.99",
+    costPrice: null,
     stock: 12,
     minStock: 3,
     imageUrl: null,
@@ -119,6 +120,62 @@ describe("ProductForm", () => {
         expect(updateMutate.mock.calls[0][0]).toMatchObject({
             id: "prod-1",
             dto: { tagIds: ["tag-1"] },
+        });
+    });
+
+    describe("coste medio (T5-01)", () => {
+        const conCoste: Product = { ...productoExistente, costPrice: "31.5" };
+
+        it("al crear, un coste escrito viaja como número", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<ProductForm isOpen onClose={vi.fn()} />);
+
+            await user.type(screen.getByLabelText("Nombre *"), "Silla");
+            await user.type(screen.getByLabelText("Precio *"), "120");
+            await user.type(screen.getByLabelText("Coste medio"), "75.5");
+            await user.click(screen.getByRole("button", { name: /crear producto/i }));
+
+            await waitFor(() => expect(createMutate).toHaveBeenCalledTimes(1));
+            expect(createMutate.mock.calls[0][0]).toMatchObject({ price: 120, costPrice: 75.5 });
+        });
+
+        it("al crear sin coste no se manda un cero: se queda sin coste", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<ProductForm isOpen onClose={vi.fn()} />);
+
+            await user.type(screen.getByLabelText("Nombre *"), "Mesa");
+            await user.type(screen.getByLabelText("Precio *"), "300");
+            await user.click(screen.getByRole("button", { name: /crear producto/i }));
+
+            await waitFor(() => expect(createMutate).toHaveBeenCalledTimes(1));
+            expect(createMutate.mock.calls[0][0].costPrice).toBeUndefined();
+        });
+
+        it("precarga el coste del producto al editar", () => {
+            renderWithProviders(<ProductForm isOpen onClose={vi.fn()} product={conCoste} />);
+
+            expect(screen.getByLabelText("Coste medio")).toHaveValue(31.5);
+        });
+
+        it("vaciar el coste de un producto que lo tenía manda la cadena vacía, que lo quita", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<ProductForm isOpen onClose={vi.fn()} product={conCoste} />);
+
+            await user.clear(screen.getByLabelText("Coste medio"));
+            await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
+
+            await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+            expect(updateMutate.mock.calls[0][0].dto.costPrice).toBe("");
+        });
+
+        it("guardar sin tocar un producto sin coste no manda nada para el coste", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<ProductForm isOpen onClose={vi.fn()} product={productoExistente} />);
+
+            await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
+
+            await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+            expect(updateMutate.mock.calls[0][0].dto.costPrice).toBeUndefined();
         });
     });
 

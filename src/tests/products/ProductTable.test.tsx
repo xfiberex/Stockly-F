@@ -46,6 +46,7 @@ const makeProduct = (overrides: Partial<Product> = {}): Product => ({
     sku: null,
     // Cadena, como la envía el backend: `price` es `Decimal` en Prisma (T4-01).
     price: "299.99",
+    costPrice: null,
     stock: 10,
     minStock: 0,
     imageUrl: null,

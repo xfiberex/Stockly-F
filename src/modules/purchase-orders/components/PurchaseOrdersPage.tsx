@@ -22,6 +22,7 @@ import { exportPurchaseOrdersCsv } from "@/modules/purchase-orders/api/purchase-
 import type { PurchaseOrder, CreatePurchaseOrderForm } from "@/modules/purchase-orders/types/purchase-orders.types";
 import { PlusIcon, TrashIcon, CheckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
+import { aNumero } from "@/shared/contratos";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearFecha } from "@/shared/lib/fechas";
 import { CLASES_BOTON_ICONO } from "@/shared/lib/clasesDeBoton";
@@ -34,6 +35,90 @@ import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTab
 
 function orderTotal(order: PurchaseOrder): number {
     return order.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
+}
+
+/** El número corto con el que la orden aparece en la lista. */
+function numeroDeOrden(id: string): string {
+    return id.slice(0, 8).toUpperCase();
+}
+
+/**
+ * Los ítems que retiran stock al cancelar una orden recibida. Solo los ligados a un producto
+ * del catálogo: el backend descuenta con `where: { productId: { not: null } }`
+ * (`purchase-orders.service.ts`), igual que las ventas reponen en T2-42.
+ */
+function itemsQueRetiran(order: PurchaseOrder) {
+    return order.items.filter((item) => item.productId !== null);
+}
+
+// ── Confirmación de cancelación de una orden recibida ─────────────────────────
+
+interface CancelarRecepcionModalProps {
+    orden: PurchaseOrder | null;
+    isPending: boolean;
+    onConfirm: () => void;
+    onClose: () => void;
+}
+
+/**
+ * T5-01 — cancelar una orden **ya recibida** retira del inventario lo que entró con ella
+ * (T0-04). El backend lo permitía desde entonces, pero la interfaz solo ofrecía cancelar las
+ * pendientes: el camino existía por API y no desde la aplicación, lo mismo que T2-42 corrigió
+ * en ventas. Pide confirmación por la misma razón: lo que se confirma es el movimiento de
+ * stock, no el cambio de estado.
+ *
+ * El diálogo dice además que **el coste medio no cambia**, que es la decisión tomada en la
+ * ficha, y que la cancelación se rechaza entera si esas unidades ya salieron.
+ */
+function CancelarRecepcionModal({ orden, isPending, onConfirm, onClose }: CancelarRecepcionModalProps) {
+    const { t, tn } = useT();
+    const items = orden ? itemsQueRetiran(orden) : [];
+    const unidades = items.reduce((sum, item) => sum + item.quantity, 0);
+
+    return (
+        <Modal isOpen={orden !== null} onClose={onClose} title={t("compras.cancelar.titulo")}>
+            {orden && (
+                <div className="flex flex-col gap-4">
+                    <p className="text-sm text-foreground">
+                        {/* El número va suelto y no con `compras.numero` («Orden #…»), a diferencia
+                            de ventas: la frase ya dice «la orden», y se leía «La orden Orden #…». */}
+                        {t("compras.cancelar.explicacion", { numero: numeroDeOrden(orden.id) })}
+                    </p>
+
+                    {unidades > 0 ? (
+                        <div className="rounded-lg border border-border bg-surface-muted p-3">
+                            <p className="text-xs font-medium uppercase tracking-wide text-foreground-muted">
+                                {tn("compras.cancelar.retiraran", unidades)}
+                            </p>
+                            <ul className="mt-2 space-y-1">
+                                {items.map((item) => (
+                                    <li key={item.id} className="flex items-baseline justify-between gap-4 text-sm">
+                                        <span className="text-foreground">{item.productName}</span>
+                                        <span className="tabular-nums text-foreground-muted">−{item.quantity}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-foreground-muted">{t("compras.cancelar.sinInventario")}</p>
+                    )}
+
+                    <ul className="list-disc space-y-1 pl-5 text-xs text-foreground-muted">
+                        {unidades > 0 && <li>{t("compras.cancelar.consumidas")}</li>}
+                        {unidades > 0 && <li>{t("compras.cancelar.costeIntacto")}</li>}
+                        <li>{t("compras.cancelar.irreversible")}</li>
+                    </ul>
+
+                    <div className="flex justify-end gap-2 border-t border-border pt-3">
+                        <Button type="button" variant="secondary" onClick={onClose}>{t("comun.volver")}</Button>
+                        <Button type="button" variant="danger" isLoading={isPending} onClick={onConfirm}>
+                            {t("compras.cancelar.confirmar")}
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </Modal>
+    );
 }
 
 // ── Formulario nueva orden ────────────────────────────────────────────────────
@@ -71,7 +156,10 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
         if (product) {
             setValue(`items.${idx}.productId`, productId);
             setValue(`items.${idx}.productName`, product.name);
-            setValue(`items.${idx}.unitPrice`, Number(product.price));
+            // T5-01 — el precio de compra se propone desde el **coste**, no desde el precio de
+            // venta: lo que se escriba aquí es lo que la recepción promediará. Sin coste
+            // conocido se sigue proponiendo el de venta, y hay que corregirlo a mano.
+            setValue(`items.${idx}.unitPrice`, product.costPrice !== null ? aNumero(product.costPrice) : Number(product.price));
         }
     };
 
@@ -192,6 +280,7 @@ export default function PurchaseOrdersPage() {
     const { t, tn, idioma } = useT();
     const [formOpen, setFormOpen] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [ordenACancelar, setOrdenACancelar] = useState<PurchaseOrder | null>(null);
 
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
@@ -212,6 +301,16 @@ export default function PurchaseOrdersPage() {
 
     const handleCancel = (id: string) => {
         updateMutation.mutate({ id, dto: { status: "CANCELLED" } });
+    };
+
+    // La orden recibida se cancela desde el diálogo, no desde la fila. Si el backend la
+    // rechaza —las unidades ya se vendieron—, el diálogo se queda abierto con el aviso.
+    const confirmarCancelacionDeRecepcion = () => {
+        if (!ordenACancelar) return;
+        updateMutation.mutate(
+            { id: ordenACancelar.id, dto: { status: "CANCELLED" } },
+            { onSuccess: () => setOrdenACancelar(null) },
+        );
     };
 
     // Si se borra la última orden de la última página, esa página deja de existir:
@@ -311,6 +410,22 @@ export default function PurchaseOrdersPage() {
                                             </Button>
                                         </div>
                                     )}
+                                    {/* T5-01: una orden recibida también se puede cancelar, y eso retira
+                                        su stock (T0-04). No lleva «Eliminar»: el backend no permite borrar
+                                        una orden ya recibida. */}
+                                    {isAdmin && order.status === "RECEIVED" && (
+                                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                            <Button
+                                                variant="ghost"
+                                                className={CLASES_BOTON_ICONO}
+                                                title={t("compras.cancelarRecibida")}
+                                                aria-label={t("compras.cancelarRecibidaDe", { numero: numeroDeOrden(order.id) })}
+                                                onClick={() => setOrdenACancelar(order)}
+                                            >
+                                                <XMarkIcon className="h-4 w-4 text-warning" />
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -374,6 +489,12 @@ export default function PurchaseOrdersPage() {
             )}
 
             <OrderFormModal isOpen={formOpen} onClose={() => setFormOpen(false)} />
+            <CancelarRecepcionModal
+                orden={ordenACancelar}
+                isPending={updateMutation.isPending}
+                onConfirm={confirmarCancelacionDeRecepcion}
+                onClose={() => setOrdenACancelar(null)}
+            />
         </div>
     );
 }

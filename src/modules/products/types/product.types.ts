@@ -7,6 +7,8 @@
 // `description`/`imageUrl` eran `string | undefined` y llegan como `string | null`.
 import type {
     EtiquetaRef,
+    HistorialCoste,
+    HistorialCosteDeProducto,
     HistorialPrecio,
     MovimientoStock,
     MovimientosDeProducto,
@@ -26,6 +28,9 @@ export type Product = Producto;
 export type StockMovementType = TipoMovimiento;
 export type StockMovement = MovimientoStock;
 export type PriceHistoryEntry = HistorialPrecio;
+export type CostHistoryEntry = HistorialCoste;
+/** T5-01 — paginado y del más reciente al más antiguo, como los movimientos. */
+export type CostHistoryResponse = HistorialCosteDeProducto;
 export type ExportedProduct = ProductoExportado;
 export type ImportResult = ResultadoImportacion;
 
@@ -60,6 +65,7 @@ export interface CreateProductDto {
     description?: string;
     sku?: string;
     price: number;
+    costPrice?: number;
     stock?: number;
     minStock?: number;
     categoryId?: string;
@@ -74,6 +80,11 @@ export interface UpdateProductDto {
     description?: string;
     sku?: string;
     price?: number;
+    /**
+     * T5-01 — la cadena vacía **quita** el coste: viaja por `multipart/form-data`, donde no
+     * hay `null`, y el backend la lee como «desconocido». Ausente significa «no tocarlo».
+     */
+    costPrice?: number | "";
     stock?: number;
     minStock?: number;
     categoryId?: string;

@@ -11,6 +11,7 @@ import type { Product } from "@/modules/products/types/product.types";
 import { useT } from "@/shared/hooks/useIdioma";
 import { formatearFechaHora } from "@/shared/lib/fechas";
 import {
+    BanknotesIcon,
     ChartBarIcon,
     PencilIcon,
     CubeIcon,
@@ -118,6 +119,16 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                         <span className="font-semibold text-foreground tabular-nums">
                             {formatearImporte(product.price)}
                         </span>
+                    </Field>
+
+                    {/* T5-01 — sin coste se dice, no se pinta `$0.00`: cero sería un dato, y
+                        lo que hay es la ausencia de uno. */}
+                    <Field icon={BanknotesIcon} label={t("productos.campo.costeMedio")}>
+                        {product.costPrice === null ? (
+                            <span className="text-foreground-muted">{t("productos.sinCoste")}</span>
+                        ) : (
+                            <span className="text-foreground tabular-nums">{formatearImporte(product.costPrice)}</span>
+                        )}
                     </Field>
 
                     <Field icon={CubeIcon} label={t("productos.campo.stockActual")}>

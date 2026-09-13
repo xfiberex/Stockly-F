@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "../utils";
 import StockMovementsPage from "@/modules/products/components/StockMovementsPage";
 import * as api from "@/modules/products/api/product.api";
-import type { MovementsResponse, StockMovement } from "@/modules/products/types/product.types";
+import type { CostHistoryResponse, MovementsResponse, StockMovement } from "@/modules/products/types/product.types";
 
 /**
  * T4-15 — la pantalla de movimientos con el histórico paginado.
@@ -29,6 +29,7 @@ vi.mock("react-router-dom", async () => ({
 vi.mock("@/modules/products/api/product.api", () => ({
     getProductMovements: vi.fn(),
     getPriceHistory: vi.fn().mockResolvedValue({ product: {}, history: [] }),
+    getCostHistory: vi.fn(),
     exportProductMovementsCsv: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -38,6 +39,7 @@ const producto = {
     description: null,
     sku: "PER-LOG",
     price: "100.00",
+    costPrice: null,
     stock: 5,
     minStock: 1,
     imageUrl: null,
@@ -74,10 +76,29 @@ function respuesta(page = 1, total = 120): MovementsResponse {
 }
 
 const getMovements = vi.mocked(api.getProductMovements);
+const getCostes = vi.mocked(api.getCostHistory);
+
+/** 25 cambios de coste en dos páginas de 20; el primero de una recepción, el resto a mano. */
+function costes(page = 1, total = 25): CostHistoryResponse {
+    const enPagina = Math.min(20, Math.max(0, total - (page - 1) * 20));
+    return {
+        history: Array.from({ length: enPagina }, (_, i) => ({
+            id: `c${page}-${i}`,
+            productId: "p1",
+            oldCost: i === 0 && page === 1 ? null : "10",
+            newCost: "12.5",
+            source: i === 0 && page === 1 ? ("PURCHASE_RECEIPT" as const) : ("MANUAL" as const),
+            purchaseOrderId: i === 0 && page === 1 ? "abcdef12-0000-0000-0000-000000000000" : null,
+            createdAt: "2026-09-01T10:00:00Z",
+        })),
+        meta: { total, page, limit: 20, totalPages: Math.ceil(total / 20) },
+    };
+}
 
 beforeEach(() => {
     vi.clearAllMocks();
     getMovements.mockResolvedValue(respuesta());
+    getCostes.mockImplementation(async (_id, page = 1) => costes(page));
 });
 
 describe("StockMovementsPage — histórico paginado (T4-15)", () => {
@@ -166,7 +187,7 @@ describe("StockMovementsPage — histórico paginado (T4-15)", () => {
         expect(screen.queryByRole("button", { name: "Siguiente" })).toBeNull();
     });
 
-    it("con filtros y sin resultados, los filtros siguen en pantalla", async () => {
+    it("con filtros y sin resultados, los filtros siguen en pantalla (T4-15)", async () => {
         // Si desaparecieran al vaciarse la tabla, no habría forma de deshacer el filtro
         // que la vació.
         const user = userEvent.setup();
@@ -179,5 +200,58 @@ describe("StockMovementsPage — histórico paginado (T4-15)", () => {
         expect(await screen.findByText(/No hay movimientos que coincidan/)).toBeInTheDocument();
         expect(screen.getByRole("combobox", { name: "Tipo de movimiento" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Limpiar filtros" })).toBeInTheDocument();
+    });
+});
+
+describe("StockMovementsPage — historial de costes (T5-01)", () => {
+    it("la cabecera dice que no hay coste en vez de pintar un cero", async () => {
+        renderWithProviders(<StockMovementsPage />);
+
+        await screen.findByText("Teclado Logitech");
+        expect(screen.getByText("Sin coste conocido")).toBeInTheDocument();
+        expect(screen.queryByText("$0.00")).toBeNull();
+    });
+
+    it("con coste, la cabecera lo enseña con el formato de importe", async () => {
+        getMovements.mockResolvedValue({ ...respuesta(), product: { ...producto, costPrice: "31.5" } } as MovementsResponse);
+        renderWithProviders(<StockMovementsPage />);
+
+        expect(await screen.findByText("$31.50")).toBeInTheDocument();
+        expect(screen.getByText("Coste medio")).toBeInTheDocument();
+    });
+
+    it("la pestaña cuenta el total del servidor y la tabla dice de dónde salió cada cambio", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<StockMovementsPage />);
+
+        await user.click(await screen.findByRole("button", { name: "Historial de costes (25)" }));
+
+        expect(await screen.findByText("Recepción de la orden #ABCDEF12")).toBeInTheDocument();
+        expect(screen.getAllByText("Edición manual")).toHaveLength(19);
+        // El primer cambio partió de un producto sin coste: se dice, no se pinta $0.00.
+        expect(screen.getAllByText("Sin coste conocido").length).toBeGreaterThan(0);
+    });
+
+    it("«Siguiente» pide la página 2 del historial al servidor", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<StockMovementsPage />);
+
+        await user.click(await screen.findByRole("button", { name: "Historial de costes (25)" }));
+        await screen.findByText("Recepción de la orden #ABCDEF12");
+        // Los movimientos tienen su propia paginación en otra pestaña; aquí solo está la de costes.
+        await user.click(screen.getByRole("button", { name: "Siguiente" }));
+
+        await waitFor(() => expect(getCostes).toHaveBeenLastCalledWith("p1", 2));
+        expect(await screen.findByText("Página 2 de 2")).toBeInTheDocument();
+    });
+
+    it("sin cambios de coste lo dice", async () => {
+        getCostes.mockResolvedValue(costes(1, 0));
+        const user = userEvent.setup();
+        renderWithProviders(<StockMovementsPage />);
+
+        await user.click(await screen.findByRole("button", { name: "Historial de costes (0)" }));
+
+        expect(await screen.findByText(/Aún no hay cambios de coste/)).toBeInTheDocument();
     });
 });

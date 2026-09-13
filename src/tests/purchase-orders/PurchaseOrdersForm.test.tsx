@@ -9,9 +9,11 @@ import type { PurchaseOrder } from "@/modules/purchase-orders/types/purchase-ord
 // transiciones de estado, que en compras **suman stock** al recibir y lo restan al
 // cancelar una recibida (T0-04).
 
+// T5-01: `costPrice` es parte del contrato del producto, y `null` es «sin coste conocido».
 const PRODUCTOS = [
-    { id: "prod-1", name: "Teclado Logitech", price: 450 },
-    { id: "prod-2", name: "Monitor LG", price: 3200 },
+    { id: "prod-1", name: "Teclado Logitech", price: 450, costPrice: null },
+    { id: "prod-2", name: "Monitor LG", price: 3200, costPrice: null },
+    { id: "prod-3", name: "Ratón MX", price: 1200, costPrice: "830.5" },
 ];
 
 function orden(over: Partial<PurchaseOrder> = {}): PurchaseOrder {
@@ -48,7 +50,12 @@ vi.mock("@/modules/purchase-orders/hooks/usePurchaseOrders", () => ({
         isPending: false,
     }),
     useUpdatePurchaseOrder: () => ({
-        mutate: (vars: unknown) => actualizadas.push(vars),
+        // Como la mutación real en el caso feliz: invoca `onSuccess`, que es lo que cierra
+        // el diálogo de cancelación de una orden recibida (T5-01).
+        mutate: (vars: unknown, opciones?: { onSuccess?: () => void }) => {
+            actualizadas.push(vars);
+            opciones?.onSuccess?.();
+        },
         isPending: false,
     }),
     useDeletePurchaseOrder: () => ({
@@ -60,8 +67,10 @@ vi.mock("@/modules/purchase-orders/hooks/usePurchaseOrders", () => ({
     }),
 }));
 
+let rol: "ADMIN" | "USER" = "ADMIN";
+
 vi.mock("@/modules/auth/hooks/useMe", () => ({
-    useAuth: () => ({ user: { id: "u1", name: "Admin", role: "ADMIN" } }),
+    useAuth: () => ({ user: { id: "u1", name: "Admin", role: rol } }),
 }));
 
 vi.mock("@/modules/suppliers/hooks/useSuppliers", () => ({
@@ -94,6 +103,18 @@ describe("PurchaseOrdersPage — formulario (T2-19)", () => {
 
         expect(within(dialogo).getByLabelText("Nombre")).toHaveValue("Monitor LG");
         expect(within(dialogo).getByLabelText("P. unit.")).toHaveValue(3200);
+    });
+
+    it("con coste conocido propone el coste, no el precio de venta (T5-01)", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<PurchaseOrdersPage />);
+        const dialogo = await abrirFormulario(user);
+
+        await user.selectOptions(within(dialogo).getByLabelText("Producto"), "prod-3");
+
+        // Lo que se escriba aquí es lo que la recepción promediará: proponer los 1200 de
+        // venta subiría el coste medio sin que nadie lo hubiera decidido.
+        expect(within(dialogo).getByLabelText("P. unit.")).toHaveValue(830.5);
     });
 
     it("se pueden añadir y quitar ítems, y el último no se puede quitar", async () => {
@@ -152,6 +173,7 @@ describe("PurchaseOrdersPage — formulario (T2-19)", () => {
 
 describe("PurchaseOrdersPage — estados y acciones (T2-19)", () => {
     beforeEach(() => {
+        rol = "ADMIN";
         ordenes = [orden()];
         creadas.length = 0;
         actualizadas.length = 0;
@@ -194,13 +216,15 @@ describe("PurchaseOrdersPage — estados y acciones (T2-19)", () => {
         expect(borradas).toEqual([orden().id]);
     });
 
-    it("una orden recibida ya no ofrece acciones de estado", () => {
+    it("una orden recibida no ofrece recibir, ni la cancelación directa, ni eliminar", () => {
         ordenes = [orden({ status: "RECEIVED" })];
         renderWithProviders(<PurchaseOrdersPage />);
 
         expect(screen.getByText("Recibida")).toBeInTheDocument();
         expect(screen.queryByTitle("Marcar como recibida")).not.toBeInTheDocument();
+        // La de un clic es la de las pendientes; la recibida va por el diálogo (T5-01).
         expect(screen.queryByTitle("Cancelar orden")).not.toBeInTheDocument();
+        expect(screen.queryByTitle("Eliminar")).not.toBeInTheDocument();
     });
 
     it("desplegar una orden muestra sus ítems y el total", async () => {
@@ -212,6 +236,13 @@ describe("PurchaseOrdersPage — estados y acciones (T2-19)", () => {
         // 4 × 450 = 1800, con el formato único de T2-44.
         expect(screen.getAllByText("$1,800.00").length).toBeGreaterThan(0);
         expect(screen.getByText("Teclado Logitech")).toBeInTheDocument();
+    });
+
+    it("una orden cancelada no ofrece ninguna acción", () => {
+        ordenes = [orden({ status: "CANCELLED" })];
+        renderWithProviders(<PurchaseOrdersPage />);
+
+        expect(screen.queryAllByRole("button", { name: /Cancelar|Eliminar|recibida/ })).toHaveLength(0);
     });
 
     it("sin órdenes lo dice en vez de dejar la lista vacía", () => {

@@ -35,6 +35,7 @@ export const productoDeCatalogo: Product = segunContrato(productoSchema, {
     sku: "PER-LG-UG27",
     // Cadena, no número: `price` es `Decimal` en Prisma y viaja serializado.
     price: "299.99",
+    costPrice: null,
     stock: 12,
     minStock: 3,
     imageUrl: null,
