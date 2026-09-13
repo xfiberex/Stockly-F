@@ -137,6 +137,21 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         expect(orden, "la orden recién creada debería existir").toBeTruthy();
         const numero = orden!.id.slice(0, 8).toUpperCase();
 
+        // T5-03 — con esa venta pendiente quedan 17 sin comprometer, y el formulario no deja
+        // vender 18: lo dice en el campo y no crea la orden. Antes se aceptaba y el problema
+        // salía al enviarla.
+        await page.getByRole("button", { name: "Nueva orden" }).click();
+        const otra = page.getByRole("dialog");
+        await otra.getByLabel("Producto").first().selectOption({ label: producto });
+        await expect(otra.getByText(`Disponible: ${STOCK_INICIAL - CANTIDAD}`)).toBeVisible();
+        await otra.getByLabel("Cant.").first().fill(String(STOCK_INICIAL - CANTIDAD + 1));
+        await otra.getByRole("button", { name: "Crear orden" }).click();
+        await expect(otra.getByText("Supera lo disponible")).toBeVisible();
+        await otra.getByRole("button", { name: "Cancelar" }).click();
+        await expect(otra).toBeHidden();
+        const tras = (await api(page, "get", "/sale-orders?limit=100")) as { data: Array<{ items: Array<{ productId: string | null }> }> };
+        expect(tras.data.filter((o) => o.items.some((i) => i.productId === productId))).toHaveLength(1);
+
         // Enviar descuenta el stock.
         await page.getByRole("button", { name: `Marcar como enviada la Venta #${numero}` }).click();
         await expect.poll(() => stockDe(page, productId)).toBe(STOCK_INICIAL - CANTIDAD);
@@ -159,5 +174,47 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         await expect(page.getByText("Cancelado").first()).toBeVisible();
 
         await api(page, "delete", `/products/${productId}`);
+    });
+
+    test("una entrega parcial suma solo lo que llega, y cancelar retira eso (T5-04)", async ({ page }) => {
+        await login(page);
+        const producto = `E2E-compra-${sufijo()}`;
+        const PEDIDAS = 100;
+        const LLEGAN = 60;
+
+        // Producto y orden de partida por API: lo que se prueba aquí es la recepción.
+        const creado = (await api(page, "post", "/products", { name: producto, price: 50, stock: 0 })) as { id: string };
+        const orden = (await api(page, "post", "/purchase-orders", {
+            items: [{ productId: creado.id, productName: producto, quantity: PEDIDAS, unitPrice: 20 }],
+        })) as { id: string };
+        const numero = orden.id.slice(0, 8).toUpperCase();
+
+        // Llegan 60 de 100, registrados por la interfaz.
+        await page.goto("/purchase-orders");
+        await page.getByRole("button", { name: `Recibir mercancía de la orden #${numero}` }).click();
+        const entrega = page.getByRole("dialog");
+        const campo = entrega.getByLabel(`Llega ahora de ${producto}`);
+        // Propone lo que falta: el caso «llegó todo» no obliga a escribir.
+        await expect(campo).toHaveValue(String(PEDIDAS));
+        await campo.fill(String(LLEGAN));
+        await expect(entrega.getByText("La orden quedará recibida a medias.")).toBeVisible();
+        await entrega.getByRole("button", { name: "Registrar recepción" }).click();
+        await expect(entrega).toBeHidden();
+
+        // Antes de T5-04, recibir sumaba las 100.
+        await expect.poll(() => stockDe(page, creado.id)).toBe(LLEGAN);
+        // Dentro de **su** tarjeta: los dos proyectos del E2E crean a la vez una orden igual.
+        const tarjeta = page.locator("div.rounded-xl").filter({ hasText: `Orden #${numero}` });
+        await expect(tarjeta.getByText("Recibida a medias")).toBeVisible();
+        await expect(tarjeta.getByText(`${LLEGAN} de ${PEDIDAS} uds. recibidas`)).toBeVisible();
+
+        // Cancelar la orden a medias retira lo que llegó, no lo pedido.
+        await page.getByRole("button", { name: `Cancelar la orden recibida #${numero}` }).click();
+        const confirmacion = page.getByRole("dialog");
+        await expect(confirmacion.getByText(`Se retirarán ${LLEGAN} unidades`)).toBeVisible();
+        await confirmacion.getByRole("button", { name: "Cancelar la orden" }).click();
+        await expect(confirmacion).toBeHidden();
+
+        await expect.poll(() => stockDe(page, creado.id)).toBe(0);
     });
 });

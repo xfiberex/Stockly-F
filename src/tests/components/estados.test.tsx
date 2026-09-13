@@ -110,14 +110,15 @@ describe("buscarEstado", () => {
     });
 
     it("un estado desconocido no hereda el color de otro: sale en neutro y con su código", () => {
-        const estado = buscarEstado(ESTADO_ORDEN_COMPRA, "PARTIALLY_RECEIVED");
+        // Era `PARTIALLY_RECEIVED` hasta que T5-04 lo hizo real; ahora, uno que no existe.
+        const estado = buscarEstado(ESTADO_ORDEN_COMPRA, "IN_TRANSIT");
         // El código viaja como clave y `traducir()` devuelve la clave cuando no la conoce,
         // así que en pantalla sigue saliendo el código en crudo.
-        expect(estado.clave).toBe("PARTIALLY_RECEIVED");
+        expect(estado.clave).toBe("IN_TRANSIT");
 
         // Y se comprueba de verdad que eso es lo que se ve, no solo lo que se guarda.
         render(<EstadoBadge estado={estado} />);
-        expect(screen.getByText("PARTIALLY_RECEIVED")).toBeInTheDocument();
+        expect(screen.getByText("IN_TRANSIT")).toBeInTheDocument();
         expect(estado.variant).toBe("neutral");
         expect(estado.Icon).toBeTruthy();
     });

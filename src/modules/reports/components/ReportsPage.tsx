@@ -300,6 +300,7 @@ export default function ReportsPage() {
                                     <th className="px-6 py-3 text-right">{t("reportes.salidas30")}</th>
                                     <th className="px-6 py-3 text-right">{t("reportes.velocidadDiaria")}</th>
                                     <th className="px-6 py-3 text-right">{t("productos.campo.stockActual")}</th>
+                                    <th className="px-6 py-3 text-right">{t("productos.disponible")}</th>
                                     <th className="px-6 py-3 text-right">{t("reportes.diasRestantes")}</th>
                                     <th className="px-6 py-3">{t("reportes.alerta")}</th>
                                 </tr>
@@ -320,7 +321,9 @@ export default function ReportsPage() {
                                             </td>
                                             <td className="px-6 py-3 text-right text-foreground">{m.totalOutLast30Days}</td>
                                             <td className="px-6 py-3 text-right text-foreground-muted">{t("reportes.porDia", { valor: m.dailyVelocity.toFixed(2) })}</td>
-                                            <td className="px-6 py-3 text-right font-semibold text-foreground">{m.currentStock}</td>
+                                            <td className="px-6 py-3 text-right text-foreground-muted">{m.currentStock}</td>
+                                            {/* T5-03 — los días restantes se cuentan sobre esta columna, no sobre la de stock. */}
+                                            <td className="px-6 py-3 text-right font-semibold text-foreground">{m.availableStock}</td>
                                             <td className="px-6 py-3 text-right">
                                                 {m.daysToStockout !== null ? (
                                                     <span className={m.daysToStockout <= 7 ? "font-semibold text-danger" : m.daysToStockout <= 14 ? "font-medium text-warning" : "text-foreground-muted"}>

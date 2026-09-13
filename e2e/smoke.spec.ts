@@ -15,7 +15,7 @@ test.describe("Smoke: flujo principal autenticado", () => {
 
         // Dashboard cargado
         await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
-        await expect(page.getByText("Valor total del inventario activo")).toBeVisible();
+        await expect(page.getByText("Valor a precio de venta")).toBeVisible(); // T5-02 partió la tarjeta de valor en coste y venta
 
         // Navegar al catálogo de productos
         if (esMovil(viewport?.width)) {

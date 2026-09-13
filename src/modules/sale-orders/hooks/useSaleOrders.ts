@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { useT } from "@/shared/hooks/useIdioma";
 import { mensajeDeError } from "@/shared/lib/errorApi";
+import { queryKeys } from "@/shared/constants/queryKeys";
 import { getSaleOrders, createSaleOrder, updateSaleOrder, deleteSaleOrder } from "../api/sale-orders.api";
 import type { CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
 
@@ -18,6 +19,9 @@ export function useCreateSaleOrder() {
         mutationFn: (dto: CreateSaleOrderDto) => createSaleOrder(dto),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: SALE_ORDERS_KEY });
+            // Crear, enviar, cancelar o recibir cambia stock, coste o disponible: la lista de
+            // productos que está en caché ya no es la buena (T5-03).
+            qc.invalidateQueries({ queryKey: queryKeys.product });
             toast.success(t("ventas.creada"));
         },
         onError: (error) => toast.error(mensajeDeError(idioma, error)),
@@ -31,6 +35,9 @@ export function useUpdateSaleOrder() {
         mutationFn: ({ id, dto }: { id: string; dto: UpdateSaleOrderDto }) => updateSaleOrder(id, dto),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: SALE_ORDERS_KEY });
+            // Crear, enviar, cancelar o recibir cambia stock, coste o disponible: la lista de
+            // productos que está en caché ya no es la buena (T5-03).
+            qc.invalidateQueries({ queryKey: queryKeys.product });
             toast.success(t("ordenes.actualizada"));
         },
         onError: (error) => toast.error(mensajeDeError(idioma, error)),
@@ -44,6 +51,9 @@ export function useDeleteSaleOrder() {
         mutationFn: (id: string) => deleteSaleOrder(id),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: SALE_ORDERS_KEY });
+            // Crear, enviar, cancelar o recibir cambia stock, coste o disponible: la lista de
+            // productos que está en caché ya no es la buena (T5-03).
+            qc.invalidateQueries({ queryKey: queryKeys.product });
             toast.success(t("ordenes.eliminada"));
         },
         onError: (error) => toast.error(mensajeDeError(idioma, error)),

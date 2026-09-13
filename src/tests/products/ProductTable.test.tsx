@@ -2,7 +2,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "../utils";
 import { ProductTable } from "@/modules/products/components/ProductTable";
-import type { Product } from "@/modules/products/types/product.types";
+import type { ProductWithAvailability } from "@/modules/products/types/product.types";
 
 vi.mock("@/modules/products/hooks/useDeleteProduct", () => ({
     useDeleteProduct: vi.fn(),
@@ -39,7 +39,8 @@ beforeEach(() => {
     } as unknown as ReturnType<typeof useAuth>);
 });
 
-const makeProduct = (overrides: Partial<Product> = {}): Product => ({
+// T5-03: la tabla recibe lo que devuelve `GET /products`, que trae comprometido y disponible.
+const makeProduct = (overrides: Partial<ProductWithAvailability> = {}): ProductWithAvailability => ({
     id: "prod-1",
     name: "Monitor LG",
     description: "27 pulgadas",
@@ -48,6 +49,8 @@ const makeProduct = (overrides: Partial<Product> = {}): Product => ({
     price: "299.99",
     costPrice: null,
     stock: 10,
+    committedStock: 0,
+    availableStock: 10,
     minStock: 0,
     imageUrl: null,
     imagePublicId: null,
@@ -62,6 +65,30 @@ const makeProduct = (overrides: Partial<Product> = {}): Product => ({
     createdAt: "2024-01-01T00:00:00Z",
     updatedAt: "2024-01-01T00:00:00Z",
     ...overrides,
+});
+
+describe("ProductTable — disponible (T5-03)", () => {
+    it("con unidades comprometidas enseña el disponible bajo el stock", () => {
+        renderWithProviders(
+            <ProductTable products={[makeProduct({ stock: 10, committedStock: 4, availableStock: 6 })]} isLoading={false} onEdit={vi.fn()} />,
+        );
+
+        expect(screen.getByText("6 disp.")).toBeInTheDocument();
+    });
+
+    it("sin nada comprometido no lo repite: el disponible es el stock", () => {
+        renderWithProviders(<ProductTable products={[makeProduct()]} isLoading={false} onEdit={vi.fn()} />);
+
+        expect(screen.queryByText(/disp./)).not.toBeInTheDocument();
+    });
+
+    it("todo comprometido se marca en rojo", () => {
+        renderWithProviders(
+            <ProductTable products={[makeProduct({ stock: 3, committedStock: 3, availableStock: 0 })]} isLoading={false} onEdit={vi.fn()} />,
+        );
+
+        expect(screen.getByText("0 disp.")).toHaveClass("text-danger");
+    });
 });
 
 describe("ProductTable", () => {

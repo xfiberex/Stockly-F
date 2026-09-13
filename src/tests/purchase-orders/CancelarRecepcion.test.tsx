@@ -20,9 +20,9 @@ const ORDEN_RECIBIDA = {
     status: "RECEIVED",
     notes: null,
     items: [
-        { id: "i1", purchaseOrderId: "x", productId: "prod-1", product: null, productName: "Teclado", quantity: 3, unitPrice: "450", createdAt: "" },
-        { id: "i2", purchaseOrderId: "x", productId: "prod-2", product: null, productName: "Monitor", quantity: 2, unitPrice: "3200", createdAt: "" },
-        { id: "i3", purchaseOrderId: "x", productId: null, product: null, productName: "Ítem escrito a mano", quantity: 9, unitPrice: "10", createdAt: "" },
+        { id: "i1", purchaseOrderId: "x", productId: "prod-1", product: null, productName: "Teclado", quantity: 3, receivedQuantity: 3, unitPrice: "450", createdAt: "" },
+        { id: "i2", purchaseOrderId: "x", productId: "prod-2", product: null, productName: "Monitor", quantity: 2, receivedQuantity: 2, unitPrice: "3200", createdAt: "" },
+        { id: "i3", purchaseOrderId: "x", productId: null, product: null, productName: "Ítem escrito a mano", quantity: 9, receivedQuantity: 9, unitPrice: "10", createdAt: "" },
     ],
     createdAt: "2026-09-10T10:00:00.000Z",
     updatedAt: "2026-09-10T10:00:00.000Z",
@@ -48,6 +48,7 @@ vi.mock("@/modules/purchase-orders/hooks/usePurchaseOrders", () => ({
         isPending: false,
     }),
     useDeletePurchaseOrder: () => ({ mutate: vi.fn(), isPending: false }),
+    useReceivePurchaseOrder: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/modules/auth/hooks/useMe", () => ({

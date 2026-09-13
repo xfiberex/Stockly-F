@@ -11,6 +11,7 @@ import type {
     HistorialCosteDeProducto,
     HistorialPrecio,
     MovimientoStock,
+    ProductoConDisponible,
     MovimientosDeProducto,
     Producto,
     ProductoExportado,
@@ -25,6 +26,12 @@ export type SupplierRef = Referencia;
 export type TagRef = EtiquetaRef;
 
 export type Product = Producto;
+/**
+ * T5-03 — lo que devuelven `GET /products` y `GET /products/:id`: el producto con lo
+ * comprometido en ventas pendientes y el disponible. El resto de respuestas no lo traen, y por
+ * eso es un tipo aparte y no un campo opcional de `Product`: así no se puede leer donde no está.
+ */
+export type ProductWithAvailability = ProductoConDisponible;
 export type StockMovementType = TipoMovimiento;
 export type StockMovement = MovimientoStock;
 export type PriceHistoryEntry = HistorialPrecio;

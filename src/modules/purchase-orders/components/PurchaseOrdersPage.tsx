@@ -17,10 +17,11 @@ import {
     useCreatePurchaseOrder,
     useUpdatePurchaseOrder,
     useDeletePurchaseOrder,
+    useReceivePurchaseOrder,
 } from "@/modules/purchase-orders/hooks/usePurchaseOrders";
 import { exportPurchaseOrdersCsv } from "@/modules/purchase-orders/api/purchase-orders.api";
-import type { PurchaseOrder, CreatePurchaseOrderForm } from "@/modules/purchase-orders/types/purchase-orders.types";
-import { PlusIcon, TrashIcon, CheckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import type { PurchaseOrder, CreatePurchaseOrderForm, RecepcionForm } from "@/modules/purchase-orders/types/purchase-orders.types";
+import { PlusIcon, TrashIcon, XMarkIcon, ArrowDownTrayIcon, InboxArrowDownIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import { aNumero } from "@/shared/contratos";
 import type { Clave } from "@/shared/i18n/traducir";
@@ -46,9 +47,16 @@ function numeroDeOrden(id: string): string {
  * Los ítems que retiran stock al cancelar una orden recibida. Solo los ligados a un producto
  * del catálogo: el backend descuenta con `where: { productId: { not: null } }`
  * (`purchase-orders.service.ts`), igual que las ventas reponen en T2-42.
+ *
+ * T5-04 — y solo si recibieron algo: lo que se retira es `receivedQuantity`, no lo pedido.
  */
 function itemsQueRetiran(order: PurchaseOrder) {
-    return order.items.filter((item) => item.productId !== null);
+    return order.items.filter((item) => item.productId !== null && item.receivedQuantity > 0);
+}
+
+/** T5-04 — una orden con mercancía dentro: la que se cancela por el diálogo y no se elimina. */
+function tieneMercancia(order: PurchaseOrder) {
+    return order.status === "RECEIVED" || order.status === "PARTIALLY_RECEIVED";
 }
 
 // ── Confirmación de cancelación de una orden recibida ─────────────────────────
@@ -73,7 +81,7 @@ interface CancelarRecepcionModalProps {
 function CancelarRecepcionModal({ orden, isPending, onConfirm, onClose }: CancelarRecepcionModalProps) {
     const { t, tn } = useT();
     const items = orden ? itemsQueRetiran(orden) : [];
-    const unidades = items.reduce((sum, item) => sum + item.quantity, 0);
+    const unidades = items.reduce((sum, item) => sum + item.receivedQuantity, 0);
 
     return (
         <Modal isOpen={orden !== null} onClose={onClose} title={t("compras.cancelar.titulo")}>
@@ -82,7 +90,10 @@ function CancelarRecepcionModal({ orden, isPending, onConfirm, onClose }: Cancel
                     <p className="text-sm text-foreground">
                         {/* El número va suelto y no con `compras.numero` («Orden #…»), a diferencia
                             de ventas: la frase ya dice «la orden», y se leía «La orden Orden #…». */}
-                        {t("compras.cancelar.explicacion", { numero: numeroDeOrden(orden.id) })}
+                        {t(
+                            orden.status === "PARTIALLY_RECEIVED" ? "compras.cancelar.explicacionParcial" : "compras.cancelar.explicacion",
+                            { numero: numeroDeOrden(orden.id) },
+                        )}
                     </p>
 
                     {unidades > 0 ? (
@@ -94,7 +105,7 @@ function CancelarRecepcionModal({ orden, isPending, onConfirm, onClose }: Cancel
                                 {items.map((item) => (
                                     <li key={item.id} className="flex items-baseline justify-between gap-4 text-sm">
                                         <span className="text-foreground">{item.productName}</span>
-                                        <span className="tabular-nums text-foreground-muted">−{item.quantity}</span>
+                                        <span className="tabular-nums text-foreground-muted">−{item.receivedQuantity}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -117,6 +128,138 @@ function CancelarRecepcionModal({ orden, isPending, onConfirm, onClose }: Cancel
                     </div>
                 </div>
             )}
+        </Modal>
+    );
+}
+
+// ── Recepción de mercancía, parcial o completa ───────────────────────────────
+
+interface RecepcionModalProps {
+    orden: PurchaseOrder | null;
+    isPending: boolean;
+    onConfirm: (items: RecepcionForm["items"]) => void;
+    onClose: () => void;
+}
+
+/** Lo que falta por llegar de una línea. */
+function pendienteDe(item: PurchaseOrder["items"][number]): number {
+    return item.quantity - item.receivedQuantity;
+}
+
+/**
+ * T5-04 — registrar una entrega. Antes, «recibir» sumaba de un clic **todo** lo pedido, y un
+ * proveedor que entregaba 60 de 100 obligaba a mentir en un sentido o en el otro.
+ *
+ * Cada línea arranca con lo que le falta, así que el caso más común —llegó todo— sigue siendo
+ * confirmar sin escribir nada. El tope por línea se comprueba aquí mientras se escribe; el
+ * backend lo vuelve a comprobar (`RECEIPT_EXCEEDS_PENDING`) por si la orden cambió entre medias.
+ */
+function RecepcionModal({ orden, isPending, onConfirm, onClose }: RecepcionModalProps) {
+    const { t, tn } = useT();
+    // El diálogo se monta con la orden ya elegida (ver `key` en la página), así que el estado
+    // inicial sale de ella sin efectos que lo sincronicen.
+    const [cantidades, setCantidades] = useState<Record<string, string>>(() =>
+        Object.fromEntries((orden?.items ?? []).map((item) => [item.id, String(pendienteDe(item))])),
+    );
+
+    if (!orden) return null;
+
+    const lineas = orden.items.map((item) => {
+        const pendiente = pendienteDe(item);
+        const texto = cantidades[item.id] ?? "";
+        const cantidad = texto === "" ? 0 : Number(texto);
+        const error = !Number.isInteger(cantidad) || cantidad < 0
+            ? t("compras.recepcion.cantidadInvalida")
+            : cantidad > pendiente
+                ? t("compras.recepcion.superaPendiente", { pendiente })
+                : undefined;
+        return { item, pendiente, texto, cantidad, error };
+    });
+
+    const hayErrores = lineas.some((l) => l.error);
+    const aRecibir = lineas.filter((l) => !l.error && l.cantidad > 0);
+    const unidades = aRecibir.filter((l) => l.item.productId !== null).reduce((sum, l) => sum + l.cantidad, 0);
+    const quedaCompleta = lineas.every((l) => l.cantidad === l.pendiente);
+
+    return (
+        // Más ancho que el diálogo por defecto: la tabla pide 640 px (`CLASES_TABLA`) y
+        // «Llega ahora» quedaba fuera, a un desplazamiento del campo (visto en el navegador).
+        <Modal isOpen onClose={onClose} title={t("compras.recibir")} className="max-w-3xl">
+            <form
+                className="flex flex-col gap-4"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    if (hayErrores || aRecibir.length === 0) return;
+                    onConfirm(aRecibir.map((l) => ({ itemId: l.item.id, quantity: l.cantidad })));
+                }}
+            >
+                <p className="text-sm text-foreground">
+                    {t("compras.recepcion.explicacion", { numero: numeroDeOrden(orden.id) })}
+                </p>
+
+                <div className={CLASES_TABLA_DESPLAZABLE}>
+                    <table className={CLASES_TABLA}>
+                        <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
+                            <tr>
+                                <th className="pb-2">{t("ordenes.producto")}</th>
+                                <th className="pb-2 pl-3 text-right whitespace-nowrap">{t("compras.recepcion.pedido")}</th>
+                                <th className="pb-2 pl-3 text-right whitespace-nowrap">{t("compras.recepcion.yaRecibido")}</th>
+                                <th className="pb-2 pl-3 text-right whitespace-nowrap">{t("compras.recepcion.llegaAhora")}</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {lineas.map(({ item, pendiente, texto, error }) => (
+                                <tr key={item.id}>
+                                    <td className="py-2 text-foreground">
+                                        {item.productName}
+                                        {item.productId === null && (
+                                            <span className="block text-xs text-foreground-muted">{t("compras.recepcion.sinInventario")}</span>
+                                        )}
+                                    </td>
+                                    <td className="py-2 text-right tabular-nums text-foreground-muted">{item.quantity}</td>
+                                    <td className="py-2 text-right tabular-nums text-foreground-muted">{item.receivedQuantity}</td>
+                                    <td className="py-2 pl-3 text-right">
+                                        {pendiente === 0 ? (
+                                            <span className="text-xs text-success">{t("compras.recepcion.completa")}</span>
+                                        ) : (
+                                            <div className="ml-auto w-24">
+                                                <Input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    min={0}
+                                                    max={pendiente}
+                                                    step={1}
+                                                    className="w-full text-right tabular-nums"
+                                                    aria-label={t("compras.recepcion.llegaAhoraDe", { producto: item.productName })}
+                                                    value={texto}
+                                                    error={error}
+                                                    onChange={(e) => setCantidades((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                                                />
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {aRecibir.length > 0 ? (
+                    <p className="text-sm text-foreground-muted">
+                        {unidades > 0 && <>{tn("compras.recepcion.sumaran", unidades)} </>}
+                        {!hayErrores && t(quedaCompleta ? "compras.recepcion.quedaraCompleta" : "compras.recepcion.quedaraParcial")}
+                    </p>
+                ) : (
+                    <p className="text-sm text-foreground-muted">{t("compras.recepcion.nada")}</p>
+                )}
+
+                <div className="flex justify-end gap-2 border-t border-border pt-3">
+                    <Button type="button" variant="secondary" onClick={onClose}>{t("comun.volver")}</Button>
+                    <Button type="submit" isLoading={isPending} disabled={hayErrores || aRecibir.length === 0}>
+                        {t("compras.recepcion.confirmar")}
+                    </Button>
+                </div>
+            </form>
         </Modal>
     );
 }
@@ -281,6 +424,7 @@ export default function PurchaseOrdersPage() {
     const [formOpen, setFormOpen] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [ordenACancelar, setOrdenACancelar] = useState<PurchaseOrder | null>(null);
+    const [ordenARecibir, setOrdenARecibir] = useState<PurchaseOrder | null>(null);
 
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
@@ -294,9 +438,16 @@ export default function PurchaseOrdersPage() {
 
     const updateMutation = useUpdatePurchaseOrder();
     const deleteMutation = useDeletePurchaseOrder();
+    const receiveMutation = useReceivePurchaseOrder();
 
-    const handleReceive = (id: string) => {
-        updateMutation.mutate({ id, dto: { status: "RECEIVED" } });
+    // T5-04 — como la cancelación de una recibida: si el backend rechaza la entrega, el
+    // diálogo sigue abierto con lo escrito y el aviso lo pone el hook.
+    const confirmarRecepcion = (items: RecepcionForm["items"]) => {
+        if (!ordenARecibir) return;
+        receiveMutation.mutate(
+            { id: ordenARecibir.id, dto: { items } },
+            { onSuccess: () => setOrdenARecibir(null) },
+        );
     };
 
     const handleCancel = (id: string) => {
@@ -378,17 +529,25 @@ export default function PurchaseOrdersPage() {
                                             {formatearImporte(orderTotal(order))}
                                         </p>
                                         <p className="text-xs text-foreground-muted">{tn("ordenes.items", order.items.length)}</p>
+                                        {order.status === "PARTIALLY_RECEIVED" && (
+                                            <p className="text-xs text-foreground-muted tabular-nums">
+                                                {t("compras.recibidasDe", {
+                                                    recibidas: order.items.reduce((sum, item) => sum + item.receivedQuantity, 0),
+                                                    pedidas: order.items.reduce((sum, item) => sum + item.quantity, 0),
+                                                })}
+                                            </p>
+                                        )}
                                     </div>
                                     {isAdmin && order.status === "PENDING" && (
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 variant="ghost"
                                                 className={CLASES_BOTON_ICONO}
-                                                title={t("compras.marcarRecibida")}
-                                                isLoading={updateMutation.isPending}
-                                                onClick={() => handleReceive(order.id)}
+                                                title={t("compras.recibir")}
+                                                aria-label={t("compras.recibirDe", { numero: numeroDeOrden(order.id) })}
+                                                onClick={() => setOrdenARecibir(order)}
                                             >
-                                                <CheckIcon className="h-4 w-4 text-success" />
+                                                <InboxArrowDownIcon className="h-4 w-4 text-success" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
@@ -412,9 +571,21 @@ export default function PurchaseOrdersPage() {
                                     )}
                                     {/* T5-01: una orden recibida también se puede cancelar, y eso retira
                                         su stock (T0-04). No lleva «Eliminar»: el backend no permite borrar
-                                        una orden ya recibida. */}
-                                    {isAdmin && order.status === "RECEIVED" && (
+                                        una orden ya recibida. T5-04: lo mismo a medias, que además puede
+                                        seguir recibiendo. */}
+                                    {isAdmin && tieneMercancia(order) && (
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                            {order.status === "PARTIALLY_RECEIVED" && (
+                                                <Button
+                                                    variant="ghost"
+                                                    className={CLASES_BOTON_ICONO}
+                                                    title={t("compras.recibir")}
+                                                    aria-label={t("compras.recibirDe", { numero: numeroDeOrden(order.id) })}
+                                                    onClick={() => setOrdenARecibir(order)}
+                                                >
+                                                    <InboxArrowDownIcon className="h-4 w-4 text-success" />
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="ghost"
                                                 className={CLASES_BOTON_ICONO}
@@ -441,6 +612,9 @@ export default function PurchaseOrdersPage() {
                                                 <tr>
                                                     <th className="pb-2">{t("ordenes.producto")}</th>
                                                     <th className="pb-2 text-right">{t("ordenes.cantidadCorta")}</th>
+                                                    {order.status === "PARTIALLY_RECEIVED" && (
+                                                        <th className="pb-2 text-right">{t("compras.recibido")}</th>
+                                                    )}
                                                     <th className="pb-2 text-right">{t("ordenes.precioUnitario")}</th>
                                                     <th className="pb-2 text-right">{t("ordenes.subtotal")}</th>
                                                 </tr>
@@ -450,6 +624,9 @@ export default function PurchaseOrdersPage() {
                                                     <tr key={item.id}>
                                                         <td className="py-2 text-foreground">{item.productName}</td>
                                                         <td className="py-2 text-right text-foreground-muted">{item.quantity}</td>
+                                                        {order.status === "PARTIALLY_RECEIVED" && (
+                                                            <td className="py-2 text-right tabular-nums text-foreground-muted">{item.receivedQuantity}</td>
+                                                        )}
                                                         <td className="py-2 text-right text-foreground-muted">{formatearImporte(item.unitPrice)}</td>
                                                         <td className="py-2 text-right font-medium text-foreground">
                                                             {formatearImporte(Number(item.unitPrice) * item.quantity)}
@@ -459,7 +636,7 @@ export default function PurchaseOrdersPage() {
                                             </tbody>
                                             <tfoot className="border-t border-border">
                                                 <tr>
-                                                    <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">{t("comun.total")}</td>
+                                                    <td colSpan={order.status === "PARTIALLY_RECEIVED" ? 4 : 3} className="pt-2 text-right text-sm font-semibold text-foreground">{t("comun.total")}</td>
                                                     <td className="pt-2 text-right font-bold text-foreground">
                                                         {formatearImporte(orderTotal(order))}
                                                     </td>
@@ -495,6 +672,16 @@ export default function PurchaseOrdersPage() {
                 onConfirm={confirmarCancelacionDeRecepcion}
                 onClose={() => setOrdenACancelar(null)}
             />
+            {/* La `key` remonta el diálogo por orden: sus cantidades iniciales salen de ella. */}
+            {ordenARecibir && (
+                <RecepcionModal
+                    key={ordenARecibir.id}
+                    orden={ordenARecibir}
+                    isPending={receiveMutation.isPending}
+                    onConfirm={confirmarRecepcion}
+                    onClose={() => setOrdenARecibir(null)}
+                />
+            )}
         </div>
     );
 }

@@ -20,6 +20,11 @@ export interface PurchaseOrderQuery {
     status?: PurchaseOrderStatus;
 }
 
+/** T5-04 — una entrega: cuánto llega de cada línea. Las que no van no reciben nada. */
+export interface RecepcionForm {
+    items: Array<{ itemId: string; quantity: number }>;
+}
+
 export interface CreatePurchaseOrderForm {
     supplierId?: string;
     notes?: string;

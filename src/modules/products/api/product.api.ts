@@ -3,6 +3,7 @@ import { blobCsv, downloadBlob } from "@/modules/products/utils/importExport";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
 import type {
     Product,
+    ProductWithAvailability,
     CreateProductDto,
     UpdateProductDto,
     ProductQuery,
@@ -38,12 +39,12 @@ const toFormData = (dto: CreateProductDto | UpdateProductDto): FormData => {
 };
 
 export const getProducts = async (params?: ProductQuery) => {
-    const { data } = await api.get<ApiResponse<PaginatedResponse<Product>>>("/products", { params });
+    const { data } = await api.get<ApiResponse<PaginatedResponse<ProductWithAvailability>>>("/products", { params });
     return data.data!;
 };
 
 export const getProduct = async (id: string) => {
-    const { data } = await api.get<ApiResponse<Product>>(`/products/${id}`);
+    const { data } = await api.get<ApiResponse<ProductWithAvailability>>(`/products/${id}`);
     return data.data!;
 };
 

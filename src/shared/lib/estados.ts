@@ -10,6 +10,7 @@ import {
     AdjustmentsHorizontalIcon,
     DocumentArrowUpIcon,
     QuestionMarkCircleIcon,
+    InboxArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import type { BadgeVariant } from "@/shared/components/Badge";
 import type { StockMovementType } from "@/modules/products/types/product.types";
@@ -77,6 +78,8 @@ export const ACTIVIDAD = {
 
 export const ESTADO_ORDEN_COMPRA = {
     PENDING: { clave: "estado.compra.PENDING", variant: "warning", Icon: ClockIcon },
+    // T5-04 — ha entrado algo y falta algo: ni el aviso de pendiente ni el final correcto.
+    PARTIALLY_RECEIVED: { clave: "estado.compra.PARTIALLY_RECEIVED", variant: "info", Icon: InboxArrowDownIcon },
     RECEIVED: { clave: "estado.compra.RECEIVED", variant: "success", Icon: CheckCircleIcon },
     CANCELLED: { clave: "estado.compra.CANCELLED", variant: "danger", Icon: XCircleIcon },
 } satisfies Record<string, Estado>;

@@ -24,7 +24,7 @@ function orden(over: Partial<PurchaseOrder> = {}): PurchaseOrder {
         status: "PENDING",
         notes: null,
         items: [
-            { id: "i1", productId: "prod-1", productName: "Teclado Logitech", quantity: 4, unitPrice: 450 },
+            { id: "i1", productId: "prod-1", productName: "Teclado Logitech", quantity: 4, receivedQuantity: 0, unitPrice: 450 },
         ],
         createdAt: "2026-08-09T10:00:00.000Z",
         updatedAt: "2026-08-09T10:00:00.000Z",
@@ -36,6 +36,7 @@ let ordenes: PurchaseOrder[] = [];
 const creadas: unknown[] = [];
 const actualizadas: unknown[] = [];
 const borradas: string[] = [];
+const recibidas: unknown[] = [];
 
 vi.mock("@/modules/purchase-orders/hooks/usePurchaseOrders", () => ({
     usePurchaseOrders: () => ({
@@ -61,6 +62,13 @@ vi.mock("@/modules/purchase-orders/hooks/usePurchaseOrders", () => ({
     useDeletePurchaseOrder: () => ({
         mutate: (id: string, opciones?: { onSuccess?: () => void }) => {
             borradas.push(id);
+            opciones?.onSuccess?.();
+        },
+        isPending: false,
+    }),
+    useReceivePurchaseOrder: () => ({
+        mutate: (vars: unknown, opciones?: { onSuccess?: () => void }) => {
+            recibidas.push(vars);
             opciones?.onSuccess?.();
         },
         isPending: false,
@@ -178,24 +186,28 @@ describe("PurchaseOrdersPage — estados y acciones (T2-19)", () => {
         creadas.length = 0;
         actualizadas.length = 0;
         borradas.length = 0;
+        recibidas.length = 0;
     });
 
     it("una orden pendiente ofrece recibir, cancelar y eliminar", () => {
         renderWithProviders(<PurchaseOrdersPage />);
 
         expect(screen.getByText("Pendiente")).toBeInTheDocument();
-        expect(screen.getByTitle("Marcar como recibida")).toBeInTheDocument();
+        expect(screen.getByTitle("Recibir mercancía")).toBeInTheDocument();
         expect(screen.getByTitle("Cancelar orden")).toBeInTheDocument();
         expect(screen.getByTitle("Eliminar")).toBeInTheDocument();
     });
 
-    it("recibir la orden pide la transición a RECEIVED", async () => {
+    it("recibir la orden abre la entrega con todo lo pedido y, al confirmarla, lo registra", async () => {
         const user = userEvent.setup();
         renderWithProviders(<PurchaseOrdersPage />);
 
-        await user.click(screen.getByTitle("Marcar como recibida"));
+        // T5-04: ya no es un clic que suma todo; el caso «llegó todo» sigue sin escribir nada.
+        await user.click(screen.getByTitle("Recibir mercancía"));
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Registrar recepción" }));
 
-        expect(actualizadas).toEqual([{ id: orden().id, dto: { status: "RECEIVED" } }]);
+        expect(recibidas).toEqual([{ id: orden().id, dto: { items: [{ itemId: "i1", quantity: 4 }] } }]);
+        expect(actualizadas).toHaveLength(0);
     });
 
     it("cancelar pide la transición a CANCELLED", async () => {
@@ -221,7 +233,7 @@ describe("PurchaseOrdersPage — estados y acciones (T2-19)", () => {
         renderWithProviders(<PurchaseOrdersPage />);
 
         expect(screen.getByText("Recibida")).toBeInTheDocument();
-        expect(screen.queryByTitle("Marcar como recibida")).not.toBeInTheDocument();
+        expect(screen.queryByTitle("Recibir mercancía")).not.toBeInTheDocument();
         // La de un clic es la de las pendientes; la recibida va por el diálogo (T5-01).
         expect(screen.queryByTitle("Cancelar orden")).not.toBeInTheDocument();
         expect(screen.queryByTitle("Eliminar")).not.toBeInTheDocument();

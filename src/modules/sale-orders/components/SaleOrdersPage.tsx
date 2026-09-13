@@ -1,6 +1,6 @@
 import { formatearImporte } from "@/shared/lib/moneda";
 import { useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
@@ -26,6 +26,7 @@ import { formatearFecha } from "@/shared/lib/fechas";
 import { CLASES_BOTON_ICONO } from "@/shared/lib/clasesDeBoton";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
+import { cn } from "@/shared/lib/cn";
 
 // Mismo criterio que en las órdenes de compra: el descriptor de `shared/lib/estados`
 // lleva etiqueta, color e icono juntos (T2-38).
@@ -128,11 +129,24 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     const products = productsData?.data ?? [];
     const createMutation = useCreateSaleOrder();
 
-    const { register, handleSubmit, control, reset, setValue, formState: { errors } } = useForm<CreateSaleOrderDto>({
+    const { register, handleSubmit, control, reset, setValue, trigger, formState: { errors } } = useForm<CreateSaleOrderDto>({
         defaultValues: { items: [{ productName: "", quantity: 1, unitPrice: 0 }] },
     });
 
     const { fields, append, remove } = useFieldArray({ control, name: "items" });
+
+    // T5-03 — cuánto se pide de cada producto **sumando todas las líneas**, y cuánto hay
+    // disponible. El backend rechaza la venta con 409 si una suma supera lo disponible; aquí
+    // se dice mientras se escribe y no se deja enviar, para que el 409 quede como red para
+    // cuando el disponible cambió entre abrir el formulario y guardar.
+    const lineas = useWatch({ control, name: "items" }) ?? [];
+    const disponiblePorProducto = new Map(products.map((p) => [p.id, p.availableStock]));
+    const pedidoPorProducto = new Map<string, number>();
+    for (const linea of lineas) {
+        if (linea?.productId) pedidoPorProducto.set(linea.productId, (pedidoPorProducto.get(linea.productId) ?? 0) + (Number(linea.quantity) || 0));
+    }
+    const superaDisponible = (productId?: string) =>
+        !!productId && disponiblePorProducto.has(productId) && (pedidoPorProducto.get(productId) ?? 0) > disponiblePorProducto.get(productId)!;
 
     const productOptions = [
         { value: "", label: t("ordenes.escribirManualmente") },
@@ -145,6 +159,8 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
             setValue(`items.${idx}.productId`, productId);
             setValue(`items.${idx}.productName`, product.name);
             setValue(`items.${idx}.unitPrice`, Number(product.price));
+            // Cambiar de producto puede hacer que esta línea, u otra del mismo, pase a caber o deje de hacerlo.
+            if (errors.items) void trigger("items");
         }
     };
 
@@ -211,7 +227,32 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                     />
                                 </div>
                                 <div className="col-span-1 md:col-span-2">
-                                    <Input label={t("ordenes.cantidadCorta")} type="number" min="1" {...register(`items.${idx}.quantity`)} />
+                                    <Input
+                                        label={t("ordenes.cantidadCorta")}
+                                        type="number"
+                                        min="1"
+                                        error={te(errors.items?.[idx]?.quantity?.message)}
+                                        {...register(`items.${idx}.quantity`, {
+                                            // Se valida la **suma** del producto, no la línea: dos líneas
+                                            // de 3 sobre 5 disponibles no caben aunque cada una sí.
+                                            validate: (_valor, valores) => {
+                                                const productId = valores.items[idx]?.productId;
+                                                if (!productId || !disponiblePorProducto.has(productId)) return true;
+                                                const suma = valores.items
+                                                    .filter((l) => l.productId === productId)
+                                                    .reduce((s, l) => s + (Number(l.quantity) || 0), 0);
+                                                return suma <= disponiblePorProducto.get(productId)! || ("ventas.form.superaDisponible" satisfies Clave);
+                                            },
+                                            onChange: () => {
+                                                if (errors.items) void trigger("items");
+                                            },
+                                        })}
+                                    />
+                                    {lineas[idx]?.productId && disponiblePorProducto.has(lineas[idx].productId!) && !errors.items?.[idx]?.quantity && (
+                                        <p className={cn("mt-1 text-xs", superaDisponible(lineas[idx].productId) ? "text-danger" : "text-foreground-muted")}>
+                                            {t("ventas.form.disponible", { cantidad: disponiblePorProducto.get(lineas[idx].productId!)! })}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="col-span-1 md:col-span-2">
                                     <Input label={t("ordenes.precioUnitario")} type="number" step="0.01" min="0" {...register(`items.${idx}.unitPrice`)} />

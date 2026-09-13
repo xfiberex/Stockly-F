@@ -43,6 +43,7 @@ const RESUMEN: ReportSummary = {
             sku: "OFI-LOG-K1",
             totalOutLast30Days: 30,
             currentStock: 1,
+            availableStock: 1,
             minStock: 5,
             dailyVelocity: 1,
             daysToStockout: 1,

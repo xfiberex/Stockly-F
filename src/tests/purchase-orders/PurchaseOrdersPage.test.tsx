@@ -43,6 +43,7 @@ vi.mock("@/modules/purchase-orders/hooks/usePurchaseOrders", () => ({
     useCreatePurchaseOrder: () => ({ mutate: vi.fn(), isPending: false }),
     useUpdatePurchaseOrder: () => ({ mutate: vi.fn(), isPending: false }),
     useDeletePurchaseOrder: () => ({ mutate: vi.fn(), isPending: false }),
+    useReceivePurchaseOrder: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/modules/auth/hooks/useAuth", () => ({

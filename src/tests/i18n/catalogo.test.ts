@@ -106,7 +106,7 @@ describe("traducir", () => {
     });
 
     it("una clave que no existe se devuelve tal cual, que es como se ve un estado desconocido", () => {
-        expect(traducir("es", "PARTIALLY_RECEIVED" as Clave)).toBe("PARTIALLY_RECEIVED");
+        expect(traducir("es", "IN_TRANSIT" as Clave)).toBe("IN_TRANSIT");
     });
 });
 

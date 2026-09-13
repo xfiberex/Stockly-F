@@ -4,6 +4,7 @@ import type {
     PurchaseOrder,
     CreatePurchaseOrderForm,
     PurchaseOrderQuery,
+    RecepcionForm,
 } from "../types/purchase-orders.types";
 
 // Desde T2-03 el endpoint responde `{ data, meta }` como el resto de listados.
@@ -31,6 +32,12 @@ export const updatePurchaseOrder = async (
     dto: { supplierId?: string; notes?: string; status?: string },
 ): Promise<PurchaseOrder> => {
     const { data } = await api.patch<ApiResponse<PurchaseOrder>>(`/purchase-orders/${id}`, dto);
+    return data.data!;
+};
+
+/** T5-04 — registra una entrega, parcial o la última. */
+export const receivePurchaseOrder = async (id: string, dto: RecepcionForm): Promise<PurchaseOrder> => {
+    const { data } = await api.post<ApiResponse<PurchaseOrder>>(`/purchase-orders/${id}/receipts`, dto);
     return data.data!;
 };
 

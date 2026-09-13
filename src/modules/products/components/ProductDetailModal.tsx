@@ -7,7 +7,7 @@ import { NIVEL_STOCK, ACTIVIDAD, nivelDeStock } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
 import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 import { useAuth } from "@/modules/auth/hooks/useMe";
-import type { Product } from "@/modules/products/types/product.types";
+import type { Product, ProductWithAvailability } from "@/modules/products/types/product.types";
 import { useT } from "@/shared/hooks/useIdioma";
 import { formatearFechaHora } from "@/shared/lib/fechas";
 import {
@@ -16,6 +16,7 @@ import {
     PencilIcon,
     CubeIcon,
     CurrencyDollarIcon,
+    ShoppingCartIcon,
     TagIcon,
     TruckIcon,
     ExclamationTriangleIcon,
@@ -23,7 +24,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 interface ProductDetailModalProps {
-    product: Product | null;
+    product: ProductWithAvailability | null;
     onClose: () => void;
     onEdit: (product: Product) => void;
 }
@@ -50,7 +51,7 @@ function Field({ icon: Icon, label, children }: {
 }
 
 export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailModalProps) {
-    const { t, idioma } = useT();
+    const { t, tn, idioma } = useT();
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
 
@@ -137,6 +138,19 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                                 {product.stock}
                             </span>
                             {nivel !== "correcto" && <EstadoBadge estado={NIVEL_STOCK[nivel]} />}
+                        </div>
+                    </Field>
+
+                    {/* T5-03 — lo que se puede vender todavía: el stock menos lo prometido en
+                        ventas pendientes. Es lo que limita una venta nueva. */}
+                    <Field icon={ShoppingCartIcon} label={t("productos.disponible")}>
+                        <div>
+                            <span className={product.availableStock <= 0 ? "font-semibold text-danger tabular-nums" : "text-foreground tabular-nums"}>
+                                {product.availableStock}
+                            </span>
+                            {product.committedStock > 0 && (
+                                <p className="text-xs text-foreground-muted">{tn("productos.comprometido", product.committedStock)}</p>
+                            )}
                         </div>
                     </Field>
 

@@ -9,7 +9,7 @@ import { ProductDetailModal } from "@/modules/products/components/ProductDetailM
 import { useDeleteProduct } from "@/modules/products/hooks/useDeleteProduct";
 import { useRestoreProduct } from "@/modules/products/hooks/useRestoreProduct";
 import { useAuth } from "@/modules/auth/hooks/useMe";
-import type { Product } from "@/modules/products/types/product.types";
+import type { Product, ProductWithAvailability } from "@/modules/products/types/product.types";
 import { PencilIcon, TrashIcon, ArrowPathIcon, ChartBarIcon, EyeIcon, CubeIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
@@ -26,7 +26,7 @@ const CLASE_NIVEL: Record<NivelStock, string> = {
 };
 
 interface ProductTableProps {
-    products: Product[];
+    products: ProductWithAvailability[];
     isLoading: boolean;
     onEdit: (product: Product) => void;
     selectedIds?: Set<string>;
@@ -39,7 +39,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
     const restoreMutation = useRestoreProduct();
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
-    const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+    const [detailProduct, setDetailProduct] = useState<ProductWithAvailability | null>(null);
 
     if (isLoading) {
         return (
@@ -225,6 +225,13 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                             <span className="text-xs text-foreground-muted">/ {product.minStock}</span>
                                         )}
                                     </div>
+                                    {/* T5-03 — solo cuando hay algo comprometido: con cero, el
+                                        disponible es el stock y repetirlo sería ruido en cada fila. */}
+                                    {product.committedStock > 0 && (
+                                        <div className={cn("text-xs whitespace-nowrap", product.availableStock <= 0 ? "text-danger" : "text-foreground-muted")}>
+                                            {t("productos.disponibleCorto", { cantidad: product.availableStock })}
+                                        </div>
+                                    )}
                                 </td>
                                 <td className="px-4 py-3 lg:py-1.5">
                                     <EstadoBadge estado={product.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />

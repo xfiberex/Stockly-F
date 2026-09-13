@@ -3,7 +3,7 @@ import path from "node:path";
 import { screen, within } from "@testing-library/react";
 import { renderWithProviders } from "@/tests/utils";
 import { ProductTable } from "@/modules/products/components/ProductTable";
-import type { Product } from "@/modules/products/types/product.types";
+import type { ProductWithAvailability as Product } from "@/modules/products/types/product.types";
 
 // T2-39 — las cifras de una tabla existen para compararse en vertical.
 //
@@ -23,6 +23,8 @@ function producto(over: Partial<Product>): Product {
         sku: null,
         price: "1000.00",
         stock: 5,
+        committedStock: 0,
+        availableStock: 5,
         minStock: 0,
         isActive: true,
         imageUrl: null,
