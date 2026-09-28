@@ -84,6 +84,10 @@ jobs:
       JWT_SECRET: ci-solo-para-tests-no-es-un-secreto-real-000000
       JWT_EXPIRES_IN: 15m
       FRONTEND_URL: http://localhost:5173
+      # La del frontend, que en local sale de su `.env` (el valor de `.env.example`). Sin ella
+      # `src/config/env.ts` lanza al cargar y la aplicación se queda en blanco: la primera
+      # ejecución falló así, con los 14 tests esperando un formulario de login que no llegó.
+      VITE_API_URL: /api/v1
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
