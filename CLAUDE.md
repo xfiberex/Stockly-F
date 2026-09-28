@@ -44,7 +44,7 @@ El E2E sube el techo del rate limit del backend con `RATE_LIMIT_MAX` y `AUTH_RAT
 
 ## Convenciones
 
-- Gestor de paquetes: **pnpm 11.21.0** (fijado en `packageManager`, igual que el backend). No usar npm ni yarn. Se subió desde 11.2.2 el 2026-08-09: las versiones `<11.8.0` arrastraban avisos de path traversal y de ejecución de lifecycle scripts.
+- Gestor de paquetes: **pnpm 12.4.1** (fijado en `packageManager` y en el `Dockerfile`, igual que el backend). No usar npm ni yarn. Se subió desde 11.2.2 el 2026-08-09 —las versiones `<11.8.0` arrastraban avisos de path traversal y de ejecución de lifecycle scripts— y a la 12 el 2026-09-28.
 - Comentarios y documentación **en español**, como el resto del código.
 - **`.agents/` y `.claude/` se versionan a propósito** (T3-06): el proyecto se trabaja desde varias máquinas y el tooling viaja con él. Son la mayoría de los archivos rastreados, así que para buscar en el código conviene excluirlos: `git buscar X` —tras activar una vez `git config --local include.path ../.gitconfig-stockly`— o `git grep X -- ":!.agents" ":!.claude"`.
 - Las credenciales del E2E salen del seed del backend y son sobreescribibles por variables de entorno. **Nunca poner una contraseña real** en `e2e/`: ese directorio está versionado, y una fuga así ya obligó a reescribir el historial (tarea T0-06).

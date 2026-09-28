@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Versión exacta, igual que en el backend: corepack rechaza rangos semver y con
 # `@latest` el build deja de ser reproducible.
-RUN corepack enable && corepack prepare pnpm@11.21.0 --activate
+RUN corepack enable && corepack prepare pnpm@12.4.1 --activate
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile

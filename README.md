@@ -32,7 +32,7 @@ tienes clonado, esos documentos no están en disco:
 | Fuente | Inter (fontsource, autohospedada) |
 | Notificaciones | React Toastify |
 | Tests | Vitest + Testing Library · Playwright (E2E) |
-| Package manager | PNPM 11.21.0 *(fijado en `packageManager`; no usar npm ni yarn)* |
+| Package manager | PNPM 12.4.1 *(fijado en `packageManager`; no usar npm ni yarn)* |
 
 ---
 
