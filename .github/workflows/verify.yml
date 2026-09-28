@@ -1,0 +1,138 @@
+# La misma puerta que en local: `pnpm verify` y el E2E, tal cual. Ver
+# Stockly-B/docs/adr/0008-integracion-continua.md.
+#
+# Los dos repositorios se clonan **uno al lado del otro**, como en local, porque el frontend
+# depende del hermano en dos sitios: la frescura del contrato (T4-01), que sin él se omite, y el
+# E2E, que arranca el backend. Se clona su `main`: un cambio de contrato se sube **primero al
+# backend**, o este workflow falla diciendo que la copia está desfasada — que es verdad.
+#
+# El repositorio es público: permisos de solo lectura, acciones fijadas por SHA y
+# `pull_request`, no `pull_request_target`, para que el código de un fork nunca corra con
+# secretos. Este workflow no usa ninguno.
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: Stockly-F
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: Stockly-F
+          persist-credentials: false
+
+      # Solo para leer el contrato: ni se instala ni se ejecuta.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: xfiberex/Stockly-B
+          ref: main
+          path: Stockly-B
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: Stockly-F/package.json
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: Stockly-F/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: Stockly
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Las del backend que arranca Playwright (`webServer`). `global-setup.ts` lee también
+    # `DATABASE_URL` del entorno antes que del `.env`, que aquí no existe. No son secretos.
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/Stockly
+      JWT_SECRET: ci-solo-para-tests-no-es-un-secreto-real-000000
+      JWT_EXPIRES_IN: 15m
+      FRONTEND_URL: http://localhost:5173
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: Stockly-F
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: xfiberex/Stockly-B
+          ref: main
+          path: Stockly-B
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: Stockly-F/package.json
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            Stockly-F/pnpm-lock.yaml
+            Stockly-B/pnpm-lock.yaml
+
+      - name: Backend
+        working-directory: Stockly-B
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec prisma generate
+
+      - name: Frontend
+        working-directory: Stockly-F
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+
+      # Migraciones, seed y los dos servidores los pone Playwright (`global-setup.ts` y
+      # `webServer`): el mismo camino que `pnpm test:e2e:full` en local.
+      - name: E2E
+        working-directory: Stockly-F
+        run: pnpm test:e2e:full
+
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-resultados
+          path: |
+            Stockly-F/test-results
+            Stockly-F/playwright-report
+          retention-days: 7

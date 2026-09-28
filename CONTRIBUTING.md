@@ -18,8 +18,9 @@ una guía de estilo opcional: varias de sus reglas hacen fallar `pnpm verify` si
 —una utilidad cruda de la paleta de Tailwind, un radio fuera de los tres permitidos, una
 sombra que no sea uno de los dos tokens de elevación—.
 
-La puerta de calidad, igual que en el backend, es local: **este proyecto no usa CI**
-([ADR 0005](../Stockly-B/docs/adr/0005-sin-integracion-continua.md)).
+La puerta de calidad, igual que en el backend, se ejecuta en local antes de cada push, y GitHub
+Actions la repite junto con el E2E ([ADR 0008](../Stockly-B/docs/adr/0008-integracion-continua.md)). Un cambio de contrato se
+sube **primero al backend**: la CI de aquí compara la copia con su `main`.
 
 ```bash
 pnpm verify           # check → lint → test:coverage → build

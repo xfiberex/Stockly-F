@@ -1,5 +1,7 @@
 # Stockly — Frontend
 
+[![verify](https://github.com/xfiberex/Stockly-F/actions/workflows/verify.yml/badge.svg)](https://github.com/xfiberex/Stockly-F/actions/workflows/verify.yml)
+
 SPA para el sistema de gestión de inventario Stockly. El backend vive en un repositorio hermano,
 `Stockly-B`, que se clona al lado de este.
 
@@ -145,9 +147,9 @@ pnpm verify           # Puerta de calidad: check → lint → test:coverage → 
 pnpm test:e2e:full    # Playwright en chromium y Mobile Chrome, sin levantar nada a mano
 ```
 
-**Este proyecto no usa CI**, y es deliberado
-([ADR 0005](../Stockly-B/docs/adr/0005-sin-integracion-continua.md)): `pnpm verify` es la única
-puerta de calidad, y hay que pasarla en local antes de cada push. Un aviso nuevo de `pnpm lint` es
+`pnpm verify` es la puerta de calidad: se pasa en local antes de cada push, y GitHub Actions la
+repite, con el E2E, en cada push a `main` y en cada pull request
+([ADR 0008](../Stockly-B/docs/adr/0008-integracion-continua.md)). Un aviso nuevo de `pnpm lint` es
 una regresión, no ruido de fondo.
 
 ---

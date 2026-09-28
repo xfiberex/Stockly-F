@@ -28,9 +28,9 @@ Si no tienes clonado `Stockly-B`, esos documentos no están en disco: clónalo a
 
 **Al cerrar una tarea, anótala en el ROADMAP**, aunque el cambio sea de este repositorio.
 
-## Verificación: sin CI, todo en local
+## Verificación: `pnpm verify`, en local y en la CI
 
-Este proyecto **no usa CI**. No hay GitHub Actions ni pipeline de ningún proveedor, y no deben proponerse: se descartaron deliberadamente el 2026-08-06. Por la misma razón, `playwright.config.ts` no depende de `process.env.CI`. La puerta de calidad es un comando local:
+La puerta de calidad es un comando, el mismo en el portátil y en GitHub Actions ([ADR 0008](../Stockly-B/docs/adr/0008-integracion-continua.md), 2026-09-28, desde que los repositorios son públicos). **Se ejecuta en local antes de cada commit**: la CI lo repite, no lo sustituye. El workflow ([.github/workflows/verify.yml](.github/workflows/verify.yml)) tiene dos jobs —`verify` y el E2E— y **clona el `main` de `Stockly-B` al lado**, así que la frescura del contrato se comprueba de verdad y un cambio de contrato tiene que subirse antes al backend. `playwright.config.ts` solo mira `process.env.CI` para `forbidOnly`; los reintentos siguen en 0 también ahí. La puerta:
 
 ```bash
 pnpm verify

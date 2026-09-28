@@ -9,8 +9,11 @@ const API_URL = process.env.E2E_API_URL ?? "http://localhost:3000";
 export default defineConfig({
     testDir: "./e2e",
     fullyParallel: true,
-    // Ejecución siempre local: sin CI que rechace `.only` ni reintentos automáticos.
-    forbidOnly: false,
+    // En la CI (ADR 0008) un `.only` olvidado haría pasar el workflow ejecutando un solo test,
+    // así que ahí se rechaza; en local se deja, que es donde se usa para aislar uno.
+    forbidOnly: !!process.env.CI,
+    // Sin reintentos, tampoco en la CI: las veces que un E2E ha fallado de forma intermitente
+    // ha sido un defecto real —de la prueba o de la aplicación—, y reintentar lo esconde.
     retries: 0,
     reporter: "list",
     globalSetup: "./e2e/global-setup.ts",
