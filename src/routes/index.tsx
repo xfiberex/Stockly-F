@@ -15,6 +15,7 @@ const ResendVerificationPage = lazy(() => import("@/modules/auth/components/Rese
 const DashboardPage = lazy(() => import("@/modules/dashboard/components/DashboardPage"));
 const ProfilePage = lazy(() => import("@/modules/auth/components/ProfilePage"));
 const ReportsPage = lazy(() => import("@/modules/reports/components/ReportsPage"));
+const InformePorPeriodoPage = lazy(() => import("@/modules/reports/components/InformePorPeriodoPage"));
 const PurchaseOrdersPage = lazy(() => import("@/modules/purchase-orders/components/PurchaseOrdersPage"));
 const SugerenciasReposicionPage = lazy(() => import("@/modules/purchase-orders/components/SugerenciasReposicionPage"));
 const SaleOrdersPage = lazy(() => import("@/modules/sale-orders/components/SaleOrdersPage"));
@@ -68,6 +69,8 @@ export const router = createBrowserRouter([
             { index: true, element: <S><DashboardPage /></S> },
             { path: "profile", element: <S><ProfilePage /></S> },
             { path: "reports", element: <S><ReportsPage /></S> },
+            // T5-09 — para cualquier usuario, como el resumen: solo lee.
+            { path: "reports/period", element: <S><InformePorPeriodoPage /></S> },
             { path: "purchase-orders", element: <S><PurchaseOrdersPage /></S> },
             // T5-05 — solo ADMIN: generar órdenes lo es, y la pantalla existe para eso.
             { path: "purchase-orders/suggestions", element: <ProtectedRoute requireRole="ADMIN"><S><SugerenciasReposicionPage /></S></ProtectedRoute> },

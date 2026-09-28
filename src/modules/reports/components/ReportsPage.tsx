@@ -18,11 +18,13 @@ import {
     ExclamationTriangleIcon,
     CheckCircleIcon,
     ArrowDownTrayIcon,
+    CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import { MargenRealizado } from "./MargenRealizado";
 import { LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
-import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
+import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
+import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 import { cn } from "@/shared/lib/cn";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
@@ -63,10 +65,17 @@ export default function ReportsPage() {
                     <h1 className="text-2xl font-bold text-foreground">{t("ruta.reportes")}</h1>
                     <p className="text-sm text-foreground-muted mt-1">{t("reportes.subtitulo")}</p>
                 </div>
-                <Button variant="secondary" onClick={downloadReportPdf}>
-                    <ArrowDownTrayIcon className="h-4 w-4" />
-                    {t("reportes.descargarPdf")}
-                </Button>
+                <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
+                    {/* T5-09 — «cuánto vendimos en marzo» no cabe en esta foto del momento. */}
+                    <Link to="/reports/period" className={clasesDeBoton("secondary")}>
+                        <CalendarDaysIcon className="h-4 w-4" />
+                        {t("reportes.porPeriodo")}
+                    </Link>
+                    <Button variant="secondary" onClick={downloadReportPdf}>
+                        <ArrowDownTrayIcon className="h-4 w-4" />
+                        {t("reportes.descargarPdf")}
+                    </Button>
+                </div>
             </div>
 
             {/* KPIs — mismas dos densidades que las del dashboard, que ya las tenía y estas

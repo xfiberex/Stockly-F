@@ -18,6 +18,7 @@ export const TITULOS_DE_RUTA: ReadonlyArray<{ patron: string; titulo: Clave }> =
     { patron: "/", titulo: "ruta.dashboard" },
     { patron: "/profile", titulo: "ruta.perfil" },
     { patron: "/reports", titulo: "ruta.reportes" },
+    { patron: "/reports/period", titulo: "ruta.informePeriodo" },
     { patron: "/purchase-orders", titulo: "ruta.ordenesCompra" },
     { patron: "/purchase-orders/suggestions", titulo: "ruta.sugerenciasReposicion" },
     { patron: "/sale-orders", titulo: "ruta.ordenesVenta" },

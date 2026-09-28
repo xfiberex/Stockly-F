@@ -119,4 +119,36 @@ describe("SettingsPage", () => {
 
         expect(mockMutate.mock.calls[0][0]).toEqual({ lowStockAlertEnabled: true });
     });
+
+    describe("La zona horaria del negocio (T5-09)", () => {
+        const zona: SettingEntry = {
+            key: "timezone",
+            label: "Zona horaria del negocio",
+            description: "",
+            type: "string",
+            value: "America/Santo_Domingo",
+        };
+
+        it("se elige de una lista, no se escribe a mano, y se guarda la elegida", async () => {
+            const user = userEvent.setup();
+            settingsData = [zona];
+            renderWithProviders(<SettingsPage />);
+
+            const selector = screen.getByRole("combobox", { name: "Zona horaria del negocio" });
+            expect(selector).toHaveValue("America/Santo_Domingo");
+            expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+
+            await user.selectOptions(selector, "America/New_York");
+            await user.click(screen.getByRole("button", { name: /guardar/i }));
+
+            expect(mockMutate.mock.calls[0][0]).toEqual({ timezone: "America/New_York" });
+        });
+
+        it("si la guardada no está en la lista del navegador, sigue saliendo la que está en vigor", () => {
+            settingsData = [{ ...zona, value: "Etc/GMT+4" }];
+            renderWithProviders(<SettingsPage />);
+
+            expect(screen.getByRole("combobox", { name: "Zona horaria del negocio" })).toHaveValue("Etc/GMT+4");
+        });
+    });
 });

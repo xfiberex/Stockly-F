@@ -267,4 +267,39 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         // Un borrador no mueve stock.
         expect(await stockDe(page, creado.id)).toBe(0);
     });
+
+    test("lo recibido y lo enviado hoy sale en el informe de este mes, y se exporta (T5-09)", async ({ page }) => {
+        await login(page);
+        const producto = `E2E-periodo-${sufijo()}`;
+
+        // Una compra recibida y una venta enviada ahora mismo. El precio de venta es alto a
+        // propósito: el desglose enseña los 50 que más facturan, y el seed ya tiene ventas
+        // este mes; así el producto del escenario sale el primero.
+        const creado = (await api(page, "post", "/products", { name: producto, price: 90000, stock: 0 })) as { id: string };
+        const compra = (await api(page, "post", "/purchase-orders", {
+            items: [{ productId: creado.id, productName: producto, quantity: 5, unitPrice: 10 }],
+        })) as { id: string; items: Array<{ id: string }> };
+        await api(page, "post", `/purchase-orders/${compra.id}/receipts`, { items: [{ itemId: compra.items[0]!.id, quantity: 5 }] });
+        const venta = (await api(page, "post", "/sale-orders", {
+            customerName: "E2E periodo",
+            items: [{ productId: creado.id, productName: producto, quantity: 2, unitPrice: 90000 }],
+        })) as { id: string };
+        await api(page, "patch", `/sale-orders/${venta.id}`, { status: "SHIPPED" });
+
+        await page.goto("/reports");
+        await page.getByRole("link", { name: "Ventas y compras por periodo" }).click();
+        await expect(page.getByRole("heading", { name: "Ventas y compras por periodo", level: 1 })).toBeVisible();
+        // Abre en «este mes», y el rango que enseña es el que resolvió el backend.
+        await expect(page.getByRole("button", { name: "Este mes" })).toHaveAttribute("aria-pressed", "true");
+        await expect(page.getByText(/zona horaria America\/Santo_Domingo/)).toBeVisible();
+
+        // Uds. vendidas, ventas, uds. compradas, compras.
+        const fila = page.getByRole("row", { name: new RegExp(producto) });
+        await expect(fila.getByRole("cell")).toHaveText([new RegExp(producto), "Sin categoría", "2", "$180,000.00", "5", "$50.00"]);
+
+        // El CSV es el del periodo que se está viendo.
+        const descarga = page.waitForEvent("download");
+        await page.getByRole("button", { name: "Exportar CSV" }).click();
+        expect((await descarga).suggestedFilename()).toMatch(/^informe-\d{4}-\d{2}-01-\d{4}-\d{2}-\d{2}\.csv$/);
+    });
 });

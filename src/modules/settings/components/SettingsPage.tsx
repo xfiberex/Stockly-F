@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/shared/components/Button";
+import { Select } from "@/shared/components/Select";
+import { cn } from "@/shared/lib/cn";
 import { Spinner } from "@/shared/components/Spinner";
 import { SelectorDeIdioma } from "@/modules/settings/components/SelectorDeIdioma";
 import { SelectorDeTema } from "@/modules/settings/components/SelectorDeTema";
@@ -23,6 +25,18 @@ function textoDeAjuste(
 ): string {
     const clave = `ajuste.${key}.${parte}`;
     return existeClave(clave) ? t(clave) : respaldo;
+}
+
+/**
+ * T5-09 — las zonas horarias que conoce el navegador, para no escribir un nombre IANA a mano:
+ * un error de tecleo lo rechazaría el backend, pero con una lista no llega a haberlo. La zona
+ * guardada se añade si el navegador no la lista —`UTC`, por ejemplo, no sale en todos—, o el
+ * desplegable enseñaría otra distinta de la que está en vigor.
+ */
+function opcionesDeZona(guardada: string) {
+    const zonas = Intl.supportedValuesOf("timeZone");
+    if (!zonas.includes(guardada)) zonas.unshift(guardada);
+    return zonas.map((zona) => ({ value: zona, label: zona.replaceAll("_", " ") }));
 }
 
 function BooleanToggle({ value, onChange }: { value: SettingValue; onChange: (value: boolean) => void }) {
@@ -123,7 +137,16 @@ export default function SettingsPage() {
             ) : (
                 <div className="bg-surface rounded-xl border border-border divide-y divide-border">
                     {settings.map((entry) => (
-                        <div key={entry.key} className="px-6 py-5 flex items-center justify-between gap-6">
+                        <div
+                            key={entry.key}
+                            // T5-09 — en móvil, un campo o un desplegable van **debajo** del texto:
+                            // al lado dejaban la descripción en una columna de tres palabras y
+                            // cortaban el nombre de la zona horaria. El interruptor sí cabe al lado.
+                            className={cn(
+                                "px-6 py-5 flex justify-between gap-6",
+                                entry.type === "boolean" ? "items-center" : "flex-col gap-3 sm:flex-row sm:items-center sm:gap-6",
+                            )}
+                        >
                             {/*
                               * T4-04 — el rótulo lo manda la API **en español**, así que la
                               * interfaz prefiere el suyo y solo cae al del servidor si el
@@ -140,6 +163,14 @@ export default function SettingsPage() {
                                     <BooleanToggle
                                         value={valorDe(entry)}
                                         onChange={(value) => handleChange(entry.key, value)}
+                                    />
+                                ) : entry.key === "timezone" ? (
+                                    <Select
+                                        aria-label={textoDeAjuste(t, entry.key, "titulo", entry.label)}
+                                        value={String(valorDe(entry))}
+                                        options={opcionesDeZona(String(entry.value))}
+                                        onChange={(e) => handleChange(entry.key, e.target.value)}
+                                        className="w-full sm:w-60"
                                     />
                                 ) : (
                                     <input

@@ -48,6 +48,16 @@ export function formatearFecha(idioma: Idioma, iso: string): string {
     return new Date(iso).toLocaleDateString(LOCALES[idioma], CORTO);
 }
 
+/**
+ * T5-09 — un **día de calendario** (`2026-03-01`), no un instante. `formatearFecha` no
+ * sirve para esto: `new Date("2026-03-01")` es la medianoche UTC, y en un navegador al oeste
+ * de Greenwich se pinta «28 feb». Aquí se fija `timeZone: "UTC"` en los dos lados, así que el
+ * día que sale es el que se escribió, esté donde esté quien mira.
+ */
+export function formatearDia(idioma: Idioma, dia: string): string {
+    return new Date(`${dia}T00:00:00Z`).toLocaleDateString(LOCALES[idioma], { ...CORTO, timeZone: "UTC" });
+}
+
 /** Con hora y minuto, para cuando el instante importa (auditoría, detalle de producto). */
 export function formatearFechaHora(idioma: Idioma, iso: string): string {
     return new Date(iso).toLocaleDateString(LOCALES[idioma], CON_HORA);
