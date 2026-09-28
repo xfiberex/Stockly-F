@@ -9,8 +9,15 @@ import {
     updatePurchaseOrder,
     deletePurchaseOrder,
     receivePurchaseOrder,
+    getReorderSuggestions,
+    generateFromSuggestions,
 } from "../api/purchase-orders.api";
-import type { CreatePurchaseOrderForm, PurchaseOrderQuery, RecepcionForm } from "../types/purchase-orders.types";
+import type {
+    CreatePurchaseOrderForm,
+    GenerarDesdeSugerenciasForm,
+    PurchaseOrderQuery,
+    RecepcionForm,
+} from "../types/purchase-orders.types";
 
 const QUERY_KEY = ["purchase-orders"] as const;
 
@@ -81,6 +88,31 @@ export function useDeletePurchaseOrder() {
             // productos que está en caché ya no es la buena (T5-03).
             qc.invalidateQueries({ queryKey: queryKeys.product });
             toast.success(t("ordenes.eliminada"));
+        },
+        onError: (error) => toast.error(mensajeDeError(idioma, error)),
+    });
+}
+
+/**
+ * T5-05 — cuelga de la clave de compras a propósito: crear, recibir o cancelar una orden
+ * cambia «pendiente de recibir», y con eso la sugerencia. Invalidar compras la refresca sin
+ * que cada mutación tenga que acordarse de ella.
+ */
+export function useReorderSuggestions(params: { page: number; limit: number }) {
+    return useQuery({
+        queryKey: [...QUERY_KEY, "suggestions", params],
+        queryFn: () => getReorderSuggestions(params),
+    });
+}
+
+export function useGenerateFromSuggestions() {
+    const qc = useQueryClient();
+    const { tn, idioma } = useT();
+    return useMutation({
+        mutationFn: (dto: GenerarDesdeSugerenciasForm) => generateFromSuggestions(dto),
+        onSuccess: (ordenes) => {
+            qc.invalidateQueries({ queryKey: QUERY_KEY });
+            toast.success(tn("reposicion.generadas", ordenes.length));
         },
         onError: (error) => toast.error(mensajeDeError(idioma, error)),
     });

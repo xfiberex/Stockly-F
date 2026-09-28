@@ -5,7 +5,9 @@ import type {
     CreatePurchaseOrderForm,
     PurchaseOrderQuery,
     RecepcionForm,
+    GenerarDesdeSugerenciasForm,
 } from "../types/purchase-orders.types";
+import type { SugerenciasReposicion } from "@/shared/contratos";
 
 // Desde T2-03 el endpoint responde `{ data, meta }` como el resto de listados.
 export const getPurchaseOrders = async (
@@ -50,4 +52,16 @@ export const exportPurchaseOrdersCsv = (): void => {
     a.href = `${api.defaults.baseURL}/purchase-orders/export?format=csv`;
     a.download = `stockly-compras-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
+};
+
+/** T5-05 — lo que la fórmula de reposición propone pedir, paginado. */
+export const getReorderSuggestions = async (params?: { page?: number; limit?: number }): Promise<SugerenciasReposicion> => {
+    const { data } = await api.get<ApiResponse<SugerenciasReposicion>>("/purchase-orders/suggestions", { params });
+    return data.data!;
+};
+
+/** T5-05 — una orden pendiente por proveedor con las líneas revisadas. */
+export const generateFromSuggestions = async (dto: GenerarDesdeSugerenciasForm): Promise<PurchaseOrder[]> => {
+    const { data } = await api.post<ApiResponse<PurchaseOrder[]>>("/purchase-orders/suggestions", dto);
+    return data.data!;
 };

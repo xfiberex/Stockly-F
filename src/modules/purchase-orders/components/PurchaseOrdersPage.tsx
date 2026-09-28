@@ -1,5 +1,6 @@
 import { formatearImporte } from "@/shared/lib/moneda";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
@@ -21,12 +22,12 @@ import {
 } from "@/modules/purchase-orders/hooks/usePurchaseOrders";
 import { exportPurchaseOrdersCsv } from "@/modules/purchase-orders/api/purchase-orders.api";
 import type { PurchaseOrder, CreatePurchaseOrderForm, RecepcionForm } from "@/modules/purchase-orders/types/purchase-orders.types";
-import { PlusIcon, TrashIcon, XMarkIcon, ArrowDownTrayIcon, InboxArrowDownIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, XMarkIcon, ArrowDownTrayIcon, InboxArrowDownIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import { aNumero } from "@/shared/contratos";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearFecha } from "@/shared/lib/fechas";
-import { CLASES_BOTON_ICONO } from "@/shared/lib/clasesDeBoton";
+import { CLASES_BOTON_ICONO, clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
@@ -490,6 +491,14 @@ export default function PurchaseOrdersPage() {
                         icon={ArrowDownTrayIcon}
                         items={[{ label: t("ordenes.exportarCsv"), onClick: exportPurchaseOrdersCsv }]}
                     />
+                    {/* T5-05 — un enlace y no un botón: lleva a otra pantalla, y así se puede abrir
+                        en otra pestaña. Solo ADMIN, que es quien puede generar las órdenes. */}
+                    {isAdmin && (
+                        <Link to="/purchase-orders/suggestions" className={clasesDeBoton("secondary")}>
+                            <SparklesIcon className="h-4 w-4" />
+                            {t("reposicion.boton")}
+                        </Link>
+                    )}
                     {isAdmin && (
                         <Button onClick={() => setFormOpen(true)}>
                             <PlusIcon className="h-4 w-4" />

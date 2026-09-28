@@ -217,4 +217,54 @@ test.describe("Flujos que cruzan frontend y backend", () => {
 
         await expect.poll(() => stockDe(page, creado.id)).toBe(0);
     });
+
+    test("una sugerencia de reposición se revisa y se convierte en una orden pendiente (T5-05)", async ({ page }) => {
+        await login(page);
+        const marca = sufijo();
+        const producto = `E2E-repo-${marca}`;
+        const MINIMO = 12;
+
+        // Proveedor con plazo y producto bajo mínimo, sin compras ni coste: su sugerencia no
+        // trae precio y tiene que escribirse, que es el caso que no puede rellenarse solo.
+        const proveedor = (await api(page, "post", "/suppliers", { name: `E2E-prov-${marca}`, leadTimeDays: 7 })) as { id: string };
+        const creado = (await api(page, "post", "/products", {
+            name: producto, price: 50, stock: 0, minStock: MINIMO, supplierId: proveedor.id,
+        })) as { id: string };
+
+        await page.goto("/purchase-orders");
+        await page.getByRole("link", { name: "Sugerencias de reposición" }).click();
+        await expect(page.getByRole("heading", { name: "Sugerencias de reposición", level: 1 })).toBeVisible();
+
+        const incluir = page.getByRole("checkbox", { name: `Incluir ${producto}` });
+        // Sin velocidad de salida: lo sugerido es cubrir el mínimo.
+        await expect(page.getByLabel(`Cantidad a pedir de ${producto}`)).toHaveValue(String(MINIMO));
+        // Sin precio conocido empieza sin marcar y vacío: nunca el precio de venta.
+        await expect(incluir).not.toBeChecked();
+        await expect(page.getByLabel(`Precio unitario de ${producto}`)).toHaveValue("");
+
+        // «Generar» crea todo lo marcado en la página, y el seed deja marcadas las líneas con
+        // precio conocido: se desmarcan para no crear órdenes ajenas al escenario. De una en una
+        // y siempre la primera: `.all()` fija posiciones dentro de «marcadas», y cada casilla
+        // desmarcada desplaza a las demás.
+        const marcadas = page.getByRole("checkbox", { checked: true });
+        while ((await marcadas.count()) > 0) await marcadas.first().uncheck();
+
+        await incluir.check();
+        await page.getByLabel(`Precio unitario de ${producto}`).fill("4.5");
+        const respuesta = page.waitForResponse((r) => r.url().includes("/purchase-orders/suggestions") && r.request().method() === "POST");
+        await page.getByRole("button", { name: "Generar órdenes" }).click();
+        expect((await respuesta).status()).toBe(201);
+
+        // Lo pedido ya cuenta como pendiente de recibir: la sugerencia desaparece sola.
+        await expect(incluir).toBeHidden();
+
+        const { data: ordenes } = (await api(page, "get", "/purchase-orders?status=PENDING&limit=100")) as {
+            data: Array<{ supplierId: string | null; items: Array<{ productId: string | null; quantity: number; unitPrice: string }> }>;
+        };
+        const generada = ordenes.filter((o) => o.supplierId === proveedor.id);
+        expect(generada).toHaveLength(1);
+        expect(generada[0]!.items).toEqual([expect.objectContaining({ productId: creado.id, quantity: MINIMO, unitPrice: "4.5" })]);
+        // Un borrador no mueve stock.
+        expect(await stockDe(page, creado.id)).toBe(0);
+    });
 });

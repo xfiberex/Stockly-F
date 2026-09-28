@@ -10,7 +10,7 @@ import { useSuppliers } from "@/modules/suppliers/hooks/useSuppliers";
 import { useCreateSupplier, useUpdateSupplier, useDeleteSupplier } from "@/modules/suppliers/hooks/useSupplierMutations";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { PencilIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
-import type { Supplier, SupplierForm } from "@/modules/suppliers/types/supplier.types";
+import type { Supplier, SupplierForm, SupplierFormValues } from "@/modules/suppliers/types/supplier.types";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
@@ -30,7 +30,23 @@ const supplierSchema = z.object({
     ]).optional(),
     phone: z.string().trim().max(30, "validacion.maximo30" satisfies Clave).optional(),
     notes: z.string().trim().max(1000, "validacion.maximo1000" satisfies Clave).optional(),
+    // T5-05 — el campo es texto: vacío es «sin plazo», y un número se valida aquí en vez de
+    // dejar que el navegador mande «2.5» o «-1» y lo rechace el servidor con un 422 genérico.
+    leadTimeDays: z.string().trim().refine(
+        (v) => v === "" || (/^\d+$/.test(v) && Number(v) <= 365),
+        "validacion.plazoEntrega" satisfies Clave,
+    ),
 });
+
+/** Del texto del formulario a lo que acepta la API: vacío borra el plazo. */
+function aSupplierForm(valores: SupplierFormValues): SupplierForm {
+    const plazo = valores.leadTimeDays.trim();
+    return {
+        ...valores,
+        email: valores.email?.trim() || undefined,
+        leadTimeDays: plazo === "" ? null : Number(plazo),
+    };
+}
 
 // ── Modal de formulario ───────────────────────────────────────────────────────
 
@@ -44,11 +60,17 @@ interface SupplierFormModalProps {
 
 function SupplierFormModal({ isOpen, onClose, supplier, onSubmit, isPending }: SupplierFormModalProps) {
     const { t, te } = useT();
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<SupplierForm>({
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<SupplierFormValues>({
         resolver: zodResolver(supplierSchema),
         defaultValues: supplier
-            ? { name: supplier.name, email: supplier.email ?? "", phone: supplier.phone ?? "", notes: supplier.notes ?? "" }
-            : {},
+            ? {
+                name: supplier.name,
+                email: supplier.email ?? "",
+                phone: supplier.phone ?? "",
+                notes: supplier.notes ?? "",
+                leadTimeDays: supplier.leadTimeDays === null ? "" : String(supplier.leadTimeDays),
+            }
+            : { leadTimeDays: "" },
     });
 
     const handleClose = () => { reset(); onClose(); };
@@ -60,7 +82,7 @@ function SupplierFormModal({ isOpen, onClose, supplier, onSubmit, isPending }: S
             title={supplier ? t("proveedores.editar") : t("proveedores.nuevo")}
             className="max-w-md"
         >
-            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            <form onSubmit={handleSubmit((valores) => onSubmit(aSupplierForm(valores)))} className="flex flex-col gap-4">
                 <Input
                     id="name"
                     label={`${t("comun.nombre")} *`}
@@ -92,6 +114,23 @@ function SupplierFormModal({ isOpen, onClose, supplier, onSubmit, isPending }: S
                     error={te(errors.notes?.message)}
                     {...register("notes")}
                 />
+                <div>
+                    <Input
+                        id="leadTimeDays"
+                        label={t("proveedores.plazo")}
+                        // Sin `min`/`max` y con `step="any"`: la validación nativa bloquearía el envío
+                        // con un aviso en el idioma del navegador, no en el de la aplicación (T4-04),
+                        // y el mensaje traducido del esquema no llegaría a verse. `step` hay que
+                        // ponerlo: sin él vale 1, y «2.5» se para ahí sin decir nada en jsdom.
+                        type="number"
+                        inputMode="numeric"
+                        step="any"
+                        aria-describedby="leadTimeDays-ayuda"
+                        error={te(errors.leadTimeDays?.message)}
+                        {...register("leadTimeDays")}
+                    />
+                    <p id="leadTimeDays-ayuda" className="mt-1 text-xs text-foreground-muted">{t("proveedores.plazoAyuda")}</p>
+                </div>
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
                     <Button type="button" variant="secondary" onClick={handleClose}>{t("comun.cancelar")}</Button>
                     <Button type="submit" isLoading={isPending}>{t("comun.guardar")}</Button>
@@ -116,13 +155,15 @@ export default function SuppliersPage() {
     const updateMutation = useUpdateSupplier();
     const deleteMutation = useDeleteSupplier();
 
-    const handleOpenNew = () => { setEditing(undefined); setFormOpen(true); };
+    // Cada apertura de «Nuevo» remonta el formulario (ver la `key` del modal). Con una `key` fija,
+    // el formulario seguía montado tras crear un proveedor y el siguiente «Nuevo» se abría con
+    // los datos del anterior: guardar sin mirar creaba un duplicado.
+    const [aperturas, setAperturas] = useState(0);
+    const handleOpenNew = () => { setEditing(undefined); setAperturas((n) => n + 1); setFormOpen(true); };
     const handleOpenEdit = (s: Supplier) => { setEditing(s); setFormOpen(true); };
     const handleClose = () => { setFormOpen(false); setEditing(undefined); };
 
-    const handleSubmit = (data: SupplierForm) => {
-        // Normalizar email vacío a undefined
-        const payload = { ...data, email: data.email?.trim() || undefined };
+    const handleSubmit = (payload: SupplierForm) => {
         if (editing) {
             updateMutation.mutate({ id: editing.id, form: payload }, { onSuccess: handleClose });
         } else {
@@ -157,6 +198,7 @@ export default function SuppliersPage() {
                                 <th className="px-4 py-3">{t("comun.nombre")}</th>
                                 <th className="px-4 py-3">{t("proveedores.email")}</th>
                                 <th className="px-4 py-3">{t("proveedores.telefono")}</th>
+                                <th className="px-4 py-3 text-right">{t("proveedores.plazoCorto")}</th>
                                 <th className="px-4 py-3">{t("proveedores.notas")}</th>
                                 {isAdmin && <th className="px-4 py-3 text-right">{t("comun.acciones")}</th>}
                             </tr>
@@ -166,8 +208,11 @@ export default function SuppliersPage() {
                                 <tr key={supplier.id} className="hover:bg-surface-muted transition-colors">
                                     <td className="px-4 py-3 font-medium text-foreground">{supplier.name}</td>
                                     <td className="px-4 py-3 text-foreground-muted">{supplier.email ?? "—"}</td>
-                                    <td className="px-4 py-3 text-foreground-muted">{supplier.phone ?? "—"}</td>
-                                    <td className="px-4 py-3 text-foreground-muted max-w-xs truncate">{supplier.notes ?? "—"}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-foreground-muted">{supplier.phone ?? "—"}</td>
+                                    <td className="px-4 py-3 text-right tabular-nums text-foreground-muted whitespace-nowrap">
+                                        {supplier.leadTimeDays === null ? "—" : tn("proveedores.plazoDias", supplier.leadTimeDays)}
+                                    </td>
+                                    <td className="px-4 py-3 text-foreground-muted max-w-48 truncate">{supplier.notes ?? "—"}</td>
                                     {isAdmin && (
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-1">
@@ -193,7 +238,7 @@ export default function SuppliersPage() {
             )}
 
             <SupplierFormModal
-                key={editing?.id ?? "new"}
+                key={editing?.id ?? `new-${aperturas}`}
                 isOpen={formOpen}
                 onClose={handleClose}
                 supplier={editing}

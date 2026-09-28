@@ -30,3 +30,8 @@ export interface CreatePurchaseOrderForm {
     notes?: string;
     items: PurchaseOrderItemForm[];
 }
+
+/** T5-05 — las líneas revisadas en la pantalla de sugerencias, tal como se envían. */
+export interface GenerarDesdeSugerenciasForm {
+    items: Array<{ productId: string; quantity: number; unitPrice: number }>;
+}
