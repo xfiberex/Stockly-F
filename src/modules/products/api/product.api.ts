@@ -1,5 +1,5 @@
 import api from "@/shared/api/axios";
-import { blobCsv, downloadBlob } from "@/modules/products/utils/importExport";
+import { descargarDeLaApi } from "@/shared/api/descargar";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
 import type {
     Product,
@@ -125,8 +125,8 @@ export const bulkUpdateStock = async (dto: BulkStockDto): Promise<Array<{ produc
  * 401** creyendo que era su CSV, sin redirección al login; y el archivo llegaba sin la
  * marca de orden de bytes, con los acentos rotos al abrirlo en Excel.
  *
- * Pidiéndolo como `blob` por axios, el interceptor vuelve a ver la respuesta y el archivo
- * se construye aquí, con `blobCsv`, que es el mismo camino que las otras dos descargas.
+ * Pidiéndolo como `blob` por axios, el interceptor vuelve a ver la respuesta. Desde el
+ * 2026-09-29 es el camino de todas las descargas de la API: `descargarDeLaApi`.
  */
 export const exportProductMovementsCsv = async (
     productId: string,
@@ -136,14 +136,14 @@ export const exportProductMovementsCsv = async (
     // T4-15 — se exportan **todas las páginas de lo que hay filtrado**, no la página en
     // pantalla ni el histórico entero ignorando los filtros. Es también lo que hace
     // accionable el 413 del tope: un producto con más movimientos que el máximo se exporta
-    // por tramos de fecha.
+    // por tramos de fecha, y el aviso lo dice.
     const filtros = Object.fromEntries(
         Object.entries(query).filter(([clave, v]) => clave !== "page" && clave !== "limit" && v !== "" && v !== undefined),
-    );
-    const { data } = await api.get<string>(`/products/${productId}/movements/export`, {
-        params: { format: "csv", ...filtros },
-        responseType: "text",
-    });
+    ) as Record<string, string>;
     const fecha = new Date().toISOString().split("T")[0];
-    downloadBlob(blobCsv(data), `movimientos-${productName.replace(/\s+/g, "-").toLowerCase()}-${fecha}.csv`);
+    await descargarDeLaApi(
+        `/products/${productId}/movements/export`,
+        { format: "csv", ...filtros },
+        `movimientos-${productName.replace(/\s+/g, "-").toLowerCase()}-${fecha}.csv`,
+    );
 };

@@ -1,4 +1,5 @@
 import api from "@/shared/api/axios";
+import { descargarDeLaApi } from "@/shared/api/descargar";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
 import type { SaleOrder, CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
 
@@ -21,9 +22,5 @@ export const deleteSaleOrder = async (id: string): Promise<void> => {
     await api.delete(`/sale-orders/${id}`);
 };
 
-export const exportSaleOrdersCsv = (): void => {
-    const a = document.createElement("a");
-    a.href = `${api.defaults.baseURL}/sale-orders/export?format=csv`;
-    a.download = `stockly-ventas-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-};
+export const exportSaleOrdersCsv = (): Promise<void> =>
+    descargarDeLaApi("/sale-orders/export", { format: "csv" }, `stockly-ventas-${new Date().toISOString().split("T")[0]}.csv`);

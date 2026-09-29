@@ -176,10 +176,6 @@ Las variables del E2E son de prueba y están en el propio workflow: las cuatro d
 `VITE_API_URL=/api/v1`, que en local sale del `.env` —sin ella la aplicación se queda en blanco,
 que es como falló la primera ejecución—.
 
-**Un cambio de contrato se sube primero al backend.** Este workflow clona el `main` de
-`Stockly-B`; si el frontend llega antes, la frescura del contrato falla, y con razón: la copia no
-coincide con la fuente publicada.
-
 **Endurecido porque el repositorio es público:** `permissions: contents: read`,
 `persist-credentials: false`, `pull_request` y nunca `pull_request_target` (el código de un fork
 no corre con secretos; el workflow no usa ninguno) y **acciones fijadas por SHA** con la versión
@@ -189,6 +185,25 @@ en un comentario. No se actualizan solas: se resuelve la etiqueta nueva con
 `playwright.config.ts` solo mira `process.env.CI` para `forbidOnly` —un `.only` olvidado haría
 pasar la CI ejecutando un test—. **Los reintentos siguen en 0**, también ahí: los fallos
 intermitentes del E2E han sido siempre defectos reales.
+
+### Orden de subida: primero el backend, en verde; después el frontend
+
+La CI del frontend **no usa una versión fija del backend: clona el `main` de `Stockly-B` tal como
+esté en ese momento**, tanto para comprobar la copia del contrato como para arrancar la API en el
+E2E. Si el frontend se sube antes que el backend del que depende —un endpoint nuevo, una
+migración, un cambio de contrato—, o con el `main` del backend en rojo, **la CI del frontend
+falla aunque su código esté bien**.
+
+1. `pnpm verify` en local en los dos repositorios.
+2. **Push de `Stockly-B`** y esperar a que su workflow termine **en verde**:
+   `gh run watch` (o `gh run list --workflow verify.yml -L 1`) desde `Stockly-B`, o la pestaña
+   *Actions* en GitHub.
+3. **Solo entonces, push de `Stockly-F`.**
+
+Si el cambio es solo del frontend, el paso 2 se reduce a comprobar que la última ejecución del
+backend está en verde. Si la del frontend falló por haberlo subido antes, no hace falta otro
+commit: con el backend ya en verde, se relanza desde *Actions* (*Re-run all jobs*) o con
+`gh run rerun <id>`.
 
 ---
 

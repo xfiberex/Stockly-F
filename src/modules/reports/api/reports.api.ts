@@ -1,4 +1,5 @@
 import api from "@/shared/api/axios";
+import { descargarDeLaApi } from "@/shared/api/descargar";
 import type { ApiResponse } from "@/shared/types";
 import type { AbcSummary, PeriodPreset, PeriodReport, ReportSummary } from "../types/reports.types";
 
@@ -7,12 +8,8 @@ export const getReportSummary = async (): Promise<ReportSummary> => {
     return data.data!;
 };
 
-export const downloadReportPdf = (): void => {
-    const a = document.createElement("a");
-    a.href = `${api.defaults.baseURL}/reports?format=pdf`;
-    a.download = `reporte-stockly-${new Date().toISOString().split("T")[0]}.pdf`;
-    a.click();
-};
+export const downloadReportPdf = (): Promise<void> =>
+    descargarDeLaApi("/reports", { format: "pdf" }, `reporte-stockly-${new Date().toISOString().split("T")[0]}.pdf`);
 
 /** T5-10 — de qué periodo sale la clasificación ABC del catálogo y cuántos hay en cada clase. */
 export const getAbcSummary = async (): Promise<AbcSummary> => {
@@ -29,13 +26,12 @@ export const getPeriodReport = async (consulta: ConsultaDePeriodo): Promise<Peri
 };
 
 /**
- * Descarga por enlace, como el PDF del resumen: la sesión va en la cookie. Se piden las fechas
- * ya resueltas y no el atajo, para que el archivo sea el del periodo que se está viendo aunque
- * la descarga cruce una medianoche.
+ * Se piden las fechas ya resueltas y no el atajo, para que el archivo sea el del periodo que se
+ * está viendo aunque la descarga cruce una medianoche.
  */
-export const downloadPeriodReport = (periodo: { from: string; to: string }, formato: "csv" | "pdf"): void => {
-    const a = document.createElement("a");
-    a.href = `${api.defaults.baseURL}/reports/period?${new URLSearchParams({ ...periodo, format: formato })}`;
-    a.download = `informe-${periodo.from}-${periodo.to}.${formato}`;
-    a.click();
-};
+export const downloadPeriodReport = (periodo: { from: string; to: string }, formato: "csv" | "pdf"): Promise<void> =>
+    descargarDeLaApi(
+        "/reports/period",
+        { from: periodo.from, to: periodo.to, format: formato },
+        `informe-${periodo.from}-${periodo.to}.${formato}`,
+    );

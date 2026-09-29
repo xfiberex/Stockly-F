@@ -1,4 +1,5 @@
 import api from "@/shared/api/axios";
+import { descargarDeLaApi } from "@/shared/api/descargar";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
 import type {
     PurchaseOrder,
@@ -47,12 +48,8 @@ export const deletePurchaseOrder = async (id: string): Promise<void> => {
     await api.delete(`/purchase-orders/${id}`);
 };
 
-export const exportPurchaseOrdersCsv = (): void => {
-    const a = document.createElement("a");
-    a.href = `${api.defaults.baseURL}/purchase-orders/export?format=csv`;
-    a.download = `stockly-compras-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-};
+export const exportPurchaseOrdersCsv = (): Promise<void> =>
+    descargarDeLaApi("/purchase-orders/export", { format: "csv" }, `stockly-compras-${new Date().toISOString().split("T")[0]}.csv`);
 
 /** T5-05 — lo que la fórmula de reposición propone pedir, paginado. */
 export const getReorderSuggestions = async (params?: { page?: number; limit?: number }): Promise<SugerenciasReposicion> => {

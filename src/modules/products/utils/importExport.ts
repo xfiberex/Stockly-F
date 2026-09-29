@@ -80,14 +80,8 @@ export function blobCsv(texto: string): Blob {
     return new Blob(["\uFEFF" + texto], { type: "text/csv;charset=utf-8;" });
 }
 
-export function downloadBlob(blob: Blob, filename: string): void {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-}
+// Vive en `shared/lib`: también lo usan las descargas de la API (`shared/api/descargar.ts`).
+export { downloadBlob } from "@/shared/lib/descarga";
 
 // ── Import ────────────────────────────────────────────────────────────────────
 
