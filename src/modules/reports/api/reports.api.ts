@@ -1,6 +1,6 @@
 import api from "@/shared/api/axios";
 import type { ApiResponse } from "@/shared/types";
-import type { PeriodPreset, PeriodReport, ReportSummary } from "../types/reports.types";
+import type { AbcSummary, PeriodPreset, PeriodReport, ReportSummary } from "../types/reports.types";
 
 export const getReportSummary = async (): Promise<ReportSummary> => {
     const { data } = await api.get<ApiResponse<ReportSummary>>("/reports");
@@ -12,6 +12,12 @@ export const downloadReportPdf = (): void => {
     a.href = `${api.defaults.baseURL}/reports?format=pdf`;
     a.download = `reporte-stockly-${new Date().toISOString().split("T")[0]}.pdf`;
     a.click();
+};
+
+/** T5-10 — de qué periodo sale la clasificación ABC del catálogo y cuántos hay en cada clase. */
+export const getAbcSummary = async (): Promise<AbcSummary> => {
+    const { data } = await api.get<ApiResponse<AbcSummary>>("/reports/abc");
+    return data.data!;
 };
 
 /** T5-09 — un atajo o un rango de días del negocio, nunca las dos cosas (el backend lo rechaza). */

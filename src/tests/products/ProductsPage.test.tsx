@@ -52,6 +52,11 @@ vi.mock("@/modules/products/hooks/useProducts", () => ({
         isError: false,
     }),
 }));
+vi.mock("@/modules/reports/hooks/useReports", () => ({
+    useAbcSummary: () => ({
+        data: { from: "2025-09-01", to: "2026-08-31", timezone: "America/Santo_Domingo", calculatedAt: "2026-09-29T12:00:00Z", counts: { A: 1, B: 0, C: 0 } },
+    }),
+}));
 vi.mock("@/modules/products/hooks/useImportProducts", () => ({
     useImportProducts: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
@@ -94,5 +99,15 @@ describe("ProductsPage — hueco bajo el botón flotante (T3-09)", () => {
 
         expect(screen.queryByRole("button", { name: /Movimiento manual/ })).toBeNull();
         expect(contenedor(container).className).not.toMatch(/\bpb-28\b/);
+    });
+});
+
+describe("ProductsPage — leyenda de la clase ABC (T5-10)", () => {
+    it("dice de qué meses sale la clasificación, como días de calendario", () => {
+        renderWithProviders(<ProductsPage />);
+
+        // `formatearDia` y no `formatearFecha`: el 1 de septiembre no puede pintarse
+        // «31 ago» en un navegador al oeste de Greenwich.
+        expect(screen.getByText(/Clases ABC según la facturación del 01 sep 2025 al 31 ago 2026/)).toBeInTheDocument();
     });
 });

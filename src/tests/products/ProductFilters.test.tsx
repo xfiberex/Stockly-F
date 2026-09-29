@@ -14,11 +14,32 @@ vi.mock("@/modules/tags/hooks/useTags", () => ({
     useTags: () => ({ data: [] }),
 }));
 
+// T5-10 — el recuento de cada clase para las opciones del filtro ABC.
+vi.mock("@/modules/reports/hooks/useReports", () => ({
+    useAbcSummary: () => ({
+        data: { from: "2025-09-01", to: "2026-08-31", timezone: "America/Santo_Domingo", calculatedAt: "2026-09-29T12:00:00Z", counts: { A: 3, B: 7, C: 90 } },
+    }),
+}));
+
 describe("ProductFilters", () => {
-    it("renderiza el campo de búsqueda y los dos selects", () => {
+    it("renderiza el campo de búsqueda y los tres selects", () => {
         render(<ProductFilters onFilterChange={vi.fn()} />);
         expect(screen.getByPlaceholderText(/buscar producto/i)).toBeInTheDocument();
-        expect(screen.getAllByRole("combobox")).toHaveLength(2);
+        expect(screen.getAllByRole("combobox")).toHaveLength(3);
+    });
+
+    it("filtra por clase ABC, con cuántos productos tiene cada una (T5-10)", async () => {
+        const onFilterChange = vi.fn();
+        render(<ProductFilters onFilterChange={onFilterChange} />);
+
+        const select = screen.getByRole("combobox", { name: "Filtrar por clase ABC" });
+        expect(screen.getByRole("option", { name: "Clase C (90)" })).toBeInTheDocument();
+
+        await userEvent.selectOptions(select, "A");
+        expect(onFilterChange).toHaveBeenLastCalledWith(expect.objectContaining({ abcClass: "A" }));
+
+        await userEvent.selectOptions(select, "");
+        expect(onFilterChange).toHaveBeenLastCalledWith(expect.objectContaining({ abcClass: undefined }));
     });
 
     it("llama a onFilterChange en el montaje con los valores iniciales", () => {

@@ -51,6 +51,7 @@ const makeProduct = (overrides: Partial<ProductWithAvailability> = {}): ProductW
     stock: 10,
     committedStock: 0,
     availableStock: 10,
+    abcClass: "C",
     minStock: 0,
     imageUrl: null,
     imagePublicId: null,
@@ -409,5 +410,18 @@ describe("ProductTable — selección de filas (T2-15)", () => {
 
             expect(screen.getByRole("button", { name: "Restaurar Monitor LG" })).toBeInTheDocument();
         });
+    });
+});
+
+describe("ProductTable — clase ABC (T5-10)", () => {
+    it("enseña la clase de cada producto en una insignia neutra, con la explicación en el título", () => {
+        renderWithProviders(
+            <ProductTable products={[makeProduct({ abcClass: "A" })]} isLoading={false} onEdit={vi.fn()} />,
+        );
+
+        const insignia = screen.getByText("A");
+        expect(insignia).toHaveClass("bg-surface-muted");
+        expect(insignia.parentElement).toHaveAttribute("title", "Clase A");
+        expect(screen.getByRole("columnheader", { name: "ABC" })).toHaveAttribute("title", "Clase ABC por facturación");
     });
 });

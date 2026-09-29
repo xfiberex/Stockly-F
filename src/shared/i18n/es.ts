@@ -438,6 +438,13 @@ export const es = {
     "productos.filtro.todasEtiquetas": "Todas las etiquetas",
     "productos.filtro.soloActivos": "Solo activos",
     "productos.filtro.soloInactivos": "Solo inactivos",
+    "productos.filtro.porClaseAbc": "Filtrar por clase ABC",
+    "productos.filtro.todasClasesAbc": "Todas las clases ABC",
+    "productos.tabla.claseAbc": "ABC",
+    "productos.tabla.claseAbcTitulo": "Clase ABC por facturación",
+    "productos.abc.clase": "Clase {clase}",
+    "productos.abc.claseConCantidad": "Clase {clase} ({cantidad})",
+    "productos.abc.leyenda": "Clases ABC según la facturación del {desde} al {hasta}: A reúne el 80 % de las ventas, B el 15 % siguiente y C el resto, incluidos los productos que no se vendieron.",
 
     // Detalle
     "productos.detalle.titulo": "Detalle del producto",

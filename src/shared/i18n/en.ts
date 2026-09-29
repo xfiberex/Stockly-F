@@ -408,6 +408,13 @@ export const en: Record<keyof typeof es, string> = {
     "productos.filtro.todasEtiquetas": "All tags",
     "productos.filtro.soloActivos": "Active only",
     "productos.filtro.soloInactivos": "Inactive only",
+    "productos.filtro.porClaseAbc": "Filter by ABC class",
+    "productos.filtro.todasClasesAbc": "All ABC classes",
+    "productos.tabla.claseAbc": "ABC",
+    "productos.tabla.claseAbcTitulo": "ABC class by revenue",
+    "productos.abc.clase": "Class {clase}",
+    "productos.abc.claseConCantidad": "Class {clase} ({cantidad})",
+    "productos.abc.leyenda": "ABC classes based on revenue from {desde} to {hasta}: A makes up 80% of sales, B the next 15% and C the rest, including products that did not sell.",
 
     "productos.detalle.titulo": "Product details",
     "productos.detalle.creado": "Created",

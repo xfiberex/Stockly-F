@@ -6,6 +6,7 @@
 // Lo que cambió al conectar el contrato: `price` era `number` y llega como cadena, y
 // `description`/`imageUrl` eran `string | undefined` y llegan como `string | null`.
 import type {
+    ClaseAbc,
     EtiquetaRef,
     HistorialCoste,
     HistorialCosteDeProducto,
@@ -111,6 +112,8 @@ export interface ProductQuery {
     supplierId?: string;
     tagId?: string;
     isActive?: boolean;
+    /** T5-10 — C incluye los productos sin ventas en el periodo; el filtro lo resuelve el servidor. */
+    abcClass?: ClaseAbc;
 }
 
 /** Fila de un CSV/JSON de importación: todo puede llegar como cadena sin convertir. */

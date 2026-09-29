@@ -10,6 +10,8 @@ import { cn } from "@/shared/lib/cn";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { useProducts } from "@/modules/products/hooks/useProducts";
 import { useImportProducts } from "@/modules/products/hooks/useImportProducts";
+import { useAbcSummary } from "@/modules/reports/hooks/useReports";
+import { formatearDia } from "@/shared/lib/fechas";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { exportProducts } from "@/modules/products/api/product.api";
 import { toCsv, downloadBlob, blobCsv, parseCsv } from "@/modules/products/utils/importExport";
@@ -32,7 +34,7 @@ interface Filters {
 }
 
 export default function ProductsPage() {
-    const { t, tn, te } = useT();
+    const { t, tn, te, idioma } = useT();
     const [filters, setFilters] = useState<Filters>({ isActive: true });
     const [page, setPage] = useState(1);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -46,6 +48,7 @@ export default function ProductsPage() {
 
     const { data, isLoading } = useProducts({ ...filters, page, limit: 10 });
     const importMutation = useImportProducts();
+    const { data: resumenAbc } = useAbcSummary();
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
 
@@ -224,6 +227,17 @@ export default function ProductsPage() {
             />
 
             <ProductFilters onFilterChange={handleFilterChange} />
+
+            {/* T5-10 — de dónde sale la columna ABC. Sin esto, una C en un producto que se
+                vende a diario parecería un error: es C si este mes aún no cuenta. */}
+            {resumenAbc && (
+                <p className="text-xs text-foreground-muted">
+                    {t("productos.abc.leyenda", {
+                        desde: formatearDia(idioma, resumenAbc.from),
+                        hasta: formatearDia(idioma, resumenAbc.to),
+                    })}
+                </p>
+            )}
 
             <ProductTable
                 products={allProducts}

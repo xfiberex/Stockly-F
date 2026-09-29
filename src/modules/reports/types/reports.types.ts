@@ -3,12 +3,14 @@
 // responder, así que aquí `price` sí es un número, al revés que en `/products`.
 import type {
     AtajoDePeriodo,
+    ClaseAbc,
     InformePorPeriodo,
     MargenRealizado,
     MetricaStock,
     MovimientoPorMes,
     ProductoBajoStock,
     ProductoTop,
+    ResumenAbc,
     ResumenReporte,
     StockPorCategoria,
     TotalesReporte,
@@ -26,3 +28,6 @@ export type ProfitMargin = MargenRealizado;
 /** T5-09 — ventas enviadas y compras recibidas de un periodo. */
 export type PeriodReport = InformePorPeriodo;
 export type PeriodPreset = AtajoDePeriodo;
+/** T5-10 — periodo de la clasificación ABC y productos por clase. */
+export type AbcSummary = ResumenAbc;
+export type AbcClass = ClaseAbc;

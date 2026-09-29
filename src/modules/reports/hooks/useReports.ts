@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getPeriodReport, getReportSummary, type ConsultaDePeriodo } from "../api/reports.api";
+import { getAbcSummary, getPeriodReport, getReportSummary, type ConsultaDePeriodo } from "../api/reports.api";
 
 export function useReports() {
     return useQuery({
@@ -20,5 +20,17 @@ export function usePeriodReport(consulta: ConsultaDePeriodo) {
         queryFn: () => getPeriodReport(consulta),
         staleTime: 30_000,
         placeholderData: keepPreviousData,
+    });
+}
+
+/**
+ * T5-10 — el periodo de la clasificación ABC. Cambia como mucho una vez al día, así que no se
+ * vuelve a pedir en cada visita al catálogo.
+ */
+export function useAbcSummary() {
+    return useQuery({
+        queryKey: ["reports", "abc"],
+        queryFn: getAbcSummary,
+        staleTime: 10 * 60_000,
     });
 }

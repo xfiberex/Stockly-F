@@ -113,6 +113,11 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                         )}
                         <th className="px-4 py-3 lg:py-1.5">{t("productos.tabla.imagen")}</th>
                         <th className="px-4 py-3 lg:py-1.5">{t("productos.tabla.nombreSku")}</th>
+                        {/* T5-10 — el rótulo es la sigla y la explicación va en el `title`: una
+                            columna de una letra no justifica una cabecera de cuatro palabras. */}
+                        <th className="px-4 py-3 lg:py-1.5" title={t("productos.tabla.claseAbcTitulo")}>
+                            {t("productos.tabla.claseAbc")}
+                        </th>
                         <th className="px-4 py-3 lg:py-1.5">{t("productos.campo.categoria")}</th>
                         <th className="px-4 py-3 lg:py-1.5">{t("productos.campo.marca")}</th>
                         <th className="px-4 py-3 lg:py-1.5 text-right">{t("productos.campo.precio")}</th>
@@ -185,6 +190,13 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                             {product.description}
                                         </div>
                                     )}
+                                </td>
+                                {/* T5-10 — la clase ABC tampoco es un estado: una A no está «bien» ni
+                                    una C «mal», dicen cuánto factura. Neutra, como la categoría. */}
+                                <td className="px-4 py-3 lg:py-1.5">
+                                    <span title={t("productos.abc.clase", { clase: product.abcClass })}>
+                                        <Badge variant="neutral">{product.abcClass}</Badge>
+                                    </span>
                                 </td>
                                 {/* La categoría clasifica, no informa de un estado: variante neutra. */}
                                 <td className="px-4 py-3 lg:py-1.5">

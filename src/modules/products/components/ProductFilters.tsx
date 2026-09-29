@@ -1,6 +1,8 @@
 import { Select } from "@/shared/components/Select";
 import { useCategories } from "@/modules/catalog/hooks/useCategories";
 import { useTags } from "@/modules/tags/hooks/useTags";
+import { useAbcSummary } from "@/modules/reports/hooks/useReports";
+import type { AbcClass } from "@/modules/reports/types/reports.types";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useEffect, useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
@@ -12,8 +14,11 @@ interface ProductFiltersProps {
         categoryId?: string;
         tagId?: string;
         isActive?: boolean;
+        abcClass?: AbcClass;
     }) => void;
 }
+
+const CLASES_ABC: AbcClass[] = ["A", "B", "C"];
 
 export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     const { t } = useT();
@@ -21,10 +26,12 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     const [categoryId, setCategoryId] = useState("");
     const [tagId, setTagId] = useState("");
     const [activeFilter, setActiveFilter] = useState<"true" | "false" | "">("true");
+    const [abcClass, setAbcClass] = useState<AbcClass | "">("");
 
     const debouncedSearch = useDebounce(search, 400);
     const { data: categories = [] } = useCategories();
     const { data: tags = [] } = useTags();
+    const { data: resumenAbc } = useAbcSummary();
 
     const categoryOptions = [
         { value: "", label: t("productos.filtro.todasCategorias") },
@@ -36,14 +43,27 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
         ...tags.map((t) => ({ value: t.id, label: t.name })),
     ];
 
+    // T5-10 — con el recuento de cada clase cuando ya ha llegado. El de C cuenta el catálogo
+    // entero, activos e inactivos: es lo que devuelve el filtro con «Todos» en el estado.
+    const abcOptions = [
+        { value: "", label: t("productos.filtro.todasClasesAbc") },
+        ...CLASES_ABC.map((clase) => ({
+            value: clase,
+            label: resumenAbc
+                ? t("productos.abc.claseConCantidad", { clase, cantidad: resumenAbc.counts[clase] })
+                : t("productos.abc.clase", { clase }),
+        })),
+    ];
+
     useEffect(() => {
         onFilterChange({
             search: debouncedSearch || undefined,
             categoryId: categoryId || undefined,
             tagId: tagId || undefined,
             isActive: activeFilter === "true" ? true : activeFilter === "false" ? false : undefined,
+            abcClass: abcClass || undefined,
         });
-    }, [debouncedSearch, categoryId, tagId, activeFilter, onFilterChange]);
+    }, [debouncedSearch, categoryId, tagId, activeFilter, abcClass, onFilterChange]);
 
     return (
         /*
@@ -57,9 +77,13 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
          * En móvil va uno por fila. De `sm` en adelante, dos columnas con el buscador
          * ocupando la de arriba entera —es el control que más se usa y el que más se
          * agradece ancho—, y de `lg` en adelante los cuatro en línea, como estaban.
+         *
+         * T5-10 — con la clase ABC son cinco. En `lg` el buscador vuelve a ocupar su fila y los
+         * cuatro desplegables van debajo, en línea; cinco en línea a ese ancho volvían a dejar
+         * cada uno en ~150 px, que es el problema de arriba. Los cinco juntos, desde `xl`.
          */
-        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="relative sm:col-span-2 lg:col-span-1">
+        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="relative sm:col-span-2 lg:col-span-4 xl:col-span-1">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted" />
                 <input
                     type="text"
@@ -102,6 +126,16 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
                     ]}
                     value={activeFilter}
                     onChange={(e) => setActiveFilter(e.target.value as "true" | "false" | "")}
+                    className="w-full"
+                />
+            </div>
+
+            <div>
+                <Select
+                    aria-label={t("productos.filtro.porClaseAbc")}
+                    options={abcOptions}
+                    value={abcClass}
+                    onChange={(e) => setAbcClass(e.target.value as AbcClass | "")}
                     className="w-full"
                 />
             </div>
