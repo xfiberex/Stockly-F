@@ -23,7 +23,7 @@ Actions la repite junto con el E2E ([ADR 0008](../Stockly-B/docs/adr/0008-integr
 sube **primero al backend**: la CI de aquí compara la copia con su `main`.
 
 ```bash
-pnpm verify           # check → lint → test:coverage → build
+pnpm verify           # check → lint → test:coverage → build → auditoria
 pnpm test:e2e:full    # Playwright en chromium y Mobile Chrome
 ```
 
