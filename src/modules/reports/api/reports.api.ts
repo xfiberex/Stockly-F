@@ -8,7 +8,7 @@ export const getReportSummary = async (): Promise<ReportSummary> => {
     return data.data!;
 };
 
-export const downloadReportPdf = (): Promise<void> =>
+export const downloadReportPdf = (): Promise<boolean> =>
     descargarDeLaApi("/reports", { format: "pdf" }, `reporte-stockly-${new Date().toISOString().split("T")[0]}.pdf`);
 
 /** T5-10 — de qué periodo sale la clasificación ABC del catálogo y cuántos hay en cada clase. */
@@ -29,7 +29,7 @@ export const getPeriodReport = async (consulta: ConsultaDePeriodo): Promise<Peri
  * Se piden las fechas ya resueltas y no el atajo, para que el archivo sea el del periodo que se
  * está viendo aunque la descarga cruce una medianoche.
  */
-export const downloadPeriodReport = (periodo: { from: string; to: string }, formato: "csv" | "pdf"): Promise<void> =>
+export const downloadPeriodReport = (periodo: { from: string; to: string }, formato: "csv" | "pdf"): Promise<boolean> =>
     descargarDeLaApi(
         "/reports/period",
         { from: periodo.from, to: periodo.to, format: formato },

@@ -33,6 +33,7 @@ export const productoDeCatalogo: Product = segunContrato(productoSchema, {
     name: "Monitor LG UltraGear",
     description: "27 pulgadas, 144 Hz",
     sku: "PER-LG-UG27",
+    barcode: "4006381333931",
     // Cadena, no número: `price` es `Decimal` en Prisma y viaja serializado.
     price: "299.99",
     costPrice: null,

@@ -18,6 +18,8 @@ export interface InventoryCountLinesQuery {
     limit?: number;
     filter?: InventoryCountLineFilter;
     search?: string;
+    /** T5-08 — solo la línea de ese producto: la del que se acaba de escanear. */
+    productId?: string;
 }
 
 export interface NewInventoryCount {

@@ -21,12 +21,16 @@ import {
     TruckIcon,
     ExclamationTriangleIcon,
     CalendarDaysIcon,
+    PrinterIcon,
+    QrCodeIcon,
 } from "@heroicons/react/24/outline";
 
 interface ProductDetailModalProps {
     product: ProductWithAvailability | null;
     onClose: () => void;
     onEdit: (product: Product) => void;
+    /** T5-08 — sin él no hay botón de etiquetas. */
+    onPrintLabels?: (product: Product) => void;
 }
 
 function Field({ icon: Icon, label, children }: {
@@ -50,7 +54,7 @@ function Field({ icon: Icon, label, children }: {
     );
 }
 
-export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailModalProps) {
+export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: ProductDetailModalProps) {
     const { t, tn, idioma } = useT();
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
@@ -186,6 +190,14 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                         )}
                     </Field>
 
+                    <Field icon={QrCodeIcon} label={t("productos.campo.codigoDeBarras")}>
+                        {product.barcode ? (
+                            <span className="font-mono text-foreground">{product.barcode}</span>
+                        ) : (
+                            <span className="text-foreground-muted">—</span>
+                        )}
+                    </Field>
+
                     <Field icon={CalendarDaysIcon} label={t("productos.detalle.creado")}>
                         <span className="text-foreground-muted text-xs">{fmt(product.createdAt)}</span>
                     </Field>
@@ -214,6 +226,19 @@ export function ProductDetailModal({ product, onClose, onEdit }: ProductDetailMo
                         <ChartBarIcon className="h-4 w-4" />
                         {t("productos.detalle.verMovimientos")}
                     </Link>
+
+                    {/* T5-08 — sin código de barras ni SKU no hay nada que imprimir. */}
+                    {onPrintLabels && (product.barcode || product.sku) && (
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            className="sm:flex-1"
+                            onClick={() => { onClose(); onPrintLabels(product); }}
+                        >
+                            <PrinterIcon className="h-4 w-4" />
+                            {t("etiquetas.imprimir")}
+                        </Button>
+                    )}
 
                     {isAdmin && product.isActive && (
                         <Button

@@ -28,5 +28,5 @@ export const deleteSaleOrder = async (id: string): Promise<void> => {
     await api.delete(`/sale-orders/${id}`);
 };
 
-export const exportSaleOrdersCsv = (): Promise<void> =>
+export const exportSaleOrdersCsv = (): Promise<boolean> =>
     descargarDeLaApi("/sale-orders/export", { format: "csv" }, `stockly-ventas-${new Date().toISOString().split("T")[0]}.csv`);

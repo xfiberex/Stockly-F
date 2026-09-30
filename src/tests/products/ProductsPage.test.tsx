@@ -27,6 +27,7 @@ const mockProductos: Product[] = [
         name: "Teclado Logitech",
         description: null,
         sku: "PER-LOG",
+        barcode: null,
         price: "100.00",
         costPrice: null,
         stock: 5,

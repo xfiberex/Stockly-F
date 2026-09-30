@@ -45,6 +45,7 @@ const makeProduct = (overrides: Partial<ProductWithAvailability> = {}): ProductW
     name: "Monitor LG",
     description: "27 pulgadas",
     sku: null,
+    barcode: null,
     // Cadena, como la envía el backend: `price` es `Decimal` en Prisma (T4-01).
     price: "299.99",
     costPrice: null,

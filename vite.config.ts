@@ -74,6 +74,11 @@ export default defineConfig(({ mode }) => ({
                         return "vendor-charts-deps";
                     }
 
+                    // T5-08 — el escáner. `escaner.ts` lo importa bajo demanda, pero sin esta
+                    // regla caía en `vendor` y viajaba en el primer arranque de todo el mundo,
+                    // escanee o no: medido, 386 kB de `vendor` llevaban dentro el cargador de ZXing.
+                    if (/[\\/]node_modules[\\/](barcode-detector|zxing-wasm)/.test(id)) return "vendor-escaner";
+
                     if (id.includes("react-router")) return "vendor-router";
                     if (id.includes("@tanstack")) return "vendor-query";
 

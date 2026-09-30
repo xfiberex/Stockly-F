@@ -19,6 +19,7 @@ const productoExistente: Product = {
     name: "Teclado mecánico",
     description: "Switches azules",
     sku: "PER-GEN-TECL",
+    barcode: null,
     // Cadena, como la envía el backend (T4-01): así el test ejercita de verdad el
     // `aNumero()` que el formulario aplica al precargar los valores.
     price: "49.99",

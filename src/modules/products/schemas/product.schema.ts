@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { motivoCodigoDeBarrasInvalido } from "@/shared/contratos";
 import type { Clave } from "@/shared/i18n/traducir";
 
 // T4-04 — los mensajes son **claves del catálogo**, no frases; los traduce el campo con
@@ -21,10 +22,24 @@ const costeOpcional = z.preprocess(
     z.coerce.number().min(0, mensaje("validacion.noNegativo")).optional(),
 );
 
+// T5-08 — la regla es la del contrato, la misma que aplica el backend: aquí solo se le pone
+// la clave del mensaje. El vacío vale: es «sin código».
+const MENSAJE_CODIGO: Record<NonNullable<ReturnType<typeof motivoCodigoDeBarrasInvalido>>, Clave> = {
+    largo: "validacion.codigoDeBarrasLargo",
+    caracteres: "validacion.codigoDeBarrasCaracteres",
+    digitoDeControl: "validacion.codigoDeBarrasControl",
+};
+const codigoDeBarras = z.string().optional().superRefine((valor, ctx) => {
+    const codigo = valor?.trim() ?? "";
+    const motivo = codigo === "" ? null : motivoCodigoDeBarrasInvalido(codigo);
+    if (motivo) ctx.addIssue({ code: "custom", message: mensaje(MENSAJE_CODIGO[motivo]) });
+});
+
 export const createProductSchema = z.object({
     name: z.string().min(1, mensaje("validacion.nombreRequerido")).max(200, mensaje("validacion.maximo200")),
     description: z.string().max(1000, mensaje("validacion.maximo1000")).optional(),
     sku: z.string().max(100, mensaje("validacion.maximo100")).optional(),
+    barcode: codigoDeBarras,
     price: z.coerce
         .number({ error: mensaje("validacion.precioRequerido") })
         .min(0.01, mensaje("validacion.precioMayorQueCero")),
@@ -49,6 +64,7 @@ export const updateProductSchema = z.object({
     name: z.string().min(1, mensaje("validacion.nombreVacio")).max(200).optional(),
     description: z.string().max(1000).optional(),
     sku: z.string().max(100).optional(),
+    barcode: codigoDeBarras,
     price: z.coerce.number().min(0.01, mensaje("validacion.precioMayorQueCero")).optional(),
     costPrice: costeOpcional,
     stock: z.coerce.number().int().min(0).optional(),

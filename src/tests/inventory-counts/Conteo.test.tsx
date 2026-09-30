@@ -71,7 +71,8 @@ vi.mock("@/modules/inventory-counts/hooks/useInventoryCounts", () => ({
     useInventoryCount: () => ({ data: conteo, isLoading: false }),
     useInventoryCountLines: (_id: string, q: InventoryCountLinesQuery) => {
         consultas.push(q);
-        const data = q.filter === "pending" ? LINEAS.filter((l) => l.countedQuantity === null)
+        const data = q.productId ? LINEAS.filter((l) => l.productId === q.productId)
+            : q.filter === "pending" ? LINEAS.filter((l) => l.countedQuantity === null)
             : q.filter === "difference" ? LINEAS.filter((l) => l.difference)
             : LINEAS;
         return { data: { data, meta: { total: data.length, page: 1, limit: 50, totalPages: 1 } }, isLoading: false };
@@ -86,6 +87,15 @@ vi.mock("@/modules/inventory-counts/hooks/useInventoryCounts", () => ({
         isPending: false,
     }),
     useCancelInventoryCount: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
+// T5-08 — el producto de cada código: «p1» está en el conteo, «fuera» no, y el resto no existe.
+const buscar = vi.fn(async (codigo: string) =>
+    codigo === "4006381333931" ? { id: "p1", name: "Teclado" }
+    : codigo === "FUERA" ? { id: "fuera", name: "Silla" }
+    : null);
+vi.mock("@/modules/products/hooks/useBuscarPorCodigo", () => ({
+    useBuscarPorCodigo: () => ({ buscar, buscando: false }),
 }));
 
 const pantallaDeSesion = () =>
@@ -177,6 +187,47 @@ describe("Conteo físico — la sesión (T5-07)", () => {
         expect(screen.queryByRole("button", { name: "Cerrar conteo" })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Revisar" })).not.toBeInTheDocument();
         expect(screen.getByText(/Cerrado el .* por almacen@stockly.app/)).toBeInTheDocument();
+    });
+});
+
+describe("Conteo físico — escanear en la captura (T5-08)", () => {
+    async function escanear(codigo: string) {
+        const user = userEvent.setup();
+        pantallaDeSesion();
+        await user.click(screen.getByRole("button", { name: "Escanear" }));
+        await user.type(screen.getByLabelText("O escríbelo"), `${codigo}{Enter}`);
+        return user;
+    }
+
+    it("lleva a la línea del producto aunque ya esté contada, con el cursor en su campo", async () => {
+        const user = await escanear("4006381333931");
+
+        expect(consultas.at(-1)).toEqual({ page: 1, limit: 50, productId: "p1" });
+        const campo = screen.getByLabelText("Cantidad contada de Teclado");
+        expect(campo).toHaveFocus();
+        expect(screen.getByText("Escaneado: Teclado")).toBeInTheDocument();
+        // El filtro no se aplica a la línea escaneada, así que no se enseña.
+        expect(screen.queryByRole("checkbox", { name: "Solo por contar" })).toBeNull();
+
+        // Lo que se escribe reemplaza la cifra anterior: estaba seleccionada.
+        await user.keyboard("9");
+        expect(campo).toHaveValue(9);
+
+        await user.click(screen.getByRole("button", { name: "Ver todos" }));
+        expect(consultas.at(-1)).toMatchObject({ filter: "pending" });
+    });
+
+    it("un producto que no está en el conteo lo dice en vez de enseñar una tabla vacía", async () => {
+        await escanear("FUERA");
+
+        expect(screen.getByText("«Silla» no está en este conteo.")).toBeInTheDocument();
+    });
+
+    it("un código que no es de ningún producto avisa y deja la captura como estaba", async () => {
+        await escanear("NADIE");
+
+        expect(screen.getByRole("alert")).toHaveTextContent("Ningún producto tiene el código «NADIE».");
+        expect(consultas.at(-1)).toMatchObject({ filter: "pending" });
     });
 });
 

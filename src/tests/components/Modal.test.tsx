@@ -45,6 +45,32 @@ describe("Modal", () => {
         expect(onClose).not.toHaveBeenCalled();
     });
 
+    it("con un modal encima de otro, Escape cierra solo el de arriba y el scroll sigue bloqueado (T5-08)", () => {
+        const cerrarAbajo = vi.fn();
+        const cerrarArriba = vi.fn();
+        const { rerender } = render(
+            <>
+                <Modal isOpen onClose={cerrarAbajo} title="Formulario">Abajo</Modal>
+                <Modal isOpen onClose={cerrarArriba} title="Escáner">Arriba</Modal>
+            </>,
+        );
+
+        fireEvent.keyDown(document, { key: "Escape" });
+        expect(cerrarArriba).toHaveBeenCalledTimes(1);
+        expect(cerrarAbajo).not.toHaveBeenCalled();
+
+        rerender(
+            <>
+                <Modal isOpen onClose={cerrarAbajo} title="Formulario">Abajo</Modal>
+                <Modal isOpen={false} onClose={cerrarArriba} title="Escáner">Arriba</Modal>
+            </>,
+        );
+        expect(document.body.style.overflow).toBe("hidden");
+
+        fireEvent.keyDown(document, { key: "Escape" });
+        expect(cerrarAbajo).toHaveBeenCalledTimes(1);
+    });
+
     it("llama a onClose al hacer clic en el overlay semitransparente", () => {
         const onClose = vi.fn();
         render(

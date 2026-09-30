@@ -49,6 +49,9 @@ export type ImportResult = ResultadoImportacion;
  */
 export type MovementsResponse = MovimientosDeProducto;
 
+/** T5-08 — lo que hace falta de un producto para etiquetarlo. */
+export type ProductoEtiquetable = Pick<Product, "id" | "name" | "sku" | "barcode">;
+
 /**
  * Los filtros del histórico **viajan al servidor**. Filtrarlos en el navegador filtraría
  * solo la página traída: el resultado dependería de en qué página estás, sin avisar.
@@ -72,6 +75,7 @@ export interface CreateProductDto {
     name: string;
     description?: string;
     sku?: string;
+    barcode?: string;
     price: number;
     costPrice?: number;
     stock?: number;
@@ -87,6 +91,8 @@ export interface UpdateProductDto {
     name?: string;
     description?: string;
     sku?: string;
+    /** T5-08 — la cadena vacía lo quita, como `costPrice`. */
+    barcode?: string;
     price?: number;
     /**
      * T5-01 — la cadena vacía **quita** el coste: viaja por `multipart/form-data`, donde no

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeftIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, CheckIcon, ViewfinderCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/components/Button";
+import { EscanerModal } from "@/shared/components/EscanerModal";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Modal } from "@/shared/components/Modal";
 import { Spinner } from "@/shared/components/Spinner";
@@ -15,6 +16,7 @@ import { ESTADO_CONTEO, buscarEstado } from "@/shared/lib/estados";
 import { CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA, CLASES_ENCABEZADO_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 import { usePuede } from "@/modules/auth/hooks/usePuede";
+import { useBuscarPorCodigo } from "@/modules/products/hooks/useBuscarPorCodigo";
 import {
     useCancelInventoryCount,
     useCloseInventoryCount,
@@ -71,10 +73,16 @@ function Captura({ id }: { id: string }) {
     const [page, setPage] = useState(1);
     const [cifras, setCifras] = useState<Record<string, string>>({});
     const search = useDebounce(busqueda.trim(), 400);
+    // T5-08 — el producto del último escaneo. Mientras lo hay, la tabla enseña solo su línea,
+    // esté contada o no: volver a escanear algo ya contado es recontarlo.
+    const [escaneando, setEscaneando] = useState(false);
+    const [escaneado, setEscaneado] = useState<{ id: string; nombre: string } | null>(null);
+    const [aviso, setAviso] = useState<string | null>(null);
+    const { buscar, buscando } = useBuscarPorCodigo();
 
-    const { data, isLoading } = useInventoryCountLines(id, {
-        page, limit: PAGE_SIZE, filter: soloPendientes ? "pending" : undefined, search: search || undefined,
-    });
+    const { data, isLoading } = useInventoryCountLines(id, escaneado
+        ? { page: 1, limit: PAGE_SIZE, productId: escaneado.id }
+        : { page, limit: PAGE_SIZE, filter: soloPendientes ? "pending" : undefined, search: search || undefined });
     const anotar = useRecordInventoryCountLines(id);
     const lineas = data?.data ?? [];
 
@@ -89,27 +97,47 @@ function Captura({ id }: { id: string }) {
     const guardar = () =>
         anotar.mutate(anotadas, { onSuccess: () => setCifras({}) });
 
+    const handleCodigo = async (codigo: string) => {
+        setEscaneando(false);
+        const producto = await buscar(codigo);
+        if (producto === null) setAviso(t("conteos.escaneoDesconocido", { codigo }));
+        else if (producto) {
+            setAviso(null);
+            setEscaneado({ id: producto.id, nombre: producto.name });
+        }
+    };
+
     return (
         <section className="bg-surface rounded-xl border border-border">
             <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:justify-between">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                    <input
-                        type="search"
-                        value={busqueda}
-                        onChange={(e) => { setBusqueda(e.target.value); setPage(1); }}
-                        placeholder={t("conteos.buscar")}
-                        aria-label={t("conteos.buscar")}
-                        className="w-full min-h-11 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 sm:w-64 md:min-h-9"
-                    />
-                    <label className="flex items-center gap-2 text-sm text-foreground">
+                    {/* Con un producto escaneado la tabla enseña solo su línea: la búsqueda y el
+                        filtro no se aplican, y enseñarlos —el filtro, marcado— diría lo contrario. */}
+                    {!escaneado && (
                         <input
-                            type="checkbox"
-                            checked={soloPendientes}
-                            onChange={(e) => { setSoloPendientes(e.target.checked); setPage(1); }}
-                            className="h-4 w-4"
+                            type="search"
+                            value={busqueda}
+                            onChange={(e) => { setBusqueda(e.target.value); setPage(1); }}
+                            placeholder={t("conteos.buscar")}
+                            aria-label={t("conteos.buscar")}
+                            className="w-full min-h-11 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 sm:w-64 md:min-h-9"
                         />
-                        {t("conteos.soloPendientes")}
-                    </label>
+                    )}
+                    <Button variant="secondary" onClick={() => setEscaneando(true)} isLoading={buscando}>
+                        <ViewfinderCircleIcon className="h-4 w-4" />
+                        {t("escaner.escanear")}
+                    </Button>
+                    {!escaneado && (
+                        <label className="flex items-center gap-2 text-sm text-foreground">
+                            <input
+                                type="checkbox"
+                                checked={soloPendientes}
+                                onChange={(e) => { setSoloPendientes(e.target.checked); setPage(1); }}
+                                className="h-4 w-4"
+                            />
+                            {t("conteos.soloPendientes")}
+                        </label>
+                    )}
                 </div>
                 <Button onClick={guardar} disabled={anotadas.length === 0} isLoading={anotar.isPending}>
                     <CheckIcon className="h-4 w-4" />
@@ -117,10 +145,22 @@ function Captura({ id }: { id: string }) {
                 </Button>
             </div>
 
+            {aviso && <p role="alert" className="px-4 pb-3 text-sm text-danger">{aviso}</p>}
+            {escaneado && (
+                <div className="flex flex-wrap items-center gap-2 px-4 pb-3 text-sm text-foreground">
+                    <span>{t("conteos.escaneado", { nombre: escaneado.nombre })}</span>
+                    <Button variant="secondary" onClick={() => setEscaneado(null)}>{t("conteos.verTodos")}</Button>
+                </div>
+            )}
+
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : lineas.length === 0 ? (
-                <p className="px-4 pb-6 text-sm text-foreground-muted">{t(soloPendientes ? "conteos.todoContado" : "conteos.sinLineas")}</p>
+                <p className="px-4 pb-6 text-sm text-foreground-muted">
+                    {escaneado
+                        ? t("conteos.escaneoFuera", { nombre: escaneado.nombre })
+                        : t(soloPendientes ? "conteos.todoContado" : "conteos.sinLineas")}
+                </p>
             ) : (
                 <div className={CLASES_TABLA_DESPLAZABLE}>
                     <table className={CLASES_TABLA_DE_CONTEO}>
@@ -152,6 +192,10 @@ function Captura({ id }: { id: string }) {
                                             value={cifras[l.productId] ?? (l.countedQuantity ?? "")}
                                             onChange={(e) => setCifras((c) => ({ ...c, [l.productId]: e.target.value }))}
                                             aria-label={t("conteos.contadoDe", { nombre: l.name })}
+                                            // T5-08 — el escaneado recibe el cursor, con la cifra que
+                                            // tuviera seleccionada: se escribe encima sin borrar.
+                                            autoFocus={escaneado?.id === l.productId}
+                                            onFocus={(e) => { if (escaneado?.id === l.productId) e.target.select(); }}
                                             className="w-24 min-h-11 rounded-lg border border-border bg-surface px-2 py-1 text-right text-sm tabular-nums text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 md:min-h-9"
                                         />
                                     </td>
@@ -162,6 +206,7 @@ function Captura({ id }: { id: string }) {
                 </div>
             )}
             <Paginacion page={page} totalPages={data?.meta.totalPages ?? 1} onPage={setPage} />
+            <EscanerModal isOpen={escaneando} onClose={() => setEscaneando(false)} onCodigo={handleCodigo} />
         </section>
     );
 }

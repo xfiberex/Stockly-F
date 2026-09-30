@@ -5,6 +5,11 @@ import { ProductTable } from "@/modules/products/components/ProductTable";
 import { ProductForm } from "@/modules/products/components/ProductForm";
 import { ManualMovementModal } from "@/modules/products/components/ManualMovementModal";
 import { BulkStockModal } from "@/modules/products/components/BulkStockModal";
+import { ProductDetailModal } from "@/modules/products/components/ProductDetailModal";
+import { EtiquetasModal } from "@/modules/products/components/EtiquetasModal";
+import { EscanerModal } from "@/shared/components/EscanerModal";
+import { Modal } from "@/shared/components/Modal";
+import { useBuscarPorCodigo } from "@/modules/products/hooks/useBuscarPorCodigo";
 import { Button } from "@/shared/components/Button";
 import { cn } from "@/shared/lib/cn";
 import { DropdownButton } from "@/shared/components/DropdownButton";
@@ -16,13 +21,15 @@ import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { exportProducts } from "@/modules/products/api/product.api";
 import { toCsv, downloadBlob, blobCsv, parseCsv } from "@/modules/products/utils/importExport";
 import { useT } from "@/shared/hooks/useIdioma";
-import type { Product, ImportProductDto } from "@/modules/products/types/product.types";
+import type { Product, ProductWithAvailability, ProductoEtiquetable, ImportProductDto } from "@/modules/products/types/product.types";
 import {
     PlusIcon,
     ArrowDownTrayIcon,
     ArrowUpTrayIcon,
     AdjustmentsHorizontalIcon,
     BoltIcon,
+    PrinterIcon,
+    ViewfinderCircleIcon,
 } from "@heroicons/react/24/outline";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 
@@ -43,6 +50,16 @@ export default function ProductsPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [movementProduct, setMovementProduct] = useState<Product | undefined>();
+    // T5-08 — escanear, lo que salió del escaneo, y las etiquetas.
+    const [escaneando, setEscaneando] = useState(false);
+    const [escaneado, setEscaneado] = useState<ProductWithAvailability | null>(null);
+    const [codigoDesconocido, setCodigoDesconocido] = useState<string | null>(null);
+    const [codigoNuevo, setCodigoNuevo] = useState<string | undefined>();
+    const [etiquetasDe, setEtiquetasDe] = useState<ProductoEtiquetable[] | null>(null);
+    // Lo seleccionado puede venir de otras páginas, y la tabla solo tiene la actual: para
+    // etiquetar hace falta saber de cada uno si tiene código, así que se guarda al marcarlo.
+    const [vistos, setVistos] = useState<Map<string, Product>>(() => new Map());
+    const { buscar, buscando } = useBuscarPorCodigo();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const importFormatRef = useRef<"json" | "csv">("json");
 
@@ -71,9 +88,29 @@ export default function ProductsPage() {
     const handleCloseForm = () => {
         setIsFormOpen(false);
         setEditingProduct(undefined);
+        setCodigoNuevo(undefined);
+    };
+
+    /**
+     * T5-08 — un código que existe abre su ficha; uno que no, pregunta si darlo de alta con el
+     * código ya puesto. La ficha es la misma que abre la tabla, con sus mismas acciones.
+     */
+    const handleCodigo = async (codigo: string) => {
+        setEscaneando(false);
+        const producto = await buscar(codigo);
+        if (producto) setEscaneado(producto);
+        else if (producto === null) setCodigoDesconocido(codigo);
+    };
+
+    const darDeAlta = () => {
+        setCodigoNuevo(codigoDesconocido ?? undefined);
+        setCodigoDesconocido(null);
+        setIsFormOpen(true);
     };
 
     const handleToggleSelect = (id: string) => {
+        const producto = allProducts.find((p) => p.id === id);
+        if (producto) setVistos((prev) => new Map(prev).set(id, producto));
         setSelectedIds((prev) => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
@@ -168,6 +205,10 @@ export default function ProductsPage() {
                     <p className="text-sm text-foreground-muted mt-1">{tn("productos.total", data?.meta.total ?? 0)}</p>
                 </div>
                 <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
+                    <Button variant="secondary" onClick={() => setEscaneando(true)} isLoading={buscando}>
+                        <ViewfinderCircleIcon className="h-4 w-4" />
+                        {t("escaner.escanear")}
+                    </Button>
                     <DropdownButton
                         label={t("productos.exportar")}
                         icon={ArrowDownTrayIcon}
@@ -217,6 +258,13 @@ export default function ProductsPage() {
                         )}
                         <Button
                             variant="secondary"
+                            onClick={() => setEtiquetasDe([...selectedIds].flatMap((id) => vistos.get(id) ?? []))}
+                        >
+                            <PrinterIcon className="h-4 w-4" />
+                            {t("etiquetas.imprimir")}
+                        </Button>
+                        <Button
+                            variant="secondary"
                             onClick={() => setSelectedIds(new Set())}
                         >
                             {t("productos.deseleccionar")}
@@ -252,6 +300,7 @@ export default function ProductsPage() {
                 onEdit={handleEdit}
                 selectedIds={puedeSeleccionar ? selectedIds : undefined}
                 onToggleSelect={puedeSeleccionar ? handleToggleSelect : undefined}
+                onPrintLabels={(p) => setEtiquetasDe([p])}
             />
 
             {/* Botón movimiento rápido para producto individual (visible en hover via contexto) */}
@@ -297,11 +346,49 @@ export default function ProductsPage() {
             )}
 
             <ProductForm
-                key={editingProduct?.id ?? "new"}
+                key={editingProduct?.id ?? `new-${codigoNuevo ?? ""}`}
                 isOpen={isFormOpen}
                 onClose={handleCloseForm}
                 product={editingProduct}
+                codigoInicial={codigoNuevo}
             />
+
+            <EscanerModal isOpen={escaneando} onClose={() => setEscaneando(false)} onCodigo={handleCodigo} />
+
+            <ProductDetailModal
+                product={escaneado}
+                onClose={() => setEscaneado(null)}
+                onEdit={(p) => { setEscaneado(null); handleEdit(p); }}
+                onPrintLabels={(p) => setEtiquetasDe([p])}
+            />
+
+            <Modal
+                isOpen={codigoDesconocido !== null}
+                onClose={() => setCodigoDesconocido(null)}
+                title={t("escaner.desconocidoTitulo")}
+                className="max-w-md"
+            >
+                <div className="flex flex-col gap-4">
+                    <p className="text-sm text-foreground">
+                        {t("escaner.desconocido", { codigo: codigoDesconocido ?? "" })}
+                    </p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        <Button variant="secondary" onClick={() => { setCodigoDesconocido(null); setEscaneando(true); }}>
+                            {t("escaner.otraVez")}
+                        </Button>
+                        {puedeCrear && (
+                            <Button onClick={darDeAlta}>
+                                <PlusIcon className="h-4 w-4" />
+                                {t("escaner.darDeAlta")}
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            </Modal>
+
+            {etiquetasDe && (
+                <EtiquetasModal isOpen onClose={() => setEtiquetasDe(null)} productos={etiquetasDe} />
+            )}
 
             <BulkStockModal
                 isOpen={isBulkModalOpen}

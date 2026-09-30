@@ -52,6 +52,27 @@ export const LICENCIAS_PERMITIDAS = [
     // cumple**: los `.woff2` de Inter se copian a `dist/`, así que la aplicación distribuye
     // la fuente y tiene que acompañarla de su aviso de licencia. Ver `docs/dependencias.md`.
     "OFL-1.1",
+    // T5-08 — doble licencia a elegir; se toma la MIT. Llega con `type-fest`, dependencia de
+    // `zxing-wasm`, que solo trae declaraciones de tipos: no viaja en el paquete final.
+    "(MIT OR CC0-1.0)",
+];
+
+/**
+ * Código de terceros que viaja **dentro** de otro paquete sin ser un paquete, así que
+ * `pnpm licenses` no lo ve y el aviso lo tiene que nombrar a mano.
+ *
+ * T5-08 — el `.wasm` de `zxing-wasm` es ZXing-C++ compilado. El paquete declara MIT, que es la
+ * licencia de sus enlaces en JavaScript; la del lector es **Apache-2.0**, y esa pide que quien
+ * distribuye el binario —la aplicación lo sirve en `dist/assets/`— lo acompañe del texto de la
+ * licencia. El texto está en `scripts/licencias/`, copiado íntegro.
+ */
+export const EMBEBIDOS = [
+    {
+        name: "zxing-cpp (compilado en el .wasm de zxing-wasm)",
+        licencia: "Apache-2.0",
+        homepage: "https://github.com/zxing-cpp/zxing-cpp",
+        archivo: "Apache-2.0.txt",
+    },
 ];
 
 /**
@@ -117,14 +138,21 @@ function ejecutarPnpm(argumentos) {
  * Se genera y no se escribe a mano por el motivo de siempre: una lista de 118 paquetes
  * copiada a mano está desactualizada desde la siguiente instalación.
  */
-export function componerAvisos(listado, leerLicencia) {
+export function componerAvisos(listado, leerLicencia, embebidos = [], leerArchivo = () => null) {
     const paquetes = Object.entries(listado)
         .flatMap(([licencia, lista]) => lista.map((p) => ({ ...p, licencia })))
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    const bloques = paquetes.map((p) => {
-        const texto = leerLicencia(p.paths?.[0]);
-        const cabecera = `${p.name} ${(p.versions ?? []).join(", ")} — ${p.licencia}`;
+    const todos = [
+        ...paquetes.map((p) => ({ ...p, texto: leerLicencia(p.paths?.[0]) })),
+        ...embebidos.map((e) => ({ ...e, texto: leerArchivo(e.archivo) })),
+    ];
+
+    const bloques = todos.map((p) => {
+        const texto = p.texto;
+        // Lo embebido no tiene versión propia de npm.
+        const version = (p.versions ?? []).join(", ");
+        const cabecera = `${p.name}${version ? ` ${version}` : ""} — ${p.licencia}`;
 
         return [
             cabecera,
@@ -140,7 +168,8 @@ export function componerAvisos(listado, leerLicencia) {
         "AVISOS DE TERCEROS",
         "",
         "Esta aplicación incorpora software de terceros. A continuación, sus licencias.",
-        `Generado por scripts/auditoria.js --informe a partir de las ${paquetes.length} dependencias de producción.`,
+        `Generado por scripts/auditoria.js --informe a partir de las ${paquetes.length} dependencias de producción` +
+            (embebidos.length ? ` y de ${embebidos.length} componente(s) que viajan dentro de ellas.` : "."),
         "",
         "=".repeat(78),
         "",
@@ -159,8 +188,10 @@ function generarInforme(listado) {
         return null;
     };
 
-    const destino = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "AVISOS-DE-TERCEROS.txt");
-    writeFileSync(destino, componerAvisos(listado, leer), "utf8");
+    const aqui = dirname(fileURLToPath(import.meta.url));
+    const leerArchivo = (nombre) => readFileSync(join(aqui, "licencias", nombre), "utf8").trim();
+    const destino = join(aqui, "..", "public", "AVISOS-DE-TERCEROS.txt");
+    writeFileSync(destino, componerAvisos(listado, leer, EMBEBIDOS, leerArchivo), "utf8");
 
     console.log(`✓ aviso de terceros escrito en public/AVISOS-DE-TERCEROS.txt`);
 }

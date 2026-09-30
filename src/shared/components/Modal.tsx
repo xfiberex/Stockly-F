@@ -12,6 +12,14 @@ interface ModalProps {
     className?: string;
 }
 
+/**
+ * T5-08 — los modales abiertos, del de abajo al de arriba. El escáner se abre **encima** del
+ * formulario de producto, y sin esto Escape los cerraba los dos —cada uno escucha en
+ * `document`— y cerrar el de arriba devolvía el scroll a la página con el de abajo aún abierto.
+ * Solo el de arriba atiende al teclado, y el scroll se libera al cerrar el último.
+ */
+const abiertos: symbol[] = [];
+
 const FOCUSABLE =
     'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -25,8 +33,11 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
 
         // Guarda el elemento con foco para restaurarlo al cerrar.
         const previouslyFocused = document.activeElement as HTMLElement | null;
+        const propio = Symbol();
+        abiertos.push(propio);
 
         const handleKey = (e: KeyboardEvent) => {
+            if (abiertos.at(-1) !== propio) return;
             if (e.key === "Escape") {
                 onClose();
                 return;
@@ -56,7 +67,8 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
 
         return () => {
             document.removeEventListener("keydown", handleKey);
-            document.body.style.overflow = "";
+            abiertos.splice(abiertos.indexOf(propio), 1);
+            if (abiertos.length === 0) document.body.style.overflow = "";
             previouslyFocused?.focus?.();
         };
     }, [isOpen, onClose]);

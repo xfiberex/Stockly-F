@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { SparklesIcon, TagIcon } from "@heroicons/react/24/outline";
+import { SparklesIcon, TagIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal } from "@/shared/components/Modal";
 import { aNumero } from "@/shared/contratos";
@@ -9,6 +9,7 @@ import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
 import { ProductImageUpload } from "./ProductImageUpload";
+import { EscanerModal } from "@/shared/components/EscanerModal";
 import { createProductSchema, updateProductSchema, type CreateProductFormData } from "@/modules/products/schemas/product.schema";
 import { useCreateProduct } from "@/modules/products/hooks/useCreateProduct";
 import { useUpdateProduct } from "@/modules/products/hooks/useUpdateProduct";
@@ -27,18 +28,21 @@ interface ProductFormProps {
     isOpen: boolean;
     onClose: () => void;
     product?: Product;
+    /** T5-08 — el código escaneado que no era de nadie: el alta nace con él puesto. */
+    codigoInicial?: string;
 }
 
 // `ProductsPage` monta este formulario con `key={editingProduct?.id ?? "new"}`, así
 // que cambiar de producto lo remonta: los valores del producto pueden nacer ya
 // puestos, en lugar de sincronizarse con un efecto tras el primer render.
-function valoresIniciales(product?: Product) {
-    if (!product) return {};
+function valoresIniciales(product?: Product, codigoInicial?: string) {
+    if (!product) return codigoInicial ? { barcode: codigoInicial } : {};
 
     return {
         name: product.name,
         description: product.description ?? "",
         sku: product.sku ?? "",
+        barcode: product.barcode ?? "",
         // T4-01 — `price` llega como cadena (`Decimal` de Prisma) y el formulario trabaja
         // con números. Antes esto colaba porque el tipo mentía y el `z.coerce.number()`
         // del esquema tapaba la diferencia al validar; la conversión va ahora donde
@@ -53,13 +57,14 @@ function valoresIniciales(product?: Product) {
     };
 }
 
-export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
+export function ProductForm({ isOpen, onClose, product, codigoInicial }: ProductFormProps) {
     const { t, te } = useT();
     const isEditing = !!product;
     const createMutation = useCreateProduct();
     const updateMutation = useUpdateProduct();
     const isPending = createMutation.isPending || updateMutation.isPending;
     const [removeImage, setRemoveImage] = useState(false);
+    const [escaneando, setEscaneando] = useState(false);
     const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
         () => product?.tags?.map((t) => t.id) ?? [],
     );
@@ -90,7 +95,7 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
 
     const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<CreateProductFormData>({
         resolver: zodResolver(isEditing ? updateProductSchema : createProductSchema) as Resolver<CreateProductFormData>,
-        defaultValues: valoresIniciales(product),
+        defaultValues: valoresIniciales(product, codigoInicial),
     });
 
     const watchedName       = useWatch({ control, name: "name",       defaultValue: "" });
@@ -126,6 +131,7 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
         const normalized = {
             ...formData,
             sku: formData.sku || undefined,
+            barcode: formData.barcode?.trim() || undefined,
             categoryId: formData.categoryId || undefined,
             brandId: formData.brandId || undefined,
             supplierId: formData.supplierId || undefined,
@@ -137,8 +143,10 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
             // esquema convierte el vacío en `undefined`, que en la API significa «no tocar»,
             // así que la intención se traduce aquí a la cadena vacía que el backend entiende.
             const costPrice = formData.costPrice ?? (product.costPrice !== null ? "" : undefined);
+            // T5-08 — el código viaja siempre al editar: vacío es **quitarlo**, igual que el coste.
+            const barcode = formData.barcode?.trim() ?? "";
             updateMutation.mutate(
-                { id: product.id, dto: { ...normalized, costPrice, tagIds: selectedTagIds, removeImage } },
+                { id: product.id, dto: { ...normalized, barcode, costPrice, tagIds: selectedTagIds, removeImage } },
                 { onSuccess: () => { onClose(); reset({}); setRemoveImage(false); setSelectedTagIds([]); } },
             );
         } else {
@@ -184,6 +192,29 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                         placeholder={t("productos.form.ejemploSku")}
                         error={te(errors.sku?.message)}
                         {...register("sku")}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="barcode" className="text-sm font-medium text-foreground">
+                            {t("productos.campo.codigoDeBarras")}
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => setEscaneando(true)}
+                            className="flex items-center gap-1 text-xs font-medium text-info hover:text-info transition-colors"
+                        >
+                            <ViewfinderCircleIcon className="h-3.5 w-3.5" />
+                            {t("escaner.escanear")}
+                        </button>
+                    </div>
+                    <Input
+                        id="barcode"
+                        placeholder={t("productos.form.ejemploCodigoDeBarras")}
+                        autoComplete="off"
+                        spellCheck={false}
+                        error={te(errors.barcode?.message)}
+                        {...register("barcode")}
                     />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -302,6 +333,15 @@ export function ProductForm({ isOpen, onClose, product }: ProductFormProps) {
                     </Button>
                 </div>
             </form>
+            {/* T5-08 — encima del formulario: la pila de `Modal` hace que Escape cierre solo este. */}
+            <EscanerModal
+                isOpen={escaneando}
+                onClose={() => setEscaneando(false)}
+                onCodigo={(codigo) => {
+                    setValue("barcode", codigo, { shouldValidate: true, shouldDirty: true });
+                    setEscaneando(false);
+                }}
+            />
         </Modal>
     );
 }

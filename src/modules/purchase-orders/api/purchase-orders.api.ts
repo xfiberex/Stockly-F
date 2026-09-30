@@ -48,7 +48,7 @@ export const deletePurchaseOrder = async (id: string): Promise<void> => {
     await api.delete(`/purchase-orders/${id}`);
 };
 
-export const exportPurchaseOrdersCsv = (): Promise<void> =>
+export const exportPurchaseOrdersCsv = (): Promise<boolean> =>
     descargarDeLaApi("/purchase-orders/export", { format: "csv" }, `stockly-compras-${new Date().toISOString().split("T")[0]}.csv`);
 
 /** T5-05 — lo que la fórmula de reposición propone pedir, paginado. */

@@ -17,15 +17,18 @@ import { mensajeDeError } from "@/shared/lib/errorApi";
  *
  * Nunca rechaza: quien llama es un `onClick`. Un fallo se avisa con el mensaje traducido de su
  * código —un 413 de exportación demasiado grande dice cuántas filas y cuál es el máximo—.
+ * Devuelve si se descargó, para quien tenga que decidir algo después (T5-08: el modal de
+ * etiquetas se cierra solo si salió bien, y con el error a la vista se puede corregir).
  */
 export async function descargarDeLaApi(
     ruta: string,
     params: Record<string, string | undefined>,
     nombre: string,
-): Promise<void> {
+): Promise<boolean> {
     try {
         const { data } = await api.get<Blob>(ruta, { params, responseType: "blob" });
         downloadBlob(data, nombre);
+        return true;
     } catch (error) {
         if (!axios.isAxiosError(error)) throw error;
 
@@ -41,7 +44,7 @@ export async function descargarDeLaApi(
         }
 
         // Un 401 que el interceptor no pudo renovar ya está llevando al login.
-        if (error.response?.status === 401) return;
-        toast.error(mensajeDeError(idiomaEfectivo(), error));
+        if (error.response?.status !== 401) toast.error(mensajeDeError(idiomaEfectivo(), error));
+        return false;
     }
 }

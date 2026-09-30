@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { ALMACEN, api, apiCruda, login, stockDe, sufijo } from "./helpers";
+import { eanDePrueba, paginasComoPng } from "./etiquetas";
 
 // T1-23: los tres defectos funcionales de la auditoría (T0-03, T1-03 y T1-05) no
 // produjeron ni un fallo entre 379 tests, porque cada repositorio se probaba contra su
@@ -320,6 +321,65 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         } finally {
             await contexto.close();
         }
+    });
+
+    test("una etiqueta impresa se vuelve a leer con el escáner y abre su producto; uno desconocido se da de alta (T5-08)", async ({ page }) => {
+        await login(page);
+        const marca = `E2E-cb-${sufijo()}`;
+        const ean = eanDePrueba();
+        // Uno con EAN-13 y otro solo con SKU: sus etiquetas salen en EAN-13 y en Code 128. El SKU
+        // tiene **17 caracteres, el máximo de la etiqueta de rollo**: sus barras salen del ancho
+        // mínimo, y es lo que se comprueba que se lee. Con los 22 de la primera versión de este
+        // test, a 0,15 mm, no se leían, y el PDF se generaba igual.
+        const sku = `CB-${sufijo().toUpperCase()}-XY`.padEnd(17, "Z").slice(0, 17);
+        await api(page, "post", "/products", { name: `${marca}-ean`, price: 12, barcode: ean });
+        await api(page, "post", "/products", { name: `${marca}-sku`, price: 8, sku });
+
+        // Imprimir desde el catálogo, en rollo: una etiqueta por página.
+        await page.goto("/catalog/products");
+        await page.getByPlaceholder("Buscar producto...").fill(marca);
+        await page.getByRole("checkbox", { name: `Seleccionar ${marca}-ean` }).check();
+        await page.getByRole("checkbox", { name: `Seleccionar ${marca}-sku` }).check();
+        await page.getByRole("button", { name: "Etiquetas" }).click();
+        const impresion = page.getByRole("dialog", { name: "Imprimir etiquetas" });
+        await impresion.getByText("Rollo", { exact: true }).click();
+        const descarga = page.waitForEvent("download");
+        await impresion.getByRole("button", { name: "Descargar 2 etiquetas" }).click();
+        const [etiquetaEan, etiquetaSku] = await paginasComoPng((await (await descarga).path())!);
+
+        // La foto de cada etiqueta, al escáner de la aplicación. Sin cámara en el navegador de
+        // pruebas, es la vía de la foto: la misma lectura que la cámara, fotograma a fotograma.
+        const ficha = page.getByRole("dialog", { name: "Detalle del producto" });
+        const escanearFoto = async (png: Buffer) => {
+            await page.getByRole("button", { name: "Escanear" }).click();
+            await page.getByRole("dialog", { name: "Escanear un código" }).getByTestId("escaner-foto")
+                .setInputFiles({ name: "etiqueta.png", mimeType: "image/png", buffer: png });
+        };
+
+        await escanearFoto(etiquetaEan!);
+        await expect(ficha.getByRole("heading", { name: `${marca}-ean` })).toBeVisible();
+        await expect(ficha.getByText(ean)).toBeVisible();
+        await ficha.getByRole("button", { name: "Cerrar" }).click();
+
+        await escanearFoto(etiquetaSku!);
+        await expect(ficha.getByRole("heading", { name: `${marca}-sku` })).toBeVisible();
+        await ficha.getByRole("button", { name: "Cerrar" }).click();
+
+        // Uno que no es de nadie —escrito y con Intro, como lo teclea una pistola USB— ofrece
+        // darlo de alta, y el formulario nace con el código puesto.
+        const nuevo = eanDePrueba();
+        await page.getByRole("button", { name: "Escanear" }).click();
+        await page.getByLabel("O escríbelo").fill(nuevo);
+        await page.getByLabel("O escríbelo").press("Enter");
+        await page.getByRole("dialog", { name: "Código sin producto" })
+            .getByRole("button", { name: "Darlo de alta con este código" }).click();
+        const alta = page.getByRole("dialog", { name: "Nuevo producto" });
+        await expect(alta.getByLabel("Código de barras")).toHaveValue(nuevo);
+        await alta.getByLabel("Nombre *").fill(`${marca}-nuevo`);
+        await alta.getByLabel("Precio *").fill("5");
+        await alta.getByRole("button", { name: "Crear producto" }).click();
+        await expect(alta).toBeHidden();
+        expect(await api(page, "get", `/products/lookup?code=${nuevo}`)).toMatchObject({ name: `${marca}-nuevo`, barcode: nuevo });
     });
 
     test("una sugerencia de reposición se revisa y se convierte en una orden pendiente (T5-05)", async ({ page }) => {

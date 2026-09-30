@@ -31,9 +31,10 @@ interface ProductTableProps {
     onEdit: (product: Product) => void;
     selectedIds?: Set<string>;
     onToggleSelect?: (id: string) => void;
+    onPrintLabels?: (product: Product) => void;
 }
 
-export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggleSelect }: ProductTableProps) {
+export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggleSelect, onPrintLabels }: ProductTableProps) {
     const { t } = useT();
     const deleteMutation = useDeleteProduct();
     const restoreMutation = useRestoreProduct();
@@ -324,6 +325,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
             product={detailProduct}
             onClose={() => setDetailProduct(null)}
             onEdit={(p) => { setDetailProduct(null); onEdit(p); }}
+            onPrintLabels={onPrintLabels}
         />
         </>
     );

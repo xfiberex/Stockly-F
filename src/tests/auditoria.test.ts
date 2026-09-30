@@ -1,5 +1,5 @@
 // @ts-expect-error — `scripts/` es utillaje en JS plano, sin tipos y fuera de `src`.
-import { evaluarVulnerabilidades, evaluarLicencias, LICENCIAS_PERMITIDAS } from "../../scripts/auditoria.js";
+import { evaluarVulnerabilidades, evaluarLicencias, LICENCIAS_PERMITIDAS, componerAvisos, EMBEBIDOS } from "../../scripts/auditoria.js";
 
 /**
  * Gemelo de `Stockly-B/src/tests/auditoria.test.ts`. El criterio de T4-07 dice que la
@@ -64,6 +64,24 @@ describe("auditoría de dependencias (T4-07)", () => {
         it("OFL-1.1 está admitida porque la tipografía se distribuye con su aviso", () => {
             expect(evaluarLicencias({ "OFL-1.1": [{ name: "@fontsource/inter" }] }).estado)
                 .toBe("correcto");
+        });
+    });
+
+    describe("aviso de terceros", () => {
+        // T5-08 — ZXing-C++ no es un paquete de npm: va compilado dentro del `.wasm` de
+        // `zxing-wasm`, que declara MIT. Su Apache-2.0 solo llega al aviso si se nombra a mano.
+        it("incluye lo que viaja dentro de un paquete, con su propia licencia y su texto", () => {
+            const aviso: string = componerAvisos(
+                { MIT: [{ name: "zxing-wasm", versions: ["3.1.3"], paths: ["x"] }] },
+                () => "texto MIT",
+                EMBEBIDOS,
+                (archivo: string) => `texto de ${archivo}`,
+            );
+
+            expect(aviso).toContain("zxing-wasm 3.1.3 — MIT");
+            expect(aviso).toContain("zxing-cpp (compilado en el .wasm de zxing-wasm) — Apache-2.0");
+            expect(aviso).toContain("texto de Apache-2.0.txt");
+            expect(aviso).toContain("a partir de las 1 dependencias de producción y de 1 componente(s)");
         });
     });
 });

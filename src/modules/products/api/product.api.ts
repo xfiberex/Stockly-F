@@ -48,6 +48,27 @@ export const getProduct = async (id: string) => {
     return data.data!;
 };
 
+/**
+ * T5-08 — el producto de un código escaneado o escrito: código de barras o SKU, exacto. Un 404
+ * no es un fallo sino la respuesta «ninguno lo tiene», que la pantalla convierte en darlo de alta.
+ */
+export const getProductByCode = async (code: string) => {
+    const { data } = await api.get<ApiResponse<ProductWithAvailability>>("/products/lookup", { params: { code } });
+    return data.data!;
+};
+
+/** T5-08 — `sheet`: A4 de 3 × 8 etiquetas de 70 × 37 mm. `label`: una de 50 × 25 mm por página. */
+export type FormatoEtiquetas = "sheet" | "label";
+
+export const descargarEtiquetas = async (ids: string[], format: FormatoEtiquetas, copies: number): Promise<boolean> => {
+    const fecha = new Date().toISOString().split("T")[0];
+    return descargarDeLaApi(
+        "/products/labels",
+        { ids: ids.join(","), format, copies: String(copies) },
+        `etiquetas-${fecha}.pdf`,
+    );
+};
+
 export const createProduct = async (dto: CreateProductDto) => {
     const { data } = await api.post<ApiResponse<Product>>("/products", toFormData(dto), {
         headers: { "Content-Type": "multipart/form-data" },

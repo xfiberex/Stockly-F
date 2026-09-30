@@ -72,7 +72,8 @@ Stockly-F/src/
 │   │   ├── components/             # ProductsPage, ProductTable, ProductForm (con tags),
 │   │   │                           # ProductFilters (con filtro por tag), ProductImageUpload,
 │   │   │                           # ProductDetailModal, StockMovementsPage,
-│   │   │                           # ManualMovementModal, BulkStockModal
+│   │   │                           # ManualMovementModal, BulkStockModal,
+│   │   │                           # EtiquetasModal (T5-08)
 │   │   ├── hooks/                  # useProducts, useProduct, useCreateProduct,
 │   │   │                           # useUpdateProduct, useDeleteProduct,
 │   │   │                           # useRestoreProduct, useStockMovements, ...
@@ -120,7 +121,9 @@ Stockly-F/src/
 │
 ├── shared/
 │   ├── components/                 # Badge, Button, DropdownButton, Input,
-│   │                               # Modal, Select, Spinner, ProtectedRoute, NotFoundPage
+│   │                               # Modal, Select, Spinner, ProtectedRoute, NotFoundPage,
+│   │                               # EscanerModal (T5-08)
+│   ├── lib/                        # escaner.ts (T5-08): lector nativo o ZXing, bajo demanda
 │   └── hooks/                     # useDebounce
 │
 └── tests/                          # Tests unitarios por módulo
@@ -256,6 +259,11 @@ Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>`. Las rutas 
 - Tabla paginada con filtros: búsqueda, categoría, **etiqueta**, estado
 - Formulario de creación/edición con selector de **etiquetas** (multi-toggle con colores)
 - Generador de SKU automático
+- **Código de barras** (T5-08): se escanea o se escribe; un EAN mal tecleado no se guarda
+- **Escanear**: cámara, foto o pistola USB. Un código que existe abre su ficha; uno desconocido
+  ofrece darlo de alta con el código puesto. El lector (`barcode-detector`, con ZXing en
+  WebAssembly donde el navegador no trae uno) se descarga al primer escaneo, no al arrancar
+- **Etiquetas** en PDF desde la ficha o desde la selección: hoja A4 de 3 × 8 o rollo de 50 × 25 mm
 - Importación masiva CSV/JSON; exportación CSV/JSON
 - Movimiento manual de stock y ajuste masivo por selección múltiple
 - Historial de movimientos con gráfico de evolución y exportación CSV
@@ -280,6 +288,7 @@ Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>`. Las rutas 
 - **Revisar**: esperado, contado y diferencia, con el total en unidades y en valor a coste
 - **Cerrar** convierte cada diferencia en un ajuste de stock; **cancelar** no mueve nada
 - Las dos tablas caben a 393 px: se usan con el móvil en la mano
+- **Escanear** en la captura lleva a la línea del producto, con el cursor en su campo (T5-08)
 
 ### Órdenes de compra
 
