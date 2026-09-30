@@ -5,6 +5,7 @@ import { Button } from "@/shared/components/Button";
 import { EscanerModal } from "@/shared/components/EscanerModal";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Modal } from "@/shared/components/Modal";
+import { Paginacion } from "@/shared/components/Paginacion";
 import { Spinner } from "@/shared/components/Spinner";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useT } from "@/shared/hooks/useIdioma";
@@ -46,20 +47,6 @@ const ROTULO_DE_FILTRO: Record<InventoryCountLineFilter, Clave> = {
     counted: "conteos.filtro.counted",
     pending: "conteos.filtro.pending",
 };
-
-function Paginacion({ page, totalPages, onPage }: { page: number; totalPages: number; onPage: (p: number) => void }) {
-    const { t } = useT();
-    if (totalPages <= 1) return null;
-    return (
-        <div className="flex items-center justify-between px-4 py-3 text-sm text-foreground-muted">
-            <span>{t("comun.paginaDeTotal", { pagina: page, total: totalPages })}</span>
-            <div className="flex gap-2">
-                <Button variant="secondary" disabled={page === 1} onClick={() => onPage(page - 1)}>{t("comun.anterior")}</Button>
-                <Button variant="secondary" disabled={page === totalPages} onClick={() => onPage(page + 1)}>{t("comun.siguiente")}</Button>
-            </div>
-        </div>
-    );
-}
 
 /**
  * Anotar lo contado, **a ciegas**: no hay columna con el stock del sistema. Poner ese número

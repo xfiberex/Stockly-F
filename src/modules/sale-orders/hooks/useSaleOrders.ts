@@ -1,15 +1,15 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { useT } from "@/shared/hooks/useIdioma";
 import { mensajeDeError } from "@/shared/lib/errorApi";
 import { queryKeys } from "@/shared/constants/queryKeys";
-import { getSaleOrders, createSaleOrder, updateSaleOrder, shipSaleOrder, deleteSaleOrder } from "../api/sale-orders.api";
+import { getSaleOrders, createSaleOrder, updateSaleOrder, shipSaleOrder, deleteSaleOrder, type SaleOrdersQuery } from "../api/sale-orders.api";
 import type { CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
 
 export const SALE_ORDERS_KEY = ["sale-orders"] as const;
 
-export function useSaleOrders() {
-    return useQuery({ queryKey: SALE_ORDERS_KEY, queryFn: getSaleOrders });
+export function useSaleOrders(query: SaleOrdersQuery = {}) {
+    return useQuery({ queryKey: [...SALE_ORDERS_KEY, query], queryFn: () => getSaleOrders(query), placeholderData: keepPreviousData });
 }
 
 export function useCreateSaleOrder() {
@@ -22,6 +22,9 @@ export function useCreateSaleOrder() {
             // Crear, enviar, cancelar o recibir cambia stock, coste o disponible: la lista de
             // productos que está en caché ya no es la buena (T5-03).
             qc.invalidateQueries({ queryKey: queryKeys.product });
+            // T5-06 — la ficha del cliente cuenta y suma sus órdenes, y una venta con correo
+            // nuevo crea el cliente.
+            qc.invalidateQueries({ queryKey: queryKeys.customers });
             toast.success(t("ventas.creada"));
         },
         onError: (error) => toast.error(mensajeDeError(idioma, error)),
@@ -38,6 +41,7 @@ export function useUpdateSaleOrder() {
             // Crear, enviar, cancelar o recibir cambia stock, coste o disponible: la lista de
             // productos que está en caché ya no es la buena (T5-03).
             qc.invalidateQueries({ queryKey: queryKeys.product });
+            qc.invalidateQueries({ queryKey: queryKeys.customers });
             toast.success(t("ordenes.actualizada"));
         },
         onError: (error) => toast.error(mensajeDeError(idioma, error)),
@@ -53,6 +57,7 @@ export function useShipSaleOrder() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: SALE_ORDERS_KEY });
             qc.invalidateQueries({ queryKey: queryKeys.product });
+            qc.invalidateQueries({ queryKey: queryKeys.customers });
             toast.success(t("ordenes.actualizada"));
         },
         onError: (error) => toast.error(mensajeDeError(idioma, error)),
@@ -69,6 +74,7 @@ export function useDeleteSaleOrder() {
             // Crear, enviar, cancelar o recibir cambia stock, coste o disponible: la lista de
             // productos que está en caché ya no es la buena (T5-03).
             qc.invalidateQueries({ queryKey: queryKeys.product });
+            qc.invalidateQueries({ queryKey: queryKeys.customers });
             toast.success(t("ordenes.eliminada"));
         },
         onError: (error) => toast.error(mensajeDeError(idioma, error)),

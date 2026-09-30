@@ -19,6 +19,8 @@ const InformePorPeriodoPage = lazy(() => import("@/modules/reports/components/In
 const PurchaseOrdersPage = lazy(() => import("@/modules/purchase-orders/components/PurchaseOrdersPage"));
 const SugerenciasReposicionPage = lazy(() => import("@/modules/purchase-orders/components/SugerenciasReposicionPage"));
 const SaleOrdersPage = lazy(() => import("@/modules/sale-orders/components/SaleOrdersPage"));
+const CustomersPage = lazy(() => import("@/modules/customers/components/CustomersPage"));
+const CustomerDetailPage = lazy(() => import("@/modules/customers/components/CustomerDetailPage"));
 const InventoryCountsPage = lazy(() => import("@/modules/inventory-counts/components/InventoryCountsPage"));
 const InventoryCountPage = lazy(() => import("@/modules/inventory-counts/components/InventoryCountPage"));
 const AuditLogsPage = lazy(() => import("@/modules/audit-logs/components/AuditLogsPage"));
@@ -77,6 +79,9 @@ export const router = createBrowserRouter([
             // T5-05 — solo ADMIN: generar órdenes lo es, y la pantalla existe para eso.
             { path: "purchase-orders/suggestions", element: <ProtectedRoute requireRole="ADMIN"><S><SugerenciasReposicionPage /></S></ProtectedRoute> },
             { path: "sale-orders", element: <S><SaleOrdersPage /></S> },
+            // T5-06 — los ve quien ve las ventas; crear, editar y borrar lo decide la matriz.
+            { path: "customers", element: <S><CustomersPage /></S> },
+            { path: "customers/:id", element: <S><CustomerDetailPage /></S> },
             // T5-07 — todos los roles consultan; contar, cerrar y cancelar lo decide la matriz.
             { path: "inventory-counts", element: <S><InventoryCountsPage /></S> },
             { path: "inventory-counts/:id", element: <S><InventoryCountPage /></S> },

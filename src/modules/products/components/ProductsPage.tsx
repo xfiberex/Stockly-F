@@ -238,15 +238,18 @@ export default function ProductsPage() {
                 </div>
             </div>
 
-            {/* Barra de acciones masivas */}
+            {/* Barra de acciones masivas. **Salta de línea**: con «Etiquetas» (T5-08) eran el
+                recuento y tres botones en una fila de ~508 px, y en un móvil de 393 el navegador
+                ensanchaba la página entera para que cupiera. Lo encontró el E2E de T5-06: la
+                ficha que se abría después quedaba descolocada y su «Cerrar», fuera de alcance. */}
             {puedeSeleccionar && selectedIds.size > 0 && (
-                <div className="flex items-center gap-3 px-4 py-3 bg-info-surface rounded-xl border border-info">
+                <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-info-surface rounded-xl border border-info">
                     {/* El plural sale de `tn()`: el apaño de sumar «s» a dos palabras no
                         sobrevive a un idioma donde la marca de plural va en otro sitio. */}
                     <span className="text-sm font-medium text-info">
                         {tn("productos.seleccionados", selectedIds.size)}
                     </span>
-                    <div className="flex gap-2 ml-auto">
+                    <div className="flex flex-wrap gap-2 ml-auto">
                         {puedeAjustarEnBloque && (
                             <Button
                                 variant="secondary"

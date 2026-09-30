@@ -1,5 +1,6 @@
 import { formatearImporte } from "@/shared/lib/moneda";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
@@ -19,6 +20,8 @@ import {
     useDeleteSaleOrder,
 } from "@/modules/sale-orders/hooks/useSaleOrders";
 import { exportSaleOrdersCsv } from "@/modules/sale-orders/api/sale-orders.api";
+import { BuscadorDeCliente } from "@/modules/customers/components/BuscadorDeCliente";
+import type { CustomerListItem } from "@/modules/customers/types/customer.types";
 import type { SaleOrder, CreateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
 import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
@@ -134,6 +137,20 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
         defaultValues: { items: [{ productName: "", quantity: 1, unitPrice: 0 }] },
     });
 
+    // T5-06 — el cliente elegido rellena los tres campos, que **siguen siendo editables**: son
+    // la instantánea de a quién se vende esta vez, y un teléfono distinto para una entrega no
+    // tiene por qué cambiar la ficha del cliente. Sin elegir ninguno, la venta se vincula sola
+    // por el correo que se escriba.
+    const [cliente, setCliente] = useState<CustomerListItem | null>(null);
+    const elegirCliente = (elegido: CustomerListItem | null) => {
+        setCliente(elegido);
+        if (!elegido) return;
+        setValue("customerName", elegido.name);
+        setValue("customerEmail", elegido.email ?? "");
+        setValue("customerPhone", elegido.phone ?? "");
+    };
+    const cerrar = () => { setCliente(null); onClose(); };
+
     const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
     // T5-03 — cuánto se pide de cada producto **sumando todas las líneas**, y cuánto hay
@@ -167,6 +184,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
 
     const onSubmit = (formData: CreateSaleOrderDto) => {
         const payload: CreateSaleOrderDto = {
+            customerId: cliente?.id,
             customerName: formData.customerName || undefined,
             customerEmail: formData.customerEmail || undefined,
             customerPhone: formData.customerPhone || undefined,
@@ -179,13 +197,14 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
             })),
         };
         createMutation.mutate(payload, {
-            onSuccess: () => { reset(); onClose(); },
+            onSuccess: () => { reset(); cerrar(); },
         });
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={t("ventas.nuevaOrden")} className="max-w-2xl">
+        <Modal isOpen={isOpen} onClose={cerrar} title={t("ventas.nuevaOrden")} className="max-w-2xl">
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+                <BuscadorDeCliente seleccionado={cliente} onSeleccionar={elegirCliente} />
                 <div className="grid grid-cols-2 gap-3">
                     <Input id="customerName" label={t("ventas.cliente")} placeholder={t("ventas.ejemploCliente")} {...register("customerName")} />
                     <Input id="customerEmail" label={t("ventas.correo")} type="email" placeholder={t("ventas.ejemploCorreo")} {...register("customerEmail")} />
@@ -275,7 +294,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                    <Button type="button" variant="secondary" onClick={onClose}>{t("comun.cancelar")}</Button>
+                    <Button type="button" variant="secondary" onClick={cerrar}>{t("comun.cancelar")}</Button>
                     <Button type="submit" isLoading={createMutation.isPending}>{t("ordenes.crear")}</Button>
                 </div>
             </form>
@@ -361,7 +380,20 @@ export default function SaleOrdersPage() {
                                             {t("ventas.numero", { numero: numeroDeOrden(order.id) })}
                                         </p>
                                         <p className="text-xs text-foreground-muted">
-                                            {order.customerName ?? t("ventas.clienteSinNombre")} · {formatearFecha(idioma, order.createdAt)}
+                                            {/* T5-06 — con cliente, el nombre lleva a su ficha. El clic no
+                                                despliega la fila: es un destino, no un conmutador. */}
+                                            {order.customerId ? (
+                                                <Link
+                                                    to={`/customers/${order.customerId}`}
+                                                    className="text-accent underline underline-offset-2"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    {order.customerName ?? t("ventas.clienteSinNombre")}
+                                                </Link>
+                                            ) : (
+                                                order.customerName ?? t("ventas.clienteSinNombre")
+                                            )}{" "}
+                                            · {formatearFecha(idioma, order.createdAt)}
                                         </p>
                                     </div>
                                 </div>

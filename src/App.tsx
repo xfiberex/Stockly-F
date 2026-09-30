@@ -92,6 +92,8 @@ const NAVEGACION: ElementoDeNav[] = [
         items: [
             { to: "/purchase-orders", label: "nav.compra" },
             { to: "/sale-orders", label: "nav.venta" },
+            // T5-06 — a quién se vende, junto a las ventas.
+            { to: "/customers", label: "ruta.clientes" },
         ],
     },
     // T5-07 — el trabajo del almacén que no es una orden.

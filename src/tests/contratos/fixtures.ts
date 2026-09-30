@@ -58,6 +58,7 @@ export const productoDeCatalogo: Product = segunContrato(productoSchema, {
 export const ordenDeVentaEnviada: SaleOrder = segunContrato(ordenDeVentaSchema, {
     id: "aaaaaaaa-1111-2222-3333-444444444444",
     status: "SHIPPED",
+    customerId: null,
     customerName: "Cliente de prueba",
     customerEmail: null,
     customerPhone: null,

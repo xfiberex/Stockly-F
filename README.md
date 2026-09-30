@@ -95,6 +95,9 @@ Stockly-F/src/
 │   │
 │   ├── inventory-counts/                   # T5-07: InventoryCountsPage, InventoryCountPage
 │   │
+│   ├── customers/                          # T5-06: CustomersPage, CustomerDetailPage,
+│   │                                       # BuscadorDeCliente (el de la venta)
+│   │
 │   ├── sale-orders/
 │   │   ├── components/SaleOrdersPage.tsx       # PENDING → SHIPPED / CANCELLED
 │   │   ├── hooks/useSaleOrders.ts
@@ -233,6 +236,8 @@ commit: con el backend ya en verde, se relanza desde *Actions* (*Re-run all jobs
 | `/purchase-orders` | `PurchaseOrdersPage` | JWT |
 | `/purchase-orders/suggestions` | `SugerenciasReposicionPage` | JWT + ADMIN |
 | `/sale-orders` | `SaleOrdersPage` | JWT |
+| `/customers` | `CustomersPage` | JWT |
+| `/customers/:id` | `CustomerDetailPage` | JWT |
 | `/inventory-counts` | `InventoryCountsPage` | JWT |
 | `/inventory-counts/:id` | `InventoryCountPage` | JWT |
 | `/reports` | `ReportsPage` | JWT |

@@ -3,8 +3,15 @@ import { descargarDeLaApi } from "@/shared/api/descargar";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
 import type { SaleOrder, CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
 
-export const getSaleOrders = async (): Promise<PaginatedResponse<SaleOrder>> => {
-    const { data } = await api.get<ApiResponse<PaginatedResponse<SaleOrder>>>("/sale-orders");
+/** T5-06 — `customerId` trae solo las de un cliente: el historial de su ficha. */
+export interface SaleOrdersQuery {
+    page?: number;
+    limit?: number;
+    customerId?: string;
+}
+
+export const getSaleOrders = async (params: SaleOrdersQuery = {}): Promise<PaginatedResponse<SaleOrder>> => {
+    const { data } = await api.get<ApiResponse<PaginatedResponse<SaleOrder>>>("/sale-orders", { params });
     return data.data!;
 };
 

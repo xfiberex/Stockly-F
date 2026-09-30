@@ -33,6 +33,7 @@ const item = (over: Partial<SaleOrderItem> & { id: string }): SaleOrderItem => (
 const ORDEN_ENVIADA: SaleOrder = {
     id: ORDEN_ID,
     status: "SHIPPED",
+    customerId: null,
     customerName: "Cliente de prueba",
     customerEmail: null,
     customerPhone: null,

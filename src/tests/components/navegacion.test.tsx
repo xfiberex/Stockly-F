@@ -60,7 +60,7 @@ function recorrido(raiz: HTMLElement): string[] {
 const RECORRIDO_ADMIN = [
     "Dashboard",
     "Catálogo", "Productos", "Categorías", "Marcas", "Proveedores", "Etiquetas",
-    "Órdenes", "Compra", "Venta",
+    "Órdenes", "Compra", "Venta", "Clientes",
     "Conteos físicos",
     "Reportes",
     "Admin", "Usuarios", "Auditoría", "Configuración",
@@ -101,15 +101,15 @@ describe("Orden de la navegación (T3-04, T4-10)", () => {
 });
 
 describe("Barra lateral (T4-10)", () => {
-    it("cada sección se alcanza en un solo clic: son trece enlaces, sin disparadores que abrir", () => {
+    it("cada sección se alcanza en un solo clic: son catorce enlaces, sin disparadores que abrir", () => {
         renderWithProviders(layout());
         const lateral = barraLateral();
 
         // Ni un `<button>`: lo que había antes eran tres, y cada uno costaba una
         // interacción extra para llegar a lo que guardaba.
         expect(lateral.querySelectorAll("button")).toHaveLength(0);
-        // T5-07 — trece desde que los conteos físicos tienen su sección.
-        expect(lateral.querySelectorAll("a[href]")).toHaveLength(13);
+        // T5-07 — trece desde que los conteos físicos tienen su sección; T5-06, catorce con los clientes.
+        expect(lateral.querySelectorAll("a[href]")).toHaveLength(14);
     });
 
     it("los destinos de los grupos están en el DOM sin desplegar nada", () => {

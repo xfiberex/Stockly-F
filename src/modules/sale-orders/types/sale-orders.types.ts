@@ -15,6 +15,8 @@ export interface CreateSaleOrderItemDto {
 }
 
 export interface CreateSaleOrderDto {
+    /** T5-06 — el cliente elegido. Sin él, el servidor vincula la venta por su correo. */
+    customerId?: string;
     customerName?: string;
     customerEmail?: string;
     customerPhone?: string;

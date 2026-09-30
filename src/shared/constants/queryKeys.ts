@@ -9,6 +9,7 @@ export const queryKeys = {
     settings: ["settings"] as const,
     auditLogs: ["audit-logs"] as const,
     saleOrders: ["sale-orders"] as const,
+    customers: ["customers"] as const,
     purchaseOrders: ["purchase-orders"] as const,
     reports: ["reports"] as const,
     inventoryCounts: ["inventory-counts"] as const,

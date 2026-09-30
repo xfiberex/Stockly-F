@@ -337,9 +337,21 @@ test.describe("Flujos que cruzan frontend y backend", () => {
 
         // Imprimir desde el catálogo, en rollo: una etiqueta por página.
         await page.goto("/catalog/products");
+        // Esperar a que la búsqueda **se aplique** antes de marcar: los dos productos recién
+        // creados ya salen en la primera página sin filtrar, y cambiar el filtro vacía la
+        // selección —a propósito—. Marcarlos antes perdía una marca o las dos según el momento
+        // en que llegaba la búsqueda: fallaba en un proyecto distinto en cada pasada. El filtro
+        // cambia antes de pedir la búsqueda, así que con su respuesta ya no queda nada que vacíe.
+        const buscado = page.waitForResponse((r) => new URL(r.url()).pathname.endsWith("/api/v1/products")
+            && new URL(r.url()).searchParams.get("search") === marca);
         await page.getByPlaceholder("Buscar producto...").fill(marca);
+        await buscado;
         await page.getByRole("checkbox", { name: `Seleccionar ${marca}-ean` }).check();
         await page.getByRole("checkbox", { name: `Seleccionar ${marca}-sku` }).check();
+        // La barra de selección cabe en la pantalla. En un móvil, algo más ancho no desborda:
+        // el navegador **ensancha la página entera** —`innerWidth` pasaba de 393 a 508— y todo
+        // lo que se abre después queda descolocado.
+        expect(await page.evaluate(() => window.innerWidth)).toBe(page.viewportSize()!.width);
         await page.getByRole("button", { name: "Etiquetas" }).click();
         const impresion = page.getByRole("dialog", { name: "Imprimir etiquetas" });
         await impresion.getByText("Rollo", { exact: true }).click();
@@ -430,6 +442,66 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         expect(generada[0]!.items).toEqual([expect.objectContaining({ productId: creado.id, quantity: MINIMO, unitPrice: "4.5" })]);
         // Un borrador no mueve stock.
         expect(await stockDe(page, creado.id)).toBe(0);
+    });
+
+    test("una venta con correo nuevo crea su cliente, la siguiente lo elige con el buscador y la ficha suma solo lo enviado (T5-06)", async ({ page }) => {
+        await login(page);
+        const id = sufijo();
+        const nombre = `Cliente E2E ${id}`;
+        const correo = `cliente-${id}@e2e.test`;
+
+        // 1. Venta por la interfaz, con un correo que no tiene nadie y en mayúsculas: el
+        //    servidor crea el cliente con el correo normalizado.
+        await page.goto("/sale-orders");
+        await page.getByRole("button", { name: "Nueva orden" }).click();
+        const modal = page.getByRole("dialog");
+        await modal.getByLabel("Nombre del cliente").fill(nombre);
+        await modal.getByLabel("Correo").fill(correo.toUpperCase());
+        await modal.getByLabel("Nombre", { exact: true }).fill("Servicio E2E");
+        await modal.getByLabel("P. unit.").fill("150");
+        await modal.getByRole("button", { name: "Crear orden" }).click();
+        await expect(modal).toBeHidden();
+
+        // 2. La segunda, eligiendo ese cliente con el buscador y solo con el teclado.
+        await page.getByRole("button", { name: "Nueva orden" }).click();
+        const buscador = modal.getByRole("combobox", { name: "Cliente existente" });
+        await buscador.fill(correo);
+        await expect(modal.getByRole("option", { name: new RegExp(nombre) })).toBeVisible();
+        await buscador.press("Enter");
+        await expect(modal.getByRole("button", { name: `Quitar el cliente ${nombre}` })).toBeVisible();
+        await expect(modal.getByLabel("Correo")).toHaveValue(correo);
+        await modal.getByLabel("Nombre", { exact: true }).fill("Otro servicio E2E");
+        await modal.getByLabel("P. unit.").fill("40");
+        await modal.getByRole("button", { name: "Crear orden" }).click();
+        await expect(modal).toBeHidden();
+
+        // 3. Las dos quedaron en el mismo cliente, y la primera conserva lo que se escribió.
+        const encontrados = (await api(page, "get", `/customers?search=${encodeURIComponent(correo)}`)) as {
+            data: Array<{ id: string; email: string; ordersCount: number }>;
+        };
+        expect(encontrados.data).toHaveLength(1);
+        const cliente = encontrados.data[0]!;
+        expect(cliente).toMatchObject({ email: correo, ordersCount: 2 });
+        const ventas = (await api(page, "get", `/sale-orders?customerId=${cliente.id}`)) as {
+            data: Array<{ id: string; customerEmail: string; items: Array<{ unitPrice: string }> }>;
+        };
+        const primera = ventas.data.find((v) => Number(v.items[0]!.unitPrice) === 150)!;
+        expect(primera.customerEmail).toBe(correo.toUpperCase());
+
+        // 4. La ficha, a la que se llega desde la lista: nada enviado todavía.
+        await page.goto("/customers");
+        await page.getByRole("searchbox", { name: "Buscar por nombre, correo o teléfono" }).fill(correo);
+        await page.getByRole("link", { name: nombre }).click();
+        await expect(page.getByRole("heading", { name: nombre, level: 1 })).toBeVisible();
+        const importe = page.getByText("Importe enviado").locator("..");
+        await expect(importe).toContainText("$0.00");
+        await expect(page.getByRole("region", { name: "Historial de ventas" }).getByRole("row")).toHaveCount(3);
+
+        // 5. Enviar la de 150 la suma; la de 40 sigue pendiente y no cuenta.
+        await api(page, "post", `/sale-orders/${primera.id}/ship`);
+        await page.reload();
+        await expect(importe).toContainText("$150.00");
+        await expect(page.getByText("1 pendiente todavía no cuenta.", { exact: false })).toBeVisible();
     });
 
     test("lo recibido y lo enviado hoy sale en el informe de este mes, y se exporta (T5-09)", async ({ page }) => {
