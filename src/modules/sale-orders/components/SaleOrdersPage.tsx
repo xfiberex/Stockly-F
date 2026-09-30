@@ -9,12 +9,13 @@ import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ESTADO_ORDEN_VENTA, buscarEstado } from "@/shared/lib/estados";
 import { Spinner } from "@/shared/components/Spinner";
 import { DropdownButton } from "@/shared/components/DropdownButton";
-import { useAuth } from "@/modules/auth/hooks/useMe";
+import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { useProducts } from "@/modules/products/hooks/useProducts";
 import {
     useSaleOrders,
     useCreateSaleOrder,
     useUpdateSaleOrder,
+    useShipSaleOrder,
     useDeleteSaleOrder,
 } from "@/modules/sale-orders/hooks/useSaleOrders";
 import { exportSaleOrdersCsv } from "@/modules/sale-orders/api/sale-orders.api";
@@ -290,15 +291,19 @@ export default function SaleOrdersPage() {
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [ordenACancelar, setOrdenACancelar] = useState<SaleOrder | null>(null);
 
-    const { user } = useAuth();
-    const isAdmin = user?.role === "ADMIN";
+    // T5-13 — cada botón por su ruta: el almacén envía, pero no crea, cancela ni borra.
+    const puede = usePuede();
+    const puedeEnviar = puede("POST /sale-orders/:id/ship");
+    const puedeEditar = puede("PATCH /sale-orders/:id");
+    const puedeBorrar = puede("DELETE /sale-orders/:id");
 
     const { data, isLoading } = useSaleOrders();
     const orders = data?.data ?? [];
     const updateMutation = useUpdateSaleOrder();
+    const shipMutation = useShipSaleOrder();
     const deleteMutation = useDeleteSaleOrder();
 
-    const handleShip = (id: string) => updateMutation.mutate({ id, dto: { status: "SHIPPED" } });
+    const handleShip = (id: string) => shipMutation.mutate(id);
     const handleCancel = (id: string) => updateMutation.mutate({ id, dto: { status: "CANCELLED" } });
 
     // La orden enviada se cancela desde el diálogo, no desde la fila: es la única de las
@@ -319,12 +324,16 @@ export default function SaleOrdersPage() {
                     <p className="text-sm text-foreground-muted mt-1">{tn("ordenes.cantidad", orders.length)}</p>
                 </div>
                 <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
-                    <DropdownButton
-                        label={t("ordenes.exportar")}
-                        icon={ArrowDownTrayIcon}
-                        items={[{ label: t("ordenes.exportarCsv"), onClick: exportSaleOrdersCsv }]}
-                    />
-                    {isAdmin && (
+                    {/* La exportación es solo de ADMIN en la API; antes el botón salía a todos y
+                        a los demás les devolvía un 403. */}
+                    {puede("GET /sale-orders/export") && (
+                        <DropdownButton
+                            label={t("ordenes.exportar")}
+                            icon={ArrowDownTrayIcon}
+                            items={[{ label: t("ordenes.exportarCsv"), onClick: exportSaleOrdersCsv }]}
+                        />
+                    )}
+                    {puede("POST /sale-orders") && (
                         <Button onClick={() => setFormOpen(true)}>
                             <PlusIcon className="h-4 w-4" />
                             {t("ordenes.nueva")}
@@ -363,48 +372,54 @@ export default function SaleOrdersPage() {
                                         </p>
                                         <p className="text-xs text-foreground-muted">{tn("ordenes.items", order.items.length)}</p>
                                     </div>
-                                    {isAdmin && order.status === "PENDING" && (
+                                    {order.status === "PENDING" && (puedeEnviar || puedeEditar || puedeBorrar) && (
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             {/* El nombre accesible nombra **la orden**: tres
                                                 botones de icono repetidos por fila se anuncian
                                                 todos igual, y no hay forma de saber sobre cuál
                                                 se actúa. El `title` se queda para el ratón. */}
-                                            <Button
-                                                variant="ghost"
-                                                className={CLASES_BOTON_ICONO}
-                                                title={t("ventas.marcarEnviada")}
-                                                aria-label={t("ventas.marcarEnviadaDe", { numero: numeroDeOrden(order.id) })}
-                                                isLoading={updateMutation.isPending}
-                                                onClick={() => handleShip(order.id)}
-                                            >
-                                                <TruckIcon className="h-4 w-4 text-success" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                className={CLASES_BOTON_ICONO}
-                                                title={t("compras.cancelarOrden")}
-                                                aria-label={t("ventas.cancelarDe", { numero: numeroDeOrden(order.id) })}
-                                                isLoading={updateMutation.isPending}
-                                                onClick={() => handleCancel(order.id)}
-                                            >
-                                                <XMarkIcon className="h-4 w-4 text-warning" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                className={CLASES_BOTON_ICONO}
-                                                title={t("comun.eliminar")}
-                                                aria-label={t("ventas.eliminarDe", { numero: numeroDeOrden(order.id) })}
-                                                isLoading={deleteMutation.isPending}
-                                                onClick={() => deleteMutation.mutate(order.id)}
-                                            >
-                                                <TrashIcon className="h-4 w-4 text-danger" />
-                                            </Button>
+                                            {puedeEnviar && (
+                                                <Button
+                                                    variant="ghost"
+                                                    className={CLASES_BOTON_ICONO}
+                                                    title={t("ventas.marcarEnviada")}
+                                                    aria-label={t("ventas.marcarEnviadaDe", { numero: numeroDeOrden(order.id) })}
+                                                    isLoading={shipMutation.isPending}
+                                                    onClick={() => handleShip(order.id)}
+                                                >
+                                                    <TruckIcon className="h-4 w-4 text-success" />
+                                                </Button>
+                                            )}
+                                            {puedeEditar && (
+                                                <Button
+                                                    variant="ghost"
+                                                    className={CLASES_BOTON_ICONO}
+                                                    title={t("compras.cancelarOrden")}
+                                                    aria-label={t("ventas.cancelarDe", { numero: numeroDeOrden(order.id) })}
+                                                    isLoading={updateMutation.isPending}
+                                                    onClick={() => handleCancel(order.id)}
+                                                >
+                                                    <XMarkIcon className="h-4 w-4 text-warning" />
+                                                </Button>
+                                            )}
+                                            {puedeBorrar && (
+                                                <Button
+                                                    variant="ghost"
+                                                    className={CLASES_BOTON_ICONO}
+                                                    title={t("comun.eliminar")}
+                                                    aria-label={t("ventas.eliminarDe", { numero: numeroDeOrden(order.id) })}
+                                                    isLoading={deleteMutation.isPending}
+                                                    onClick={() => deleteMutation.mutate(order.id)}
+                                                >
+                                                    <TrashIcon className="h-4 w-4 text-danger" />
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                     {/* T2-42: una orden enviada también se puede cancelar, y eso repone
                                         el stock (T0-03). No lleva «Eliminar»: el backend no permite
                                         borrar una orden ya enviada. */}
-                                    {isAdmin && order.status === "SHIPPED" && (
+                                    {puedeEditar && order.status === "SHIPPED" && (
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                             <Button
                                                 variant="ghost"

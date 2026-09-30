@@ -5,12 +5,18 @@ import { expect, type Page } from "@playwright/test";
 export const EMAIL = process.env.E2E_EMAIL ?? "admin@stockly.app";
 export const PASSWORD = process.env.E2E_PASSWORD ?? "Admin1234!";
 
+// T5-13 — la cuenta de almacén del seed.
+export const ALMACEN = {
+    email: process.env.E2E_ALMACEN_EMAIL ?? "almacen@stockly.app",
+    password: process.env.E2E_ALMACEN_PASSWORD ?? "Almacen1234!",
+};
+
 export const API_URL = process.env.E2E_API_URL ?? "http://localhost:3000";
 
-export async function login(page: Page): Promise<void> {
+export async function login(page: Page, cuenta = { email: EMAIL, password: PASSWORD }): Promise<void> {
     await page.goto("/auth/login");
-    await page.getByLabel("Correo electrónico").fill(EMAIL);
-    await page.getByLabel("Contraseña").fill(PASSWORD);
+    await page.getByLabel("Correo electrónico").fill(cuenta.email);
+    await page.getByLabel("Contraseña").fill(cuenta.password);
     await page.getByRole("button", { name: "Entrar" }).click();
     await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 }
@@ -27,22 +33,32 @@ export function sufijo(): string {
  */
 export async function api(
     page: Page,
-    metodo: "get" | "post" | "patch" | "delete",
+    metodo: "get" | "post" | "put" | "patch" | "delete",
     ruta: string,
     data?: unknown,
 ): Promise<unknown> {
-    const cookies = await page.context().cookies();
-    const csrf = cookies.find((c) => c.name === "csrfToken")?.value ?? "";
-
-    const res = await page.request[metodo](`${API_URL}/api/v1${ruta}`, {
-        headers: { "x-csrf-token": csrf, "Content-Type": "application/json" },
-        ...(data !== undefined && { data }),
-    });
+    const res = await apiCruda(page, metodo, ruta, data);
 
     if (!res.ok()) {
         throw new Error(`${metodo.toUpperCase()} ${ruta} → ${res.status()} ${await res.text()}`);
     }
     return (await res.json()).data;
+}
+
+/** Como `api`, pero devuelve la respuesta tal cual: para comprobar un rechazo (T5-13). */
+export async function apiCruda(
+    page: Page,
+    metodo: "get" | "post" | "put" | "patch" | "delete",
+    ruta: string,
+    data?: unknown,
+) {
+    const cookies = await page.context().cookies();
+    const csrf = cookies.find((c) => c.name === "csrfToken")?.value ?? "";
+
+    return page.request[metodo](`${API_URL}/api/v1${ruta}`, {
+        headers: { "x-csrf-token": csrf, "Content-Type": "application/json" },
+        ...(data !== undefined && { data }),
+    });
 }
 
 /** Stock actual de un producto, leído de la API. */

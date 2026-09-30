@@ -91,6 +91,20 @@ describe("UsersPage (T2-20)", () => {
         expect(cambiarRol).toHaveBeenCalledWith({ id: "u-1", role: "ADMIN" });
     });
 
+    it("T5-13 — ofrece el rol de almacén, lo asigna y lo pinta con su rótulo", async () => {
+        usuarios = [...usuarios, usuario({ id: "u-2", name: "Mateo Rivas", email: "almacen@stockly.app", role: "WAREHOUSE" })];
+        const user = userEvent.setup();
+        renderWithProviders(<UsersPage />);
+
+        expect(within(fila("Mateo Rivas")).getByText("Almacén", { selector: ":not(option)" })).toBeInTheDocument();
+
+        await user.selectOptions(within(fila("Laura Gómez")).getByRole("combobox"), "WAREHOUSE");
+        expect(cambiarRol).toHaveBeenCalledWith({ id: "u-1", role: "WAREHOUSE" });
+
+        await user.selectOptions(screen.getAllByRole("combobox")[0]!, "WAREHOUSE");
+        expect(consultas.at(-1)).toMatchObject({ role: "WAREHOUSE" });
+    });
+
     it("desactivar envía `active: false`, y en una cuenta inactiva el botón activa", async () => {
         const user = userEvent.setup();
         renderWithProviders(<UsersPage />);

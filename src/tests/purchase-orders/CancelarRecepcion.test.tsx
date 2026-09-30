@@ -2,6 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/tests/utils";
 import PurchaseOrdersPage from "@/modules/purchase-orders/components/PurchaseOrdersPage";
+import type { Rol } from "@/shared/contratos";
 import type { PurchaseOrder } from "@/modules/purchase-orders/types/purchase-orders.types";
 
 /**
@@ -29,7 +30,7 @@ const ORDEN_RECIBIDA = {
 } satisfies PurchaseOrder;
 
 let ordenes: PurchaseOrder[] = [];
-let rol: "ADMIN" | "USER" = "ADMIN";
+let rol: Rol = "ADMIN";
 const mutaciones: unknown[] = [];
 /** Si es `false`, la mutación simula el 400 del backend: no llama a `onSuccess`. */
 let exito = true;
@@ -163,5 +164,46 @@ describe("PurchaseOrdersPage — cancelar una orden ya recibida (T5-01)", () => 
         renderWithProviders(<PurchaseOrdersPage />);
 
         expect(botonCancelarRecepcion()).not.toBeInTheDocument();
+    });
+});
+
+describe("PurchaseOrdersPage — el rol de almacén (T5-13)", () => {
+    const PENDIENTE = { ...ORDEN_RECIBIDA, id: "cccccccc-1111-2222-3333-444444444444", status: "PENDING" as const,
+        items: ORDEN_RECIBIDA.items.map((i) => ({ ...i, receivedQuantity: 0 })) };
+    const A_MEDIAS = { ...ORDEN_RECIBIDA, id: "dddddddd-1111-2222-3333-444444444444", status: "PARTIALLY_RECEIVED" as const,
+        items: ORDEN_RECIBIDA.items.map((i) => ({ ...i, receivedQuantity: 1 })) };
+
+    beforeEach(() => {
+        rol = "WAREHOUSE";
+        mutaciones.length = 0;
+    });
+
+    it("puede recibir una pendiente y una a medias, pero no cancelar ni eliminar", () => {
+        ordenes = [PENDIENTE, A_MEDIAS];
+        renderWithProviders(<PurchaseOrdersPage />);
+
+        expect(screen.getByRole("button", { name: "Recibir mercancía de la orden #CCCCCCCC" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Recibir mercancía de la orden #DDDDDDDD" })).toBeInTheDocument();
+        expect(screen.queryByTitle("Cancelar orden")).not.toBeInTheDocument();
+        expect(screen.queryByTitle("Eliminar")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Cancelar la orden recibida #DDDDDDDD" })).not.toBeInTheDocument();
+    });
+
+    it("no ve cancelar una recibida, ni crear, sugerencias o exportar", () => {
+        ordenes = [ORDEN_RECIBIDA];
+        renderWithProviders(<PurchaseOrdersPage />);
+
+        expect(botonCancelarRecepcion()).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Nueva orden" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: "Sugerencias de reposición" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Exportar" })).not.toBeInTheDocument();
+    });
+
+    it("un USER no puede recibir", () => {
+        rol = "USER";
+        ordenes = [PENDIENTE];
+        renderWithProviders(<PurchaseOrdersPage />);
+
+        expect(screen.queryByRole("button", { name: "Recibir mercancía de la orden #CCCCCCCC" })).not.toBeInTheDocument();
     });
 });

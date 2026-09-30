@@ -2,6 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/tests/utils";
 import SaleOrdersPage from "@/modules/sale-orders/components/SaleOrdersPage";
+import type { Rol } from "@/shared/contratos";
 import type { SaleOrder, SaleOrderItem, SaleOrderStatus, UpdateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
 
 // T2-42: la reposición de stock de T0-03 vive en el backend desde el 2026-08-04, pero
@@ -51,8 +52,9 @@ const ORDEN_PENDIENTE: SaleOrder = {
 };
 
 const mutaciones: Array<{ id: string; dto: UpdateSaleOrderDto }> = [];
+const envios: string[] = [];
 let ordenes: SaleOrder[] = [];
-let rol: "ADMIN" | "USER" = "ADMIN";
+let rol: Rol = "ADMIN";
 
 vi.mock("@/modules/sale-orders/hooks/useSaleOrders", () => ({
     useSaleOrders: () => ({ data: { data: ordenes }, isLoading: false }),
@@ -69,6 +71,8 @@ vi.mock("@/modules/sale-orders/hooks/useSaleOrders", () => ({
         },
         isPending: false,
     }),
+    // T5-13 — enviar va por su propia ruta.
+    useShipSaleOrder: () => ({ mutate: (id: string) => envios.push(id), isPending: false }),
     useDeleteSaleOrder: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
@@ -183,5 +187,57 @@ describe("SaleOrdersPage — cancelar una orden ya enviada (T2-42)", () => {
 
         expect(botonCancelarEnvio()).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /^Cancelar la Venta #/ })).not.toBeInTheDocument();
+    });
+});
+
+describe("SaleOrdersPage — el rol de almacén (T5-13)", () => {
+    beforeEach(() => {
+        mutaciones.length = 0;
+        envios.length = 0;
+        rol = "WAREHOUSE";
+    });
+
+    it("envía una pendiente por su propia ruta, y no ve cancelar, eliminar, crear ni exportar", async () => {
+        ordenes = [ORDEN_PENDIENTE];
+        const user = userEvent.setup();
+        renderWithProviders(<SaleOrdersPage />);
+
+        await user.click(screen.getByRole("button", { name: /^Marcar como enviada la Venta #/ }));
+
+        expect(envios).toEqual([ORDEN_PENDIENTE.id]);
+        // Nada por el `PATCH`, que es de ADMIN: la API se lo rechazaría.
+        expect(mutaciones).toEqual([]);
+        expect(screen.queryByRole("button", { name: /^Cancelar la Venta #/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^Eliminar la Venta #/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Nueva orden" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Exportar" })).not.toBeInTheDocument();
+    });
+
+    it("tampoco puede cancelar una ya enviada", () => {
+        ordenes = [ORDEN_ENVIADA];
+        renderWithProviders(<SaleOrdersPage />);
+
+        expect(botonCancelarEnvio()).not.toBeInTheDocument();
+    });
+
+    it("un USER no envía nada", () => {
+        rol = "USER";
+        ordenes = [ORDEN_PENDIENTE];
+        renderWithProviders(<SaleOrdersPage />);
+
+        expect(screen.queryByRole("button", { name: /^Marcar como enviada la Venta #/ })).not.toBeInTheDocument();
+    });
+
+    it("un ADMIN también envía por la ruta nueva, no por el PATCH", async () => {
+        rol = "ADMIN";
+        ordenes = [ORDEN_PENDIENTE];
+        const user = userEvent.setup();
+        renderWithProviders(<SaleOrdersPage />);
+
+        await user.click(screen.getByRole("button", { name: /^Marcar como enviada la Venta #/ }));
+
+        expect(envios).toEqual([ORDEN_PENDIENTE.id]);
+        expect(mutaciones).toEqual([]);
+        expect(screen.getByRole("button", { name: "Exportar" })).toBeInTheDocument();
     });
 });

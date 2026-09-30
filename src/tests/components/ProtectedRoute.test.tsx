@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
 import { createTestQueryClient } from "../utils";
+import type { Rol } from "@/shared/contratos";
 
 vi.mock("@/modules/auth/hooks/useMe", () => ({
     useAuth: vi.fn(),
@@ -54,7 +55,7 @@ describe("ProtectedRoute", () => {
 
     it("renderiza los children cuando el usuario está autenticado", () => {
         vi.mocked(useAuth).mockReturnValue({
-            user: { id: "1", email: "user@test.com", name: "Test", role: "USER", idioma: "ES" as const, isVerified: true, createdAt: "2024-01-01" },
+            user: { id: "1", email: "user@test.com", name: "Test", role: "USER" as const, idioma: "ES" as const, isVerified: true, createdAt: "2024-01-01" },
             isLoading: false,
             isError: false,
         });
@@ -67,7 +68,7 @@ describe("ProtectedRoute", () => {
     // escribía /admin/users en la barra de direcciones llegaba a la página y solo
     // veía cómo fallaban sus peticiones con 403.
     describe("guardia de rol", () => {
-        const usuarioConRol = (role: string) => ({
+        const usuarioConRol = (role: Rol) => ({
             user: { id: "1", email: "user@test.com", name: "Test", role, idioma: "ES" as const, isVerified: true, createdAt: "2024-01-01" },
             isLoading: false,
             isError: false,

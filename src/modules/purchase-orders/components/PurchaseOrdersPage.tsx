@@ -10,7 +10,7 @@ import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ESTADO_ORDEN_COMPRA, buscarEstado } from "@/shared/lib/estados";
 import { Spinner } from "@/shared/components/Spinner";
 import { DropdownButton } from "@/shared/components/DropdownButton";
-import { useAuth } from "@/modules/auth/hooks/useMe";
+import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { useSuppliers } from "@/modules/suppliers/hooks/useSuppliers";
 import { useProducts } from "@/modules/products/hooks/useProducts";
 import {
@@ -427,8 +427,12 @@ export default function PurchaseOrdersPage() {
     const [ordenACancelar, setOrdenACancelar] = useState<PurchaseOrder | null>(null);
     const [ordenARecibir, setOrdenARecibir] = useState<PurchaseOrder | null>(null);
 
-    const { user } = useAuth();
-    const isAdmin = user?.role === "ADMIN";
+    // T5-13 — el almacén recibe; crear, cancelar, borrar y generar desde sugerencias fijan
+    // precios o deshacen una decisión comercial, y son de ADMIN.
+    const puede = usePuede();
+    const puedeRecibir = puede("POST /purchase-orders/:id/receipts");
+    const puedeEditar = puede("PATCH /purchase-orders/:id");
+    const puedeBorrar = puede("DELETE /purchase-orders/:id");
 
     const [page, setPage] = useState(1);
 
@@ -486,20 +490,24 @@ export default function PurchaseOrdersPage() {
                     <p className="text-sm text-foreground-muted mt-1">{tn("ordenes.total", total)}</p>
                 </div>
                 <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
-                    <DropdownButton
-                        label={t("ordenes.exportar")}
-                        icon={ArrowDownTrayIcon}
-                        items={[{ label: t("ordenes.exportarCsv"), onClick: exportPurchaseOrdersCsv }]}
-                    />
+                    {/* La exportación es solo de ADMIN en la API; antes el botón salía a todos y
+                        a los demás les devolvía un 403. */}
+                    {puede("GET /purchase-orders/export") && (
+                        <DropdownButton
+                            label={t("ordenes.exportar")}
+                            icon={ArrowDownTrayIcon}
+                            items={[{ label: t("ordenes.exportarCsv"), onClick: exportPurchaseOrdersCsv }]}
+                        />
+                    )}
                     {/* T5-05 — un enlace y no un botón: lleva a otra pantalla, y así se puede abrir
-                        en otra pestaña. Solo ADMIN, que es quien puede generar las órdenes. */}
-                    {isAdmin && (
+                        en otra pestaña. Solo quien puede generar las órdenes. */}
+                    {puede("POST /purchase-orders/suggestions") && (
                         <Link to="/purchase-orders/suggestions" className={clasesDeBoton("secondary")}>
                             <SparklesIcon className="h-4 w-4" />
                             {t("reposicion.boton")}
                         </Link>
                     )}
-                    {isAdmin && (
+                    {puede("POST /purchase-orders") && (
                         <Button onClick={() => setFormOpen(true)}>
                             <PlusIcon className="h-4 w-4" />
                             {t("ordenes.nueva")}
@@ -547,44 +555,9 @@ export default function PurchaseOrdersPage() {
                                             </p>
                                         )}
                                     </div>
-                                    {isAdmin && order.status === "PENDING" && (
+                                    {order.status === "PENDING" && (puedeRecibir || puedeEditar || puedeBorrar) && (
                                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                            <Button
-                                                variant="ghost"
-                                                className={CLASES_BOTON_ICONO}
-                                                title={t("compras.recibir")}
-                                                aria-label={t("compras.recibirDe", { numero: numeroDeOrden(order.id) })}
-                                                onClick={() => setOrdenARecibir(order)}
-                                            >
-                                                <InboxArrowDownIcon className="h-4 w-4 text-success" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                className={CLASES_BOTON_ICONO}
-                                                title={t("compras.cancelarOrden")}
-                                                isLoading={updateMutation.isPending}
-                                                onClick={() => handleCancel(order.id)}
-                                            >
-                                                <XMarkIcon className="h-4 w-4 text-warning" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                className={CLASES_BOTON_ICONO}
-                                                title={t("comun.eliminar")}
-                                                isLoading={deleteMutation.isPending}
-                                                onClick={() => handleDelete(order.id)}
-                                            >
-                                                <TrashIcon className="h-4 w-4 text-danger" />
-                                            </Button>
-                                        </div>
-                                    )}
-                                    {/* T5-01: una orden recibida también se puede cancelar, y eso retira
-                                        su stock (T0-04). No lleva «Eliminar»: el backend no permite borrar
-                                        una orden ya recibida. T5-04: lo mismo a medias, que además puede
-                                        seguir recibiendo. */}
-                                    {isAdmin && tieneMercancia(order) && (
-                                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                            {order.status === "PARTIALLY_RECEIVED" && (
+                                            {puedeRecibir && (
                                                 <Button
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
@@ -595,15 +568,58 @@ export default function PurchaseOrdersPage() {
                                                     <InboxArrowDownIcon className="h-4 w-4 text-success" />
                                                 </Button>
                                             )}
-                                            <Button
-                                                variant="ghost"
-                                                className={CLASES_BOTON_ICONO}
-                                                title={t("compras.cancelarRecibida")}
-                                                aria-label={t("compras.cancelarRecibidaDe", { numero: numeroDeOrden(order.id) })}
-                                                onClick={() => setOrdenACancelar(order)}
-                                            >
-                                                <XMarkIcon className="h-4 w-4 text-warning" />
-                                            </Button>
+                                            {puedeEditar && (
+                                                <Button
+                                                    variant="ghost"
+                                                    className={CLASES_BOTON_ICONO}
+                                                    title={t("compras.cancelarOrden")}
+                                                    isLoading={updateMutation.isPending}
+                                                    onClick={() => handleCancel(order.id)}
+                                                >
+                                                    <XMarkIcon className="h-4 w-4 text-warning" />
+                                                </Button>
+                                            )}
+                                            {puedeBorrar && (
+                                                <Button
+                                                    variant="ghost"
+                                                    className={CLASES_BOTON_ICONO}
+                                                    title={t("comun.eliminar")}
+                                                    isLoading={deleteMutation.isPending}
+                                                    onClick={() => handleDelete(order.id)}
+                                                >
+                                                    <TrashIcon className="h-4 w-4 text-danger" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+                                    {/* T5-01: una orden recibida también se puede cancelar, y eso retira
+                                        su stock (T0-04). No lleva «Eliminar»: el backend no permite borrar
+                                        una orden ya recibida. T5-04: lo mismo a medias, que además puede
+                                        seguir recibiendo. */}
+                                    {tieneMercancia(order) && (puedeEditar || (puedeRecibir && order.status === "PARTIALLY_RECEIVED")) && (
+                                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                            {puedeRecibir && order.status === "PARTIALLY_RECEIVED" && (
+                                                <Button
+                                                    variant="ghost"
+                                                    className={CLASES_BOTON_ICONO}
+                                                    title={t("compras.recibir")}
+                                                    aria-label={t("compras.recibirDe", { numero: numeroDeOrden(order.id) })}
+                                                    onClick={() => setOrdenARecibir(order)}
+                                                >
+                                                    <InboxArrowDownIcon className="h-4 w-4 text-success" />
+                                                </Button>
+                                            )}
+                                            {puedeEditar && (
+                                                <Button
+                                                    variant="ghost"
+                                                    className={CLASES_BOTON_ICONO}
+                                                    title={t("compras.cancelarRecibida")}
+                                                    aria-label={t("compras.cancelarRecibidaDe", { numero: numeroDeOrden(order.id) })}
+                                                    onClick={() => setOrdenACancelar(order)}
+                                                >
+                                                    <XMarkIcon className="h-4 w-4 text-warning" />
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                 </div>

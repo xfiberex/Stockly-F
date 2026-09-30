@@ -28,6 +28,7 @@ vi.mock("@/modules/sale-orders/hooks/useSaleOrders", () => ({
         isPending: false,
     }),
     useUpdateSaleOrder: () => ({ mutate: vi.fn(), isPending: false }),
+    useShipSaleOrder: () => ({ mutate: vi.fn(), isPending: false }),
     useDeleteSaleOrder: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 

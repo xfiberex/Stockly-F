@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { api, login, stockDe, sufijo } from "./helpers";
+import { ALMACEN, api, apiCruda, login, stockDe, sufijo } from "./helpers";
 
 // T1-23: los tres defectos funcionales de la auditoría (T0-03, T1-03 y T1-05) no
 // produjeron ni un fallo entre 379 tests, porque cada repositorio se probaba contra su
@@ -216,6 +216,50 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         await expect(confirmacion).toBeHidden();
 
         await expect.poll(() => stockDe(page, creado.id)).toBe(0);
+    });
+
+    test("el almacén recibe una compra y no puede cambiar un precio, ni por la interfaz ni por la API (T5-13)", async ({ page, browser }) => {
+        // ADMIN prepara el producto y la orden: lo que se prueba es lo que puede el almacén.
+        await login(page);
+        const producto = `E2E-almacen-${sufijo()}`;
+        const creado = (await api(page, "post", "/products", { name: producto, price: 50, stock: 0 })) as { id: string };
+        const orden = (await api(page, "post", "/purchase-orders", {
+            items: [{ productId: creado.id, productName: producto, quantity: 8, unitPrice: 20 }],
+        })) as { id: string };
+        const numero = orden.id.slice(0, 8).toUpperCase();
+
+        const contexto = await browser.newContext();
+        const almacen = await contexto.newPage();
+        try {
+            await login(almacen, ALMACEN);
+
+            // Recibe por la interfaz, y la orden no le ofrece cancelar ni eliminar.
+            await almacen.goto("/purchase-orders");
+            const tarjeta = almacen.locator("div.rounded-xl").filter({ hasText: `Orden #${numero}` });
+            await expect(tarjeta.getByTitle("Cancelar orden")).toHaveCount(0);
+            await expect(almacen.getByRole("button", { name: "Nueva orden" })).toHaveCount(0);
+            await almacen.getByRole("button", { name: `Recibir mercancía de la orden #${numero}` }).click();
+            const entrega = almacen.getByRole("dialog");
+            await entrega.getByRole("button", { name: "Registrar recepción" }).click();
+            await expect(entrega).toBeHidden();
+            await expect.poll(() => stockDe(page, creado.id)).toBe(8);
+            await expect(tarjeta.getByText("Recibida", { exact: true })).toBeVisible();
+
+            // El catálogo no le ofrece editar el producto…
+            await almacen.goto("/catalog/products");
+            await almacen.getByPlaceholder("Buscar producto...").fill(producto);
+            await expect(almacen.getByText(producto)).toBeVisible();
+            await expect(almacen.getByRole("button", { name: `Editar ${producto}` })).toHaveCount(0);
+
+            // …y la API tampoco se lo deja hacer por su cuenta.
+            const res = await apiCruda(almacen, "put", `/products/${creado.id}`, { price: 1 });
+            expect(res.status()).toBe(403);
+            expect((await res.json()).code).toBe("FORBIDDEN");
+            const trasElIntento = (await api(page, "get", `/products/${creado.id}`)) as { price: string };
+            expect(Number(trasElIntento.price)).toBe(50);
+        } finally {
+            await contexto.close();
+        }
     });
 
     test("una sugerencia de reposición se revisa y se convierte en una orden pendiente (T5-05)", async ({ page }) => {

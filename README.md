@@ -288,10 +288,19 @@ Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>`. Las rutas 
   un rango de fechas; totales, por mes con gráfico, por categoría y por producto; CSV y PDF. Los
   días son los de la **zona horaria del negocio** (Configuración), no los del navegador
 
+### Roles y permisos (T5-13)
+
+Qué botones ve cada rol no se decide en el componente: `usePuede()` (`modules/auth/hooks/usePuede.ts`)
+consulta la matriz `PERMISOS` del contrato con la ruta de la API que el botón va a llamar, la misma
+tabla con la que el backend protege esa ruta. `WAREHOUSE` recibe compras, envía ventas, registra
+movimientos y ajusta stock en bloque; no crea, edita, cancela ni borra, y no ve usuarios,
+configuración, auditoría ni la exportación de órdenes. Un botón nuevo que llame a la API se
+enseña con `puede("<MÉTODO> <ruta>")`, no con `role === "ADMIN"`.
+
 ### Gestión de usuarios (ADMIN)
 
 - Tabla paginada con búsqueda y filtros por rol/estado
-- Cambio de rol inline (ADMIN ↔ USER)
+- Cambio de rol inline entre ADMIN, USER y WAREHOUSE (almacén, T5-13)
 - Activar/desactivar cuenta (con protección self-action)
 
 ### Configuración (ADMIN)
@@ -386,6 +395,7 @@ Las crea el seed del backend (`Stockly-B`, `pnpm db:seed`); la lista completa es
 |---|---|---|
 | ADMIN | `admin@stockly.app` | `Admin1234!` |
 | USER | `laura@stockly.app` | `User1234!` |
+| WAREHOUSE | `almacen@stockly.app` | `Almacen1234!` |
 
 > Las del E2E salen de ahí y son sobreescribibles por variables de entorno. **Nunca poner una
 > contraseña real en `e2e/`**: ese directorio está versionado, y una fuga así ya obligó a reescribir

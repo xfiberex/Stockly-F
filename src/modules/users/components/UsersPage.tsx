@@ -7,7 +7,8 @@ import { Spinner } from "@/shared/components/Spinner";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useUsers, useUpdateUserRole, useSetUserActive } from "@/modules/users/hooks/useUsers";
 import type { AppUser, UserRole } from "@/modules/users/types/users.types";
-import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon, ArchiveBoxIcon } from "@heroicons/react/24/outline";
+import type { Clave } from "@/shared/i18n/traducir";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ACTIVIDAD } from "@/shared/lib/estados";
 import { useT } from "@/shared/hooks/useIdioma";
@@ -15,17 +16,25 @@ import { formatearFecha } from "@/shared/lib/fechas";
 import { CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
+/**
+ * T5-13 — un rótulo y un icono por rol, en un mapa literal: el compilador exige una entrada por
+ * cada valor del enum, así que un cuarto rol no se pinta con el rótulo de otro. Solo ADMIN va
+ * destacado: es el que puede cambiar precios, usuarios y configuración.
+ */
+const ROL: Record<UserRole, { clave: Clave; Icono: typeof UserIcon; variante: "info" | "neutral" }> = {
+    ADMIN: { clave: "usuarios.rol.ADMIN", Icono: ShieldCheckIcon, variante: "info" },
+    USER: { clave: "usuarios.rol.USER", Icono: UserIcon, variante: "neutral" },
+    WAREHOUSE: { clave: "usuarios.rol.WAREHOUSE", Icono: ArchiveBoxIcon, variante: "neutral" },
+};
+
 export default function UsersPage() {
     const { t, tn, idioma } = useT();
     const { user: currentUser } = useAuth();
 
     // Las listas se arman dentro del componente (T4-04): fuera se construirían al cargar
     // el módulo, con el idioma que hubiera entonces, y no cambiarían al elegir otro.
-    const ROLE_OPTIONS = [
-        { value: "", label: t("usuarios.todosLosRoles") },
-        { value: "ADMIN", label: t("usuarios.rol.ADMIN") },
-        { value: "USER", label: t("usuarios.rol.USER") },
-    ];
+    const ROLES = (Object.keys(ROL) as UserRole[]).map((rol) => ({ value: rol, label: t(ROL[rol].clave) }));
+    const ROLE_OPTIONS = [{ value: "", label: t("usuarios.todosLosRoles") }, ...ROLES];
 
     const STATUS_OPTIONS = [
         { value: "", label: t("comun.todos") },
@@ -126,12 +135,8 @@ export default function UsersPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-3">
-                                                {/* Ser ADMIN es un dato relevante que conviene distinguir; USER es lo corriente. */}
-                                                <Badge
-                                                    variant={u.role === "ADMIN" ? "info" : "neutral"}
-                                                    Icon={u.role === "ADMIN" ? ShieldCheckIcon : UserIcon}
-                                                >
-                                                    {t(u.role === "ADMIN" ? "usuarios.rol.ADMIN" : "usuarios.rol.USER")}
+                                                <Badge variant={ROL[u.role].variante} Icon={ROL[u.role].Icono}>
+                                                    {t(ROL[u.role].clave)}
                                                 </Badge>
                                             </td>
                                             <td className="px-6 py-3">
@@ -148,10 +153,7 @@ export default function UsersPage() {
                                                         // lector de pantalla anuncia tres desplegables llamados «Admin»
                                                         // y no dice de quién es el rol que se está cambiando.
                                                         aria-label={t("usuarios.cambiarRolDe", { nombre: u.name })}
-                                                        options={[
-                                                            { value: "ADMIN", label: t("usuarios.rol.ADMIN") },
-                                                            { value: "USER", label: t("usuarios.rol.USER") },
-                                                        ]}
+                                                        options={ROLES}
                                                         value={u.role}
                                                         disabled={isSelf || roleMutation.isPending}
                                                         onChange={(e) => roleMutation.mutate({ id: u.id, role: e.target.value as UserRole })}

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Clave } from "@/shared/i18n/traducir";
-import { idiomaSchema } from "@/shared/contratos/api.generated";
+import { idiomaSchema, rolSchema } from "@/shared/contratos/api.generated";
 
 /**
  * T4-04 — los mensajes de validación son **claves del catálogo**, no frases.
@@ -61,7 +61,9 @@ export const userSchema = z.object({
     id: z.string(),
     email: z.string().email(),
     name: z.string(),
-    role: z.string(),
+    // T5-13 — el enum del contrato, no `string`: con tres roles, los permisos de la interfaz
+    // (`usePuede`) necesitan saber cuál es, y un rol nuevo en el backend llega aquí solo.
+    role: rolSchema,
     // T4-12 — el idioma en el que el servidor le escribe a este usuario. El enum sale del
     // contrato generado, no se reescribe aquí: es de la base y sus valores van en mayúsculas.
     idioma: idiomaSchema,

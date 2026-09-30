@@ -18,6 +18,12 @@ export const updateSaleOrder = async (id: string, dto: UpdateSaleOrderDto): Prom
     return data.data!;
 };
 
+/** T5-13 — enviar por su propia ruta, la que admite el rol de almacén. */
+export const shipSaleOrder = async (id: string): Promise<SaleOrder> => {
+    const { data } = await api.post<ApiResponse<SaleOrder>>(`/sale-orders/${id}/ship`);
+    return data.data!;
+};
+
 export const deleteSaleOrder = async (id: string): Promise<void> => {
     await api.delete(`/sale-orders/${id}`);
 };

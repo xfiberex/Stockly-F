@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "../utils";
 import ProductsPage from "@/modules/products/components/ProductsPage";
+import type { Rol } from "@/shared/contratos";
 import type { Product } from "@/modules/products/types/product.types";
 
 /**
@@ -62,14 +63,19 @@ vi.mock("@/modules/products/hooks/useImportProducts", () => ({
 }));
 vi.mock("@/modules/products/hooks/useDeleteProduct", () => ({ useDeleteProduct: () => ({ mutate: vi.fn(), isPending: false }) }));
 vi.mock("@/modules/products/hooks/useRestoreProduct", () => ({ useRestoreProduct: () => ({ mutate: vi.fn(), isPending: false }) }));
+let rol: Rol = "ADMIN";
 vi.mock("@/modules/auth/hooks/useMe", () => ({
-    useAuth: () => ({ user: { id: "u1", name: "Admin", email: "a@b.c", role: "ADMIN" }, isLoading: false, isError: false }),
+    useAuth: () => ({ user: { id: "u1", name: "Admin", email: "a@b.c", role: rol }, isLoading: false, isError: false }),
 }));
 
 /** El contenedor de la página es el primer hijo del render. */
 const contenedor = (raiz: HTMLElement) => raiz.firstElementChild as HTMLElement;
 
 describe("ProductsPage — hueco bajo el botón flotante (T3-09)", () => {
+    beforeEach(() => {
+        rol = "ADMIN";
+    });
+
     it("sin selección no hay botón flotante ni hueco reservado", () => {
         const { container } = renderWithProviders(<ProductsPage />);
 
@@ -109,5 +115,31 @@ describe("ProductsPage — leyenda de la clase ABC (T5-10)", () => {
         // `formatearDia` y no `formatearFecha`: el 1 de septiembre no puede pintarse
         // «31 ago» en un navegador al oeste de Greenwich.
         expect(screen.getByText(/Clases ABC según la facturación del 01 sep 2025 al 31 ago 2026/)).toBeInTheDocument();
+    });
+});
+
+describe("ProductsPage — el rol de almacén (T5-13)", () => {
+    afterEach(() => {
+        rol = "ADMIN";
+    });
+
+    it("selecciona para ajustar stock en bloque o registrar un movimiento, pero no crea ni importa", async () => {
+        rol = "WAREHOUSE";
+        const user = userEvent.setup();
+        renderWithProviders(<ProductsPage />);
+
+        await user.click(screen.getByRole("checkbox", { name: "Seleccionar Teclado Logitech" }));
+
+        expect(screen.getByRole("button", { name: /Ajuste masivo/ })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /Movimiento manual/ })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /Nuevo producto/ })).toBeNull();
+        expect(screen.queryByRole("button", { name: /Importar/ })).toBeNull();
+    });
+
+    it("un USER no puede seleccionar", () => {
+        rol = "USER";
+        renderWithProviders(<ProductsPage />);
+
+        expect(screen.queryByRole("checkbox", { name: "Seleccionar Teclado Logitech" })).toBeNull();
     });
 });

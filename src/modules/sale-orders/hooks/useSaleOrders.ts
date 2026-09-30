@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { useT } from "@/shared/hooks/useIdioma";
 import { mensajeDeError } from "@/shared/lib/errorApi";
 import { queryKeys } from "@/shared/constants/queryKeys";
-import { getSaleOrders, createSaleOrder, updateSaleOrder, deleteSaleOrder } from "../api/sale-orders.api";
+import { getSaleOrders, createSaleOrder, updateSaleOrder, shipSaleOrder, deleteSaleOrder } from "../api/sale-orders.api";
 import type { CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
 
 export const SALE_ORDERS_KEY = ["sale-orders"] as const;
@@ -37,6 +37,21 @@ export function useUpdateSaleOrder() {
             qc.invalidateQueries({ queryKey: SALE_ORDERS_KEY });
             // Crear, enviar, cancelar o recibir cambia stock, coste o disponible: la lista de
             // productos que está en caché ya no es la buena (T5-03).
+            qc.invalidateQueries({ queryKey: queryKeys.product });
+            toast.success(t("ordenes.actualizada"));
+        },
+        onError: (error) => toast.error(mensajeDeError(idioma, error)),
+    });
+}
+
+/** T5-13 — `POST /sale-orders/:id/ship`: el `PATCH` es solo de ADMIN, y enviar no lo es. */
+export function useShipSaleOrder() {
+    const qc = useQueryClient();
+    const { t, idioma } = useT();
+    return useMutation({
+        mutationFn: (id: string) => shipSaleOrder(id),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: SALE_ORDERS_KEY });
             qc.invalidateQueries({ queryKey: queryKeys.product });
             toast.success(t("ordenes.actualizada"));
         },

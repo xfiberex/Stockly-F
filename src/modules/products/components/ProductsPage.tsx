@@ -12,7 +12,7 @@ import { useProducts } from "@/modules/products/hooks/useProducts";
 import { useImportProducts } from "@/modules/products/hooks/useImportProducts";
 import { useAbcSummary } from "@/modules/reports/hooks/useReports";
 import { formatearDia } from "@/shared/lib/fechas";
-import { useAuth } from "@/modules/auth/hooks/useMe";
+import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { exportProducts } from "@/modules/products/api/product.api";
 import { toCsv, downloadBlob, blobCsv, parseCsv } from "@/modules/products/utils/importExport";
 import { useT } from "@/shared/hooks/useIdioma";
@@ -49,8 +49,13 @@ export default function ProductsPage() {
     const { data, isLoading } = useProducts({ ...filters, page, limit: 10 });
     const importMutation = useImportProducts();
     const { data: resumenAbc } = useAbcSummary();
-    const { user } = useAuth();
-    const isAdmin = user?.role === "ADMIN";
+    // T5-13 — seleccionar sirve para mover stock (ajuste en bloque o movimiento manual), y eso
+    // también lo hace el almacén; crear e importar fijan precios y siguen siendo de ADMIN.
+    const puede = usePuede();
+    const puedeCrear = puede("POST /products");
+    const puedeAjustarEnBloque = puede("PATCH /products/bulk-stock");
+    const puedeMover = puede("POST /products/:id/movements");
+    const puedeSeleccionar = puedeAjustarEnBloque || puedeMover;
 
     const handleFilterChange = useCallback((newFilters: Filters) => {
         setFilters(newFilters);
@@ -153,7 +158,7 @@ export default function ProductsPage() {
     // un margen: al llegar al final del scroll, la paginación queda por encima de él.
     // Solo se añade cuando el botón existe, para no dejar un hueco muerto el resto del
     // tiempo — que es lo que pasaría con un `pb` fijo en el contenedor.
-    const flotanteVisible = isAdmin && selectedIds.size === 1;
+    const flotanteVisible = puedeMover && selectedIds.size === 1;
 
     return (
         <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, flotanteVisible && "pb-28")}>
@@ -172,7 +177,7 @@ export default function ProductsPage() {
                             { label: t("productos.exportarCsv"), onClick: () => handleExport("csv") },
                         ]}
                     />
-                    {isAdmin && (
+                    {puedeCrear && (
                         <>
                             <DropdownButton
                                 label={t("productos.importar")}
@@ -193,7 +198,7 @@ export default function ProductsPage() {
             </div>
 
             {/* Barra de acciones masivas */}
-            {isAdmin && selectedIds.size > 0 && (
+            {puedeSeleccionar && selectedIds.size > 0 && (
                 <div className="flex items-center gap-3 px-4 py-3 bg-info-surface rounded-xl border border-info">
                     {/* El plural sale de `tn()`: el apaño de sumar «s» a dos palabras no
                         sobrevive a un idioma donde la marca de plural va en otro sitio. */}
@@ -201,13 +206,15 @@ export default function ProductsPage() {
                         {tn("productos.seleccionados", selectedIds.size)}
                     </span>
                     <div className="flex gap-2 ml-auto">
-                        <Button
-                            variant="secondary"
-                            onClick={() => setIsBulkModalOpen(true)}
-                        >
-                            <AdjustmentsHorizontalIcon className="h-4 w-4" />
-                            {t("productos.ajusteMasivo")}
-                        </Button>
+                        {puedeAjustarEnBloque && (
+                            <Button
+                                variant="secondary"
+                                onClick={() => setIsBulkModalOpen(true)}
+                            >
+                                <AdjustmentsHorizontalIcon className="h-4 w-4" />
+                                {t("productos.ajusteMasivo")}
+                            </Button>
+                        )}
                         <Button
                             variant="secondary"
                             onClick={() => setSelectedIds(new Set())}
@@ -243,8 +250,8 @@ export default function ProductsPage() {
                 products={allProducts}
                 isLoading={isLoading}
                 onEdit={handleEdit}
-                selectedIds={isAdmin ? selectedIds : undefined}
-                onToggleSelect={isAdmin ? handleToggleSelect : undefined}
+                selectedIds={puedeSeleccionar ? selectedIds : undefined}
+                onToggleSelect={puedeSeleccionar ? handleToggleSelect : undefined}
             />
 
             {/* Botón movimiento rápido para producto individual (visible en hover via contexto) */}
