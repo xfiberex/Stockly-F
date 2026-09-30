@@ -2,7 +2,7 @@
   "name": "stockly-f",
   "private": true,
   "version": "0.0.0",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "author": "Ricky Angel Jiménez Bueno",
   "type": "module",
   "packageManager": "pnpm@12.4.1",

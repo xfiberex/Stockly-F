@@ -157,3 +157,17 @@ describe("ProfilePage", () => {
         expect(screen.getByRole("button", { name: /cambiar contraseña/i })).toBeDisabled();
     });
 });
+
+describe("ProfilePage — acerca de Stockly (ADR 0009)", () => {
+    // La AGPL pide que quien usa la aplicación por la red pueda llegar a su código. El perfil
+    // lo abre cualquier rol, así que es aquí donde tiene que estar.
+    it("cualquier rol ve la licencia y el enlace al código de los dos repositorios", () => {
+        renderWithProviders(<ProfilePage />);
+
+        expect(screen.getByText(/software libre bajo la licencia GNU AGPL v3/)).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Código del backend/ })).toHaveAttribute("href", "https://github.com/xfiberex/Stockly-B");
+        expect(screen.getByRole("link", { name: /Código del frontend/ })).toHaveAttribute("href", "https://github.com/xfiberex/Stockly-F");
+        expect(screen.getByRole("link", { name: /Texto de la licencia/ })).toHaveAttribute("href", "https://www.gnu.org/licenses/agpl-3.0.html");
+        expect(screen.getByRole("link", { name: /Avisos de terceros/ })).toHaveAttribute("href", "/AVISOS-DE-TERCEROS.txt");
+    });
+});

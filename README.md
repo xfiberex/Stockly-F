@@ -421,3 +421,15 @@ Las crea el seed del backend (`Stockly-B`, `pnpm db:seed`); la lista completa es
 > Las del E2E salen de ahí y son sobreescribibles por variables de entorno. **Nunca poner una
 > contraseña real en `e2e/`**: ese directorio está versionado, y una fuga así ya obligó a reescribir
 > el historial (T0-06).
+
+---
+
+## Licencia
+
+Copyright © 2026 Ricky Angel Jiménez Bueno.
+
+Stockly es software libre: puedes redistribuirlo y modificarlo bajo los términos de la
+**[GNU Affero General Public License v3](LICENSE)** (`AGPL-3.0-only`). Quien ofrezca una versión
+modificada a otros usuarios **por la red** tiene que ofrecerles también su código: la aplicación lo enlaza desde **Perfil → Acerca de Stockly** (`src/shared/lib/codigoFuente.ts`, que hay que apuntar al propio repositorio al desplegar una versión modificada). El porqué de la
+elección está en el [ADR 0009](../Stockly-B/docs/adr/0009-licencia-agpl.md). Las versiones publicadas antes del
+2026-09-30 se distribuyeron con la MIT.

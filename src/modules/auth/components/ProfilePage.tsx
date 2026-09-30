@@ -1,4 +1,6 @@
 import { useForm, useWatch } from "react-hook-form";
+import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import { CODIGO_FUENTE } from "@/shared/lib/codigoFuente";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
@@ -118,6 +120,33 @@ export default function ProfilePage() {
                     </div>
                 </form>
             </div>
+
+            {/* ADR 0009 — la AGPL pide ofrecer el código a quien usa la aplicación por la red.
+                Está aquí porque el perfil lo abre cualquier rol. */}
+            <section aria-labelledby="acerca-de" className="bg-surface rounded-xl border border-border p-6 space-y-3">
+                <h2 id="acerca-de" className="text-base font-semibold text-foreground">{t("acerca.titulo")}</h2>
+                <p className="text-sm text-foreground-muted">{t("acerca.licencia")}</p>
+                <ul className="flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-x-6">
+                    {([
+                        ["acerca.codigoBackend", CODIGO_FUENTE.backend],
+                        ["acerca.codigoFrontend", CODIGO_FUENTE.frontend],
+                        ["acerca.textoLicencia", CODIGO_FUENTE.licencia],
+                        ["acerca.avisos", "/AVISOS-DE-TERCEROS.txt"],
+                    ] as const).map(([clave, url]) => (
+                        <li key={clave}>
+                            <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex min-h-11 items-center gap-1 font-medium text-info hover:underline md:min-h-0"
+                            >
+                                {t(clave)}
+                                <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" />
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+            </section>
         </div>
     );
 }
