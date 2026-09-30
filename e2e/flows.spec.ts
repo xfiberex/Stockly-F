@@ -262,6 +262,66 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         }
     });
 
+    test("un conteo físico del almacén ajusta el stock al cerrarse, y no antes (T5-07)", async ({ page, browser }) => {
+        // ADMIN prepara una categoría con un producto propio: el conteo abarca solo esa categoría,
+        // así no choca con el conteo abierto del seed ni con el otro proyecto del E2E.
+        await login(page);
+        const categoria = `E2E-conteo-${sufijo()}`;
+        const producto = `${categoria}-producto`;
+        const cat = (await api(page, "post", "/categories", { name: categoria })) as { id: string };
+        const creado = (await api(page, "post", "/products", { name: producto, price: 30, stock: 10, categoryId: cat.id })) as { id: string };
+
+        const contexto = await browser.newContext();
+        const almacen = await contexto.newPage();
+        try {
+            await login(almacen, ALMACEN);
+            await almacen.goto("/inventory-counts");
+            await almacen.getByRole("button", { name: "Nuevo conteo" }).click();
+            const alta = almacen.getByRole("dialog");
+            await alta.getByLabel("Qué contar").selectOption({ label: categoria });
+            await alta.getByRole("button", { name: "Abrir conteo" }).click();
+            await expect(almacen).toHaveURL(/\/inventory-counts\/[0-9a-f-]{36}$/);
+
+            // A ciegas: se escribe lo contado sin ver lo que espera el sistema.
+            await expect(almacen.getByRole("columnheader", { name: "Esperado" })).toHaveCount(0);
+            const campo = almacen.getByLabel(`Cantidad contada de ${producto}`);
+            // Se cuenta con el móvil en la mano: el campo tiene que verse sin desplazar la tabla.
+            // Con el ancho mínimo de la tabla compartida quedaba fuera, a la derecha (visto a 393 px).
+            // Solo el eje horizontal: que quede más abajo del pliegue es normal y se desplaza la
+            // página; lo que no puede pasar es que haya que desplazar la tabla hacia un lado.
+            const caja = (await campo.boundingBox())!;
+            expect(caja.x + caja.width).toBeLessThanOrEqual(almacen.viewportSize()!.width);
+            await campo.fill("8");
+            await almacen.getByRole("button", { name: "Guardar (1)" }).click();
+            await expect(almacen.getByText("No queda nada por contar en esta búsqueda.")).toBeVisible();
+
+            // Anotado, pero el stock no se mueve hasta cerrar.
+            expect(await stockDe(page, creado.id)).toBe(10);
+
+            await almacen.getByRole("button", { name: "Revisar" }).click();
+            await expect(almacen.getByRole("row", { name: new RegExp(producto) }).getByText("−2")).toBeVisible();
+
+            await almacen.getByRole("button", { name: "Cerrar conteo" }).click();
+            const confirmacion = almacen.getByRole("dialog");
+            await expect(confirmacion.getByText(/Se generará 1 ajuste de stock/)).toBeVisible();
+            await confirmacion.getByRole("button", { name: "Cerrar y ajustar" }).click();
+            await expect(confirmacion).toBeHidden();
+
+            await expect.poll(() => stockDe(page, creado.id)).toBe(8);
+            const { movements } = (await api(page, "get", `/products/${creado.id}/movements`)) as {
+                movements: Array<{ type: string; delta: number; note: string | null }>;
+            };
+            // Un solo ajuste —el del cierre— además de la entrada del stock inicial: anotar no
+            // dejó ninguno.
+            const ajustes = movements.filter((m) => m.type === "ADJUSTMENT");
+            expect(ajustes).toHaveLength(1);
+            expect(ajustes[0]).toMatchObject({ delta: -2 });
+            expect(ajustes[0]!.note).toMatch(/^Conteo #[0-9A-F]{8}$/);
+        } finally {
+            await contexto.close();
+        }
+    });
+
     test("una sugerencia de reposición se revisa y se convierte en una orden pendiente (T5-05)", async ({ page }) => {
         await login(page);
         const marca = sufijo();

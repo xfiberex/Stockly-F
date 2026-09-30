@@ -90,6 +90,13 @@ export const ESTADO_ORDEN_VENTA = {
     CANCELLED: { clave: "estado.venta.CANCELLED", variant: "danger", Icon: XCircleIcon },
 } satisfies Record<string, Estado>;
 
+/** T5-07 — un conteo abierto espera que alguien lo termine; cerrado ya movió el stock. */
+export const ESTADO_CONTEO = {
+    OPEN: { clave: "estado.conteo.OPEN", variant: "warning", Icon: ClockIcon },
+    CLOSED: { clave: "estado.conteo.CLOSED", variant: "success", Icon: CheckCircleIcon },
+    CANCELLED: { clave: "estado.conteo.CANCELLED", variant: "danger", Icon: XCircleIcon },
+} satisfies Record<string, Estado>;
+
 /**
  * Un estado que la API añada y la interfaz todavía no conozca cae en la variante
  * neutra, con su código en crudo y un icono de interrogación: se ve que existe y

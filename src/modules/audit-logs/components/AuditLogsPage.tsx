@@ -36,6 +36,9 @@ const ACTION_VARIANTS: Record<AuditAction, BadgeVariant> = {
     // una anomalía de seguridad. Va en rojo porque leerla como un evento más sería justo
     // lo contrario de para lo que se registra.
     REFRESH_REUSE: "danger",
+    // T5-07 — cerrar un conteo ajusta stock, como un ajuste en bloque; cancelarlo no mueve nada.
+    COUNT_CLOSE: "info",
+    COUNT_CANCEL: "danger",
 };
 
 /**
@@ -53,10 +56,12 @@ const ACCIONES: readonly AuditAction[] = [
     "CREATE", "UPDATE", "DELETE", "RESTORE", "STOCK_MOVEMENT", "BULK_STOCK",
     "ORDER_RECEIVE", "ORDER_CANCEL", "SALE_SHIP", "SALE_CANCEL",
     "USER_ROLE_CHANGE", "USER_ACTIVATE", "USER_DEACTIVATE", "REFRESH_REUSE",
+    "COUNT_CLOSE", "COUNT_CANCEL",
 ];
 
 const ENTIDADES: readonly AuditEntity[] = [
     "Product", "PurchaseOrder", "SaleOrder", "User", "Tag", "Category", "Brand", "Supplier",
+    "InventoryCount",
 ];
 
 const claveDeAccion = (accion: AuditAction) => `auditoria.accion.${accion}` as Clave;

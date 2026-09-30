@@ -92,6 +92,8 @@ Stockly-F/src/
 │   │   └── components/             # PurchaseOrdersPage (recepción parcial, exportar CSV),
 │   │                               # SugerenciasReposicionPage
 │   │
+│   ├── inventory-counts/                   # T5-07: InventoryCountsPage, InventoryCountPage
+│   │
 │   ├── sale-orders/
 │   │   ├── components/SaleOrdersPage.tsx       # PENDING → SHIPPED / CANCELLED
 │   │   ├── hooks/useSaleOrders.ts
@@ -228,6 +230,8 @@ commit: con el backend ya en verde, se relanza desde *Actions* (*Re-run all jobs
 | `/purchase-orders` | `PurchaseOrdersPage` | JWT |
 | `/purchase-orders/suggestions` | `SugerenciasReposicionPage` | JWT + ADMIN |
 | `/sale-orders` | `SaleOrdersPage` | JWT |
+| `/inventory-counts` | `InventoryCountsPage` | JWT |
+| `/inventory-counts/:id` | `InventoryCountPage` | JWT |
 | `/reports` | `ReportsPage` | JWT |
 | `/reports/period` | `InformePorPeriodoPage` | JWT |
 | `/admin/users` | `UsersPage` | JWT + ADMIN |
@@ -268,6 +272,14 @@ Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>`. Las rutas 
 - Crear orden con datos del cliente e ítems (enlazados o manuales)
 - Marcar como enviada (descuenta stock en backend), cancelar, eliminar
 - Exportar CSV con todos los ítems
+
+### Conteos físicos (T5-07)
+
+- Abrir un conteo de una categoría o de todo el catálogo, con una nota
+- **Contar a ciegas**: la captura no enseña el stock del sistema; se guarda por páginas
+- **Revisar**: esperado, contado y diferencia, con el total en unidades y en valor a coste
+- **Cerrar** convierte cada diferencia en un ajuste de stock; **cancelar** no mueve nada
+- Las dos tablas caben a 393 px: se usan con el móvil en la mano
 
 ### Órdenes de compra
 

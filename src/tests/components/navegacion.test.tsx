@@ -61,6 +61,7 @@ const RECORRIDO_ADMIN = [
     "Dashboard",
     "Catálogo", "Productos", "Categorías", "Marcas", "Proveedores", "Etiquetas",
     "Órdenes", "Compra", "Venta",
+    "Conteos físicos",
     "Reportes",
     "Admin", "Usuarios", "Auditoría", "Configuración",
 ];
@@ -100,14 +101,15 @@ describe("Orden de la navegación (T3-04, T4-10)", () => {
 });
 
 describe("Barra lateral (T4-10)", () => {
-    it("cada sección se alcanza en un solo clic: son doce enlaces, sin disparadores que abrir", () => {
+    it("cada sección se alcanza en un solo clic: son trece enlaces, sin disparadores que abrir", () => {
         renderWithProviders(layout());
         const lateral = barraLateral();
 
         // Ni un `<button>`: lo que había antes eran tres, y cada uno costaba una
         // interacción extra para llegar a lo que guardaba.
         expect(lateral.querySelectorAll("button")).toHaveLength(0);
-        expect(lateral.querySelectorAll("a[href]")).toHaveLength(12);
+        // T5-07 — trece desde que los conteos físicos tienen su sección.
+        expect(lateral.querySelectorAll("a[href]")).toHaveLength(13);
     });
 
     it("los destinos de los grupos están en el DOM sin desplegar nada", () => {

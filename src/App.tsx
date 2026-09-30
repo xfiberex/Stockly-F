@@ -7,6 +7,7 @@ import {
     ArrowRightOnRectangleIcon,
     ShieldCheckIcon,
     ClipboardDocumentListIcon,
+    ClipboardDocumentCheckIcon,
     Squares2X2Icon,
     HomeIcon,
     ChartBarIcon,
@@ -93,6 +94,8 @@ const NAVEGACION: ElementoDeNav[] = [
             { to: "/sale-orders", label: "nav.venta" },
         ],
     },
+    // T5-07 — el trabajo del almacén que no es una orden.
+    { kind: "link", to: "/inventory-counts", label: "ruta.conteos", end: false, Icon: ClipboardDocumentCheckIcon },
     { kind: "link", to: "/reports", label: "ruta.reportes", end: false, Icon: ChartBarIcon },
     {
         kind: "group",

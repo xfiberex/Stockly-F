@@ -19,6 +19,8 @@ const InformePorPeriodoPage = lazy(() => import("@/modules/reports/components/In
 const PurchaseOrdersPage = lazy(() => import("@/modules/purchase-orders/components/PurchaseOrdersPage"));
 const SugerenciasReposicionPage = lazy(() => import("@/modules/purchase-orders/components/SugerenciasReposicionPage"));
 const SaleOrdersPage = lazy(() => import("@/modules/sale-orders/components/SaleOrdersPage"));
+const InventoryCountsPage = lazy(() => import("@/modules/inventory-counts/components/InventoryCountsPage"));
+const InventoryCountPage = lazy(() => import("@/modules/inventory-counts/components/InventoryCountPage"));
 const AuditLogsPage = lazy(() => import("@/modules/audit-logs/components/AuditLogsPage"));
 const SettingsPage = lazy(() => import("@/modules/settings/components/SettingsPage"));
 const UsersPage = lazy(() => import("@/modules/users/components/UsersPage"));
@@ -75,6 +77,9 @@ export const router = createBrowserRouter([
             // T5-05 — solo ADMIN: generar órdenes lo es, y la pantalla existe para eso.
             { path: "purchase-orders/suggestions", element: <ProtectedRoute requireRole="ADMIN"><S><SugerenciasReposicionPage /></S></ProtectedRoute> },
             { path: "sale-orders", element: <S><SaleOrdersPage /></S> },
+            // T5-07 — todos los roles consultan; contar, cerrar y cancelar lo decide la matriz.
+            { path: "inventory-counts", element: <S><InventoryCountsPage /></S> },
+            { path: "inventory-counts/:id", element: <S><InventoryCountPage /></S> },
             // Rutas solo de ADMIN: el backend responde 403 a un USER, así que sin
             // este guardia la página se pintaba rota y llena de toasts de error.
             { path: "audit-logs", element: <ProtectedRoute requireRole="ADMIN"><S><AuditLogsPage /></S></ProtectedRoute> },

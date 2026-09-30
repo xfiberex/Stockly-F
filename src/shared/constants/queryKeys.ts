@@ -11,4 +11,5 @@ export const queryKeys = {
     saleOrders: ["sale-orders"] as const,
     purchaseOrders: ["purchase-orders"] as const,
     reports: ["reports"] as const,
+    inventoryCounts: ["inventory-counts"] as const,
 }
