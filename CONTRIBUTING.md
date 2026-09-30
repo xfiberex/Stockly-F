@@ -1,6 +1,6 @@
 # Cómo contribuir a Stockly (frontend)
 
-**La guía completa está en el repositorio hermano: [`Stockly-B/CONTRIBUTING.md`](../Stockly-B/CONTRIBUTING.md).**
+**La guía completa está en el repositorio hermano: [`Stockly-B/CONTRIBUTING.md`](https://github.com/xfiberex/Stockly-B/blob/main/CONTRIBUTING.md).**
 
 Vive allí por lo mismo que `docs/`: cubre los dos repositorios y la carpeta que los contiene
 no está bajo control de versiones. Si no tienes `Stockly-B` clonado al lado, clónalo antes
@@ -19,7 +19,7 @@ una guía de estilo opcional: varias de sus reglas hacen fallar `pnpm verify` si
 sombra que no sea uno de los dos tokens de elevación—.
 
 La puerta de calidad, igual que en el backend, se ejecuta en local antes de cada push, y GitHub
-Actions la repite junto con el E2E ([ADR 0008](../Stockly-B/docs/adr/0008-integracion-continua.md)). Un cambio de contrato se
+Actions la repite junto con el E2E ([ADR 0008](https://github.com/xfiberex/Stockly-B/blob/main/docs/adr/0008-integracion-continua.md)). Un cambio de contrato se
 sube **primero al backend**: la CI de aquí compara la copia con su `main`.
 
 ```bash

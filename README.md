@@ -161,7 +161,7 @@ pnpm test:e2e:full    # Playwright en chromium y Mobile Chrome, sin levantar nad
 
 `pnpm verify` es la puerta de calidad: se pasa en local antes de cada push, y GitHub Actions la
 repite, con el E2E, en cada push a `main` y en cada pull request
-([ADR 0008](../Stockly-B/docs/adr/0008-integracion-continua.md)). Un aviso nuevo de `pnpm lint` es
+([ADR 0008](https://github.com/xfiberex/Stockly-B/blob/main/docs/adr/0008-integracion-continua.md)). Un aviso nuevo de `pnpm lint` es
 una regresión, no ruido de fondo.
 
 ---
@@ -410,7 +410,7 @@ La diferencia es la que hace falta: `git grep -il z.object` devuelve **61** arch
 ## Credenciales seed
 
 Las crea el seed del backend (`Stockly-B`, `pnpm db:seed`); la lista completa está en su
-[README](../Stockly-B/README.md#seed).
+[README](https://github.com/xfiberex/Stockly-B/blob/main/README.md#seed).
 
 | Rol | Email | Contraseña |
 |---|---|---|
@@ -431,5 +431,5 @@ Copyright © 2026 Ricky Angel Jiménez Bueno.
 Stockly es software libre: puedes redistribuirlo y modificarlo bajo los términos de la
 **[GNU Affero General Public License v3](LICENSE)** (`AGPL-3.0-only`). Quien ofrezca una versión
 modificada a otros usuarios **por la red** tiene que ofrecerles también su código: la aplicación lo enlaza desde **Perfil → Acerca de Stockly** (`src/shared/lib/codigoFuente.ts`, que hay que apuntar al propio repositorio al desplegar una versión modificada). El porqué de la
-elección está en el [ADR 0009](../Stockly-B/docs/adr/0009-licencia-agpl.md). Las versiones publicadas antes del
+elección está en el [ADR 0009](https://github.com/xfiberex/Stockly-B/blob/main/docs/adr/0009-licencia-agpl.md). Las versiones publicadas antes del
 2026-09-30 se distribuyeron con la MIT.
