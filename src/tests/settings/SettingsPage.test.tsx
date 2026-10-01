@@ -120,6 +120,23 @@ describe("SettingsPage", () => {
         expect(mockMutate.mock.calls[0][0]).toEqual({ lowStockAlertEnabled: true });
     });
 
+    it("cada control se llama como su ajuste, y con dos interruptores se sabe cuál es cuál", () => {
+        // T5-11 estrenó el segundo interruptor de la lista, y ninguno de los dos tenía nombre:
+        // un lector de pantalla anunciaba «interruptor, desactivado» dos veces. El título
+        // estaba al lado, sin enlazar.
+        settingsData = [
+            booleanEntry,
+            { ...booleanEntry, key: "weeklyDigestEnabled", label: "Resumen semanal por correo" },
+            { key: "defaultLeadTimeDays", label: "Plazo de entrega por defecto", description: "", type: "number", value: 7 },
+        ];
+        renderWithProviders(<SettingsPage />);
+
+        expect(screen.getByRole("switch", { name: "Alertas de bajo stock por correo" })).toBeInTheDocument();
+        const resumen = screen.getByRole("switch", { name: "Resumen semanal por correo" });
+        expect(resumen).toHaveAccessibleDescription(/resumen de la semana anterior/i);
+        expect(screen.getByRole("spinbutton", { name: "Plazo de entrega por defecto" })).toHaveValue(7);
+    });
+
     describe("La zona horaria del negocio (T5-09)", () => {
         const zona: SettingEntry = {
             key: "timezone",

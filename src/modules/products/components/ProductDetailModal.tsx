@@ -208,19 +208,20 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: 
                 </div>
 
                 {/* ── Acciones ──
-                    Apiladas hasta `sm`. En fila, `flex-1` **no reparte a partes iguales**: el
-                    mínimo de un elemento flexible es su contenido, así que el reparto lo decide
-                    lo larga que sea cada etiqueta. Medido a 412 px: «Ver movimientos» salía a
-                    146 px y partido en dos líneas, y «Editar producto» a 178 en una. Es el mismo
-                    mecanismo por el que las acciones de encabezado van en rejilla y no en
-                    `flex-wrap`. */}
-                <div className="flex flex-col gap-2 pt-1 border-t border-border sm:flex-row sm:items-center">
+                    Apiladas hasta `sm`; desde ahí, rejilla de dos columnas. Eran una fila con
+                    `flex-1`, que **no reparte a partes iguales**: el mínimo de un elemento
+                    flexible es su contenido, así que el reparto lo decide lo larga que sea cada
+                    etiqueta. Con dos botones cabía; con «Etiquetas» (T5-08) ya no: «Ver
+                    movimientos» y «Editar producto» partían en dos líneas y los tres quedaban
+                    de alturas distintas. La rejilla sí reparte igual, y el último botón ocupa la
+                    fila entera cuando queda solo en ella —con uno o con tres—. */}
+                <div className="grid gap-2 pt-3 border-t border-border sm:grid-cols-2 sm:*:last:odd:col-span-2">
                     {/* T2-14, otra vez: esto era un `<button>` dentro de un `<a>`, que es HTML
                         inválido y deja dos paradas de tabulación para una sola acción. Como
                         navega, se queda el enlace y toma prestadas las clases del botón. */}
                     <Link
                         to={`/catalog/products/${product.id}/movements`}
-                        className={clasesDeBoton("secondary", "sm:flex-1")}
+                        className={clasesDeBoton("secondary")}
                         onClick={onClose}
                     >
                         <ChartBarIcon className="h-4 w-4" />
@@ -232,7 +233,6 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: 
                         <Button
                             type="button"
                             variant="secondary"
-                            className="sm:flex-1"
                             onClick={() => { onClose(); onPrintLabels(product); }}
                         >
                             <PrinterIcon className="h-4 w-4" />
@@ -243,7 +243,6 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: 
                     {isAdmin && product.isActive && (
                         <Button
                             type="button"
-                            className="sm:flex-1"
                             onClick={() => { onClose(); onEdit(product); }}
                         >
                             <PencilIcon className="h-4 w-4" />

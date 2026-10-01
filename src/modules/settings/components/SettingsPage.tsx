@@ -39,13 +39,27 @@ function opcionesDeZona(guardada: string) {
     return zonas.map((zona) => ({ value: zona, label: zona.replaceAll("_", " ") }));
 }
 
-function BooleanToggle({ value, onChange }: { value: SettingValue; onChange: (value: boolean) => void }) {
+/** Los `id` del título y la descripción de un ajuste: de ahí saca su nombre el control. */
+function rotulosDe(key: string) {
+    return { "aria-labelledby": `ajuste-${key}-titulo`, "aria-describedby": `ajuste-${key}-descripcion` };
+}
+
+function BooleanToggle({ value, onChange, ...rotulos }: {
+    value: SettingValue;
+    onChange: (value: boolean) => void;
+    "aria-labelledby": string;
+    "aria-describedby": string;
+}) {
     const isOn = esVerdadero(value);
     return (
         <button
             type="button"
             role="switch"
             aria-checked={isOn}
+            // T5-11 — sin esto el interruptor no tenía nombre: con dos en la lista, un lector de
+            // pantalla anunciaba «interruptor, desactivado» dos veces y no había forma de saber
+            // cuál era cuál. El título está al lado, pero al lado no es dentro.
+            {...rotulos}
             onClick={() => onChange(!isOn)}
             // El carril mide 44×24 y no puede crecer sin dejar de parecer un
             // interruptor, así que la diana táctil es el botón que lo envuelve
@@ -155,18 +169,20 @@ export default function SettingsPage() {
                               * un dato del servidor: sin eso saldría la clave en crudo.
                               */}
                             <div className="flex-1">
-                                <p className="text-sm font-medium text-foreground">{textoDeAjuste(t, entry.key, "titulo", entry.label)}</p>
-                                <p className="text-xs text-foreground-muted mt-0.5">{textoDeAjuste(t, entry.key, "descripcion", entry.description)}</p>
+                                <p id={rotulosDe(entry.key)["aria-labelledby"]} className="text-sm font-medium text-foreground">{textoDeAjuste(t, entry.key, "titulo", entry.label)}</p>
+                                <p id={rotulosDe(entry.key)["aria-describedby"]} className="text-xs text-foreground-muted mt-0.5">{textoDeAjuste(t, entry.key, "descripcion", entry.description)}</p>
                             </div>
                             <div className="shrink-0">
                                 {entry.type === "boolean" ? (
                                     <BooleanToggle
+                                        {...rotulosDe(entry.key)}
                                         value={valorDe(entry)}
                                         onChange={(value) => handleChange(entry.key, value)}
                                     />
                                 ) : entry.key === "timezone" ? (
                                     <Select
                                         aria-label={textoDeAjuste(t, entry.key, "titulo", entry.label)}
+                                        aria-describedby={rotulosDe(entry.key)["aria-describedby"]}
                                         value={String(valorDe(entry))}
                                         options={opcionesDeZona(String(entry.value))}
                                         onChange={(e) => handleChange(entry.key, e.target.value)}
@@ -174,6 +190,7 @@ export default function SettingsPage() {
                                     />
                                 ) : (
                                     <input
+                                        {...rotulosDe(entry.key)}
                                         type={entry.type === "number" ? "number" : "text"}
                                         value={String(valorDe(entry))}
                                         onChange={(e) => handleChange(
