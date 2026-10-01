@@ -274,6 +274,8 @@ export const es = {
     "configuracion.guardada": "Configuración guardada",
     "ajuste.lowStockAlertEnabled.titulo": "Alertas de bajo stock por correo",
     "ajuste.lowStockAlertEnabled.descripcion": "Envía un correo a todos los administradores cuando el stock de un producto cae por debajo del mínimo.",
+    "ajuste.weeklyDigestEnabled.titulo": "Resumen semanal por correo",
+    "ajuste.weeklyDigestEnabled.descripcion": "Envía a los administradores un resumen de la semana anterior: ventas, lo más vendido, stock bajo, ventas pendientes de enviar y compras fuera de plazo.",
     "ajuste.defaultLeadTimeDays.titulo": "Plazo de entrega por defecto",
     "ajuste.defaultLeadTimeDays.descripcion": "Días que se suponen para un proveedor sin plazo de entrega al calcular las sugerencias de reposición.",
     "ajuste.timezone.titulo": "Zona horaria del negocio",

@@ -258,6 +258,8 @@ export const en: Record<keyof typeof es, string> = {
     "configuracion.guardada": "Settings saved",
     "ajuste.lowStockAlertEnabled.titulo": "Low-stock email alerts",
     "ajuste.lowStockAlertEnabled.descripcion": "Emails every administrator when a product's stock drops below its minimum.",
+    "ajuste.weeklyDigestEnabled.titulo": "Weekly email digest",
+    "ajuste.weeklyDigestEnabled.descripcion": "Emails the administrators a digest of the previous week: sales, best sellers, low stock, sales waiting to ship and overdue purchases.",
     "ajuste.defaultLeadTimeDays.titulo": "Default lead time",
     "ajuste.defaultLeadTimeDays.descripcion": "Days assumed for a supplier with no lead time when calculating reorder suggestions.",
     "ajuste.timezone.titulo": "Business time zone",
