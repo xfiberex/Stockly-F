@@ -21,6 +21,7 @@ import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { useSincronizarIdioma } from "@/modules/auth/hooks/useSincronizarIdioma";
+import { CampanaDeAvisos } from "@/modules/notifications/components/CampanaDeAvisos";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 
@@ -386,6 +387,8 @@ function App() {
                     </div>
 
                     <div className="flex items-center gap-1 ml-auto">
+                        {/* T5-12 — solo con sesión: sin ella no hay de quién pedir los avisos. */}
+                        {user && <CampanaDeAvisos />}
                         {user && <UserMenu name={user.name} email={user.email} />}
                         {/* Botón hamburguesa — solo móvil/tablet */}
                         <button

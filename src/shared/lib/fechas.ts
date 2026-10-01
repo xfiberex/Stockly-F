@@ -72,3 +72,21 @@ export function formatearFechaHora(idioma: Idioma, iso: string): string {
  * con los tipos de movimiento.
  */
 export const IDIOMA_DE_EXPORTACION = IDIOMA_POR_DEFECTO;
+
+/**
+ * T5-12 — «hace 5 minutos», «ayer», «hace 3 días», para lo que acaba de pasar. A partir de una
+ * semana deja de ser útil contar hacia atrás y se da la fecha.
+ *
+ * `numeric: "auto"` es lo que da «ahora» y «ayer» en vez de «hace 0 segundos» y «hace 1 día».
+ * `ahora` se puede pasar para no depender del reloj en los tests.
+ */
+export function haceCuanto(idioma: Idioma, iso: string, ahora: number = Date.now()): string {
+    const segundos = Math.max(0, Math.round((ahora - new Date(iso).getTime()) / 1000));
+    const relativo = new Intl.RelativeTimeFormat(LOCALES[idioma], { numeric: "auto" });
+
+    if (segundos < 60) return relativo.format(0, "second");
+    if (segundos < 3600) return relativo.format(-Math.floor(segundos / 60), "minute");
+    if (segundos < 86_400) return relativo.format(-Math.floor(segundos / 3600), "hour");
+    if (segundos < 7 * 86_400) return relativo.format(-Math.floor(segundos / 86_400), "day");
+    return formatearFecha(idioma, iso);
+}

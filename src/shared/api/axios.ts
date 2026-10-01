@@ -111,7 +111,12 @@ api.interceptors.response.use(
             window.location.replace("/auth/login");
         }
 
-        if (status === 429) {
+        // T5-12 — menos si quien se quedó sin cupo es el sondeo de la campana: esa petición no la
+        // ha hecho nadie, y avisar de «demasiadas solicitudes» a quien no ha pulsado nada confunde.
+        // La campana se queda con el último número y lo vuelve a intentar al minuto.
+        const esElSondeo = config?.url?.includes("/notifications/unread-count");
+
+        if (status === 429 && !esElSondeo) {
             // T4-04 — este módulo no es un componente y no puede usar el hook, así que el
             // idioma se lee del almacenamiento en el momento de avisar. Da igual: la
             // preferencia vive ahí, no en React, y aquí se necesita una sola vez.

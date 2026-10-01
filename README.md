@@ -95,6 +95,8 @@ Stockly-F/src/
 │   │
 │   ├── inventory-counts/                   # T5-07: InventoryCountsPage, InventoryCountPage
 │   │
+│   ├── notifications/                      # T5-12: CampanaDeAvisos (la de la cabecera) y su sondeo
+│   │
 │   ├── customers/                          # T5-06: CustomersPage, CustomerDetailPage,
 │   │                                       # BuscadorDeCliente (el de la venta)
 │   │

@@ -538,4 +538,55 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         await page.getByRole("button", { name: "Exportar CSV" }).click();
         expect((await descarga).suggestedFilename()).toMatch(/^informe-\d{4}-\d{2}-01-\d{4}-\d{2}-\d{2}\.csv$/);
     });
+
+    test("una salida del almacén que deja un producto bajo mínimos avisa al administrador en la campana (T5-12)", async ({ page, browser }) => {
+        await login(page);
+        const producto = `E2E-aviso-${sufijo()}`;
+        const creado = (await api(page, "post", "/products", { name: producto, price: 10, stock: 6, minStock: 5 })) as { id: string };
+
+        // Quien mueve el stock es el almacén, en su propia sesión: el aviso es para quien no estaba.
+        const contexto = await browser.newContext();
+        try {
+            const almacen = await contexto.newPage();
+            await login(almacen, ALMACEN);
+            await api(almacen, "post", `/products/${creado.id}/movements`, { type: "OUT", quantity: 2, reason: "Venta en mostrador" });
+        } finally {
+            await contexto.close();
+        }
+
+        // El contador se pone al día al cargar, sin esperar al minuto del sondeo. El número no se
+        // comprueba: los avisos son del usuario, y el otro proyecto usa la misma cuenta a la vez.
+        await page.reload();
+        const campana = page.getByRole("button", { name: /^Avisos: \d+ sin leer$/ });
+        await expect(campana).toBeVisible();
+
+        // Con teclado: se abre, el foco entra en el panel, Escape lo cierra y lo devuelve.
+        await campana.focus();
+        await page.keyboard.press("Enter");
+        const panel = page.getByRole("dialog", { name: "Avisos" });
+        await expect(panel).toBeFocused();
+        const aviso = panel.getByRole("link", { name: new RegExp(`Stock bajo: ${producto}`) });
+        await expect(aviso).toContainText("Quedan 4; el mínimo es 5.");
+        await expect(aviso).toHaveAccessibleName(/^Sin leer:/);
+        await page.keyboard.press("Escape");
+        await expect(panel).toBeHidden();
+        await expect(page.getByRole("button", { name: /^Avisos/ })).toBeFocused();
+
+        // Pulsarlo lleva a los movimientos del producto y lo marca como leído…
+        await page.getByRole("button", { name: /^Avisos/ }).click();
+        const marcado = page.waitForResponse((r) => /\/notifications\/[^/]+\/read$/.test(r.url()) && r.request().method() === "POST");
+        await aviso.click();
+        expect((await marcado).status()).toBe(200);
+        await expect(page).toHaveURL(new RegExp(`/catalog/products/${creado.id}/movements$`));
+        await expect(panel).toBeHidden();
+
+        // …y en otra pestaña de la misma sesión ya sale leído.
+        const otra = await page.context().newPage();
+        await otra.goto("/");
+        await otra.getByRole("button", { name: /^Avisos/ }).click();
+        const enLaOtra = otra.getByRole("dialog", { name: "Avisos" }).getByRole("link", { name: new RegExp(`Stock bajo: ${producto}`) });
+        await expect(enLaOtra).toBeVisible();
+        await expect(enLaOtra).not.toHaveAccessibleName(/^Sin leer:/);
+        await otra.close();
+    });
 });

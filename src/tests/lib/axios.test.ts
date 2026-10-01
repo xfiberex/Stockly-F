@@ -98,6 +98,15 @@ describe("interceptor de axios", () => {
         );
     });
 
+    it("un 429 del sondeo de avisos no avisa a nadie: esa petición no la hizo el usuario (T5-12)", async () => {
+        stubLocation();
+        vi.mocked(toast.warn).mockClear();
+        setAdapter((config) => Promise.reject(fail(config, 429)));
+
+        await expect(api.get("/notifications/unread-count")).rejects.toBeTruthy();
+        expect(toast.warn).not.toHaveBeenCalled();
+    });
+
     it("ante un 401 renueva el token y reintenta la petición original", async () => {
         stubLocation();
         let refreshCalled = false;
