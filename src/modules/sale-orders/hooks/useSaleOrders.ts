@@ -8,8 +8,12 @@ import type { CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-order
 
 export const SALE_ORDERS_KEY = ["sale-orders"] as const;
 
-export function useSaleOrders(query: SaleOrdersQuery = {}) {
-    return useQuery({ queryKey: [...SALE_ORDERS_KEY, query], queryFn: () => getSaleOrders(query), placeholderData: keepPreviousData });
+/**
+ * T6-01 — con `enabled: false` no se pide nada y, por `keepPreviousData`, se sigue viendo la
+ * última lista buena: es lo que hace la pantalla mientras el rango de fechas está al revés.
+ */
+export function useSaleOrders(query: SaleOrdersQuery = {}, { enabled = true }: { enabled?: boolean } = {}) {
+    return useQuery({ queryKey: [...SALE_ORDERS_KEY, query], queryFn: () => getSaleOrders(query), placeholderData: keepPreviousData, enabled });
 }
 
 export function useCreateSaleOrder() {

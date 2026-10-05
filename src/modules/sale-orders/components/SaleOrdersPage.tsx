@@ -10,6 +10,8 @@ import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ESTADO_ORDEN_VENTA, buscarEstado } from "@/shared/lib/estados";
 import { Spinner } from "@/shared/components/Spinner";
 import { DropdownButton } from "@/shared/components/DropdownButton";
+import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
+import { Paginacion } from "@/shared/components/Paginacion";
 import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { useProducts } from "@/modules/products/hooks/useProducts";
 import {
@@ -22,7 +24,7 @@ import {
 import { exportSaleOrdersCsv } from "@/modules/sale-orders/api/sale-orders.api";
 import { BuscadorDeCliente } from "@/modules/customers/components/BuscadorDeCliente";
 import type { CustomerListItem } from "@/modules/customers/types/customer.types";
-import type { SaleOrder, CreateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
+import type { SaleOrder, SaleOrderStatus, CreateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
 import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
@@ -304,6 +306,9 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 
+// Mismo tamaño de página que productos y órdenes de compra.
+const PAGE_SIZE = 10;
+
 export default function SaleOrdersPage() {
     const { t, tn, idioma } = useT();
     const [formOpen, setFormOpen] = useState(false);
@@ -316,11 +321,42 @@ export default function SaleOrdersPage() {
     const puedeEditar = puede("PATCH /sale-orders/:id");
     const puedeBorrar = puede("DELETE /sale-orders/:id");
 
-    const { data, isLoading } = useSaleOrders();
+    // T6-01 — la página llamaba a `useSaleOrders()` sin nada y la API responde diez: una orden
+    // que no estuviera entre las diez últimas no se alcanzaba desde aquí. Los filtros van al
+    // servidor, en el `where`; filtrar lo ya cargado solo filtraría la página que se ve.
+    const [page, setPage] = useState(1);
+    const [estado, setEstado] = useState<SaleOrderStatus | "">("");
+    const [desde, setDesde] = useState("");
+    const [hasta, setHasta] = useState("");
+    const hayFiltros = estado !== "" || desde !== "" || hasta !== "";
+    // Cambiar un filtro vuelve a la página 1: la 3 de «todas» puede no existir en «enviadas».
+    const filtrar = (cambio: () => void) => { cambio(); setPage(1); };
+
+    // Un rango al revés no se envía —el servidor lo rechazaría con 400—: se dice en el campo y
+    // la lista se queda como estaba hasta que se corrija.
+    const rangoInvalido = desde !== "" && hasta !== "" && desde > hasta;
+
+    const { data, isLoading } = useSaleOrders(
+        { page, limit: PAGE_SIZE, status: estado || undefined, from: desde || undefined, to: hasta || undefined },
+        { enabled: !rangoInvalido },
+    );
     const orders = data?.data ?? [];
+    const total = data?.meta.total ?? 0;
+    const totalPages = data?.meta.totalPages ?? 1;
     const updateMutation = useUpdateSaleOrder();
     const shipMutation = useShipSaleOrder();
     const deleteMutation = useDeleteSaleOrder();
+
+    // Si se borra la última orden de la última página, esa página deja de existir: se
+    // retrocede en el propio evento, como en las órdenes de compra.
+    const handleDelete = (id: string) => {
+        const eraLaUnica = orders.length === 1 && page > 1;
+        deleteMutation.mutate(id, {
+            onSuccess: () => {
+                if (eraLaUnica) setPage((p) => p - 1);
+            },
+        });
+    };
 
     const handleShip = (id: string) => shipMutation.mutate(id);
     const handleCancel = (id: string) => updateMutation.mutate({ id, dto: { status: "CANCELLED" } });
@@ -340,7 +376,8 @@ export default function SaleOrdersPage() {
             <div className={CLASES_ENCABEZADO_DE_PAGINA}>
                 <div>
                     <h1 className="text-2xl font-bold text-foreground">{t("ruta.ordenesVenta")}</h1>
-                    <p className="text-sm text-foreground-muted mt-1">{tn("ordenes.cantidad", orders.length)}</p>
+                    {/* `meta.total`, no `orders.length`: lo segundo es el tamaño de la página. */}
+                    <p className="text-sm text-foreground-muted mt-1">{tn("ordenes.cantidad", total)}</p>
                 </div>
                 <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
                     {/* La exportación es solo de ADMIN en la API; antes el botón salía a todos y
@@ -361,10 +398,50 @@ export default function SaleOrdersPage() {
                 </div>
             </div>
 
+            {/* Los filtros se pintan si hay órdenes o si hay un filtro puesto: si desaparecieran
+                al quedarse sin resultados, no habría forma de deshacer el que los vació. */}
+            {(total > 0 || hayFiltros) && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+                    {/* Sin etiqueta visible, como el filtro de tipo de los movimientos: «Todos los
+                        estados» ya dice qué es, y el nombre accesible va en `aria-label`. */}
+                    <Select
+                        aria-label={t("ventas.filtro.estado")}
+                        options={[
+                            { value: "", label: t("ventas.filtro.todosLosEstados") },
+                            // Del descriptor, para que el filtro y la insignia de la fila digan lo mismo.
+                            ...Object.entries(ESTADO_ORDEN_VENTA).map(([value, { clave }]) => ({ value, label: t(clave) })),
+                        ]}
+                        value={estado}
+                        onChange={(e) => filtrar(() => setEstado(e.target.value as SaleOrderStatus | ""))}
+                    />
+                    <CampoDeFecha
+                        label={t("ventas.filtro.desde")}
+                        value={desde}
+                        onChange={(e) => filtrar(() => setDesde(e.target.value))}
+                    />
+                    <CampoDeFecha
+                        label={t("ventas.filtro.hasta")}
+                        value={hasta}
+                        onChange={(e) => filtrar(() => setHasta(e.target.value))}
+                        error={rangoInvalido ? t("ventas.filtro.rangoInvalido") : undefined}
+                    />
+                    {hayFiltros && (
+                        <Button
+                            variant="secondary"
+                            onClick={() => filtrar(() => { setEstado(""); setDesde(""); setHasta(""); })}
+                        >
+                            {t("ventas.filtro.limpiar")}
+                        </Button>
+                    )}
+                </div>
+            )}
+
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : orders.length === 0 ? (
-                <div className="py-16 text-center text-sm text-foreground-muted">{t("ventas.vacio")}</div>
+                <div className="py-16 text-center text-sm text-foreground-muted">
+                    {t(hayFiltros ? "ventas.sinResultados" : "ventas.vacio")}
+                </div>
             ) : (
                 <div className="space-y-3">
                     {orders.map((order) => (
@@ -441,7 +518,7 @@ export default function SaleOrdersPage() {
                                                     title={t("comun.eliminar")}
                                                     aria-label={t("ventas.eliminarDe", { numero: numeroDeOrden(order.id) })}
                                                     isLoading={deleteMutation.isPending}
-                                                    onClick={() => deleteMutation.mutate(order.id)}
+                                                    onClick={() => handleDelete(order.id)}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>
@@ -516,6 +593,8 @@ export default function SaleOrdersPage() {
                     ))}
                 </div>
             )}
+
+            <Paginacion page={page} totalPages={totalPages} onPage={setPage} />
 
             <OrderFormModal isOpen={formOpen} onClose={() => setFormOpen(false)} />
             <CancelarEnvioModal

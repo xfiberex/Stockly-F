@@ -19,7 +19,7 @@ const PRODUCTOS = [
 const creadas: unknown[] = [];
 
 vi.mock("@/modules/sale-orders/hooks/useSaleOrders", () => ({
-    useSaleOrders: () => ({ data: { data: [] }, isLoading: false }),
+    useSaleOrders: () => ({ data: { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } }, isLoading: false }),
     useCreateSaleOrder: () => ({
         mutate: (dto: unknown, opciones?: { onSuccess?: () => void }) => {
             creadas.push(dto);

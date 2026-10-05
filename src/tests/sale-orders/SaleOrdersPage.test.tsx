@@ -58,7 +58,11 @@ let ordenes: SaleOrder[] = [];
 let rol: Rol = "ADMIN";
 
 vi.mock("@/modules/sale-orders/hooks/useSaleOrders", () => ({
-    useSaleOrders: () => ({ data: { data: ordenes }, isLoading: false }),
+    // T6-01 — la página cuenta con `meta.total`, no con el largo de la lista.
+    useSaleOrders: () => ({
+        data: { data: ordenes, meta: { total: ordenes.length, page: 1, limit: 10, totalPages: 1 } },
+        isLoading: false,
+    }),
     useCreateSaleOrder: () => ({ mutate: vi.fn(), isPending: false }),
     useUpdateSaleOrder: () => ({
         // Se comporta como la mutación real en el caso feliz: invoca `onSuccess`, que

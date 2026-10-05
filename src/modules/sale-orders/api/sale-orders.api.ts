@@ -1,13 +1,22 @@
 import api from "@/shared/api/axios";
 import { descargarDeLaApi } from "@/shared/api/descargar";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
-import type { SaleOrder, CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
+import type { SaleOrder, SaleOrderStatus, CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
 
-/** T5-06 — `customerId` trae solo las de un cliente: el historial de su ficha. */
+/**
+ * T5-06 — `customerId` trae solo las de un cliente: el historial de su ficha.
+ *
+ * T6-01 — `from` y `to` son días (`AAAA-MM-DD`) de la fecha de creación, los dos incluidos. Son
+ * días **del negocio**: dónde empiezan lo decide el servidor con la zona de Configuración, no el
+ * navegador.
+ */
 export interface SaleOrdersQuery {
     page?: number;
     limit?: number;
     customerId?: string;
+    status?: SaleOrderStatus;
+    from?: string;
+    to?: string;
 }
 
 export const getSaleOrders = async (params: SaleOrdersQuery = {}): Promise<PaginatedResponse<SaleOrder>> => {

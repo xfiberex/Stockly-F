@@ -171,8 +171,12 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         // Antes de T0-03, cancelar una venta ya enviada no reponía nada.
         await expect.poll(() => stockDe(page, productId)).toBe(STOCK_INICIAL);
 
-        // Y el estado que ve el usuario acompaña al efecto en la base.
-        await expect(page.getByText("Cancelado").first()).toBeVisible();
+        // Y el estado que ve el usuario acompaña al efecto en la base. Se mira la insignia de
+        // **esta** orden: desde T6-01 el primer «Cancelado» de la página es una opción del
+        // filtro por estado, oculta dentro del desplegable, y antes de eso «el primero» podía
+        // ser el de cualquier otra orden cancelada.
+        const fila = page.getByText(`Venta #${numero}`, { exact: true }).locator("xpath=ancestor::div[2]");
+        await expect(fila.getByText("Cancelado")).toBeVisible();
 
         await api(page, "delete", `/products/${productId}`);
     });
