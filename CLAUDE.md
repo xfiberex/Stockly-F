@@ -1,60 +1,84 @@
 # Stockly — Frontend
 
-SPA de React 19 sobre Vite. El backend vive en un repositorio hermano, `Stockly-B`, que se clona al lado de este.
+SPA de React 19 sobre Vite. El backend vive en un repositorio hermano, `Stockly-B`, que se clona al
+lado (`01-Stockly/Stockly-B` y `01-Stockly/Stockly-F`). **La documentación de los dos repositorios
+está allí, en `Stockly-B/docs/`**: si no lo tienes clonado, clónalo antes de planificar nada.
 
-```
-01-Stockly/
-├── Stockly-B/   ← API + documentación viva del proyecto
-└── Stockly-F/   ← este repositorio
-```
+## Qué leer, y cuándo
 
-## Documentación viva
+| Cuándo | Documento |
+|---|---|
+| **Antes de tocar cualquier pantalla** | [`docs/design-system.md`](docs/design-system.md), de este repositorio. No es una guía opcional: varias de sus reglas ponen `pnpm verify` en rojo |
+| **Al retomar el proyecto** | `Stockly-B/docs/CONTEXTO.md`: estado, trampas del entorno ya pagadas (§4) y decisiones que no conviene deshacer (§6) |
+| Antes de planificar trabajo | `Stockly-B/docs/ROADMAP.md` |
+| Antes de simplificar algo que parezca complicado de más | `Stockly-B/docs/adr/` |
+| Antes de añadir una dependencia | `Stockly-B/docs/dependencias.md` |
+| Antes de cambiar navegación o formularios | `Stockly-B/docs/accesibilidad.md` |
+| Para la puerta de calidad, la CI, los commits y el cierre de una tarea | `Stockly-B/CONTRIBUTING.md` |
 
-Está en el repositorio del backend, en `Stockly-B/docs/`, y cubre **los dos repositorios**:
+**Al cerrar una tarea, se anota en el ROADMAP**, aunque el cambio sea de este repositorio.
 
-- `docs/CONTEXTO.md` — **empieza aquí al retomar el proyecto:** estado actual, decisiones vivas, trampas del entorno ya pagadas y por dónde seguir.
-- `docs/ROADMAP.md` — 129 tareas con dependencias, progreso y métricas. La fuente de verdad del trabajo pendiente.
-- `docs/operaciones.md` — copia de seguridad, restauración y reversión. Es del backend, pero la política de despliegue que describe afecta a los dos repositorios.
-- `docs/accesibilidad.md` — la auditoría de Lighthouse y teclado sobre la aplicación desplegada (T4-09), con los tres fallos que destapó y sus guardias.
-- `docs/dependencias.md` — vulnerabilidades y licencias de las dependencias de producción de **los dos** repositorios, y cómo funciona la puerta de `pnpm auditoria`. Léelo antes de añadir una dependencia.
-- `docs/adr/` — decisiones de arquitectura no obvias: léelas antes de simplificar algo que parezca complicado de más.
-- `docs/INFORME-AUDITORIA.md` — los hallazgos que justifican cada tarea. **Congelado a propósito:** está escrito en presente y describe el 2026-08-04, no el estado actual.
-- `docs/README-proyecto.md` — arranque desde cero de los dos repositorios.
-- `CONTRIBUTING.md` (en `Stockly-B`) — puerta de calidad, flujo de ramas y convención de commits.
-
-De este repositorio: **[`docs/design-system.md`](docs/design-system.md) es lectura previa a tocar cualquier pantalla.** No es una guía de estilo opcional — varias de sus reglas hacen fallar `pnpm verify` si se incumplen.
-
-Si no tienes clonado `Stockly-B`, esos documentos no están en disco: clónalo antes de planificar nada.
-
-**Al cerrar una tarea, anótala en el ROADMAP**, aunque el cambio sea de este repositorio.
-
-## Verificación: `pnpm verify`, en local y en la CI
-
-La puerta de calidad es un comando, el mismo en el portátil y en GitHub Actions ([ADR 0008](../Stockly-B/docs/adr/0008-integracion-continua.md), 2026-09-28, desde que los repositorios son públicos). **Se ejecuta en local antes de cada commit**: la CI lo repite, no lo sustituye. El workflow ([.github/workflows/verify.yml](.github/workflows/verify.yml)) tiene dos jobs —`verify` y el E2E— y **clona el `main` de `Stockly-B` al lado**, así que la frescura del contrato se comprueba de verdad y un cambio de contrato tiene que subirse antes al backend. `playwright.config.ts` solo mira `process.env.CI` para `forbidOnly`; los reintentos siguen en 0 también ahí. La puerta:
+## Verificación
 
 ```bash
-pnpm verify
+pnpm verify           # antes de cada commit; la CI lo repite, no lo sustituye
+pnpm test:e2e:full    # Playwright, en chromium y Mobile Chrome
 ```
 
-Encadena `check → lint → test:coverage → build → auditoria`. El último paso ([scripts/auditoria.js](scripts/auditoria.js), T4-07) rompe la compilación ante una vulnerabilidad **alta o crítica** en dependencias de producción o ante una licencia fuera de la lista permitida; sin red avisa en vez de fallar, salvo con `--estricto`. Con `--informe` regenera `public/AVISOS-DE-TERCEROS.txt`, que **hay que regenerar al cambiar las dependencias**: la aplicación distribuye los `.woff2` de Inter y su licencia OFL exige que el aviso la acompañe. **Está en verde** desde el 2026-08-07 (T1-09): `pnpm lint` debe terminar con 0 errores y 0 avisos, así que cualquier aviso nuevo es una regresión, no ruido de fondo.
+`verify` encadena `check → lint → test:coverage → build → auditoria`.
 
-El E2E de Playwright (`pnpm test:e2e:full`) **no necesita levantar nada a mano** desde T1-24: `e2e/global-setup.ts` prepara la base de datos (migraciones + seed, recurriendo a Docker solo si no hay PostgreSQL escuchando) y el `webServer` arranca backend y frontend. Se ejecuta en dos proyectos, `chromium` y `Mobile Chrome`.
+- **`pnpm lint` termina con 0 errores y 0 avisos.** Un aviso nuevo es una regresión.
+- **`auditoria`** rompe ante una vulnerabilidad alta o crítica en producción o una licencia fuera
+  de la lista; sin red avisa, salvo con `--estricto`. **Al cambiar las dependencias hay que
+  regenerar `public/AVISOS-DE-TERCEROS.txt`** con `pnpm auditoria --informe`: la aplicación
+  distribuye la tipografía Inter y su licencia exige que el aviso la acompañe.
+- **El E2E no necesita levantar nada a mano**: `e2e/global-setup.ts` prepara la base —migra y
+  **resiembra la de desarrollo**— y Playwright arranca backend y frontend, con el límite de
+  peticiones subido. Los reintentos están en 0: sus fallos intermitentes han sido siempre
+  defectos reales. Si falla de forma rara, mira antes los puertos 3000 y 5173 (CONTEXTO §4).
+- **Un cambio de contrato se sube primero al backend**: la CI de aquí clona su `main` y comprueba
+  que la copia esté al día.
 
-El E2E sube el techo del rate limit del backend con `RATE_LIMIT_MAX` y `AUTH_RATE_LIMIT_MAX`: una pasada del navegador supera las 100 peticiones/15 min por defecto. El limitador y la protección CSRF siguen activos durante la ejecución.
+## Reglas
 
-## Convenciones
-
-- Gestor de paquetes: **pnpm 12.4.1** (fijado en `packageManager` y en el `Dockerfile`, igual que el backend). No usar npm ni yarn. Se subió desde 11.2.2 el 2026-08-09 —las versiones `<11.8.0` arrastraban avisos de path traversal y de ejecución de lifecycle scripts— y a la 12 el 2026-09-28.
-- Comentarios y documentación **en español**, como el resto del código.
-- **`.agents/` y `.claude/` se versionan a propósito** (T3-06): el proyecto se trabaja desde varias máquinas y el tooling viaja con él. Son la mayoría de los archivos rastreados, así que para buscar en el código conviene excluirlos: `git buscar X` —tras activar una vez `git config --local include.path ../.gitconfig-stockly`— o `git grep X -- ":!.agents" ":!.claude"`.
-- Las credenciales del E2E salen del seed del backend y son sobreescribibles por variables de entorno. **Nunca poner una contraseña real** en `e2e/`: ese directorio está versionado, y una fuga así ya obligó a reescribir el historial (tarea T0-06).
-- **Los tipos de las respuestas de la API no se escriben aquí** (T4-01). `src/shared/contratos/api.generated.ts` es una copia literal de `Stockly-B/src/contratos/api.ts`, que es la fuente de verdad; los tipos de cada módulo (`Product`, `SaleOrder`, …) son alias de los suyos. Para cambiar la forma de una respuesta se edita **en el backend** y se ejecuta allí `pnpm contratos:generar`. Editar el archivo generado no sirve: `frescura.test.ts` lo detecta y la próxima generación lo pisa.
-- **Un botón que llama a la API se enseña con `usePuede()`, no con `role === "ADMIN"`** (T5-13). Hay tres roles, y «no es ADMIN» ya no dice qué puede hacer quien mira: `puede("POST /sale-orders/:id/ship")` consulta la matriz `PERMISOS` del contrato, la misma con la que el backend protege esa ruta, así que la interfaz no ofrece lo que la API va a rechazar.
-- **`price` y los `unitPrice` son `string | number`**, no `number`: los `Decimal` de Prisma llegan como cadena. Para convertir, `aNumero()` del contrato. `/reports` es la excepción y sí manda números.
-- **Ningún texto de interfaz se escribe en un componente** (T4-04). Todo sale de `src/shared/i18n/es.ts` —el catálogo de referencia— y se pinta con `t()` / `tn()` de `useT()`; los mensajes de los esquemas Zod guardan **la clave** y los traduce `te()` en el campo. `en.ts` es un `Record` sobre las claves de `es.ts`, así que una traducción que falte **no compila**, y `src/tests/i18n/literales.test.ts` falla si vuelve a aparecer una cadena a mano en un nodo JSX, en una prop visible (`label`, `placeholder`, `title`, `aria-label`, `alt`, `summary`) o en un `toast`. Y `catalogo.test.ts` vigila el sentido contrario: **una clave que ya no lee nadie**, porque el compilador comprueba que las dos copias digan lo mismo pero no que alguien las use. Las familias dinámicas —`error.*`, `auditoria.*`, `ajuste.*`, cuya clave se compone en ejecución— están exentas **una a una**: ampliar esa lista a la ligera apaga la comprobación de un módulo entero. Las fechas van por `shared/lib/fechas.ts`, que sigue al idioma. El porqué del motor propio, en [ADR 0007](../Stockly-B/docs/adr/0007-i18n-propio.md).
-- **Un listado paginado no se filtra en el navegador** (T4-15). Los filtros viajan en la query y el servidor devuelve `meta`; filtrar el array que hay en pantalla filtra **solo la página traída**, y el resultado depende de en qué página estabas. De ahí salen tres reglas para la pantalla: los recuentos se leen de `meta.total` y no de `array.length`, cambiar un filtro **vuelve a la página 1** —o se pide una página que el resultado filtrado no tiene y la tabla sale vacía—, y **un gráfico que dibuja una página tiene que decirlo**: rotularlo con el nombre de la serie entera enseñando 50 de 100 000 puntos es mentir. Exportar es lo más peligroso: construir el CSV desde lo que hay en memoria produce un archivo que se abre, tiene filas y parece correcto. Va por el endpoint del backend.
-- **Los correos no se traducen aquí** (T4-12). Su catálogo vive en el backend, porque se redactan allí y a veces sin nadie delante. De este lado solo hay dos piezas: el interceptor de axios manda el idioma efectivo en `Accept-Language` —el del navegador no vale, dice el del sistema operativo—, y `useSincronizarIdioma` deja ese idioma en `users.idioma` **cuando deja de coincidir con el guardado**, no en cada render. Si cambias dónde vive la preferencia de idioma, esas dos piezas son las que hay que mover con ella.
+- **pnpm 12.4.1**, fijado en `packageManager` y en el `Dockerfile`. No usar npm ni yarn.
+- **Comentarios y documentación en español.**
+- **Nunca una contraseña real en `e2e/`**: está versionado. Sus credenciales salen del seed del
+  backend y son sobreescribibles por variables de entorno.
+- **`.agents/` y `.claude/` se versionan a propósito.** Son la mayoría de los archivos rastreados:
+  para buscar en el código, `git buscar X` o `git grep X -- ":!.agents" ":!.claude"`.
+- **Los tipos de las respuestas de la API no se escriben aquí.**
+  `src/shared/contratos/api.generated.ts` es una copia literal de
+  `Stockly-B/src/contratos/api.ts`; los tipos de cada módulo son alias de los suyos. Se cambia
+  **en el backend** y se regenera allí con `pnpm contratos:generar`. Editar la copia no sirve:
+  `frescura.test.ts` lo detecta.
+- **`price` y los `unitPrice` son `string | number`**: los `Decimal` de Prisma llegan como cadena.
+  Para convertir, `aNumero()` del contrato. `/reports` es la excepción y sí manda números.
+- **Un botón que llama a la API se enseña con `usePuede()`, no con `role === "ADMIN"`.** Hay tres
+  roles, y `puede("POST /sale-orders/:id/ship")` consulta la misma matriz con la que el backend
+  protege esa ruta.
+- **Ningún texto de interfaz se escribe en un componente.** Sale de `src/shared/i18n/es.ts` y se
+  pinta con `t()` / `tn()` de `useT()`; los esquemas Zod guardan **la clave** y la traduce `te()`.
+  `en.ts` es un `Record` sobre las claves de `es.ts`: una traducción que falte no compila.
+  `literales.test.ts` falla ante una cadena a mano —en un nodo JSX, una prop visible o un
+  `toast`— y `catalogo.test.ts` ante una clave que ya no lee nadie. Las familias dinámicas
+  (`error.*`, `auditoria.*`, `ajuste.*`) están exentas **una a una**: ampliar esa lista apaga la
+  comprobación de un módulo entero. Las fechas van por `shared/lib/fechas.ts`.
+- **Un listado paginado no se filtra en el navegador.** Los filtros viajan en la query. Los
+  recuentos se leen de `meta.total`, cambiar un filtro **vuelve a la página 1** y un gráfico que
+  dibuja una página lo dice. Exportar va por el endpoint del backend, nunca desde lo que hay en
+  memoria.
+- **Las descargas van por `descargarDeLaApi`** (`shared/api/descargar.ts`), no por un enlace.
+- **Los correos no se traducen aquí.** De este lado solo hay dos piezas: el interceptor de axios
+  manda el idioma efectivo en `Accept-Language`, y `useSincronizarIdioma` lo deja en
+  `users.idioma` cuando deja de coincidir. Si cambia dónde vive la preferencia de idioma, se
+  mueven las dos.
+- **Al añadir una ruta hay que darle título** en `shared/lib/titulos.ts`, o `titulos.test.ts`
+  falla.
+- **Una dependencia que se carga bajo demanda necesita su regla en `manualChunks`**
+  (`vite.config.ts`), o cae en `vendor` y viaja en el primer arranque.
 
 ## CodeGraph
 
-Este repositorio tiene además un `.claude/CLAUDE.md` con las instrucciones del índice CodeGraph. Ambos archivos se aplican.
+Este repositorio tiene además un `.claude/CLAUDE.md` con las instrucciones del índice CodeGraph.
+Ambos archivos se aplican.

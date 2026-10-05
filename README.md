@@ -2,19 +2,17 @@
 
 [![verify](https://github.com/xfiberex/Stockly-F/actions/workflows/verify.yml/badge.svg)](https://github.com/xfiberex/Stockly-F/actions/workflows/verify.yml)
 
-SPA para el sistema de gestión de inventario Stockly. El backend vive en un repositorio hermano,
-`Stockly-B`, que se clona al lado de este.
+SPA del sistema de gestión de inventario Stockly. El backend vive en un repositorio hermano,
+[`Stockly-B`](https://github.com/xfiberex/Stockly-B), que se clona al lado de este.
 
-Este README documenta **la SPA**. La documentación que cubre los dos repositorios vive en
-`Stockly-B/docs/` —la carpeta que los contiene no está bajo control de versiones—, así que si no lo
-tienes clonado, esos documentos no están en disco:
+Este README es la **referencia de la SPA**. La documentación del proyecto —que cubre los dos
+repositorios— vive en `Stockly-B/docs/`, porque la carpeta que los contiene no está bajo control de
+versiones: si no lo tienes clonado, esos documentos no están en disco.
 
-| Documento | Para qué |
-|---|---|
-| `Stockly-B/docs/CONTEXTO.md` | **Empieza aquí al retomar el proyecto.** Estado, decisiones vivas y trampas del entorno |
-| `Stockly-B/docs/ROADMAP.md` | Las 129 tareas con progreso y métricas |
-| [docs/design-system.md](docs/design-system.md) | **Lectura previa a tocar cualquier pantalla** |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Lo específico de este repositorio; la guía completa está en `Stockly-B` |
+- **[README-proyecto](https://github.com/xfiberex/Stockly-B/blob/main/docs/README-proyecto.md)** — arranque desde cero y mapa de todos los documentos.
+- **[CONTEXTO](https://github.com/xfiberex/Stockly-B/blob/main/docs/CONTEXTO.md)** — estado, trampas del entorno y decisiones vivas. Empieza aquí al retomar el proyecto.
+- **[docs/design-system.md](docs/design-system.md)** — lectura previa a tocar cualquier pantalla.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — lo específico de este repositorio.
 
 ---
 
@@ -22,19 +20,17 @@ tienes clonado, esos documentos no están en disco:
 
 | Capa | Tecnología |
 |---|---|
-| UI | React 19 + TypeScript 6 |
-| Bundler | Vite 8 |
-| Estilos | TailwindCSS 4 |
-| Enrutamiento | React Router v7 |
-| Server state | TanStack React Query v5 |
+| Interfaz | React 19 + TypeScript 6, con React Compiler |
+| Empaquetado | Vite 8 |
+| Estilos | TailwindCSS 4, sobre tokens semánticos |
+| Enrutamiento | React Router 7 |
+| Estado del servidor | TanStack Query 5 |
 | Formularios | React Hook Form 7 + Zod 4 |
-| Cliente HTTP | Axios |
-| Iconos | Heroicons (`@heroicons/react/24/outline`) |
-| Gráficos | Recharts 3 |
-| Fuente | Inter (fontsource, autohospedada) |
-| Notificaciones | React Toastify |
+| HTTP | Axios |
+| Gráficos · iconos · fuente | Recharts 3 · Heroicons · Inter autohospedada |
+| Escáner | `barcode-detector`, con ZXing en WebAssembly donde el navegador no trae lector |
 | Tests | Vitest + Testing Library · Playwright (E2E) |
-| Package manager | PNPM 12.4.1 *(fijado en `packageManager`; no usar npm ni yarn)* |
+| Gestor de paquetes | pnpm 12.4.1 *(fijado en `packageManager`; no usar npm ni yarn)* |
 
 ---
 
@@ -42,97 +38,30 @@ tienes clonado, esos documentos no están en disco:
 
 ```
 Stockly-F/
-├── .github/workflows/verify.yml    # CI: `verify` y E2E en cada push a main y pull request
-├── e2e/                            # Playwright: flujos que cruzan frontend y backend
-└── src/                            # (detalle abajo)
-
-Stockly-F/src/
-├── main.tsx                        # Entry point: providers globales
-├── App.tsx                         # Layout raíz con navbar + UserMenu + AdminMenu
-├── routes/index.tsx                # Definición de rutas (React Router v7)
-│
-├── modules/
-│   ├── auth/
-│   │   ├── components/             # LoginPage, RegisterPage, ProfilePage,
-│   │   │                           # ForgotPasswordPage, ResetPasswordPage,
-│   │   │                           # VerifyEmailPage, ResendVerificationPage
-│   │   ├── hooks/                  # useMe, useLogin, useLogout, useRegister,
-│   │   │                           # useUpdateProfile, useUpdatePassword, ...
-│   │   ├── api/                    # auth.api.ts
-│   │   └── schemas/                # auth.schema.ts (Zod)
-│   │
-│   ├── dashboard/
-│   │   └── components/DashboardPage.tsx   # KPI cards, alerta de stock bajo, gráfico
-│   │
-│   ├── catalog/
-│   │   └── components/             # CatalogPage (layout pestañas),
-│   │                               # CategoriesPage, BrandsPage
-│   │
-│   ├── products/
-│   │   ├── components/             # ProductsPage, ProductTable, ProductForm (con tags),
-│   │   │                           # ProductFilters (con filtro por tag), ProductImageUpload,
-│   │   │                           # ProductDetailModal, StockMovementsPage,
-│   │   │                           # ManualMovementModal, BulkStockModal,
-│   │   │                           # EtiquetasModal (T5-08)
-│   │   ├── hooks/                  # useProducts, useProduct, useCreateProduct,
-│   │   │                           # useUpdateProduct, useDeleteProduct,
-│   │   │                           # useRestoreProduct, useStockMovements, ...
-│   │   ├── api/                    # product.api.ts
-│   │   ├── schemas/                # product.schema.ts (Zod)
-│   │   └── types/                  # product.types.ts
-│   │
-│   ├── tags/
-│   │   ├── components/TagsPage.tsx # CRUD de etiquetas con selector de color
-│   │   ├── hooks/useTags.ts
-│   │   └── api/tags.api.ts
-│   │
-│   ├── suppliers/
-│   │   └── components/SuppliersPage.tsx       # Incluye el plazo de entrega
-│   │
-│   ├── purchase-orders/
-│   │   └── components/             # PurchaseOrdersPage (recepción parcial, exportar CSV),
-│   │                               # SugerenciasReposicionPage
-│   │
-│   ├── inventory-counts/                   # T5-07: InventoryCountsPage, InventoryCountPage
-│   │
-│   ├── notifications/                      # T5-12: CampanaDeAvisos (la de la cabecera) y su sondeo
-│   │
-│   ├── customers/                          # T5-06: CustomersPage, CustomerDetailPage,
-│   │                                       # BuscadorDeCliente (el de la venta)
-│   │
-│   ├── sale-orders/
-│   │   ├── components/SaleOrdersPage.tsx       # PENDING → SHIPPED / CANCELLED
-│   │   ├── hooks/useSaleOrders.ts
-│   │   └── api/sale-orders.api.ts
-│   │
-│   ├── users/
-│   │   ├── components/UsersPage.tsx   # Panel ADMIN: rol, activar/desactivar
-│   │   ├── hooks/useUsers.ts
-│   │   └── api/users.api.ts
-│   │
-│   ├── settings/
-│   │   ├── components/SettingsPage.tsx  # Toggle de opciones con guardado en lote
-│   │   ├── hooks/useSettings.ts
-│   │   └── api/settings.api.ts
-│   │
-│   ├── audit-logs/
-│   │   ├── components/AuditLogsPage.tsx  # Tabla paginada con filtros
-│   │   ├── hooks/useAuditLogs.ts
-│   │   └── api/audit-logs.api.ts
-│   │
-│   └── reports/
-│       └── components/             # ReportsPage (KPIs, margen, rotación, PDF),
-│                                   # InformePorPeriodoPage (ventas y compras por periodo)
-│
-├── shared/
-│   ├── components/                 # Badge, Button, DropdownButton, Input,
-│   │                               # Modal, Select, Spinner, ProtectedRoute, NotFoundPage,
-│   │                               # EscanerModal (T5-08)
-│   ├── lib/                        # escaner.ts (T5-08): lector nativo o ZXing, bajo demanda
-│   └── hooks/                     # useDebounce
-│
-└── tests/                          # Tests unitarios por módulo
+├── .github/workflows/verify.yml   # CI: `verify` y E2E, con Stockly-B clonado al lado
+├── docs/design-system.md          # Tokens, densidad, estados y los tests que los vigilan
+├── e2e/                           # Playwright: flujos que cruzan frontend y backend
+├── public/                        # favicon, robots.txt y AVISOS-DE-TERCEROS.txt
+├── scripts/auditoria.js           # Vulnerabilidades, licencias y aviso de terceros
+└── src/
+    ├── main.tsx · App.tsx         # Proveedores; armazón con cabecera y navegación
+    ├── routes/index.tsx           # Rutas, todas con `lazy()`
+    ├── index.css                  # Tailwind y la capa de tokens (`@theme`)
+    ├── modules/                   # Un directorio por sección
+    │   └── <módulo>/              #   api/ · components/ · hooks/ · types/ · schemas/
+    ├── shared/
+    │   ├── api/                   # axios (CSRF, refresco de sesión, idioma) y descargas
+    │   ├── components/            # Button, Input, Select, Modal, Badge, Paginacion, EscanerModal…
+    │   ├── contratos/             # api.generated.ts: copia del contrato del backend. No se edita
+    │   ├── hooks/                 # useT/useIdioma, useTema, useMenuDesplegable, useDebounce
+    │   ├── i18n/                  # es.ts (catálogo de referencia), en.ts y el motor
+    │   └── lib/                   # fechas, moneda, estados, títulos de ruta, clases compartidas
+    └── tests/                     # Tests por módulo y guardias de todo `src/`
 ```
+
+Módulos: `auth`, `dashboard`, `products`, `catalog` (categorías y marcas), `suppliers`, `tags`,
+`purchase-orders`, `sale-orders`, `customers`, `inventory-counts`, `reports`, `notifications`,
+`users`, `settings` y `audit-logs`.
 
 ---
 
@@ -142,282 +71,106 @@ Stockly-F/src/
 cp .env.example .env
 ```
 
-| Variable | Descripción | Ejemplo |
+| Variable | Descripción | Valor |
 |---|---|---|
-| `VITE_API_URL` | URL base de la API REST. Relativa: Vite hace de proxy de `/api` hacia el backend, igual que nginx en el compose | `/api/v1` |
+| `VITE_API_URL` | Base de la API. **Relativa**: Vite hace de proxy de `/api` hacia el backend, igual que nginx en el compose, así que hay un solo origen y la aplicación se puede abrir desde el móvil o por un túnel | `/api/v1` |
 
 ---
 
 ## Comandos
 
 ```bash
-pnpm dev              # Dev server con HMR en localhost:5173
-pnpm build            # Compilar TypeScript + generar dist/
-pnpm preview          # Previsualizar el build de producción
-pnpm lint             # Verificar ESLint — debe dar 0 errores y 0 avisos
+pnpm dev                # Servidor de desarrollo en localhost:5173
+pnpm build              # Tipos y build de producción en dist/
+pnpm preview            # Sirve el build (sin proxy: no llega a la API)
+pnpm check              # Tipos, sin emitir
+pnpm lint               # ESLint: 0 errores y 0 avisos
 
-pnpm test             # Tests en modo watch
-pnpm test:run         # Tests sin watch (una sola pasada)
-pnpm test:coverage    # Reporte de cobertura
+pnpm test               # Vitest en modo observación
+pnpm test:run           # Una sola pasada
+pnpm test:coverage      # Con cobertura
 
-pnpm verify           # Puerta de calidad: check → lint → test:coverage → build → auditoria
-pnpm test:e2e:full    # Playwright en chromium y Mobile Chrome, sin levantar nada a mano
+pnpm verify             # Puerta de calidad: check → lint → test:coverage → build → auditoria
+pnpm test:e2e:full      # Playwright en chromium y Mobile Chrome, sin levantar nada a mano
+pnpm test:e2e:desktop   # Solo chromium
+pnpm auditoria          # Dependencias; con --informe regenera el aviso de terceros
 ```
 
-`pnpm verify` es la puerta de calidad: se pasa en local antes de cada push, y GitHub Actions la
-repite, con el E2E, en cada push a `main` y en cada pull request
-([ADR 0008](https://github.com/xfiberex/Stockly-B/blob/main/docs/adr/0008-integracion-continua.md)). Un aviso nuevo de `pnpm lint` es
-una regresión, no ruido de fondo.
-
----
-
-## Integración continua
-
-Un workflow, [`.github/workflows/verify.yml`](.github/workflows/verify.yml), con **dos jobs** que
-ejecutan lo mismo que en local. Corre en cada push a `main`, en cada pull request y a mano
-(`workflow_dispatch`); un push nuevo cancela la ejecución en curso de la misma rama.
-
-| Job | Qué hace | Tiempo máximo |
-|---|---|---|
-| **`verify`** | Clona este repositorio y **el `main` de `Stockly-B` al lado**, como en local, y ejecuta `pnpm install --frozen-lockfile` y `pnpm verify`. Con el backend al lado, la **frescura del contrato** (T4-01) se comprueba de verdad en vez de omitirse | 20 min |
-| **`e2e`** | Los dos repositorios, un `postgres:17-alpine` de servicio, `prisma generate` en el backend, Chromium con sus dependencias y `pnpm test:e2e:full` en escritorio y móvil. Migraciones, seed y servidores los pone Playwright, igual que en local. **Si falla, sube `test-results` y `playwright-report` como artefacto** (7 días) | 25 min |
-
-Las variables del E2E son de prueba y están en el propio workflow: las cuatro del backend y
-`VITE_API_URL=/api/v1`, que en local sale del `.env` —sin ella la aplicación se queda en blanco,
-que es como falló la primera ejecución—.
-
-**Endurecido porque el repositorio es público:** `permissions: contents: read`,
-`persist-credentials: false`, `pull_request` y nunca `pull_request_target` (el código de un fork
-no corre con secretos; el workflow no usa ninguno) y **acciones fijadas por SHA** con la versión
-en un comentario. No se actualizan solas: se resuelve la etiqueta nueva con
-`gh api repos/<acción>/commits/<etiqueta> --jq .sha` y se cambian el SHA y el comentario.
-
-`playwright.config.ts` solo mira `process.env.CI` para `forbidOnly` —un `.only` olvidado haría
-pasar la CI ejecutando un test—. **Los reintentos siguen en 0**, también ahí: los fallos
-intermitentes del E2E han sido siempre defectos reales.
-
-### Orden de subida: primero el backend, en verde; después el frontend
-
-La CI del frontend **no usa una versión fija del backend: clona el `main` de `Stockly-B` tal como
-esté en ese momento**, tanto para comprobar la copia del contrato como para arrancar la API en el
-E2E. Si el frontend se sube antes que el backend del que depende —un endpoint nuevo, una
-migración, un cambio de contrato—, o con el `main` del backend en rojo, **la CI del frontend
-falla aunque su código esté bien**.
-
-1. `pnpm verify` en local en los dos repositorios.
-2. **Push de `Stockly-B`** y esperar a que su workflow termine **en verde**:
-   `gh run watch` (o `gh run list --workflow verify.yml -L 1`) desde `Stockly-B`, o la pestaña
-   *Actions* en GitHub.
-3. **Solo entonces, push de `Stockly-F`.**
-
-Si el cambio es solo del frontend, el paso 2 se reduce a comprobar que la última ejecución del
-backend está en verde. Si la del frontend falló por haberlo subido antes, no hace falta otro
-commit: con el backend ya en verde, se relanza desde *Actions* (*Re-run all jobs*) o con
-`gh run rerun <id>`.
+`pnpm verify` se pasa en local antes de cada push y la CI lo repite, con el E2E. El E2E
+**resiembra la base de desarrollo del backend**. El detalle, en el
+[CONTRIBUTING de `Stockly-B`](https://github.com/xfiberex/Stockly-B/blob/main/CONTRIBUTING.md).
 
 ---
 
 ## Rutas
 
-| Ruta | Componente | Auth |
+| Ruta | Pantalla | Acceso |
 |---|---|---|
-| `/auth/login` | `LoginPage` | — |
-| `/auth/register` | `RegisterPage` | — |
-| `/auth/forgot-password` | `ForgotPasswordPage` | — |
-| `/auth/reset-password` | `ResetPasswordPage` | — |
-| `/auth/confirm-account` | `VerifyEmailPage` | — |
-| `/auth/resend-verification` | `ResendVerificationPage` | — |
-| `/` | `DashboardPage` | JWT |
-| `/profile` | `ProfilePage` | JWT |
-| `/catalog/products` | `ProductsPage` | JWT |
-| `/catalog/products/:id/movements` | `StockMovementsPage` | JWT |
-| `/catalog/categories` | `CategoriesPage` | JWT |
-| `/catalog/brands` | `BrandsPage` | JWT |
-| `/catalog/suppliers` | `SuppliersPage` | JWT |
-| `/catalog/tags` | `TagsPage` | JWT |
-| `/purchase-orders` | `PurchaseOrdersPage` | JWT |
-| `/purchase-orders/suggestions` | `SugerenciasReposicionPage` | JWT + ADMIN |
-| `/sale-orders` | `SaleOrdersPage` | JWT |
-| `/customers` | `CustomersPage` | JWT |
-| `/customers/:id` | `CustomerDetailPage` | JWT |
-| `/inventory-counts` | `InventoryCountsPage` | JWT |
-| `/inventory-counts/:id` | `InventoryCountPage` | JWT |
-| `/reports` | `ReportsPage` | JWT |
-| `/reports/period` | `InformePorPeriodoPage` | JWT |
-| `/admin/users` | `UsersPage` | JWT + ADMIN |
-| `/settings` | `SettingsPage` | JWT + ADMIN |
-| `/audit-logs` | `AuditLogsPage` | JWT + ADMIN |
+| `/auth/login` · `register` · `forgot-password` · `reset-password` · `confirm-account` · `resend-verification` | Acceso y recuperación de la cuenta | Sin sesión |
+| `/` | Dashboard: indicadores, valor del inventario, stock bajo | Sesión |
+| `/catalog/products` | Catálogo: tabla, filtros, alta y edición, escáner, etiquetas, importar y exportar | Sesión |
+| `/catalog/products/:id/movements` | Histórico de movimientos, precios y costes de un producto | Sesión |
+| `/catalog/categories` · `brands` · `suppliers` · `tags` | Tablas del catálogo | Sesión |
+| `/purchase-orders` | Órdenes de compra y recepción de mercancía | Sesión |
+| `/purchase-orders/suggestions` | Sugerencias de reposición | ADMIN |
+| `/sale-orders` | Órdenes de venta | Sesión |
+| `/customers` · `/customers/:id` | Clientes y su ficha | Sesión |
+| `/inventory-counts` · `/inventory-counts/:id` | Conteos físicos | Sesión |
+| `/reports` · `/reports/period` | Informe general e informe por periodo | Sesión |
+| `/profile` | Perfil, contraseña y «Acerca de Stockly» | Sesión |
+| `/admin/users` · `/audit-logs` · `/settings` | Usuarios, auditoría y configuración | ADMIN |
 
-Todas las rutas dentro de `/` están envueltas en `<ProtectedRoute>`. Las rutas admin muestran su enlace solo si el usuario es `ADMIN` mediante un menú desplegable en la barra de navegación.
+**Navegación.** De 1024 px en adelante, una barra lateral con todos los destinos a un clic; por
+debajo, un panel desplegable con la misma lista. La cabecera lleva la marca, la campana de avisos
+y el menú de usuario. El grupo de administración solo se enseña a `ADMIN`.
 
 ---
 
-## Módulos principales
+## Qué hace cada sección
 
-### Dashboard
-
-- 4 KPI cards: Total productos, Productos activos, Stock bajo, Categorías
-- Valor total del inventario con enlace a reportes
-- Gráfico de barras dual (stock + valor) por categoría
-- Panel de alertas con productos en stock bajo/agotado
-
-### Catálogo de productos
-
-- Tabla paginada con filtros: búsqueda, categoría, **etiqueta**, estado
-- Formulario de creación/edición con selector de **etiquetas** (multi-toggle con colores)
-- Generador de SKU automático
-- **Código de barras** (T5-08): se escanea o se escribe; un EAN mal tecleado no se guarda
-- **Escanear**: cámara, foto o pistola USB. Un código que existe abre su ficha; uno desconocido
-  ofrece darlo de alta con el código puesto. El lector (`barcode-detector`, con ZXing en
-  WebAssembly donde el navegador no trae uno) se descarga al primer escaneo, no al arrancar
-- **Etiquetas** en PDF desde la ficha o desde la selección: hoja A4 de 3 × 8 o rollo de 50 × 25 mm
-- Importación masiva CSV/JSON; exportación CSV/JSON
-- Movimiento manual de stock y ajuste masivo por selección múltiple
-- Historial de movimientos con gráfico de evolución y exportación CSV
-- Historial de precios con gráfico de área
-
-### Etiquetas
-
-- CRUD de etiquetas con selector de 10 colores predefinidos
-- Las etiquetas aparecen en el formulario de producto y en el filtro de listado
-
-### Órdenes de venta
-
-- Listado de órdenes con estado (`PENDING`, `SHIPPED`, `CANCELLED`)
-- Crear orden con datos del cliente e ítems (enlazados o manuales)
-- Marcar como enviada (descuenta stock en backend), cancelar, eliminar
-- Exportar CSV con todos los ítems
-
-### Conteos físicos (T5-07)
-
-- Abrir un conteo de una categoría o de todo el catálogo, con una nota
-- **Contar a ciegas**: la captura no enseña el stock del sistema; se guarda por páginas
-- **Revisar**: esperado, contado y diferencia, con el total en unidades y en valor a coste
-- **Cerrar** convierte cada diferencia en un ajuste de stock; **cancelar** no mueve nada
-- Las dos tablas caben a 393 px: se usan con el móvil en la mano
-- **Escanear** en la captura lleva a la línea del producto, con el cursor en su campo (T5-08)
-
-### Órdenes de compra
-
-- Listado con estado (`PENDING`, `PARTIALLY_RECEIVED`, `RECEIVED`, `CANCELLED`) y exportación CSV
-- **Recibir mercancía**: cada entrega registra lo que llega de cada línea; la orden queda
-  «Recibida a medias» hasta completarse, y cancelar retira lo que entró, no lo pedido
-- **Sugerencias de reposición** (ADMIN): qué pedir según salidas, plazo del proveedor, mínimo,
-  disponible y pendiente de recibir; se revisan y editan antes de generar una orden por proveedor
-
-### Reportes
-
-- KPIs, gráficos de valor/stock por categoría, movimientos por mes
-- Top 10 por valor, alertas de bajo stock
-- Valor del inventario a coste y **margen realizado** de los últimos 30 días
-- **Tabla de métricas de rotación**: salidas 30d, velocidad diaria, días hasta desabastecimiento
-- Botón **Descargar PDF** (genera reporte completo en servidor)
-- **Ventas y compras por periodo**: atajos (este mes, mes anterior, este trimestre, este año) o
-  un rango de fechas; totales, por mes con gráfico, por categoría y por producto; CSV y PDF. Los
-  días son los de la **zona horaria del negocio** (Configuración), no los del navegador
-
-### Roles y permisos (T5-13)
-
-Qué botones ve cada rol no se decide en el componente: `usePuede()` (`modules/auth/hooks/usePuede.ts`)
-consulta la matriz `PERMISOS` del contrato con la ruta de la API que el botón va a llamar, la misma
-tabla con la que el backend protege esa ruta. `WAREHOUSE` recibe compras, envía ventas, registra
-movimientos y ajusta stock en bloque; no crea, edita, cancela ni borra, y no ve usuarios,
-configuración, auditoría ni la exportación de órdenes. Un botón nuevo que llame a la API se
-enseña con `puede("<MÉTODO> <ruta>")`, no con `role === "ADMIN"`.
-
-### Gestión de usuarios (ADMIN)
-
-- Tabla paginada con búsqueda y filtros por rol/estado
-- Cambio de rol inline entre ADMIN, USER y WAREHOUSE (almacén, T5-13)
-- Activar/desactivar cuenta (con protección self-action)
-
-### Configuración (ADMIN)
-
-- Toggles y campos para cada opción de la app, y el tema y el idioma de este dispositivo
-- **Alertas de bajo stock por correo** (desactivado por defecto)
-- **Plazo de entrega por defecto** para las sugerencias de reposición (7 días)
-- **Zona horaria del negocio**, elegida de una lista (por defecto `America/Santo_Domingo`)
-- Guardado en lote con un solo botón "Guardar cambios"
-
-### Auditoría (ADMIN)
-
-- Tabla paginada de registros con filtros por acción y entidad
-- Muestra usuario, entidad afectada, fecha y detalles expandibles (JSON)
-
-### Perfil
-
-- Actualizar nombre y correo electrónico
-- Cambiar contraseña (con confirmación)
+- **Catálogo.** Tabla paginada con filtros por texto, categoría, etiqueta, estado y clase ABC.
+  Alta y edición con imagen, etiquetas, SKU generado y código de barras validado. **Escanear** con
+  la cámara, una foto o una pistola USB: un código que existe abre su ficha y uno desconocido
+  ofrece darlo de alta. **Etiquetas** en PDF, en hoja A4 o en rollo. Movimiento manual, ajuste de
+  stock en bloque, importación CSV/JSON y exportación.
+- **Compras.** Cada entrega registra lo que llega de cada línea y la orden queda «recibida a
+  medias» hasta completarse; cancelar retira lo que entró, no lo pedido. Las **sugerencias de
+  reposición** proponen qué pedir y generan una orden por proveedor.
+- **Ventas y clientes.** Una venta no puede pedir más de lo disponible. Enviarla descuenta el
+  stock; cancelar una enviada abre un diálogo que dice cuántas unidades vuelven. El cliente se
+  elige con un buscador y tiene su ficha con historial.
+- **Conteos físicos.** Se cuenta **a ciegas** —la captura no enseña el stock del sistema—, se
+  revisan las diferencias en unidades y en valor, y cerrar las convierte en ajustes. Las dos
+  tablas caben a 393 px: se usan con el móvil en la mano.
+- **Informes.** Indicadores, valor a coste y a precio de venta, margen realizado, rotación y
+  clasificación ABC, con PDF. **Ventas y compras por periodo**, con atajos o rango de fechas, en
+  la zona horaria del negocio, con CSV y PDF.
+- **Avisos.** Una campana con los avisos de cada usuario —stock bajo, venta que no se pudo enviar,
+  compra fuera de plazo—, que se consulta cada minuto y al volver a la pestaña.
+- **Configuración.** Los ajustes del negocio (ADMIN) y, por dispositivo, el tema —claro, oscuro o
+  automático— y el idioma —español, inglés o el del navegador—.
 
 ---
 
-## Sistema de diseño
+## Cómo está hecho
 
-**[docs/design-system.md](docs/design-system.md) — léelo antes de añadir una pantalla.**
+Cinco reglas sostienen la aplicación, y casi todas tienen un test que pone `pnpm verify` en rojo
+si se incumplen. El porqué de cada una está en
+[CONTEXTO §6](https://github.com/xfiberex/Stockly-B/blob/main/docs/CONTEXTO.md).
 
-Recoge los tokens de color con sus contrastes medidos, la escala tipográfica, la convención
-de radios y elevación, el perfil de densidad con su excepción táctil, el semáforo de estado
-y la regla que gobierna el resto: **el color comunica estado, nunca decora**.
-
-No es una guía de estilo opcional. Cada sección dice qué test la vigila, y varias de esas
-reglas ponen `pnpm verify` en rojo si se incumplen: una utilidad cruda de la paleta de
-Tailwind, un radio fuera de los tres permitidos o una sombra que no sea uno de los dos
-tokens de elevación fallan al ejecutar la suite, no en revisión.
-
----
-
-## Componentes shared
-
-| Componente | Descripción |
-|---|---|
-| `Badge` | Chip de estado con variantes `neutral`, `success`, `warning`, `danger`, `info` (T2-36 retiró las decorativas) y su icono |
-| `Button` | Botón con variantes `primary`, `secondary`, `ghost`, `danger` y estado `isLoading` |
-| `DropdownButton` | Botón con menú desplegable de acciones |
-| `Input` | Campo de texto con label, error y forwarded ref |
-| `Select` | Select nativo con label, error y forwarded ref |
-| `Modal` | Overlay modal con portal, scroll y cierre con Escape |
-| `Spinner` | Indicador de carga con tamaños `sm`, `md`, `lg` |
-| `ProtectedRoute` | Wrapper que valida JWT y redirige al login |
+| Regla | Dónde | Lo vigila |
+|---|---|---|
+| Los tipos de las respuestas no se escriben aquí: son una copia del contrato del backend | `shared/contratos/` | `frescura.test.ts` |
+| Ningún texto se escribe en un componente: sale del catálogo, en español y en inglés | `shared/i18n/` | `literales.test.ts`, `catalogo.test.ts` |
+| Un botón que llama a la API se enseña con `usePuede()`, no con `role === "ADMIN"` | `modules/auth/hooks/usePuede.ts` | la matriz `PERMISOS` del contrato |
+| El color comunica estado, nunca decora: tokens semánticos, sin utilidades crudas de la paleta | `index.css`, [design-system.md](docs/design-system.md) | `theme.test.ts`, `tokens.test.ts` |
+| Un listado paginado no se filtra en el navegador: los filtros viajan al servidor | cada `hooks/` | — |
 
 ---
 
-## Tooling de IA versionado (`.agents/`, `.claude/`)
+## Credenciales del seed
 
-**Están en el repositorio a propósito.** No es un descuido ni un `.gitignore` que falta:
-Stockly se trabaja desde varias máquinas y las skills tienen que viajar con el proyecto,
-igual que el `README`. Quien clone Stockly-F se lleva el mismo tooling que quien lo escribió.
-
-La contrapartida está medida: **294 archivos bajo `.agents/` y 164 bajo
-`.claude/`, de 657 rastreados en total**. Eso ensucia dos cosas, y cada una tiene su
-remedio:
-
-| Ruido | Remedio |
-|---|---|
-| GitHub cuenta esos markdown como el lenguaje del proyecto | `.gitattributes` los marca `linguist-vendored` |
-| Las búsquedas por texto devuelven sobre todo documentación | El alias `git buscar` de `.gitconfig-stockly` |
-
-El alias hay que activarlo **una vez por clon**, porque vive en `.git/config`, que no se
-versiona:
-
-```bash
-git config --local include.path ../.gitconfig-stockly
-```
-
-A partir de ahí:
-
-```bash
-git buscar useForm            # solo código de la aplicación
-git buscar-archivos -i zod    # solo los archivos que coinciden
-```
-
-La diferencia es la que hace falta: `git grep -il z.object` devuelve **61** archivos y
-`git buscar-archivos` devuelve **8**. Sin activarlo, el equivalente a mano es
-`git grep X -- ':!.agents' ':!.claude'`.
-
-## Credenciales seed
-
-Las crea el seed del backend (`Stockly-B`, `pnpm db:seed`); la lista completa está en su
-[README](https://github.com/xfiberex/Stockly-B/blob/main/README.md#seed).
+Las crea el seed del backend (`pnpm db:seed` en `Stockly-B`).
 
 | Rol | Email | Contraseña |
 |---|---|---|
@@ -426,8 +179,7 @@ Las crea el seed del backend (`Stockly-B`, `pnpm db:seed`); la lista completa es
 | WAREHOUSE | `almacen@stockly.app` | `Almacen1234!` |
 
 > Las del E2E salen de ahí y son sobreescribibles por variables de entorno. **Nunca poner una
-> contraseña real en `e2e/`**: ese directorio está versionado, y una fuga así ya obligó a reescribir
-> el historial (T0-06).
+> contraseña real en `e2e/`**: ese directorio está versionado.
 
 ---
 
@@ -437,6 +189,8 @@ Copyright © 2026 Ricky Angel Jiménez Bueno.
 
 Stockly es software libre: puedes redistribuirlo y modificarlo bajo los términos de la
 **[GNU Affero General Public License v3](LICENSE)** (`AGPL-3.0-only`). Quien ofrezca una versión
-modificada a otros usuarios **por la red** tiene que ofrecerles también su código: la aplicación lo enlaza desde **Perfil → Acerca de Stockly** (`src/shared/lib/codigoFuente.ts`, que hay que apuntar al propio repositorio al desplegar una versión modificada). El porqué de la
-elección está en el [ADR 0009](https://github.com/xfiberex/Stockly-B/blob/main/docs/adr/0009-licencia-agpl.md). Las versiones publicadas antes del
-2026-09-30 se distribuyeron con la MIT.
+modificada a otros usuarios **por la red** tiene que ofrecerles también su código: la aplicación
+lo enlaza desde **Perfil → Acerca de Stockly** (`src/shared/lib/codigoFuente.ts`, que hay que
+apuntar al propio repositorio al desplegar una versión modificada). El porqué de la elección está
+en el [ADR 0009](https://github.com/xfiberex/Stockly-B/blob/main/docs/adr/0009-licencia-agpl.md).
+Las versiones publicadas antes del 2026-09-30 se distribuyeron con la MIT.

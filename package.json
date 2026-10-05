@@ -15,7 +15,6 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
     "test:e2e:full": "playwright test",
     "test:e2e:desktop": "playwright test --project=chromium",
     "auditoria": "node scripts/auditoria.js",

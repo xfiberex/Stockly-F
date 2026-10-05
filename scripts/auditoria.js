@@ -9,9 +9,9 @@
 // Las dos comprobaciones se tratan distinto a propósito:
 //
 //   1. **Vulnerabilidades** (`pnpm audit`). Necesita red. Sin conexión avisa y deja pasar:
-//      «no se puede saber» no es «hay un problema», y este proyecto no tiene CI (decisión
-//      del 2026-08-06), así que `verify` corre en portátiles. Con `--estricto`, «no pude
-//      auditar» pasa a ser fallo — esa es la forma de usarlo antes de publicar.
+//      «no se puede saber» no es «hay un problema», y `verify` corre antes que nada en
+//      portátiles —la CI lo repite después—. Con `--estricto`, «no pude auditar» pasa a ser
+//      fallo — esa es la forma de usarlo antes de publicar.
 //   2. **Licencias**. Salen del lockfile, sin red. Puerta dura: una dependencia nueva con
 //      una licencia que no está en la lista para el gate hasta que alguien la mire.
 //

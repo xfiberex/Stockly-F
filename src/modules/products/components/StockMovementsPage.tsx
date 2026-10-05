@@ -20,9 +20,8 @@ import type { StockMovementType } from "@/modules/products/types/product.types";
 import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
 import { useT } from "@/shared/hooks/useIdioma";
 import { type Idioma } from "@/shared/i18n/idioma";
-// T4-15: el CSV ya no se construye aquí, así que se van con él `traducir`,
-// `IDIOMA_POR_DEFECTO` y `IDIOMA_DE_EXPORTACION`. El archivo lo escribe el backend, que es
-// quien puede recorrer el histórico entero por lotes.
+// T4-15: el CSV ya no se construye aquí. El archivo lo escribe el backend, que es quien
+// puede recorrer el histórico entero por lotes.
 import { formatearFecha, LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 

@@ -43,11 +43,6 @@ export const getProducts = async (params?: ProductQuery) => {
     return data.data!;
 };
 
-export const getProduct = async (id: string) => {
-    const { data } = await api.get<ApiResponse<ProductWithAvailability>>(`/products/${id}`);
-    return data.data!;
-};
-
 /**
  * T5-08 — el producto de un código escaneado o escrito: código de barras o SKU, exacto. Un 404
  * no es un fallo sino la respuesta «ninguno lo tiene», que la pantalla convierte en darlo de alta.

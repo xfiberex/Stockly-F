@@ -20,11 +20,6 @@ export const getPurchaseOrders = async (
     return data.data!;
 };
 
-export const getPurchaseOrder = async (id: string): Promise<PurchaseOrder> => {
-    const { data } = await api.get<ApiResponse<PurchaseOrder>>(`/purchase-orders/${id}`);
-    return data.data!;
-};
-
 export const createPurchaseOrder = async (dto: CreatePurchaseOrderForm): Promise<PurchaseOrder> => {
     const { data } = await api.post<ApiResponse<PurchaseOrder>>("/purchase-orders", dto);
     return data.data!;

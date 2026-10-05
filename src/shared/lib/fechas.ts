@@ -1,4 +1,4 @@
-import { IDIOMA_POR_DEFECTO, type Idioma } from "@/shared/i18n/idioma";
+import type { Idioma } from "@/shared/i18n/idioma";
 
 /**
  * Fechas en el idioma de quien mira (T4-04).
@@ -12,8 +12,7 @@ import { IDIOMA_POR_DEFECTO, type Idioma } from "@/shared/i18n/idioma";
  * paso los formatos se unifican aquí: **corto** para las tablas y **con hora** para lo que
  * necesita el instante exacto —el detalle de un producto, el registro de auditoría—.
  *
- * El idioma se pasa siempre, nunca se lee del almacenamiento: estas funciones también las
- * llaman las exportaciones, y esas van fijas al idioma de referencia (ver `exportaciones`).
+ * El idioma se pasa siempre, nunca se lee del almacenamiento.
  */
 const LOCALES: Record<Idioma, string> = {
     // Se conserva `es-MX` —no `es-ES`— porque es el que tenía la aplicación y el que
@@ -62,16 +61,6 @@ export function formatearDia(idioma: Idioma, dia: string): string {
 export function formatearFechaHora(idioma: Idioma, iso: string): string {
     return new Date(iso).toLocaleDateString(LOCALES[idioma], CON_HORA);
 }
-
-/**
- * El idioma de las **exportaciones**, que no es el de la pantalla.
- *
- * Un CSV es un formato de intercambio, no una vista: si dos personas exportan el mismo
- * informe y una lo tiene en inglés, las dos hojas no se pueden juntar. Las columnas y las
- * fechas salen siempre en el idioma de referencia, igual que hace `StockMovementsPage`
- * con los tipos de movimiento.
- */
-export const IDIOMA_DE_EXPORTACION = IDIOMA_POR_DEFECTO;
 
 /**
  * T5-12 — «hace 5 minutos», «ayer», «hace 3 días», para lo que acaba de pasar. A partir de una

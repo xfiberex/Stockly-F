@@ -6,22 +6,10 @@ import type {
     ClaseAbc,
     InformePorPeriodo,
     MargenRealizado,
-    MetricaStock,
-    MovimientoPorMes,
-    ProductoBajoStock,
-    ProductoTop,
     ResumenAbc,
     ResumenReporte,
-    StockPorCategoria,
-    TotalesReporte,
 } from "@/shared/contratos";
 
-export type ReportTotals = TotalesReporte;
-export type StockByCategory = StockPorCategoria;
-export type TopProduct = ProductoTop;
-export type MovementByMonth = MovimientoPorMes;
-export type LowStockProduct = ProductoBajoStock;
-export type StockMetric = MetricaStock;
 export type ReportSummary = ResumenReporte;
 /** T5-02 — margen de las ventas enviadas en la ventana del informe. */
 export type ProfitMargin = MargenRealizado;

@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // T1-24: deja la base de datos lista antes de que Playwright arranque los servidores,
-// para que `pnpm test:e2e` funcione desde un checkout limpio sin pasos manuales.
+// para que `pnpm test:e2e:full` funcione desde un checkout limpio sin pasos manuales.
 // Playwright levanta backend y frontend (ver `webServer` en playwright.config.ts).
 
 // El proyecto es ESM ("type": "module"), así que no hay `__dirname`.

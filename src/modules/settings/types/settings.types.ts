@@ -6,7 +6,6 @@
 import type { Ajuste, AjusteGuardado } from "@/shared/contratos";
 
 export type SettingEntry = Ajuste;
-export type SettingType = SettingEntry["type"];
 
 /** El valor de un ajuste **cualquiera**. Dentro de un `SettingEntry` va correlacionado
  *  con su `type`; esto es para cuando se manejan sueltos, como en el lote de cambios. */

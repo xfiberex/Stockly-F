@@ -7,8 +7,6 @@
 // `description`/`imageUrl` eran `string | undefined` y llegan como `string | null`.
 import type {
     ClaseAbc,
-    EtiquetaRef,
-    HistorialCoste,
     HistorialCosteDeProducto,
     HistorialPrecio,
     MovimientoStock,
@@ -16,15 +14,9 @@ import type {
     MovimientosDeProducto,
     Producto,
     ProductoExportado,
-    Referencia,
     ResultadoImportacion,
     TipoMovimiento,
 } from "@/shared/contratos";
-
-export type CategoryRef = Referencia;
-export type BrandRef = Referencia;
-export type SupplierRef = Referencia;
-export type TagRef = EtiquetaRef;
 
 export type Product = Producto;
 /**
@@ -36,7 +28,6 @@ export type ProductWithAvailability = ProductoConDisponible;
 export type StockMovementType = TipoMovimiento;
 export type StockMovement = MovimientoStock;
 export type PriceHistoryEntry = HistorialPrecio;
-export type CostHistoryEntry = HistorialCoste;
 /** T5-01 — paginado y del más reciente al más antiguo, como los movimientos. */
 export type CostHistoryResponse = HistorialCosteDeProducto;
 export type ExportedProduct = ProductoExportado;

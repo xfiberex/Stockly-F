@@ -76,4 +76,3 @@ export const updateProductSchema = z.object({
 });
 
 export type CreateProductFormData = z.infer<typeof createProductSchema>;
-export type UpdateProductFormData = z.infer<typeof updateProductSchema>;

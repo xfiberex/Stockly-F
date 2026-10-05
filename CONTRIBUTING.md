@@ -1,43 +1,24 @@
 # Cómo contribuir a Stockly (frontend)
 
-**La guía completa está en el repositorio hermano: [`Stockly-B/CONTRIBUTING.md`](https://github.com/xfiberex/Stockly-B/blob/main/CONTRIBUTING.md).**
-
-Vive allí por lo mismo que `docs/`: cubre los dos repositorios y la carpeta que los contiene
-no está bajo control de versiones. Si no tienes `Stockly-B` clonado al lado, clónalo antes
-de planificar nada.
-
-Este archivo existe para que GitHub tenga algo que enseñar en este repositorio, y para dejar
-a mano lo que solo aplica aquí.
-
----
+**La guía completa está en el repositorio hermano:
+[`Stockly-B/CONTRIBUTING.md`](https://github.com/xfiberex/Stockly-B/blob/main/CONTRIBUTING.md)** —puerta
+de calidad, CI, orden de subida, commits y cómo se cierra una tarea—. Vive allí, como el resto de
+la documentación, porque cubre los dos repositorios y la carpeta que los contiene no está bajo
+control de versiones. Si no tienes `Stockly-B` clonado al lado, clónalo antes de planificar nada.
 
 ## Lo específico de este repositorio
-
-**Antes de tocar la interfaz, lee [`docs/design-system.md`](docs/design-system.md).** No es
-una guía de estilo opcional: varias de sus reglas hacen fallar `pnpm verify` si se incumplen
-—una utilidad cruda de la paleta de Tailwind, un radio fuera de los tres permitidos, una
-sombra que no sea uno de los dos tokens de elevación—.
-
-La puerta de calidad, igual que en el backend, se ejecuta en local antes de cada push, y GitHub
-Actions la repite junto con el E2E ([ADR 0008](https://github.com/xfiberex/Stockly-B/blob/main/docs/adr/0008-integracion-continua.md)). Un cambio de contrato se
-sube **primero al backend**: la CI de aquí compara la copia con su `main`.
 
 ```bash
 pnpm verify           # check → lint → test:coverage → build → auditoria
 pnpm test:e2e:full    # Playwright en chromium y Mobile Chrome
 ```
 
-`pnpm lint` debe terminar con **0 errores y 0 avisos**: cualquier aviso nuevo es una
-regresión, no ruido de fondo. A diferencia del backend, aquí sí existe ese comando; allí la
-comprobación estática es solo `pnpm check`.
-
-**Los tipos de las respuestas de la API no se escriben en este repositorio.**
-`src/shared/contratos/api.generated.ts` es una copia literal de `Stockly-B/src/contratos/api.ts`;
-para cambiar la forma de una respuesta se edita allí y se ejecuta `pnpm contratos:generar` **en el
-backend**. Editar el archivo generado no sirve de nada: `frescura.test.ts` lo detecta y la próxima
-generación lo pisa. Ojo con los importes —`price`, `unitPrice`— que llegan como cadena, no como
-número: para convertirlos está `aNumero()` del contrato.
-
-**Nunca poner una contraseña real en `e2e/`.** Ese directorio está versionado y una fuga así
-ya obligó a reescribir el historial (T0-06). Las credenciales salen del seed del backend y
-son sobreescribibles por variables de entorno.
+- **Antes de tocar la interfaz, [`docs/design-system.md`](docs/design-system.md).** No es una guía
+  de estilo opcional: varias de sus reglas hacen fallar `pnpm verify`.
+- **`pnpm lint` termina con 0 errores y 0 avisos.** Un aviso nuevo es una regresión.
+- **Los tipos de las respuestas de la API no se escriben aquí.**
+  `src/shared/contratos/api.generated.ts` es una copia de `Stockly-B/src/contratos/api.ts`; se
+  cambia allí y se regenera con `pnpm contratos:generar` **en el backend**.
+- **Un cambio de contrato se sube primero al backend**: la CI de aquí clona su `main`.
+- **Nunca una contraseña real en `e2e/`.** Está versionado, y una fuga así ya obligó a reescribir
+  el historial.

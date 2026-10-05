@@ -46,10 +46,6 @@ vi.mock("@/modules/purchase-orders/hooks/usePurchaseOrders", () => ({
     useReceivePurchaseOrder: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
-vi.mock("@/modules/auth/hooks/useAuth", () => ({
-    useAuth: () => ({ user: { id: "u1", name: "Admin", role: "ADMIN" } }),
-}));
-
 vi.mock("@/modules/suppliers/hooks/useSuppliers", () => ({
     useSuppliers: () => ({ data: [], isLoading: false }),
 }));
