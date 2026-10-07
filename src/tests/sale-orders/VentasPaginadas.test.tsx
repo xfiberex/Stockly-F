@@ -15,6 +15,7 @@ import type { SaleOrder, SaleOrderStatus } from "@/modules/sale-orders/types/sal
 
 const orden = (n: number, status: SaleOrderStatus): SaleOrder => ({
     id: `${String(n).padStart(8, "0")}-1111-2222-3333-444444444444`,
+    number: n,
     status,
     customerId: null,
     customerName: `Cliente ${n}`,
@@ -37,7 +38,10 @@ vi.mock("@/modules/sale-orders/api/sale-orders.api", () => ({
         pedidas.push(query);
         const { page = 1, limit = 10 } = query;
         // El rango no se evalúa: dónde empieza un día lo decide el servidor, y eso se prueba allí.
-        const filtradas = existentes.filter((o) => !query.status || o.status === query.status);
+        const filtradas = existentes
+            .filter((o) => !query.status || o.status === query.status)
+            // T6-04 — exacto, como el servidor: `000012` y `12` son la misma.
+            .filter((o) => !query.number || o.number === Number(query.number));
         return {
             data: filtradas.slice((page - 1) * limit, page * limit),
             meta: { total: filtradas.length, page, limit, totalPages: Math.ceil(filtradas.length / limit) },
@@ -142,6 +146,71 @@ describe("SaleOrdersPage — paginación y filtros (T6-01)", () => {
         expect(await screen.findByText("25 órdenes")).toBeInTheDocument();
         expect(ultimaPedida()).toMatchObject({ page: 1, status: undefined, from: undefined, to: undefined });
         expect(screen.queryByRole("button", { name: "Limpiar filtros" })).not.toBeInTheDocument();
+    });
+
+    // ── T6-04 — el número correlativo ────────────────────────────────────────────────────────
+    describe("número de venta (T6-04)", () => {
+        it("cada orden se nombra por su correlativo con ceros, no por el principio de su id", async () => {
+            await abrir();
+
+            expect(screen.getByText("Venta #000025")).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Marcar como enviada la Venta #000016" })).toBeInTheDocument();
+            expect(screen.queryByText(/Venta #000000/)).not.toBeInTheDocument();
+        });
+
+        it("buscar 12 encuentra la #000012 y vuelve a la página 1; se pide solo con las cifras", async () => {
+            const user = await abrir();
+            await user.click(screen.getByRole("button", { name: "Siguiente" }));
+            await screen.findByText("Página 2 de 3");
+
+            // Pegado como se lee en pantalla, con la almohadilla y los ceros.
+            await user.type(screen.getByLabelText("Nº de venta"), "#000012");
+
+            expect(await screen.findByText("1 orden")).toBeInTheDocument();
+            expect(screen.getByText("Venta #000012")).toBeInTheDocument();
+            expect(screen.queryByText("Venta #000025")).not.toBeInTheDocument();
+            expect(ultimaPedida()).toMatchObject({ page: 1, number: "000012" });
+        });
+
+        it("no se pide una vez por tecla: solo cuando se deja de escribir", async () => {
+            const user = await abrir();
+            const antes = pedidas.length;
+
+            await user.type(screen.getByLabelText("Nº de venta"), "12");
+            await screen.findByText("1 orden");
+
+            expect(pedidas.slice(antes).map((p) => p.number)).toEqual(["12"]);
+        });
+
+        it("algo que no son cifras no se pide: se dice en el campo y la lista se queda", async () => {
+            const user = await abrir();
+            const antes = pedidas.length;
+
+            await user.type(screen.getByLabelText("Nº de venta"), "12a");
+
+            expect(await screen.findByRole("alert")).toHaveTextContent("Escribe solo las cifras del número");
+            // Más que el retardo del campo: si fuera a pedirse, ya se habría pedido.
+            await new Promise((r) => setTimeout(r, 450));
+            expect(pedidas).toHaveLength(antes);
+            expect(screen.getByText(cliente(25))).toBeInTheDocument();
+
+            // Al corregirlo se busca, y nunca llega a pedirse el valor malo.
+            await user.type(screen.getByLabelText("Nº de venta"), "{Backspace}");
+            expect(await screen.findByText("1 orden")).toBeInTheDocument();
+            expect(pedidas.slice(antes).map((p) => p.number)).toEqual(["12"]);
+        });
+
+        it("«Limpiar filtros» también quita el número", async () => {
+            const user = await abrir();
+            await user.type(screen.getByLabelText("Nº de venta"), "7");
+            await screen.findByText("1 orden");
+
+            await user.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+
+            expect(await screen.findByText("25 órdenes")).toBeInTheDocument();
+            expect(screen.getByLabelText("Nº de venta")).toHaveValue("");
+            expect(ultimaPedida().number).toBeUndefined();
+        });
     });
 
     it("sin ninguna orden no hay filtros que enseñar", async () => {

@@ -151,11 +151,20 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         // suya, así que quedarse con la primera fila hacía que un proyecto operase sobre
         // la orden del otro. Los botones llevan el número en su nombre accesible.
         const ordenes = (await api(page, "get", "/sale-orders?limit=100")) as {
-            data: Array<{ id: string; items: Array<{ productId: string | null }> }>;
+            data: Array<{ id: string; number: number; items: Array<{ productId: string | null }> }>;
         };
         const orden = ordenes.data.find((o) => o.items.some((i) => i.productId === productId));
         expect(orden, "la orden recién creada debería existir").toBeTruthy();
-        const numero = orden!.id.slice(0, 8).toUpperCase();
+        // T6-04 — el correlativo, con sus seis cifras: es como la nombra la interfaz.
+        const numero = String(orden!.number).padStart(6, "0");
+
+        // Por su número se llega a ella y solo a ella, esté o no entre las diez de la página;
+        // escrito como se lee, con la almohadilla.
+        await page.getByLabel("Nº de venta").fill(`#${numero}`);
+        await expect(page.getByText(/^Venta #\d+$/)).toHaveCount(1);
+        await expect(page.getByText(`Venta #${numero}`, { exact: true })).toBeVisible();
+        await page.getByRole("button", { name: "Limpiar filtros" }).click();
+        await expect(page.getByLabel("Nº de venta")).toHaveValue("");
 
         // T5-03 — con esa venta pendiente quedan 17 sin comprometer, y el formulario no deja
         // vender 18: lo dice en el campo y no crea la orden. Antes se aceptaba y el problema
@@ -647,11 +656,11 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         await expect(venta).toBeHidden();
 
         const ordenes = (await api(page, "get", "/sale-orders?limit=100")) as {
-            data: Array<{ id: string; items: Array<{ productId: string | null }> }>;
+            data: Array<{ id: string; number: number; items: Array<{ productId: string | null }> }>;
         };
         const orden = ordenes.data.find((o) => o.items.some((i) => i.productId === creado.id));
         expect(orden, "la venta debería llevar el `productId` del producto elegido").toBeTruthy();
-        const numero = orden!.id.slice(0, 8).toUpperCase();
+        const numero = String(orden!.number).padStart(6, "0");
         await page.getByRole("button", { name: `Marcar como enviada la Venta #${numero}` }).click();
         await expect.poll(() => stockDe(page, creado.id)).toBe(STOCK_INICIAL - CANTIDAD);
 

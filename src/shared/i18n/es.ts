@@ -817,6 +817,8 @@ export const es = {
     "ventas.nuevaOrden": "Nueva orden de venta",
     "ventas.vacio": "No hay órdenes de venta. Crea la primera.",
     "ventas.sinResultados": "Ninguna orden de venta coincide con los filtros.",
+    "ventas.filtro.numero": "Nº de venta",
+    "ventas.filtro.numeroInvalido": "Escribe solo las cifras del número",
     "ventas.filtro.estado": "Estado",
     "ventas.filtro.todosLosEstados": "Todos los estados",
     "ventas.filtro.desde": "Creada desde",

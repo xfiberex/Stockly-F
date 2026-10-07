@@ -191,6 +191,7 @@ describe("CustomerDetailPage", () => {
 
     const orden = (id: string, status: SaleOrder["status"], nombre: string, precio: string): SaleOrder => ({
         id,
+        number: Number(id.slice(-3)),
         status,
         customerId: ANA.id,
         customerName: nombre,
@@ -223,7 +224,7 @@ describe("CustomerDetailPage", () => {
         const historial = screen.getByRole("region", { name: "Historial de ventas" });
         // La instantánea: la venta dice a quién se vendió entonces, aunque hoy se llame distinto.
         expect(await within(historial).findByText("Ana S.")).toBeInTheDocument();
-        expect(within(historial).getByText("Venta #AAAAAAAA")).toBeInTheDocument();
+        expect(within(historial).getByText("Venta #000001")).toBeInTheDocument();
         expect(within(historial).getByText(formatearImporte(20))).toBeInTheDocument();
         expect(api.getSaleOrders).toHaveBeenCalledWith({ customerId: ANA.id, page: 1, limit: 10 });
     });

@@ -32,6 +32,7 @@ const item = (over: Partial<SaleOrderItem> & { id: string }): SaleOrderItem => (
 
 const ORDEN_ENVIADA: SaleOrder = {
     id: ORDEN_ID,
+    number: 41,
     status: "SHIPPED",
     customerId: null,
     customerName: "Cliente de prueba",
@@ -49,6 +50,7 @@ const ORDEN_ENVIADA: SaleOrder = {
 const ORDEN_PENDIENTE: SaleOrder = {
     ...ORDEN_ENVIADA,
     id: "bbbbbbbb-1111-2222-3333-444444444444",
+    number: 42,
     status: "PENDING",
 };
 
@@ -92,7 +94,7 @@ vi.mock("@/modules/products/hooks/useProducts", () => ({
 /** La acción de cancelar de una orden enviada, por su nombre accesible. */
 function botonCancelarEnvio(orden: SaleOrder = ORDEN_ENVIADA) {
     return screen.queryByRole("button", {
-        name: `Cancelar la orden enviada Venta #${orden.id.slice(0, 8).toUpperCase()}`,
+        name: `Cancelar la orden enviada Venta #${String(orden.number).padStart(6, "0")}`,
     });
 }
 

@@ -17,6 +17,7 @@ import { CustomerFormModal } from "@/modules/customers/components/CustomerFormMo
 import { useCustomer, useUpdateCustomer } from "@/modules/customers/hooks/useCustomers";
 import { useSaleOrders } from "@/modules/sale-orders/hooks/useSaleOrders";
 import type { SaleOrder } from "@/modules/sale-orders/types/sale-orders.types";
+import { escribirNumeroDeVenta } from "@/shared/contratos";
 
 const PAGE_SIZE = 10;
 
@@ -135,7 +136,7 @@ export default function CustomerDetailPage() {
                                 {ordenes!.data.map((orden) => (
                                     <tr key={orden.id}>
                                         <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
-                                            {t("ventas.numero", { numero: orden.id.slice(0, 8).toUpperCase() })}
+                                            {t("ventas.numero", { numero: escribirNumeroDeVenta(orden.number) })}
                                         </td>
                                         <td className="px-4 py-3 text-foreground-muted whitespace-nowrap">{formatearFecha(idioma, orden.createdAt)}</td>
                                         <td className="px-4 py-3"><EstadoBadge estado={buscarEstado(ESTADO_ORDEN_VENTA, orden.status)} /></td>

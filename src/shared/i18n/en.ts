@@ -775,6 +775,8 @@ export const en: Record<keyof typeof es, string> = {
     "ventas.nuevaOrden": "New sales order",
     "ventas.vacio": "No sales orders yet. Create the first one.",
     "ventas.sinResultados": "No sales orders match the filters.",
+    "ventas.filtro.numero": "Sale no.",
+    "ventas.filtro.numeroInvalido": "Enter only the digits of the number",
     "ventas.filtro.estado": "Status",
     "ventas.filtro.todosLosEstados": "All statuses",
     "ventas.filtro.desde": "Created from",

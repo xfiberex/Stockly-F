@@ -36,6 +36,8 @@ import { CLASES_BOTON_ICONO } from "@/shared/lib/clasesDeBoton";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 import { cn } from "@/shared/lib/cn";
+import { useDebounce } from "@/shared/hooks/useDebounce";
+import { escribirNumeroDeVenta } from "@/shared/contratos";
 
 // Mismo criterio que en las órdenes de compra: el descriptor de `shared/lib/estados`
 // lleva etiqueta, color e icono juntos (T2-38).
@@ -44,10 +46,13 @@ function orderTotal(order: SaleOrder): number {
     return order.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
 }
 
-/** El número corto con el que la orden aparece en la lista. */
-function numeroDeOrden(id: string): string {
-    return id.slice(0, 8).toUpperCase();
+/** T6-04 — el correlativo de la venta, con sus ceros: el mismo que escribe el servidor. */
+function numeroDeOrden(order: SaleOrder): string {
+    return escribirNumeroDeVenta(order.number);
 }
+
+/** Lo que admite el filtro por número: hasta nueve cifras, que nunca pasan del mayor entero que guarda la base. */
+const SOLO_CIFRAS = /^\d{0,9}$/;
 
 /**
  * Los ítems que devuelven stock al cancelar. Solo cuentan los que están ligados a un
@@ -88,7 +93,7 @@ function CancelarEnvioModal({ orden, isPending, onConfirm, onClose }: CancelarEn
                         intraducible, y resaltar la orden no vale ese precio. */}
                     <p className="text-sm text-foreground">
                         {t("ventas.cancelar.explicacion", {
-                            orden: t("ventas.numero", { numero: numeroDeOrden(orden.id) }),
+                            orden: t("ventas.numero", { numero: numeroDeOrden(orden) }),
                         })}
                     </p>
 
@@ -368,7 +373,13 @@ export default function SaleOrdersPage() {
     const [estado, setEstado] = useState<SaleOrderStatus | "">("");
     const [desde, setDesde] = useState("");
     const [hasta, setHasta] = useState("");
-    const hayFiltros = estado !== "" || desde !== "" || hasta !== "";
+    // T6-04 — buscar por número. Se admite pegado como se lee, con la `#` y con sus ceros; al
+    // servidor van solo las cifras, y cuando se deja de teclear.
+    const [numero, setNumero] = useState("");
+    const cifras = numero.trim().replace(/^#/, "");
+    const numeroInvalido = !SOLO_CIFRAS.test(cifras);
+    const numeroBuscado = useDebounce(cifras, 300);
+    const hayFiltros = estado !== "" || desde !== "" || hasta !== "" || numero !== "";
     // Cambiar un filtro vuelve a la página 1: la 3 de «todas» puede no existir en «enviadas».
     const filtrar = (cambio: () => void) => { cambio(); setPage(1); };
 
@@ -377,8 +388,10 @@ export default function SaleOrdersPage() {
     const rangoInvalido = desde !== "" && hasta !== "" && desde > hasta;
 
     const { data, isLoading } = useSaleOrders(
-        { page, limit: PAGE_SIZE, status: estado || undefined, from: desde || undefined, to: hasta || undefined },
-        { enabled: !rangoInvalido },
+        { page, limit: PAGE_SIZE, number: numeroBuscado || undefined, status: estado || undefined, from: desde || undefined, to: hasta || undefined },
+        // Lo mismo con un número mal escrito —el servidor respondería 400—. Se mira también el
+        // valor retardado: al corregir el campo, durante un instante todavía es el anterior.
+        { enabled: !rangoInvalido && !numeroInvalido && SOLO_CIFRAS.test(numeroBuscado) },
     );
     const orders = data?.data ?? [];
     const total = data?.meta.total ?? 0;
@@ -441,7 +454,19 @@ export default function SaleOrdersPage() {
             {/* Los filtros se pintan si hay órdenes o si hay un filtro puesto: si desaparecieran
                 al quedarse sin resultados, no habría forma de deshacer el que los vació. */}
             {(total > 0 || hayFiltros) && (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
+                    {/* Como el filtro de estado: sin etiqueta visible, que la pista ya dice qué
+                        es. La de `Input` es la de un formulario, más grande que la de las fechas. */}
+                    <Input
+                        aria-label={t("ventas.filtro.numero")}
+                        placeholder={t("ventas.filtro.numero")}
+                        className="bg-surface"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={numero}
+                        onChange={(e) => filtrar(() => setNumero(e.target.value))}
+                        error={numeroInvalido ? t("ventas.filtro.numeroInvalido") : undefined}
+                    />
                     {/* Sin etiqueta visible, como el filtro de tipo de los movimientos: «Todos los
                         estados» ya dice qué es, y el nombre accesible va en `aria-label`. */}
                     <Select
@@ -468,7 +493,7 @@ export default function SaleOrdersPage() {
                     {hayFiltros && (
                         <Button
                             variant="secondary"
-                            onClick={() => filtrar(() => { setEstado(""); setDesde(""); setHasta(""); })}
+                            onClick={() => filtrar(() => { setNumero(""); setEstado(""); setDesde(""); setHasta(""); })}
                         >
                             {t("ventas.filtro.limpiar")}
                         </Button>
@@ -494,7 +519,7 @@ export default function SaleOrdersPage() {
                                     <span className="shrink-0"><EstadoBadge estado={buscarEstado(ESTADO_ORDEN_VENTA, order.status)} /></span>
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-foreground">
-                                            {t("ventas.numero", { numero: numeroDeOrden(order.id) })}
+                                            {t("ventas.numero", { numero: numeroDeOrden(order) })}
                                         </p>
                                         <p className="text-xs text-foreground-muted">
                                             {/* T5-06 — con cliente, el nombre lleva a su ficha. El clic no
@@ -532,7 +557,7 @@ export default function SaleOrdersPage() {
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("ventas.marcarEnviada")}
-                                                    aria-label={t("ventas.marcarEnviadaDe", { numero: numeroDeOrden(order.id) })}
+                                                    aria-label={t("ventas.marcarEnviadaDe", { numero: numeroDeOrden(order) })}
                                                     isLoading={shipMutation.isPending}
                                                     onClick={() => handleShip(order.id)}
                                                 >
@@ -544,7 +569,7 @@ export default function SaleOrdersPage() {
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("compras.cancelarOrden")}
-                                                    aria-label={t("ventas.cancelarDe", { numero: numeroDeOrden(order.id) })}
+                                                    aria-label={t("ventas.cancelarDe", { numero: numeroDeOrden(order) })}
                                                     isLoading={updateMutation.isPending}
                                                     onClick={() => handleCancel(order.id)}
                                                 >
@@ -556,7 +581,7 @@ export default function SaleOrdersPage() {
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("comun.eliminar")}
-                                                    aria-label={t("ventas.eliminarDe", { numero: numeroDeOrden(order.id) })}
+                                                    aria-label={t("ventas.eliminarDe", { numero: numeroDeOrden(order) })}
                                                     isLoading={deleteMutation.isPending}
                                                     onClick={() => handleDelete(order.id)}
                                                 >
@@ -574,7 +599,7 @@ export default function SaleOrdersPage() {
                                                 variant="ghost"
                                                 className={CLASES_BOTON_ICONO}
                                                 title={t("ventas.cancelarEnviada")}
-                                                aria-label={t("ventas.cancelarEnviadaDe", { numero: numeroDeOrden(order.id) })}
+                                                aria-label={t("ventas.cancelarEnviadaDe", { numero: numeroDeOrden(order) })}
                                                 onClick={() => setOrdenACancelar(order)}
                                             >
                                                 <XMarkIcon className="h-4 w-4 text-warning" />

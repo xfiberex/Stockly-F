@@ -27,6 +27,12 @@ const VENTA: Notification = {
     id: "a2", type: "SALE_UNSHIPPABLE", entityId: "abcd1234-0000-4000-8000-000000000000", readAt: null, createdAt: HACE_UN_RATO,
     data: { productName: "Teclado", available: 3, required: 5 },
 };
+/** T6-04 — creado ya con el correlativo de la venta. Leído, para no mover el recuento. */
+const VENTA_NUMERADA: Notification = {
+    id: "a4", type: "SALE_UNSHIPPABLE", entityId: "ffff9999-0000-4000-8000-000000000000",
+    readAt: "2026-09-29T10:00:00.000Z", createdAt: HACE_UN_RATO,
+    data: { orderNumber: 123, productName: "Monitor", available: 0, required: 1 },
+};
 const COMPRA: Notification = {
     id: "a3", type: "PURCHASE_OVERDUE", entityId: "beef5678-0000-4000-8000-000000000000",
     readAt: "2026-09-29T10:00:00.000Z", createdAt: HACE_UN_RATO,
@@ -102,6 +108,7 @@ describe("CampanaDeAvisos (T5-12)", () => {
     describe("El panel", () => {
         it("se abre como diálogo, con el foco dentro, y compone cada aviso con sus huecos", async () => {
             const user = userEvent.setup();
+            servidorCon([STOCK, VENTA, VENTA_NUMERADA, COMPRA]);
             renderWithProviders(<CampanaDeAvisos />);
 
             const panel = await abrir(user);
@@ -114,9 +121,12 @@ describe("CampanaDeAvisos (T5-12)", () => {
             expect(stock).toHaveTextContent(haceCuanto("es", HACE_UN_RATO));
             expect(stock).toHaveAttribute("href", "/catalog/products/prod-1/movements");
 
+            // Un aviso anterior a T6-04 no trae el correlativo: se sigue leyendo como se creó.
             const venta = within(panel).getByRole("link", { name: /La venta #ABCD1234 no se pudo enviar/ });
             expect(venta).toHaveTextContent("Teclado: hay 3 y la orden pide 5.");
             expect(venta).toHaveAttribute("href", "/sale-orders");
+            // El que sí lo trae se nombra por él, con sus ceros.
+            expect(within(panel).getByRole("link", { name: /La venta #000123 no se pudo enviar/ })).toBeInTheDocument();
 
             const compra = within(panel).getByRole("link", { name: /La compra #BEEF5678 pasó su plazo de entrega/ });
             expect(compra).toHaveTextContent("Rápido SA · vencía el 23 sep 2026");

@@ -9,10 +9,13 @@ import type { SaleOrder, SaleOrderStatus, CreateSaleOrderDto, UpdateSaleOrderDto
  * T6-01 — `from` y `to` son días (`AAAA-MM-DD`) de la fecha de creación, los dos incluidos. Son
  * días **del negocio**: dónde empiezan lo decide el servidor con la zona de Configuración, no el
  * navegador.
+ *
+ * T6-04 — `number` es el correlativo, solo cifras y exacto: `123` y `000123` son la misma venta.
  */
 export interface SaleOrdersQuery {
     page?: number;
     limit?: number;
+    number?: string;
     customerId?: string;
     status?: SaleOrderStatus;
     from?: string;

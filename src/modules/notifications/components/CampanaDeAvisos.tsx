@@ -13,9 +13,17 @@ import {
     useUnreadCount,
 } from "@/modules/notifications/hooks/useNotifications";
 import type { Notification } from "@/modules/notifications/types/notification.types";
+import { escribirNumeroDeVenta } from "@/shared/contratos";
 
-/** El número de una orden, como en sus pantallas: los ocho primeros caracteres del id. */
+/** El número de una compra, como en su pantalla: los ocho primeros caracteres del id. */
 const numeroDe = (id: string) => id.slice(0, 8).toUpperCase();
+
+/**
+ * T6-04 — una venta se nombra por su correlativo. Los avisos anteriores a él no lo traen y no
+ * se reescribieron: esos se siguen leyendo con el principio del id, como cuando se crearon.
+ */
+const numeroDeVenta = (aviso: Extract<Notification, { type: "SALE_UNSHIPPABLE" }>) =>
+    aviso.data.orderNumber !== undefined ? escribirNumeroDeVenta(aviso.data.orderNumber) : numeroDe(aviso.entityId);
 
 interface Presentacion {
     Icono: ComponentType<SVGProps<SVGSVGElement>>;
@@ -47,7 +55,7 @@ function presentar(aviso: Notification, { t, idioma }: Traductor): Presentacion 
             return {
                 Icono: ShoppingCartIcon,
                 tono: "bg-danger-surface text-danger",
-                titulo: t("avisos.ventaSinStock.titulo", { numero: numeroDe(aviso.entityId) }),
+                titulo: t("avisos.ventaSinStock.titulo", { numero: numeroDeVenta(aviso) }),
                 detalle: t("avisos.ventaSinStock.detalle", {
                     producto: aviso.data.productName,
                     disponible: aviso.data.available,
