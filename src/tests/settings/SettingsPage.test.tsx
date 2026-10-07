@@ -23,7 +23,7 @@ let logoUrl: string | null = null;
 let rol: Rol = "ADMIN";
 
 vi.mock("@/modules/settings/hooks/useNegocio", () => ({
-    useNegocio: () => ({ data: { name: "", taxId: "", address: "", phone: "", email: "", currencySymbol: "$", logoUrl } }),
+    useNegocio: () => ({ data: { name: "", taxId: "", address: "", phone: "", email: "", currencySymbol: "$", taxName: "", logoUrl } }),
     useSubirLogo: () => ({ mutate: mockSubirLogo, isPending: false }),
     useQuitarLogo: () => ({ mutate: mockQuitarLogo, isPending: false }),
 }));
@@ -315,6 +315,62 @@ describe("SettingsPage", () => {
 
             expect(guardar()).toBeDisabled();
             expect(mockMutate).not.toHaveBeenCalled();
+        });
+
+        // ── T6-05 — la tasa de impuesto ─────────────────────────────────────────────────────
+        describe("el impuesto sobre las ventas (T6-05)", () => {
+            const tasa: SettingEntry = { key: "taxRate", label: "Impuesto sobre las ventas (%)", description: "", group: "business", type: "number", value: 0 };
+            const nombreDelImpuesto = texto("taxName", "Nombre del impuesto", "", 20);
+            const campoDeTasa = () => screen.getByRole("spinbutton", { name: "Impuesto sobre las ventas (%)" });
+
+            beforeEach(() => {
+                settingsData = [simbolo, tasa, nombreDelImpuesto, booleanEntry];
+            });
+
+            it("la tasa y su nombre van con los datos del negocio, y nacen en 0 y sin nombre", () => {
+                renderWithProviders(<SettingsPage />);
+
+                const negocio = screen.getByRole("region", { name: "Datos del negocio" });
+                expect(within(negocio).getByRole("spinbutton", { name: "Impuesto sobre las ventas (%)" })).toHaveValue(0);
+                expect(within(negocio).getByRole("textbox", { name: "Nombre del impuesto" })).toHaveValue("");
+            });
+
+            it("se guarda como número, con sus decimales, junto al nombre", async () => {
+                const user = userEvent.setup();
+                renderWithProviders(<SettingsPage />);
+
+                await user.clear(campoDeTasa());
+                await user.type(campoDeTasa(), "7.5");
+                await user.type(screen.getByRole("textbox", { name: "Nombre del impuesto" }), "ITBIS");
+                await user.click(guardar());
+
+                expect(mockMutate.mock.calls[0][0]).toEqual({ taxRate: 7.5, taxName: "ITBIS" });
+            });
+
+            it.each(["101", "100.5", "18.125"])("%s no es una tasa: se dice en el campo y no deja guardar", async (escrito) => {
+                const user = userEvent.setup();
+                renderWithProviders(<SettingsPage />);
+
+                await user.clear(campoDeTasa());
+                await user.type(campoDeTasa(), escrito);
+
+                expect(campoDeTasa()).toBeInvalid();
+                expect(screen.getByRole("alert")).toHaveTextContent("Un porcentaje entre 0 y 100, con dos decimales como mucho.");
+                expect(guardar()).toBeDisabled();
+            });
+
+            it("corregirla quita el error y deja guardar", async () => {
+                const user = userEvent.setup();
+                renderWithProviders(<SettingsPage />);
+
+                await user.clear(campoDeTasa());
+                await user.type(campoDeTasa(), "101");
+                await user.clear(campoDeTasa());
+                await user.type(campoDeTasa(), "18");
+
+                expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+                expect(guardar()).toBeEnabled();
+            });
         });
 
         describe("el logo", () => {

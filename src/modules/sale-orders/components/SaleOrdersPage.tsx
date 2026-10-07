@@ -37,14 +37,11 @@ import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONT
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 import { cn } from "@/shared/lib/cn";
 import { useDebounce } from "@/shared/hooks/useDebounce";
-import { escribirNumeroDeVenta } from "@/shared/contratos";
+import { aNumero, escribirNumeroDeVenta } from "@/shared/contratos";
+import { useNegocio } from "@/modules/settings/hooks/useNegocio";
 
 // Mismo criterio que en las órdenes de compra: el descriptor de `shared/lib/estados`
 // lleva etiqueta, color e icono juntos (T2-38).
-
-function orderTotal(order: SaleOrder): number {
-    return order.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
-}
 
 /** T6-04 — el correlativo de la venta, con sus ceros: el mismo que escribe el servidor. */
 function numeroDeOrden(order: SaleOrder): string {
@@ -130,6 +127,45 @@ function CancelarEnvioModal({ orden, isPending, onConfirm, onClose }: CancelarEn
                 </div>
             )}
         </Modal>
+    );
+}
+
+// ── Pie de importes de una orden ──────────────────────────────────────────────
+
+/**
+ * T6-05 — el pie de la tabla de líneas. **Aquí no se suma nada**: `subtotal`, `tax` y `total`
+ * los calcula el servidor y esto los pinta.
+ *
+ * Sin impuesto —la tasa a 0, o una orden anterior a que existiera— sale solo el total, como
+ * siempre. Con él, las tres filas. El nombre es el de Configuración («ITBIS», «IVA») y, si
+ * está vacío, el genérico del catálogo; la tasa se dice cuando todas las líneas con impuesto
+ * llevan la misma, que hoy es siempre.
+ */
+function PieDeImportes({ order }: { order: SaleOrder }) {
+    const { t } = useT();
+    const { data: negocio } = useNegocio();
+    const conImpuesto = aNumero(order.tax) > 0;
+
+    const nombre = negocio?.taxName || t("ventas.impuesto");
+    const tasas = new Set(order.items.flatMap((item) => (item.taxRate ? [item.taxRate] : [])));
+    const [tasa] = tasas;
+    const rotulo = tasas.size === 1 && tasa !== undefined ? t("ventas.impuestoConTasa", { nombre, tasa }) : nombre;
+
+    const fila = (texto: string, importe: SaleOrder["total"], destacada = false) => (
+        <tr>
+            <td colSpan={3} className={cn("pt-2 text-right text-sm", destacada ? "font-semibold text-foreground" : "text-foreground-muted")}>{texto}</td>
+            <td className={cn("pt-2 text-right tabular-nums", destacada ? "font-bold text-foreground" : "text-foreground-muted")}>
+                {formatearImporte(importe)}
+            </td>
+        </tr>
+    );
+
+    return (
+        <tfoot className="border-t border-border">
+            {conImpuesto && fila(t("ordenes.subtotal"), order.subtotal)}
+            {conImpuesto && fila(rotulo, order.tax)}
+            {fila(t("comun.total"), order.total, true)}
+        </tfoot>
     );
 }
 
@@ -542,7 +578,7 @@ export default function SaleOrdersPage() {
                                 <div className="flex items-center justify-between gap-4 sm:shrink-0 sm:justify-end">
                                     <div className="sm:text-right">
                                         <p className="text-sm font-semibold text-foreground tabular-nums">
-                                            {formatearImporte(orderTotal(order))}
+                                            {formatearImporte(order.total)}
                                         </p>
                                         <p className="text-xs text-foreground-muted">{tn("ordenes.items", order.items.length)}</p>
                                     </div>
@@ -637,19 +673,12 @@ export default function SaleOrdersPage() {
                                                         <td className="py-2 text-right text-foreground-muted">{item.quantity}</td>
                                                         <td className="py-2 text-right text-foreground-muted">{formatearImporte(item.unitPrice)}</td>
                                                         <td className="py-2 text-right font-medium text-foreground">
-                                                            {formatearImporte(Number(item.unitPrice) * item.quantity)}
+                                                            {formatearImporte(item.subtotal)}
                                                         </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
-                                            <tfoot className="border-t border-border">
-                                                <tr>
-                                                    <td colSpan={3} className="pt-2 text-right text-sm font-semibold text-foreground">{t("comun.total")}</td>
-                                                    <td className="pt-2 text-right font-bold text-foreground">
-                                                        {formatearImporte(orderTotal(order))}
-                                                    </td>
-                                                </tr>
-                                            </tfoot>
+                                            <PieDeImportes order={order} />
                                         </table>
                                     </div>
                                 </div>

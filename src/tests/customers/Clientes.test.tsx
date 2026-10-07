@@ -198,7 +198,15 @@ describe("CustomerDetailPage", () => {
         customerEmail: null,
         customerPhone: null,
         notes: null,
-        items: [{ id: `i-${id}`, saleOrderId: id, productId: null, product: null, productName: "Algo", quantity: 2, unitPrice: precio, createdAt: "2026-09-01T10:00:00.000Z" }],
+        // T6-05 — con impuesto del 18 %: la ficha enseña el subtotal, no el total.
+        items: [{
+            id: `i-${id}`, saleOrderId: id, productId: null, product: null, productName: "Algo", quantity: 2, unitPrice: precio,
+            taxRate: 18, subtotal: (Number(precio) * 2).toFixed(2), tax: (Number(precio) * 0.36).toFixed(2), total: (Number(precio) * 2.36).toFixed(2),
+            createdAt: "2026-09-01T10:00:00.000Z",
+        }],
+        subtotal: (Number(precio) * 2).toFixed(2),
+        tax: (Number(precio) * 0.36).toFixed(2),
+        total: (Number(precio) * 2.36).toFixed(2),
         createdAt: "2026-09-01T10:00:00.000Z",
         updatedAt: "2026-09-01T10:00:00.000Z",
     });
@@ -226,6 +234,8 @@ describe("CustomerDetailPage", () => {
         expect(await within(historial).findByText("Ana S.")).toBeInTheDocument();
         expect(within(historial).getByText("Venta #000001")).toBeInTheDocument();
         expect(within(historial).getByText(formatearImporte(20))).toBeInTheDocument();
+        // T6-05 — sin impuesto, como «Importe enviado»: 20,00 y no los 23,60 del total.
+        expect(within(historial).queryByText(formatearImporte(23.6))).not.toBeInTheDocument();
         expect(api.getSaleOrders).toHaveBeenCalledWith({ customerId: ANA.id, page: 1, limit: 10 });
     });
 

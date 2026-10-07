@@ -782,4 +782,53 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         expect(todo.match(/RD\$\d/g)!.length).toBeGreaterThan(10);
         expect(todo).not.toMatch(/(?<!RD)\$\d/);
     });
+
+    test("una venta creada con la tasa al 18 % enseña subtotal, impuesto y total, y cambiar la tasa después no la toca (T6-05)", async ({ page }, testInfo) => {
+        // La tasa es de toda la instalación, como el interruptor de arriba: en un solo proyecto.
+        test.skip(testInfo.project.name !== "chromium", "estado global compartido entre proyectos");
+
+        await login(page);
+        type Venta = { id: string; number: number; subtotal: string; tax: string; total: string };
+        const vender = () =>
+            api(page, "post", "/sale-orders", {
+                customerName: `E2E-impuesto-${sufijo()}`,
+                items: [{ productName: "Servicio E2E", quantity: 3, unitPrice: 100 }],
+            }) as Promise<Venta>;
+
+        let conImpuesto: Venta;
+        try {
+            // La tasa está puesta lo justo para crear una venta: los escenarios de al lado
+            // corren a la vez, y una venta suya creada en esta ventana nacería con impuesto.
+            // Ninguno comprueba un total de venta —la ficha del cliente y los informes van en
+            // neto—, pero la ventana se deja en milisegundos igualmente.
+            await api(page, "patch", "/settings", { taxRate: 18, taxName: "ITBIS" });
+            conImpuesto = await vender();
+            // Subirla después no cambia la que ya existe.
+            await api(page, "patch", "/settings", { taxRate: 20 });
+        } finally {
+            await api(page, "patch", "/settings", { taxRate: 0 });
+        }
+
+        // Lo calcula el servidor: nadie le mandó los totales.
+        expect(conImpuesto).toMatchObject({ subtotal: "300.00", tax: "54.00", total: "354.00" });
+        // Con la tasa de vuelta en 0, una venta nueva nace sin impuesto.
+        expect(await vender()).toMatchObject({ tax: "0.00", total: "300.00" });
+
+        try {
+            // En pantalla, ya con la tasa a 0 —y después de haber pasado por el 20 %—: la
+            // orden conserva el 18 % con el que nació.
+            const numero = String(conImpuesto.number).padStart(6, "0");
+            await page.goto("/sale-orders");
+            await page.getByLabel("Nº de venta").fill(numero);
+            const fila = page.getByText(`Venta #${numero}`, { exact: true });
+            await expect(fila).toBeVisible();
+            await expect(page.getByText("$354.00", { exact: true })).toBeVisible();
+
+            await fila.click();
+            const pie = page.locator("tfoot tr");
+            await expect(pie).toHaveText([/Subtotal\s*\$300\.00/, /ITBIS \(18 %\)\s*\$54\.00/, /Total\s*\$354\.00/]);
+        } finally {
+            await api(page, "patch", "/settings", { taxName: "" });
+        }
+    });
 });

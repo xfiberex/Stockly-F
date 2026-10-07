@@ -23,6 +23,9 @@ const orden = (n: number, status: SaleOrderStatus): SaleOrder => ({
     customerPhone: null,
     notes: null,
     items: [],
+    subtotal: "0.00",
+    tax: "0.00",
+    total: "0.00",
     createdAt: "2026-03-05T15:00:00.000Z",
     updatedAt: "2026-03-05T15:00:00.000Z",
 });

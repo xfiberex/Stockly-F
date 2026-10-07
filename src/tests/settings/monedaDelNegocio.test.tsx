@@ -33,7 +33,7 @@ vi.mock("@/modules/settings/api/settings.api", () => ({
 const pedir = vi.mocked(getNegocio);
 
 const negocio = (currencySymbol: string): Negocio => ({
-    name: "", taxId: "", address: "", phone: "", email: "", currencySymbol, logoUrl: null,
+    name: "", taxId: "", address: "", phone: "", email: "", currencySymbol, taxName: "", logoUrl: null,
 });
 
 /** Todo lo que la «pantalla» ha llegado a pintar, y cuántas veces se ha montado. */

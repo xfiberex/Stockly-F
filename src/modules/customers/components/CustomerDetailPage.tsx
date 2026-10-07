@@ -21,7 +21,12 @@ import { escribirNumeroDeVenta } from "@/shared/contratos";
 
 const PAGE_SIZE = 10;
 
-const totalDe = (orden: SaleOrder) => orden.items.reduce((suma, item) => suma + Number(item.unitPrice) * item.quantity, 0);
+/**
+ * T6-05 — el importe de cada venta en la ficha es el **subtotal**, sin impuesto, y lo manda el
+ * servidor. Es el mismo criterio que «Importe enviado», justo encima: lo que el cliente ha
+ * comprado, no lo que se ha recaudado de impuesto por él.
+ */
+const totalDe = (orden: SaleOrder) => orden.subtotal;
 
 /**
  * T5-06 — la ficha de un cliente: quién es, cuánto ha comprado y qué.

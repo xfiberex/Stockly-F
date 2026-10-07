@@ -19,16 +19,22 @@ const ORDEN_ID = "aaaaaaaa-1111-2222-3333-444444444444";
  * `Decimal` en Prisma, y `product` acompaña a `productId`: los dos en null es un ítem
  * suelto, que es lo que la reposición de T2-42 excluye.
  */
-const item = (over: Partial<SaleOrderItem> & { id: string }): SaleOrderItem => ({
-    saleOrderId: ORDEN_ID,
-    productId: null,
-    product: null,
-    productName: "Artículo",
-    quantity: 1,
-    unitPrice: "10.00",
-    createdAt: "2026-08-08T10:00:00.000Z",
-    ...over,
-});
+const item = (over: Partial<SaleOrderItem> & { id: string }): SaleOrderItem => {
+    const base = {
+        saleOrderId: ORDEN_ID,
+        productId: null,
+        product: null,
+        productName: "Artículo",
+        quantity: 1,
+        unitPrice: "10.00",
+        taxRate: null,
+        createdAt: "2026-08-08T10:00:00.000Z",
+        ...over,
+    };
+    // T6-05 — los importes de la línea llegan del servidor; sin impuesto, salvo que se digan.
+    const subtotal = (Number(base.unitPrice) * base.quantity).toFixed(2);
+    return { subtotal, tax: "0.00", total: subtotal, ...base };
+};
 
 const ORDEN_ENVIADA: SaleOrder = {
     id: ORDEN_ID,
@@ -43,6 +49,9 @@ const ORDEN_ENVIADA: SaleOrder = {
         item({ id: "i1", productId: "p1", product: { id: "p1", name: "Teclado", sku: null }, productName: "Teclado", quantity: 3, unitPrice: "50.00" }),
         item({ id: "i2", productId: "p2", product: { id: "p2", name: "Ratón", sku: null }, productName: "Ratón", quantity: 2, unitPrice: "25.00" }),
     ],
+    subtotal: "200.00",
+    tax: "0.00",
+    total: "200.00",
     createdAt: "2026-08-08T10:00:00.000Z",
     updatedAt: "2026-08-08T10:00:00.000Z",
 };

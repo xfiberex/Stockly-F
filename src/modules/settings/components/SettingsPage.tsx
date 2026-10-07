@@ -10,7 +10,7 @@ import { SelectorDeTema } from "@/modules/settings/components/SelectorDeTema";
 import { LogoDelNegocio } from "@/modules/settings/components/LogoDelNegocio";
 import { useT } from "@/shared/hooks/useIdioma";
 import { existeClave, type Clave } from "@/shared/i18n/traducir";
-import { motivoSimboloDeMonedaInvalido } from "@/shared/contratos";
+import { TASA_DE_IMPUESTO_MAXIMA, esTasaDeImpuestoValida, motivoSimboloDeMonedaInvalido } from "@/shared/contratos";
 import { useSettings, useUpdateSettings } from "@/modules/settings/hooks/useSettings";
 import type { SettingEntry, SettingUpdates, SettingValue } from "@/modules/settings/types/settings.types";
 
@@ -70,6 +70,8 @@ function errorDeAjuste(key: string, valor: SettingValue): Clave | null {
         const correo = String(valor).trim();
         return correo === "" || z.email().safeParse(correo).success ? null : "configuracion.correoInvalido";
     }
+    // T6-05 — la tasa, con la misma función que el `PATCH`.
+    if (key === "taxRate") return esTasaDeImpuestoValida(Number(valor)) ? null : "configuracion.impuestoInvalido";
     return null;
 }
 
@@ -196,6 +198,23 @@ export default function SettingsPage() {
                             options={opcionesDeZona(String(entry.value))}
                             onChange={(e) => handleChange(entry.key, e.target.value)}
                             className="w-full sm:w-60"
+                        />
+                    ) : entry.key === "taxRate" ? (
+                        // T6-05 — con `Input` y no con el campo numérico de abajo: este puede
+                        // estar mal —101, tres decimales— y tiene que poder decirlo.
+                        <Input
+                            id={`ajuste-${entry.key}`}
+                            aria-labelledby={rotulosDe(entry.key)["aria-labelledby"]}
+                            aria-describedby={cn(rotulosDe(entry.key)["aria-describedby"], error && `ajuste-${entry.key}-error`)}
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            max={TASA_DE_IMPUESTO_MAXIMA}
+                            step="0.01"
+                            value={String(valorDe(entry))}
+                            error={error ? t(error) : undefined}
+                            onChange={(e) => handleChange(entry.key, Number(e.target.value))}
+                            className="w-full sm:w-40"
                         />
                     ) : entry.type === "number" ? (
                         <input
