@@ -699,4 +699,78 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         await api(page, "delete", `/purchase-orders/${pedida!.id}`);
         await api(page, "delete", `/products/${creado.id}`);
     });
+
+    test("los datos del negocio se guardan y los lee el almacén; con otra moneda, la interfaz entera cambia (T6-03)", async ({ page, browser }, testInfo) => {
+        await login(page);
+        await page.goto("/settings");
+        const negocio = page.getByRole("region", { name: "Datos del negocio" });
+        await expect(negocio.getByRole("textbox", { name: "Símbolo de la moneda" })).toHaveValue("$");
+
+        // 1. La tarjeta cabe: ni ensancha la página ni deja un campo fuera de la pantalla. En
+        //    «Mobile Chrome» son 393 px, que es donde un campo de 288 px al lado de su texto
+        //    no cabría si no se apilara.
+        const ancho = page.viewportSize()!.width;
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(ancho);
+        for (const campo of await negocio.getByRole("textbox").all()) {
+            const caja = (await campo.boundingBox())!;
+            expect(caja.x).toBeGreaterThanOrEqual(0);
+            expect(caja.x + caja.width).toBeLessThanOrEqual(ancho);
+            // Un campo estrujado no sirve para escribir una dirección.
+            expect(caja.width).toBeGreaterThanOrEqual(100);
+        }
+
+        // 2. Un símbolo que el PDF no sabe imprimir se dice en el campo y no se puede guardar.
+        const simbolo = negocio.getByRole("textbox", { name: "Símbolo de la moneda" });
+        await simbolo.fill("₡");
+        await expect(negocio.getByRole("alert")).toContainText("Solo letras sin acento");
+        await expect(page.getByRole("button", { name: "Guardar cambios" })).toBeDisabled();
+        await simbolo.fill("$");
+        await expect(negocio.getByRole("alert")).toHaveCount(0);
+
+        // 3. El nombre se guarda, sobrevive a recargar y lo lee una cuenta que no entra en
+        //    Configuración. En un solo proyecto, por lo mismo que el interruptor de arriba:
+        //    `AppSetting` es estado global y el otro proyecto lo pisaría.
+        if (testInfo.project.name === "chromium") {
+            const nombre = `E2E-negocio-${sufijo()}`;
+            await negocio.getByRole("textbox", { name: "Nombre o razón social" }).fill(nombre);
+            await guardarAjustes(page);
+            await page.reload();
+            await expect(page.getByRole("textbox", { name: "Nombre o razón social" })).toHaveValue(nombre);
+
+            const contexto = await browser.newContext();
+            const almacen = await contexto.newPage();
+            try {
+                await login(almacen, ALMACEN);
+                const visto = (await api(almacen, "get", "/settings/business")) as { name: string; currencySymbol: string };
+                expect(visto).toMatchObject({ name: nombre, currencySymbol: "$" });
+                expect((await apiCruda(almacen, "get", "/settings")).status()).toBe(403);
+            } finally {
+                await contexto.close();
+            }
+
+            // Se deja como estaba para no arrastrar estado entre ejecuciones.
+            await page.getByRole("textbox", { name: "Nombre o razón social" }).fill("");
+            await guardarAjustes(page);
+        }
+
+        // 4. Otra moneda. **No se guarda de verdad**: el símbolo es de toda la instalación y los
+        //    escenarios de al lado, que corren a la vez, comprueban importes en `$`. Se cambia
+        //    solo lo que esta página recibe de `GET /settings/business`; que el servidor lo
+        //    guarde y lo lleve a los PDF y al correo lo prueba `moneda.test.ts`, en el backend.
+        await page.route("**/api/v1/settings/business", async (ruta) => {
+            const respuesta = await ruta.fetch();
+            const cuerpo = (await respuesta.json()) as { data: Record<string, unknown> };
+            await ruta.fulfill({ response: respuesta, json: { ...cuerpo, data: { ...cuerpo.data, currencySymbol: "RD$" } } });
+        });
+        await page.goto("/reports");
+        await expect(page.getByRole("heading", { name: "Reportes", level: 1 })).toBeVisible();
+        const principal = page.getByRole("main");
+        await expect(principal.getByText(/^RD\$[\d,]+$/).first()).toBeVisible();
+        // Los ejes abrevian y no pasan por `formatearImporte`: eran el `$` que quedaba a mano.
+        await expect(principal.locator("svg text").filter({ hasText: /^RD\$\d+k$/ }).first()).toBeVisible();
+        // Ni un importe en la moneda de antes, en toda la página.
+        const todo = await principal.evaluate((el) => el.textContent ?? "");
+        expect(todo.match(/RD\$\d/g)!.length).toBeGreaterThan(10);
+        expect(todo).not.toMatch(/(?<!RD)\$\d/);
+    });
 });

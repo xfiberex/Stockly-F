@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { formatearImporte } from "@/shared/lib/moneda";
+import { conSimboloDeMoneda, fijarSimboloDeMoneda, formatearImporte, simboloDeMoneda, suscribirseALaMoneda } from "@/shared/lib/moneda";
 
 // T2-44: el defecto que originó la tarea era ver `$14999.00` y `$1,234,567.89` en la
 // misma fila de la tabla «Top por valor». No era un descuido puntual: había 10 usos de
@@ -54,24 +54,83 @@ describe("formatearImporte (T2-44)", () => {
     });
 });
 
+describe("La moneda del negocio (T6-03)", () => {
+    afterEach(() => {
+        fijarSimboloDeMoneda("$");
+    });
+
+    it("cambiar el símbolo cambia todos los importes, sin tocar a quien los pide", () => {
+        fijarSimboloDeMoneda("RD$");
+
+        expect(simboloDeMoneda()).toBe("RD$");
+        expect(formatearImporte(14999)).toBe("RD$14,999.00");
+        expect(formatearImporte("14999.5")).toBe("RD$14,999.50");
+        expect(formatearImporte(-1234.5)).toBe("-RD$1,234.50");
+        expect(formatearImporte(12, { signo: true })).toBe("+RD$12.00");
+        expect(formatearImporte(1234567.89, { decimales: 0 })).toBe("RD$1,234,568");
+        // Sin importe no hay moneda que poner.
+        expect(formatearImporte("sin precio")).toBe("—");
+    });
+
+    it("las marcas de los ejes, que abrevian y no pasan por `formatearImporte`, también", () => {
+        expect(conSimboloDeMoneda("120k")).toBe("$120k");
+
+        fijarSimboloDeMoneda("S/");
+
+        expect(conSimboloDeMoneda("120k")).toBe("S/120k");
+        expect(conSimboloDeMoneda(31.5)).toBe("S/31.5");
+    });
+
+    it.each(["₡", "", "RD$MXN", "1$", "<b>"])("«%s» no pasa la regla del contrato y deja el símbolo por defecto", (malo) => {
+        fijarSimboloDeMoneda("RD$");
+
+        fijarSimboloDeMoneda(malo);
+
+        expect(simboloDeMoneda()).toBe("$");
+        expect(formatearImporte(5)).toBe("$5.00");
+    });
+
+    it("avisa a quien se suscribe solo cuando cambia de verdad, y deja de avisar al darse de baja", () => {
+        const avisar = vi.fn();
+        const darseDeBaja = suscribirseALaMoneda(avisar);
+
+        fijarSimboloDeMoneda("RD$");
+        fijarSimboloDeMoneda("RD$");
+        expect(avisar).toHaveBeenCalledTimes(1);
+
+        darseDeBaja();
+        fijarSimboloDeMoneda("S/");
+        expect(avisar).toHaveBeenCalledTimes(1);
+    });
+
+    it("un importe que redondea a cero no lleva signo", () => {
+        expect(formatearImporte(-0.004)).toBe("$0.00");
+    });
+});
+
 describe("Ningún importe se formatea a mano (T2-44)", () => {
     const RAIZ = join(__dirname, "..", "..");
 
     function archivosTsx(dir: string): string[] {
         return readdirSync(dir).flatMap((entrada) => {
             const ruta = join(dir, entrada);
-            if (statSync(ruta).isDirectory()) return entrada === "tests" ? [] : archivosTsx(ruta);
-            return ruta.endsWith(".tsx") ? [ruta] : [];
+            if (statSync(ruta).isDirectory()) return ["tests", "contratos"].includes(entrada) ? [] : archivosTsx(ruta);
+            return /\.tsx?$/.test(ruta) ? [ruta] : [];
         });
     }
 
-    // Los dos patrones que había antes de esta tarea, tal cual. Buscar cualquier
-    // `toFixed` junto a un `$` marcaba también las etiquetas compactas de los ejes
-    // (`$${(v / 1000).toFixed(0)}k`), que son deliberadas —un eje que dijera
-    // «$1,200,000.00» sería ilegible— y un porcentaje cuyo `$` era el de `${name}`.
+    // Los dos patrones que había antes de T2-44, tal cual. Buscar cualquier `toFixed` junto a
+    // un `$` marcaba también un porcentaje cuyo `$` era el de `${name}`.
+    //
+    // T6-03 añade el tercero: un `$` literal pegado a una interpolación. Eran las marcas
+    // compactas de los ejes (`$120k`), que T2-44 dejó fuera a propósito —un eje que dijera
+    // «$1,200,000.00» sería ilegible—. Siguen abreviando, pero el símbolo lo pone
+    // `conSimboloDeMoneda`: con la moneda configurable, ese `$` ya no era una abreviatura,
+    // era la moneda equivocada. Y se miran también los `.ts`, no solo los componentes.
     const PATRONES = [
         { nombre: "importe con toFixed(2)", regex: /\$\{?[^\n]*\.toFixed\(2\)\}/ },
         { nombre: "toLocaleString con decimales de moneda", regex: /toLocaleString\("es-MX",\s*\{\s*minimumFractionDigits/ },
+        { nombre: "símbolo de moneda escrito a mano", regex: /\$\$\{/ },
     ];
 
     it("no queda ningún importe formateado a mano", () => {

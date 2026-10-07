@@ -22,6 +22,7 @@ export const ajusteBooleano: SettingEntry = segunContrato(ajusteSchema, {
     key: "lowStockAlertEnabled",
     label: "Alertas de bajo stock por correo",
     description: "Envía un correo a los administradores cuando el stock cae por debajo del mínimo.",
+    group: "general",
     type: "boolean",
     // Boolean, no la cadena "false": el backend lo convierte según el `type` del
     // catálogo antes de responder. Mockearlo como cadena ocultó T1-06.

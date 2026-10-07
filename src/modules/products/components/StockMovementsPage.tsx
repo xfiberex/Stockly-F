@@ -1,4 +1,4 @@
-import { formatearImporte } from "@/shared/lib/moneda";
+import { conSimboloDeMoneda, formatearImporte } from "@/shared/lib/moneda";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeftIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
@@ -368,7 +368,7 @@ export default function StockMovementsPage() {
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
                                         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                                        <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
+                                        <YAxis tick={{ fontSize: 12 }} tickFormatter={conSimboloDeMoneda} />
                                         <Tooltip
                                             contentStyle={{ ...ESTILO_DE_TOOLTIP, fontSize: 13 }}
                                             formatter={(value) => [formatearImporte(Number(value)), t("productos.campo.precio")]}

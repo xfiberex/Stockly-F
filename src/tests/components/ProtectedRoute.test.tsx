@@ -9,7 +9,18 @@ vi.mock("@/modules/auth/hooks/useMe", () => ({
     useAuth: vi.fn(),
 }));
 
+// T6-03 — el guardia espera también a la moneda del negocio. Aquí se decide a mano en qué
+// estado está esa consulta; el recorrido entero, con la consulta de verdad, está en
+// `settings/monedaDelNegocio.test.tsx`.
+vi.mock("@/modules/settings/hooks/useNegocio", () => ({
+    useNegocio: vi.fn(() => ({ isLoading: false })),
+}));
+
 import { useAuth } from "@/modules/auth/hooks/useMe";
+import { useNegocio } from "@/modules/settings/hooks/useNegocio";
+
+const usuario = { id: "1", email: "user@test.com", name: "Test", role: "USER" as const, idioma: "ES" as const, isVerified: true, createdAt: "2024-01-01" };
+const negocioEn = (estado: { isLoading: boolean }) => vi.mocked(useNegocio).mockReturnValue(estado as ReturnType<typeof useNegocio>);
 
 function TestApp() {
     return (
@@ -62,6 +73,32 @@ describe("ProtectedRoute", () => {
         render(<TestApp />);
         expect(screen.getByText("Contenido protegido")).toBeInTheDocument();
         expect(screen.queryByText("Página de login")).toBeNull();
+    });
+
+    describe("la moneda del negocio (T6-03)", () => {
+        afterEach(() => {
+            negocioEn({ isLoading: false });
+        });
+
+        it("con sesión y la moneda todavía en camino, sigue el spinner: ninguna pantalla se pinta antes", () => {
+            vi.mocked(useAuth).mockReturnValue({ user: usuario, isLoading: false, isError: false });
+            negocioEn({ isLoading: true });
+
+            render(<TestApp />);
+
+            expect(screen.queryByText("Contenido protegido")).toBeNull();
+            expect(screen.queryByText("Página de login")).toBeNull();
+        });
+
+        it("no la pide sin sesión: respondería 401 y no hay a quién pintarle un importe", () => {
+            vi.mocked(useAuth).mockReturnValue({ user: undefined, isLoading: true, isError: false });
+            render(<TestApp />);
+            expect(vi.mocked(useNegocio)).toHaveBeenLastCalledWith({ enabled: false });
+
+            vi.mocked(useAuth).mockReturnValue({ user: usuario, isLoading: false, isError: false });
+            render(<TestApp />);
+            expect(vi.mocked(useNegocio)).toHaveBeenLastCalledWith({ enabled: true });
+        });
     });
 
     // T1-18. Antes solo se comprobaba que existiera sesión, así que un USER que

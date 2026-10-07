@@ -1,4 +1,4 @@
-import { formatearImporte } from "@/shared/lib/moneda";
+import { conSimboloDeMoneda, formatearImporte } from "@/shared/lib/moneda";
 import { Link } from "react-router-dom";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -141,7 +141,7 @@ export default function ReportsPage() {
                     <ResponsiveContainer width="100%" height={260}>
                         <BarChart data={stockByCategory} layout="vertical" margin={{ left: 60, right: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} horizontal={false} />
-                            <XAxis type="number" tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                            <XAxis type="number" tick={{ fontSize: 12 }} tickFormatter={(v) => conSimboloDeMoneda(`${(v / 1000).toFixed(0)}k`)} />
                             <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={55} />
                             <Tooltip
                                 formatter={(v) => [formatearImporte(Number(v)), t("grafico.valor")]}

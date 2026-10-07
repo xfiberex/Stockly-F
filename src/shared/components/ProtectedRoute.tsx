@@ -1,5 +1,8 @@
+import { Fragment } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/modules/auth/hooks/useMe";
+import { useNegocio } from "@/modules/settings/hooks/useNegocio";
+import { useSimboloDeMoneda } from "@/shared/hooks/useSimboloDeMoneda";
 import { Spinner } from "@/shared/components/Spinner";
 
 interface ProtectedRouteProps {
@@ -14,8 +17,14 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
     const { user, isLoading, isError } = useAuth();
+    // T6-03 — la moneda del negocio se pide en cuanto hay sesión y **se espera aquí**, con el
+    // mismo spinner: una pantalla que pintara antes saldría con `$` y cambiaría a `RD$` un
+    // instante después. Si la petición falla no se bloquea la aplicación: se queda el símbolo
+    // por defecto, que es lo que había antes de que fuese configurable.
+    const negocio = useNegocio({ enabled: Boolean(user) });
+    const simbolo = useSimboloDeMoneda();
 
-    if (isLoading) {
+    if (isLoading || (user && negocio.isLoading)) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <Spinner size="lg" />
@@ -28,5 +37,7 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
     // Al dashboard, no al login: la sesión es válida, lo que falta es el permiso.
     if (requireRole && user.role !== requireRole) return <Navigate to="/" replace />;
 
-    return <>{children}</>;
+    // La clave vuelve a montar las pantallas cuando un administrador cambia el símbolo:
+    // `formatearImporte` es una función pura y nada más les diría que vuelvan a pintar.
+    return <Fragment key={simbolo}>{children}</Fragment>;
 }

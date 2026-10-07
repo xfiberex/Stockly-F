@@ -1,4 +1,4 @@
-import { formatearImporte } from "@/shared/lib/moneda";
+import { conSimboloDeMoneda, formatearImporte } from "@/shared/lib/moneda";
 import { useReports } from "@/modules/reports/hooks/useReports";
 import { Spinner } from "@/shared/components/Spinner";
 import { Link } from "react-router-dom";
@@ -124,7 +124,7 @@ export default function DashboardPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
                         <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                         <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
-                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} tickFormatter={(v) => conSimboloDeMoneda(`${(v / 1000).toFixed(0)}k`)} />
                         <Tooltip
                             contentStyle={ESTILO_DE_TOOLTIP}
                             // La serie se identifica por su `dataKey`, no por el nombre
