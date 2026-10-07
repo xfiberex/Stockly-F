@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { ALMACEN, api, apiCruda, login, stockDe, sufijo } from "./helpers";
 import { eanDePrueba, paginasComoPng } from "./etiquetas";
 
@@ -20,6 +20,25 @@ async function guardarAjustes(page: Page): Promise<void> {
     );
     await page.getByRole("button", { name: "Guardar cambios" }).click();
     expect((await respuesta).status()).toBe(200);
+}
+
+/**
+ * T6-02 — el producto de una línea se busca en el servidor: se escribe su nombre y se elige la
+ * opción. Va en la primera línea que aún no tiene producto.
+ */
+async function elegirProducto(dialogo: Locator, nombre: string): Promise<void> {
+    await dialogo.getByRole("combobox", { name: "Producto" }).first().fill(nombre);
+    await dialogo.getByRole("option", { name: new RegExp(nombre) }).click();
+    await expect(dialogo.getByRole("button", { name: `Quitar el producto ${nombre}` })).toBeVisible();
+}
+
+/** Como lo teclea una pistola USB: el código y un Intro en el campo del escáner. */
+async function escanearEscrito(page: Page, dialogo: Locator, codigo: string): Promise<void> {
+    await dialogo.getByRole("button", { name: "Escanear" }).click();
+    const escaner = page.getByRole("dialog", { name: "Escanear un código" });
+    await escaner.getByLabel("O escríbelo").fill(codigo);
+    await escaner.getByLabel("O escríbelo").press("Enter");
+    await expect(escaner).toBeHidden();
 }
 
 test.describe("Flujos que cruzan frontend y backend", () => {
@@ -122,7 +141,7 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         const modal = page.getByRole("dialog");
         await modal.getByLabel("Nombre del cliente").fill(`Cliente ${id}`);
         // El formulario abre con una fila de ítem ya puesta.
-        await modal.getByLabel("Producto").first().selectOption({ label: producto });
+        await elegirProducto(modal, producto);
         await modal.getByLabel("Cant.").first().fill(String(CANTIDAD));
         await modal.getByRole("button", { name: "Crear orden" }).click();
         await expect(modal).toBeHidden();
@@ -143,7 +162,7 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         // salía al enviarla.
         await page.getByRole("button", { name: "Nueva orden" }).click();
         const otra = page.getByRole("dialog");
-        await otra.getByLabel("Producto").first().selectOption({ label: producto });
+        await elegirProducto(otra, producto);
         await expect(otra.getByText(`Disponible: ${STOCK_INICIAL - CANTIDAD}`)).toBeVisible();
         await otra.getByLabel("Cant.").first().fill(String(STOCK_INICIAL - CANTIDAD + 1));
         await otra.getByRole("button", { name: "Crear orden" }).click();
@@ -592,5 +611,92 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         await expect(enLaOtra).toBeVisible();
         await expect(enLaOtra).not.toHaveAccessibleName(/^Sin leer:/);
         await otra.close();
+    });
+
+    test("el producto de una venta y de una compra se busca o se escanea, y la venta enviada baja su stock (T6-02)", async ({ page }) => {
+        await login(page);
+        const id = sufijo();
+        const producto = `E2E-linea-${id}`;
+        const retirado = `E2E-retirado-${id}`;
+        const ean = eanDePrueba();
+        const eanRetirado = eanDePrueba();
+        const STOCK_INICIAL = 10;
+        const CANTIDAD = 2;
+
+        const creado = (await api(page, "post", "/products", {
+            name: producto, price: 25, costPrice: 11, stock: STOCK_INICIAL, barcode: ean,
+        })) as { id: string };
+        // Uno inactivo que conserva su código: `GET /products/lookup` lo devuelve igualmente.
+        const inactivo = (await api(page, "post", "/products", { name: retirado, price: 5, stock: 3, barcode: eanRetirado })) as { id: string };
+        await api(page, "delete", `/products/${inactivo.id}`);
+
+        // 1. Venta: el producto se encuentra por su nombre, y al enviarla su stock baja. Antes
+        //    solo se podía elegir entre los cien más recientes; el resto se escribía a mano,
+        //    sin `productId`, y enviar la orden no movía nada.
+        await page.goto("/sale-orders");
+        await page.getByRole("button", { name: "Nueva orden" }).click();
+        const venta = page.getByRole("dialog", { name: "Nueva orden de venta" });
+        // El inactivo no sale en el buscador: solo se ofrecen los activos.
+        await venta.getByRole("combobox", { name: "Producto" }).fill(retirado);
+        await expect(venta.getByText("Ningún producto activo coincide.")).toBeVisible();
+        await elegirProducto(venta, producto);
+        await expect(venta.getByLabel("P. unit.")).toHaveValue("25");
+        await expect(venta.getByText(`Disponible: ${STOCK_INICIAL}`)).toBeVisible();
+        await venta.getByLabel("Cant.").fill(String(CANTIDAD));
+        await venta.getByRole("button", { name: "Crear orden" }).click();
+        await expect(venta).toBeHidden();
+
+        const ordenes = (await api(page, "get", "/sale-orders?limit=100")) as {
+            data: Array<{ id: string; items: Array<{ productId: string | null }> }>;
+        };
+        const orden = ordenes.data.find((o) => o.items.some((i) => i.productId === creado.id));
+        expect(orden, "la venta debería llevar el `productId` del producto elegido").toBeTruthy();
+        const numero = orden!.id.slice(0, 8).toUpperCase();
+        await page.getByRole("button", { name: `Marcar como enviada la Venta #${numero}` }).click();
+        await expect.poll(() => stockDe(page, creado.id)).toBe(STOCK_INICIAL - CANTIDAD);
+
+        // 2. Venta, con el escáner: la línea llega con su precio y su disponible, que ya es
+        //    el de después de la venta anterior. El inactivo se rechaza con su mensaje.
+        await page.getByRole("button", { name: "Nueva orden" }).click();
+        await escanearEscrito(page, venta, ean);
+        await expect(venta.getByRole("button", { name: `Quitar el producto ${producto}` })).toBeVisible();
+        await expect(venta.getByLabel("Nombre", { exact: true })).toHaveValue(producto);
+        await expect(venta.getByLabel("P. unit.")).toHaveValue("25");
+        await expect(venta.getByText(`Disponible: ${STOCK_INICIAL - CANTIDAD}`)).toBeVisible();
+        // Repetir el código suma una unidad a su línea; no abre otra.
+        await escanearEscrito(page, venta, ean);
+        await expect(venta.getByLabel("Cant.")).toHaveValue("2");
+
+        await escanearEscrito(page, venta, eanRetirado);
+        await expect(venta.getByRole("alert")).toHaveText(`«${retirado}» está inactivo y no se puede añadir.`);
+        await expect(venta.getByLabel("Nombre", { exact: true })).toHaveCount(1);
+        await venta.getByRole("button", { name: "Cancelar" }).click();
+        await expect(venta).toBeHidden();
+
+        // 3. Compra: lo mismo, y lo que se propone es el coste, no el precio de venta.
+        await page.goto("/purchase-orders");
+        await page.getByRole("button", { name: "Nueva orden" }).click();
+        const compra = page.getByRole("dialog", { name: "Nueva orden de compra" });
+        await escanearEscrito(page, compra, eanRetirado);
+        await expect(compra.getByRole("alert")).toHaveText(`«${retirado}» está inactivo y no se puede añadir.`);
+        await escanearEscrito(page, compra, ean);
+        await expect(compra.getByRole("button", { name: `Quitar el producto ${producto}` })).toBeVisible();
+        await expect(compra.getByLabel("P. unit.")).toHaveValue("11");
+        await compra.getByRole("button", { name: `Quitar el producto ${producto}` }).click();
+        await elegirProducto(compra, producto);
+        await compra.getByLabel("Cant.").fill("5");
+        await compra.getByRole("button", { name: "Crear orden" }).click();
+        await expect(compra).toBeHidden();
+        const compras = (await api(page, "get", "/purchase-orders?limit=100")) as {
+            data: Array<{ id: string; items: Array<{ productId: string | null; unitPrice: string | number; quantity: number }> }>;
+        };
+        const pedida = compras.data.find((o) => o.items.some((i) => i.productId === creado.id));
+        expect(pedida, "la compra debería llevar el `productId` del producto elegido").toBeTruthy();
+        expect(Number(pedida!.items[0]!.unitPrice)).toBe(11);
+        expect(pedida!.items[0]!.quantity).toBe(5);
+
+        // La compra pendiente se borra; la venta enviada no se puede, y el producto se desactiva.
+        await api(page, "delete", `/purchase-orders/${pedida!.id}`);
+        await api(page, "delete", `/products/${creado.id}`);
     });
 });

@@ -12,8 +12,11 @@ import { Spinner } from "@/shared/components/Spinner";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { Paginacion } from "@/shared/components/Paginacion";
+import { EscanerModal } from "@/shared/components/EscanerModal";
 import { usePuede } from "@/modules/auth/hooks/usePuede";
-import { useProducts } from "@/modules/products/hooks/useProducts";
+import { BuscadorDeProducto } from "@/modules/products/components/BuscadorDeProducto";
+import { useBuscarPorCodigo } from "@/modules/products/hooks/useBuscarPorCodigo";
+import type { ProductWithAvailability } from "@/modules/products/types/product.types";
 import {
     useSaleOrders,
     useCreateSaleOrder,
@@ -25,7 +28,7 @@ import { exportSaleOrdersCsv } from "@/modules/sale-orders/api/sale-orders.api";
 import { BuscadorDeCliente } from "@/modules/customers/components/BuscadorDeCliente";
 import type { CustomerListItem } from "@/modules/customers/types/customer.types";
 import type { SaleOrder, SaleOrderStatus, CreateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
-import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearFecha } from "@/shared/lib/fechas";
@@ -131,11 +134,9 @@ interface OrderFormModalProps { isOpen: boolean; onClose: () => void; }
 
 function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     const { t, te } = useT();
-    const { data: productsData } = useProducts({ limit: 200, isActive: true });
-    const products = productsData?.data ?? [];
     const createMutation = useCreateSaleOrder();
 
-    const { register, handleSubmit, control, reset, setValue, trigger, formState: { errors } } = useForm<CreateSaleOrderDto>({
+    const { register, handleSubmit, control, reset, setValue, getValues, trigger, formState: { errors } } = useForm<CreateSaleOrderDto>({
         defaultValues: { items: [{ productName: "", quantity: 1, unitPrice: 0 }] },
     });
 
@@ -151,7 +152,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
         setValue("customerEmail", elegido.email ?? "");
         setValue("customerPhone", elegido.phone ?? "");
     };
-    const cerrar = () => { setCliente(null); onClose(); };
+    const cerrar = () => { setCliente(null); setAvisoDeEscaneo(null); onClose(); };
 
     const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
@@ -160,7 +161,10 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     // se dice mientras se escribe y no se deja enviar, para que el 409 quede como red para
     // cuando el disponible cambió entre abrir el formulario y guardar.
     const lineas = useWatch({ control, name: "items" }) ?? [];
-    const disponiblePorProducto = new Map(products.map((p) => [p.id, p.availableStock]));
+    // T6-02 — ya no hay una lista del catálogo cargada de antemano: el disponible de cada
+    // producto es el que traía cuando se eligió en el buscador o se escaneó.
+    const [elegidos, setElegidos] = useState<Map<string, ProductWithAvailability>>(() => new Map());
+    const disponiblePorProducto = new Map([...elegidos.values()].map((p) => [p.id, p.availableStock]));
     const pedidoPorProducto = new Map<string, number>();
     for (const linea of lineas) {
         if (linea?.productId) pedidoPorProducto.set(linea.productId, (pedidoPorProducto.get(linea.productId) ?? 0) + (Number(linea.quantity) || 0));
@@ -168,20 +172,48 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     const superaDisponible = (productId?: string) =>
         !!productId && disponiblePorProducto.has(productId) && (pedidoPorProducto.get(productId) ?? 0) > disponiblePorProducto.get(productId)!;
 
-    const productOptions = [
-        { value: "", label: t("ordenes.escribirManualmente") },
-        ...products.map((p) => ({ value: p.id, label: p.name })),
-    ];
-
-    const handleProductSelect = (idx: number, productId: string) => {
-        const product = products.find((p) => p.id === productId);
+    // Quitar el producto deja la línea como un ítem escrito a mano, con su nombre y su precio:
+    // lo que se suelta es el vínculo con el catálogo, y con él el movimiento de stock.
+    const elegirProducto = (idx: number, product: ProductWithAvailability | null) => {
         if (product) {
-            setValue(`items.${idx}.productId`, productId);
+            setElegidos((prev) => new Map(prev).set(product.id, product));
+            setValue(`items.${idx}.productId`, product.id);
             setValue(`items.${idx}.productName`, product.name);
             setValue(`items.${idx}.unitPrice`, Number(product.price));
-            // Cambiar de producto puede hacer que esta línea, u otra del mismo, pase a caber o deje de hacerlo.
-            if (errors.items) void trigger("items");
+        } else {
+            setValue(`items.${idx}.productId`, undefined);
         }
+        // Cambiar de producto puede hacer que esta línea, u otra del mismo, pase a caber o deje de hacerlo.
+        if (errors.items) void trigger("items");
+    };
+
+    const [escaneando, setEscaneando] = useState(false);
+    const [avisoDeEscaneo, setAvisoDeEscaneo] = useState<string | null>(null);
+    const { buscar, buscando } = useBuscarPorCodigo();
+
+    // `GET /products/lookup` devuelve también los inactivos —la ficha del catálogo los enseña
+    // como tales—, y aquí no se venden: se dice y no se añade.
+    const handleCodigo = async (codigo: string) => {
+        setEscaneando(false);
+        const product = await buscar(codigo);
+        if (product === undefined) return;
+        if (product === null) return setAvisoDeEscaneo(t("escaner.desconocido", { codigo }));
+        if (!product.isActive) return setAvisoDeEscaneo(t("ordenes.escaneoInactivo", { nombre: product.name }));
+        setAvisoDeEscaneo(null);
+
+        // Escanear dos veces lo mismo son dos unidades, no dos líneas; y la fila vacía con la
+        // que abre el formulario se aprovecha antes de añadir otra.
+        const actuales = getValues("items");
+        const repetida = actuales.findIndex((l) => l.productId === product.id);
+        if (repetida !== -1) {
+            setElegidos((prev) => new Map(prev).set(product.id, product));
+            setValue(`items.${repetida}.quantity`, (Number(actuales[repetida]!.quantity) || 0) + 1);
+            return;
+        }
+        const libre = actuales.findIndex((l) => !l.productId && !l.productName.trim());
+        if (libre !== -1) return elegirProducto(libre, product);
+        setElegidos((prev) => new Map(prev).set(product.id, product));
+        append({ productId: product.id, productName: product.name, quantity: 1, unitPrice: Number(product.price) });
     };
 
     const onSubmit = (formData: CreateSaleOrderDto) => {
@@ -219,23 +251,29 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-sm font-medium text-foreground">{t("ordenes.items")} *</p>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => append({ productName: "", quantity: 1, unitPrice: 0 })}
-                        >
-                            <PlusIcon className="h-3.5 w-3.5" />
-                            {t("ordenes.agregarItem")}
-                        </Button>
+                        <div className="flex flex-wrap justify-end gap-2">
+                            <Button type="button" variant="secondary" onClick={() => setEscaneando(true)} isLoading={buscando}>
+                                <ViewfinderCircleIcon className="h-3.5 w-3.5" />
+                                {t("escaner.escanear")}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => append({ productName: "", quantity: 1, unitPrice: 0 })}
+                            >
+                                <PlusIcon className="h-3.5 w-3.5" />
+                                {t("ordenes.agregarItem")}
+                            </Button>
+                        </div>
                     </div>
+                    {avisoDeEscaneo && <p role="alert" className="mb-2 text-sm text-danger">{avisoDeEscaneo}</p>}
                     <div className="space-y-3">
                         {fields.map((field, idx) => (
                             <div key={field.id} className="grid grid-cols-2 gap-2 items-end border border-border rounded-lg p-3 bg-surface-muted md:grid-cols-12">
                                 <div className="col-span-2 md:col-span-4">
-                                    <Select
-                                        label={t("ordenes.producto")}
-                                        options={productOptions}
-                                        onChange={(e) => handleProductSelect(idx, e.target.value)}
+                                    <BuscadorDeProducto
+                                        seleccionado={elegidos.get(lineas[idx]?.productId ?? "") ?? null}
+                                        onSeleccionar={(product) => elegirProducto(idx, product)}
                                     />
                                 </div>
                                 <div className="col-span-2 md:col-span-3">
@@ -300,6 +338,8 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                     <Button type="submit" isLoading={createMutation.isPending}>{t("ordenes.crear")}</Button>
                 </div>
             </form>
+            {/* Fuera del `<form>`: el escáner lleva el suyo, y su envío subiría hasta este. */}
+            <EscanerModal isOpen={escaneando} onClose={() => setEscaneando(false)} onCodigo={handleCodigo} />
         </Modal>
     );
 }

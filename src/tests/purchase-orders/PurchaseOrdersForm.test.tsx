@@ -11,9 +11,9 @@ import type { PurchaseOrder } from "@/modules/purchase-orders/types/purchase-ord
 
 // T5-01: `costPrice` es parte del contrato del producto, y `null` es «sin coste conocido».
 const PRODUCTOS = [
-    { id: "prod-1", name: "Teclado Logitech", price: 450, costPrice: null },
-    { id: "prod-2", name: "Monitor LG", price: 3200, costPrice: null },
-    { id: "prod-3", name: "Ratón MX", price: 1200, costPrice: "830.5" },
+    { id: "prod-1", name: "Teclado Logitech", price: 450, costPrice: null, availableStock: 4 },
+    { id: "prod-2", name: "Monitor LG", price: 3200, costPrice: null, availableStock: 2 },
+    { id: "prod-3", name: "Ratón MX", price: 1200, costPrice: "830.5", availableStock: 9 },
 ];
 
 function orden(over: Partial<PurchaseOrder> = {}): PurchaseOrder {
@@ -89,6 +89,12 @@ vi.mock("@/modules/products/hooks/useProducts", () => ({
     useProducts: () => ({ data: { data: PRODUCTOS, meta: { total: 2, page: 1, limit: 200, totalPages: 1 } } }),
 }));
 
+/** T6-02 — el producto de la línea se elige en el buscador, no en un desplegable. */
+async function elegir(user: ReturnType<typeof userEvent.setup>, dialogo: HTMLElement, nombre: RegExp) {
+    await user.click(within(dialogo).getAllByRole("combobox", { name: "Producto" })[0]!);
+    await user.click(await within(dialogo).findByRole("option", { name: nombre }));
+}
+
 async function abrirFormulario(user: ReturnType<typeof userEvent.setup>) {
     await user.click(screen.getByRole("button", { name: /Nueva orden/ }));
     return screen.getByRole("dialog");
@@ -107,7 +113,7 @@ describe("PurchaseOrdersPage — formulario (T2-19)", () => {
         renderWithProviders(<PurchaseOrdersPage />);
         const dialogo = await abrirFormulario(user);
 
-        await user.selectOptions(within(dialogo).getByLabelText("Producto"), "prod-2");
+        await elegir(user, dialogo, /Monitor LG/);
 
         expect(within(dialogo).getByLabelText("Nombre")).toHaveValue("Monitor LG");
         expect(within(dialogo).getByLabelText("P. unit.")).toHaveValue(3200);
@@ -118,7 +124,7 @@ describe("PurchaseOrdersPage — formulario (T2-19)", () => {
         renderWithProviders(<PurchaseOrdersPage />);
         const dialogo = await abrirFormulario(user);
 
-        await user.selectOptions(within(dialogo).getByLabelText("Producto"), "prod-3");
+        await elegir(user, dialogo, /Ratón MX/);
 
         // Lo que se escriba aquí es lo que la recepción promediará: proponer los 1200 de
         // venta subiría el coste medio sin que nadie lo hubiera decidido.
@@ -155,7 +161,7 @@ describe("PurchaseOrdersPage — formulario (T2-19)", () => {
         const dialogo = await abrirFormulario(user);
 
         await user.selectOptions(within(dialogo).getByLabelText("Proveedor"), "sup-1");
-        await user.selectOptions(within(dialogo).getByLabelText("Producto"), "prod-1");
+        await elegir(user, dialogo, /Teclado Logitech/);
         await user.clear(within(dialogo).getByLabelText("Cant."));
         await user.type(within(dialogo).getByLabelText("Cant."), "7");
         await user.click(within(dialogo).getByRole("button", { name: "Crear orden" }));
@@ -172,7 +178,7 @@ describe("PurchaseOrdersPage — formulario (T2-19)", () => {
         renderWithProviders(<PurchaseOrdersPage />);
         const dialogo = await abrirFormulario(user);
 
-        await user.selectOptions(within(dialogo).getByLabelText("Producto"), "prod-1");
+        await elegir(user, dialogo, /Teclado Logitech/);
         await user.click(within(dialogo).getByRole("button", { name: "Crear orden" }));
 
         expect((creadas[0] as { supplierId?: string }).supplierId).toBeUndefined();

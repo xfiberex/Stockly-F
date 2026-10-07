@@ -1,7 +1,7 @@
 import { formatearImporte } from "@/shared/lib/moneda";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
@@ -10,9 +10,12 @@ import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ESTADO_ORDEN_COMPRA, buscarEstado } from "@/shared/lib/estados";
 import { Spinner } from "@/shared/components/Spinner";
 import { DropdownButton } from "@/shared/components/DropdownButton";
+import { EscanerModal } from "@/shared/components/EscanerModal";
 import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { useSuppliers } from "@/modules/suppliers/hooks/useSuppliers";
-import { useProducts } from "@/modules/products/hooks/useProducts";
+import { BuscadorDeProducto } from "@/modules/products/components/BuscadorDeProducto";
+import { useBuscarPorCodigo } from "@/modules/products/hooks/useBuscarPorCodigo";
+import type { ProductWithAvailability } from "@/modules/products/types/product.types";
 import {
     usePurchaseOrders,
     useCreatePurchaseOrder,
@@ -22,7 +25,7 @@ import {
 } from "@/modules/purchase-orders/hooks/usePurchaseOrders";
 import { exportPurchaseOrdersCsv } from "@/modules/purchase-orders/api/purchase-orders.api";
 import type { PurchaseOrder, CreatePurchaseOrderForm, RecepcionForm } from "@/modules/purchase-orders/types/purchase-orders.types";
-import { PlusIcon, TrashIcon, XMarkIcon, ArrowDownTrayIcon, InboxArrowDownIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, XMarkIcon, ArrowDownTrayIcon, InboxArrowDownIcon, SparklesIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import { aNumero } from "@/shared/contratos";
 import type { Clave } from "@/shared/i18n/traducir";
@@ -275,36 +278,59 @@ interface OrderFormModalProps {
 function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     const { t, te } = useT();
     const { data: suppliers = [] } = useSuppliers();
-    const { data: productsData } = useProducts({ limit: 100, isActive: true });
-    const products = productsData?.data ?? [];
     const createMutation = useCreatePurchaseOrder();
 
-    const { register, handleSubmit, control, reset, setValue, formState: { errors } } = useForm<CreatePurchaseOrderForm>({
+    const { register, handleSubmit, control, reset, setValue, getValues, formState: { errors } } = useForm<CreatePurchaseOrderForm>({
         defaultValues: { items: [{ productName: "", quantity: 1, unitPrice: 0 }] },
     });
 
     const { fields, append, remove } = useFieldArray({ control, name: "items" });
+    const lineas = useWatch({ control, name: "items" }) ?? [];
+    // T6-02 — el producto ligado a cada línea, tal como llegó del buscador o del escáner.
+    const [elegidos, setElegidos] = useState<Map<string, ProductWithAvailability>>(() => new Map());
 
     const supplierOptions = [
         { value: "", label: t("productos.sinProveedor") },
         ...suppliers.map((s) => ({ value: s.id, label: s.name })),
     ];
 
-    const productOptions = [
-        { value: "", label: t("ordenes.escribirManualmente") },
-        ...products.map((p) => ({ value: p.id, label: p.name })),
-    ];
+    // T5-01 — el precio de compra se propone desde el **coste**, no desde el precio de
+    // venta: lo que se escriba aquí es lo que la recepción promediará. Sin coste
+    // conocido se sigue proponiendo el de venta, y hay que corregirlo a mano.
+    const precioDeCompra = (product: ProductWithAvailability) =>
+        product.costPrice !== null ? aNumero(product.costPrice) : Number(product.price);
 
-    const handleProductSelect = (idx: number, productId: string) => {
-        const product = products.find((p) => p.id === productId);
-        if (product) {
-            setValue(`items.${idx}.productId`, productId);
-            setValue(`items.${idx}.productName`, product.name);
-            // T5-01 — el precio de compra se propone desde el **coste**, no desde el precio de
-            // venta: lo que se escriba aquí es lo que la recepción promediará. Sin coste
-            // conocido se sigue proponiendo el de venta, y hay que corregirlo a mano.
-            setValue(`items.${idx}.unitPrice`, product.costPrice !== null ? aNumero(product.costPrice) : Number(product.price));
-        }
+    // Quitar el producto deja la línea como un ítem escrito a mano, que no moverá stock al recibirse.
+    const elegirProducto = (idx: number, product: ProductWithAvailability | null) => {
+        if (!product) return setValue(`items.${idx}.productId`, undefined);
+        setElegidos((prev) => new Map(prev).set(product.id, product));
+        setValue(`items.${idx}.productId`, product.id);
+        setValue(`items.${idx}.productName`, product.name);
+        setValue(`items.${idx}.unitPrice`, precioDeCompra(product));
+    };
+
+    const [escaneando, setEscaneando] = useState(false);
+    const [avisoDeEscaneo, setAvisoDeEscaneo] = useState<string | null>(null);
+    const { buscar, buscando } = useBuscarPorCodigo();
+    const cerrar = () => { setAvisoDeEscaneo(null); onClose(); };
+
+    // Como en la venta: `GET /products/lookup` trae también los inactivos, que no se añaden;
+    // repetir un código suma una unidad a su línea, y la fila vacía se aprovecha.
+    const handleCodigo = async (codigo: string) => {
+        setEscaneando(false);
+        const product = await buscar(codigo);
+        if (product === undefined) return;
+        if (product === null) return setAvisoDeEscaneo(t("escaner.desconocido", { codigo }));
+        if (!product.isActive) return setAvisoDeEscaneo(t("ordenes.escaneoInactivo", { nombre: product.name }));
+        setAvisoDeEscaneo(null);
+
+        const actuales = getValues("items");
+        const repetida = actuales.findIndex((l) => l.productId === product.id);
+        if (repetida !== -1) return setValue(`items.${repetida}.quantity`, (Number(actuales[repetida]!.quantity) || 0) + 1);
+        const libre = actuales.findIndex((l) => !l.productId && !l.productName.trim());
+        if (libre !== -1) return elegirProducto(libre, product);
+        setElegidos((prev) => new Map(prev).set(product.id, product));
+        append({ productId: product.id, productName: product.name, quantity: 1, unitPrice: precioDeCompra(product) });
     };
 
     const onSubmit = (data: CreatePurchaseOrderForm) => {
@@ -319,12 +345,12 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
             })),
         };
         createMutation.mutate(payload, {
-            onSuccess: () => { reset(); onClose(); },
+            onSuccess: () => { reset(); cerrar(); },
         });
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={t("compras.nuevaOrden")} className="max-w-2xl">
+        <Modal isOpen={isOpen} onClose={cerrar} title={t("compras.nuevaOrden")} className="max-w-2xl">
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-3">
                     <Select
@@ -344,23 +370,29 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-sm font-medium text-foreground">{t("ordenes.items")}</p>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => append({ productName: "", quantity: 1, unitPrice: 0 })}
-                        >
-                            <PlusIcon className="h-3.5 w-3.5" />
-                            {t("ordenes.agregarItem")}
-                        </Button>
+                        <div className="flex flex-wrap justify-end gap-2">
+                            <Button type="button" variant="secondary" onClick={() => setEscaneando(true)} isLoading={buscando}>
+                                <ViewfinderCircleIcon className="h-3.5 w-3.5" />
+                                {t("escaner.escanear")}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => append({ productName: "", quantity: 1, unitPrice: 0 })}
+                            >
+                                <PlusIcon className="h-3.5 w-3.5" />
+                                {t("ordenes.agregarItem")}
+                            </Button>
+                        </div>
                     </div>
+                    {avisoDeEscaneo && <p role="alert" className="mb-2 text-sm text-danger">{avisoDeEscaneo}</p>}
                     <div className="space-y-3">
                         {fields.map((field, idx) => (
                             <div key={field.id} className="grid grid-cols-2 gap-2 items-end border border-border rounded-lg p-3 bg-surface-muted md:grid-cols-12">
                                 <div className="col-span-2 md:col-span-4">
-                                    <Select
-                                        label={t("ordenes.producto")}
-                                        options={productOptions}
-                                        onChange={(e) => handleProductSelect(idx, e.target.value)}
+                                    <BuscadorDeProducto
+                                        seleccionado={elegidos.get(lineas[idx]?.productId ?? "") ?? null}
+                                        onSeleccionar={(product) => elegirProducto(idx, product)}
                                     />
                                 </div>
                                 <div className="col-span-2 md:col-span-3">
@@ -407,10 +439,12 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                    <Button type="button" variant="secondary" onClick={onClose}>{t("comun.cancelar")}</Button>
+                    <Button type="button" variant="secondary" onClick={cerrar}>{t("comun.cancelar")}</Button>
                     <Button type="submit" isLoading={createMutation.isPending}>{t("ordenes.crear")}</Button>
                 </div>
             </form>
+            {/* Fuera del `<form>`: el escáner lleva el suyo, y su envío subiría hasta este. */}
+            <EscanerModal isOpen={escaneando} onClose={() => setEscaneando(false)} onCodigo={handleCodigo} />
         </Modal>
     );
 }

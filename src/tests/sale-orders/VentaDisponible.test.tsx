@@ -47,6 +47,15 @@ async function abrir() {
     return { user, dialogo: screen.getByRole("dialog") };
 }
 
+/**
+ * T6-02 — el producto ya no sale de un desplegable sino del buscador. Elige en la primera línea
+ * que aún no tiene producto: una línea con uno enseña su nombre, no el campo.
+ */
+async function elegir(user: ReturnType<typeof userEvent.setup>, dialogo: HTMLElement, nombre: RegExp) {
+    await user.click(within(dialogo).getAllByRole("combobox", { name: "Producto" })[0]!);
+    await user.click(await within(dialogo).findByRole("option", { name: nombre }));
+}
+
 async function cantidad(user: ReturnType<typeof userEvent.setup>, campo: HTMLElement, valor: number) {
     await user.clear(campo);
     await user.type(campo, String(valor));
@@ -60,7 +69,7 @@ describe("SaleOrdersPage — disponible en el formulario (T5-03)", () => {
     it("al elegir un producto dice cuánto hay disponible, no cuánto stock", async () => {
         const { user, dialogo } = await abrir();
 
-        await user.selectOptions(within(dialogo).getByLabelText("Producto"), "p-teclado");
+        await elegir(user, dialogo, /Teclado/);
 
         // Stock 10, pero 7 ya están prometidos: se pueden vender 3.
         expect(within(dialogo).getByText("Disponible: 3")).toBeInTheDocument();
@@ -69,7 +78,7 @@ describe("SaleOrdersPage — disponible en el formulario (T5-03)", () => {
     it("pasarse de lo disponible no deja crear la venta y lo dice en el campo", async () => {
         const { user, dialogo } = await abrir();
 
-        await user.selectOptions(within(dialogo).getByLabelText("Producto"), "p-teclado");
+        await elegir(user, dialogo, /Teclado/);
         await cantidad(user, within(dialogo).getByLabelText("Cant."), 4);
         // Aviso mientras se escribe, antes de intentar guardar.
         expect(within(dialogo).getByText("Disponible: 3")).toHaveClass("text-danger");
@@ -83,7 +92,7 @@ describe("SaleOrdersPage — disponible en el formulario (T5-03)", () => {
     it("bajar la cantidad a lo disponible quita el error y deja crearla", async () => {
         const { user, dialogo } = await abrir();
 
-        await user.selectOptions(within(dialogo).getByLabelText("Producto"), "p-teclado");
+        await elegir(user, dialogo, /Teclado/);
         const campo = within(dialogo).getByLabelText("Cant.");
         await cantidad(user, campo, 4);
         await user.click(within(dialogo).getByRole("button", { name: "Crear orden" }));
@@ -101,10 +110,9 @@ describe("SaleOrdersPage — disponible en el formulario (T5-03)", () => {
         const { user, dialogo } = await abrir();
 
         await user.click(within(dialogo).getByRole("button", { name: /Agregar ítem/ }));
-        const productos = within(dialogo).getAllByLabelText("Producto");
         const cantidades = within(dialogo).getAllByLabelText("Cant.");
-        await user.selectOptions(productos[0]!, "p-teclado");
-        await user.selectOptions(productos[1]!, "p-teclado");
+        await elegir(user, dialogo, /Teclado/);
+        await elegir(user, dialogo, /Teclado/);
         await cantidad(user, cantidades[0]!, 2);
         await cantidad(user, cantidades[1]!, 2);
 
