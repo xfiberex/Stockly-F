@@ -25,6 +25,7 @@ import {
     useDeleteSaleOrder,
 } from "@/modules/sale-orders/hooks/useSaleOrders";
 import { exportSaleOrdersCsv } from "@/modules/sale-orders/api/sale-orders.api";
+import { BotonDeComprobante } from "@/modules/sale-orders/components/BotonDeComprobante";
 import { BuscadorDeCliente } from "@/modules/customers/components/BuscadorDeCliente";
 import type { CustomerListItem } from "@/modules/customers/types/customer.types";
 import type { SaleOrder, SaleOrderStatus, CreateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
@@ -700,6 +701,11 @@ export default function SaleOrdersPage() {
                                             </tbody>
                                             <PieDeImportes order={order} />
                                         </table>
+                                    </div>
+                                    {/* T6-07 — el papel que se le da a quien compra. Solo en las
+                                        enviadas: el componente no pinta nada en las demás. */}
+                                    <div className="mt-3 flex justify-end empty:hidden">
+                                        <BotonDeComprobante orden={order} />
                                     </div>
                                 </div>
                             )}

@@ -16,6 +16,7 @@ import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { CustomerFormModal } from "@/modules/customers/components/CustomerFormModal";
 import { useCustomer, useUpdateCustomer } from "@/modules/customers/hooks/useCustomers";
 import { useSaleOrders } from "@/modules/sale-orders/hooks/useSaleOrders";
+import { BotonDeComprobante } from "@/modules/sale-orders/components/BotonDeComprobante";
 import type { SaleOrder } from "@/modules/sale-orders/types/sale-orders.types";
 import { escribirNumeroDeVenta } from "@/shared/contratos";
 
@@ -138,6 +139,10 @@ export default function CustomerDetailPage() {
                             <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                 <tr>
                                     <th className="px-4 py-3">{t("clientes.orden")}</th>
+                                    {/* T6-07 — sin texto a la vista: la columna es un botón por fila. Va
+                                        la segunda y no la última: a 393 px la tabla se desplaza, y al
+                                        final el botón quedaba fuera de la pantalla. */}
+                                    <th className="px-1 py-3"><span className="sr-only">{t("ventas.comprobante")}</span></th>
                                     <th className="px-4 py-3">{t("clientes.fecha")}</th>
                                     <th className="px-4 py-3">{t("clientes.estado")}</th>
                                     <th className="px-4 py-3">{t("clientes.vendidaA")}</th>
@@ -150,6 +155,7 @@ export default function CustomerDetailPage() {
                                         <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
                                             {t("ventas.numero", { numero: escribirNumeroDeVenta(orden.number) })}
                                         </td>
+                                        <td className="px-1 py-1"><BotonDeComprobante orden={orden} variante="icono" /></td>
                                         <td className="px-4 py-3 text-foreground-muted whitespace-nowrap">{formatearFecha(idioma, orden.createdAt)}</td>
                                         <td className="px-4 py-3"><EstadoBadge estado={buscarEstado(ESTADO_ORDEN_VENTA, orden.status)} /></td>
                                         <td className="px-4 py-3 text-foreground-muted">{orden.customerName ?? "—"}</td>

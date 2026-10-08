@@ -49,6 +49,7 @@ const api = vi.hoisted(() => ({
     delete: vi.fn(),
     getSaleOrders: vi.fn(),
     createSaleOrder: vi.fn(),
+    descargarComprobante: vi.fn(),
 }));
 
 vi.mock("@/modules/customers/api/customers.api", () => ({ CustomersAPI: api }));
@@ -60,6 +61,7 @@ vi.mock("@/modules/sale-orders/api/sale-orders.api", () => ({
     shipSaleOrder: vi.fn(),
     deleteSaleOrder: vi.fn(),
     exportSaleOrdersCsv: vi.fn(),
+    descargarComprobante: api.descargarComprobante,
 }));
 
 vi.mock("@/modules/auth/hooks/useMe", () => ({
@@ -217,6 +219,8 @@ describe("CustomerDetailPage", () => {
         customerPhone: null,
         customerDocument: null,
         createdByEmail: null,
+        // Solo la enviada tiene fecha de envío, que es lo que le da comprobante (T6-07).
+        shippedAt: status === "SHIPPED" ? "2026-09-02T10:00:00.000Z" : null,
         notes: null,
         // T6-05 — con impuesto del 18 %: la ficha enseña el subtotal, no el total.
         items: [{
@@ -259,6 +263,31 @@ describe("CustomerDetailPage", () => {
         // T6-05 — sin impuesto, como «Importe enviado»: 20,00 y no los 23,60 del total.
         expect(within(historial).queryByText(formatearImporte(23.6))).not.toBeInTheDocument();
         expect(api.getSaleOrders).toHaveBeenCalledWith({ customerId: ANA.id, page: 1, limit: 10 });
+    });
+
+    it("cada venta enviada del historial descarga su comprobante; las que no lo tienen no llevan botón (T6-07)", async () => {
+        ficha = { ...ANA, summary: { orders: 4, pending: 1, shipped: 1, cancelled: 2, shippedRevenue: 20, lastOrderAt: "2026-09-20T10:00:00.000Z" } };
+        const enviada = orden("aaaaaaaa-0000-4000-8000-000000000001", "SHIPPED", "Ana", "10.00");
+        const anulada = { ...orden("cccccccc-0000-4000-8000-000000000003", "CANCELLED", "Ana", "7.00"), shippedAt: "2026-09-03T10:00:00.000Z" };
+        ordenesDelCliente = [
+            enviada,
+            orden("bbbbbbbb-0000-4000-8000-000000000002", "PENDING", "Ana", "5.00"),
+            anulada,
+            orden("dddddddd-0000-4000-8000-000000000004", "CANCELLED", "Ana", "3.00"),
+        ];
+        api.descargarComprobante.mockResolvedValue(true);
+        const user = userEvent.setup();
+
+        renderFicha();
+
+        // El nombre del botón dice de qué venta es: en una tabla, cuatro iguales no se distinguen.
+        await user.click(await screen.findByRole("button", { name: "Descargar el comprobante de la Venta #000001" }));
+        expect(api.descargarComprobante).toHaveBeenCalledWith(expect.objectContaining({ id: enviada.id, number: 1 }));
+        // La anulada después de enviarse lo conserva; la pendiente y la cancelada sin enviar, no.
+        expect(screen.getByRole("button", { name: "Descargar el comprobante de la Venta #000003" })).toBeInTheDocument();
+        expect(screen.getAllByRole("button", { name: /Descargar el comprobante/ })).toHaveLength(2);
+        // Y un rol de solo lectura lo ve igual.
+        expect(screen.getByRole("columnheader", { name: "Comprobante" })).toBeInTheDocument();
     });
 
     it("un cliente que no existe lo dice, con el camino de vuelta", async () => {

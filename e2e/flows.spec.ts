@@ -1,6 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { ALMACEN, EMAIL, api, apiCruda, login, stockDe, sufijo } from "./helpers";
-import { eanDePrueba, paginasComoPng } from "./etiquetas";
+import { eanDePrueba, paginasComoPng, textoDelPdf } from "./etiquetas";
 
 // T1-23: los tres defectos funcionales de la auditoría (T0-03, T1-03 y T1-05) no
 // produjeron ni un fallo entre 379 tests, porque cada repositorio se probaba contra su
@@ -802,6 +802,83 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         expect(todo).not.toMatch(/(?<!RD)\$\d/);
     });
 
+    test("una venta enviada descarga su comprobante, desde su detalle y desde la ficha del cliente; una pendiente no lo ofrece (T6-07)", async ({ page }) => {
+        await login(page);
+        const id = sufijo();
+        const cliente = `Cliente comprobante ${id}`;
+        const documento = `DOC-${id}`;
+        const producto = `E2E-comprobante-${id}`;
+        const creado = (await api(page, "post", "/products", { name: producto, price: 1234.5, stock: 5 })) as { id: string };
+        const venta = (await api(page, "post", "/sale-orders", {
+            customerName: cliente,
+            customerEmail: `comprobante-${id}@e2e.test`,
+            customerDocument: documento,
+            items: [
+                { productId: creado.id, productName: producto, quantity: 2, unitPrice: 1234.5 },
+                { productName: `Instalación ${id}`, quantity: 1, unitPrice: 499 },
+            ],
+        })) as { id: string; number: number; customerId: string };
+        const numero = String(venta.number).padStart(6, "0");
+
+        // Pendiente: la API responde 409 con su código, y la interfaz no lo ofrece.
+        const rechazo = await apiCruda(page, "get", `/sale-orders/${venta.id}/receipt`);
+        expect(rechazo.status()).toBe(409);
+        expect((await rechazo.json()).code).toBe("SALE_ORDER_NOT_SHIPPED");
+
+        await page.goto("/sale-orders");
+        // Se espera a la lista **ya filtrada** antes de tocar nada. La venta es la más reciente y
+        // se ve desde el principio, pero el filtro tarda 300 ms en pedirse: enviar la orden en
+        // esa ventana deja la fila en «Pendiente» —la primera carga de una consulta no se
+        // cancela al invalidar, y pinta lo que leyó antes del envío (CONTEXTO.md §4)—.
+        const filtrada = page.waitForResponse((r) => /\/sale-orders\?.*number=/.test(r.url()));
+        await page.getByLabel("Nº de venta").fill(numero);
+        await filtrada;
+        const fila = page.getByText(`Venta #${numero}`, { exact: true });
+        await fila.click();
+        await expect(page.getByRole("cell", { name: producto })).toBeVisible();
+        await expect(page.getByRole("button", { name: "Descargar comprobante" })).toHaveCount(0);
+
+        // Enviada por la interfaz: el botón aparece en el detalle, que sigue desplegado.
+        await page.getByRole("button", { name: `Marcar como enviada la Venta #${numero}` }).click();
+        const boton = page.getByRole("button", { name: "Descargar comprobante" });
+        await expect(boton).toBeVisible();
+        expect(await page.evaluate(() => window.innerWidth)).toBe(page.viewportSize()!.width);
+
+        const descarga = page.waitForEvent("download");
+        await boton.click();
+        const archivo = await descarga;
+        expect(archivo.suggestedFilename()).toBe(`comprobante-${numero}.pdf`);
+
+        // El papel: qué es, su número, a quién, quién la registró, las dos líneas y el total que
+        // dice la API. El símbolo y el impuesto no se miran: los cambian los escenarios de al lado.
+        const paginas = await textoDelPdf((await archivo.path())!);
+        expect(paginas).toHaveLength(1);
+        const [papel] = paginas;
+        const { total } = (await api(page, "get", `/sale-orders/${venta.id}`)) as { total: string };
+        const importe = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
+        for (const dato of [
+            "Comprobante de venta", `Nº ${numero}`, "Documento sin valor fiscal",
+            cliente, `Documento: ${documento}`, EMAIL,
+            producto, importe(2469), `Instalación ${id}`, importe(499), `Total`, importe(Number(total)),
+        ]) {
+            expect(papel).toContain(dato);
+        }
+        expect(papel).not.toMatch(/factura|anulada/i);
+
+        // Desde la ficha del cliente, el mismo archivo.
+        await page.goto(`/customers/${venta.customerId}`);
+        const desdeLaFicha = page.waitForEvent("download");
+        await page.getByRole("button", { name: `Descargar el comprobante de la Venta #${numero}` }).click();
+        expect((await desdeLaFicha).suggestedFilename()).toBe(`comprobante-${numero}.pdf`);
+
+        // Cancelada después de enviarse, lo conserva, y dice que está anulada.
+        await api(page, "patch", `/sale-orders/${venta.id}`, { status: "CANCELLED" });
+        await page.reload();
+        const anulada = page.waitForEvent("download");
+        await page.getByRole("button", { name: `Descargar el comprobante de la Venta #${numero}` }).click();
+        expect((await textoDelPdf((await (await anulada).path())!))[0]).toContain("ANULADA");
+    });
+
     test("una venta creada con la tasa al 18 % enseña subtotal, impuesto y total, y cambiar la tasa después no la toca (T6-05)", async ({ page }, testInfo) => {
         // La tasa es de toda la instalación, como el interruptor de arriba: en un solo proyecto.
         test.skip(testInfo.project.name !== "chromium", "estado global compartido entre proyectos");
@@ -846,6 +923,18 @@ test.describe("Flujos que cruzan frontend y backend", () => {
             await fila.click();
             const pie = page.locator("tfoot tr");
             await expect(pie).toHaveText([/Subtotal\s*\$300\.00/, /ITBIS \(18 %\)\s*\$54\.00/, /Total\s*\$354\.00/]);
+
+            // T6-07 — y el comprobante dice lo mismo que la pantalla: los tres importes, con el
+            // nombre y la tasa del impuesto con que nació la venta. Se envía antes: una
+            // pendiente no lo tiene. El símbolo no se mira: lo cambia el escenario de la moneda.
+            await api(page, "post", `/sale-orders/${conImpuesto.id}/ship`);
+            await page.reload();
+            await page.getByLabel("Nº de venta").fill(numero);
+            await page.getByText(`Venta #${numero}`, { exact: true }).click();
+            const descarga = page.waitForEvent("download");
+            await page.getByRole("button", { name: "Descargar comprobante" }).click();
+            const [papel] = await textoDelPdf((await (await descarga).path())!);
+            expect(papel).toMatch(/Subtotal \S*300\.00 ITBIS \(18 %\) \S*54\.00 Total \S*354\.00/);
         } finally {
             await api(page, "patch", "/settings", { taxName: "" });
         }

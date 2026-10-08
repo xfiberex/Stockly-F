@@ -46,6 +46,7 @@ const ORDEN_ENVIADA: SaleOrder = {
     customerPhone: null,
     customerDocument: null,
     createdByEmail: "admin@stockly.app",
+    shippedAt: "2026-08-08T12:00:00.000Z",
     notes: null,
     items: [
         item({ id: "i1", productId: "p1", product: { id: "p1", name: "Teclado", sku: null }, productName: "Teclado", quantity: 3, unitPrice: "50.00" }),
@@ -63,6 +64,7 @@ const ORDEN_PENDIENTE: SaleOrder = {
     id: "bbbbbbbb-1111-2222-3333-444444444444",
     number: 42,
     status: "PENDING",
+    shippedAt: null,
 };
 
 const mutaciones: Array<{ id: string; dto: UpdateSaleOrderDto }> = [];

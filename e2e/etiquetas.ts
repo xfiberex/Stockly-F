@@ -32,6 +32,23 @@ export async function paginasComoPng(ruta: string, escala = 4): Promise<Buffer[]
     return paginas;
 }
 
+/**
+ * T6-07 — lo que dice un PDF, página a página, como texto corrido. Es lo que lee quien recibe el
+ * comprobante de venta: el E2E lo descarga por la interfaz y comprueba aquí que el papel dice lo
+ * mismo que la pantalla.
+ */
+export async function textoDelPdf(ruta: string): Promise<string[]> {
+    const carga = getDocument({ data: new Uint8Array(readFileSync(ruta)), standardFontDataUrl: FUENTES });
+    const pdf = await carga.promise;
+    const paginas: string[] = [];
+    for (let n = 1; n <= pdf.numPages; n++) {
+        const contenido = await (await pdf.getPage(n)).getTextContent();
+        paginas.push(contenido.items.map((item) => ("str" in item ? item.str : "")).filter((t) => t.trim()).join(" "));
+    }
+    await carga.destroy();
+    return paginas;
+}
+
 let contador = 0;
 
 /**

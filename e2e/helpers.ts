@@ -56,7 +56,11 @@ export async function apiCruda(
     const csrf = cookies.find((c) => c.name === "csrfToken")?.value ?? "";
 
     return page.request[metodo](`${API_URL}/api/v1${ruta}`, {
-        headers: { "x-csrf-token": csrf, "Content-Type": "application/json" },
+        // `Connection: close` — cada llamada, su conexión. `page.request` las reutiliza, y Node
+        // cierra las que llevan unos 6 s paradas: una llamada que salía justo entonces moría con
+        // `read ECONNRESET`, en el escenario que tocara. Medido el 2026-10-08: 1 de 180 con la
+        // conexión reutilizada a los 6 s, 0 de 60 con esta cabecera (CONTEXTO.md §4).
+        headers: { "x-csrf-token": csrf, "Content-Type": "application/json", Connection: "close" },
         ...(data !== undefined && { data }),
     });
 }

@@ -23,6 +23,7 @@ const orden = (n: number, status: SaleOrderStatus): SaleOrder => ({
     customerPhone: null,
     customerDocument: null,
     createdByEmail: "admin@stockly.app",
+    shippedAt: status === "SHIPPED" ? "2026-08-08T12:00:00.000Z" : null,
     notes: null,
     items: [],
     subtotal: "0.00",

@@ -1,6 +1,7 @@
 import api from "@/shared/api/axios";
 import { descargarDeLaApi } from "@/shared/api/descargar";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
+import { escribirNumeroDeVenta } from "@/shared/contratos";
 import type { SaleOrder, SaleOrderStatus, CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
 
 /**
@@ -46,6 +47,13 @@ export const shipSaleOrder = async (id: string): Promise<SaleOrder> => {
 export const deleteSaleOrder = async (id: string): Promise<void> => {
     await api.delete(`/sale-orders/${id}`);
 };
+
+/**
+ * T6-07 — el comprobante de una venta enviada, en PDF. El archivo se llama como lo nombra el
+ * servidor: `comprobante-000123.pdf`.
+ */
+export const descargarComprobante = (orden: Pick<SaleOrder, "id" | "number">): Promise<boolean> =>
+    descargarDeLaApi(`/sale-orders/${orden.id}/receipt`, {}, `comprobante-${escribirNumeroDeVenta(orden.number)}.pdf`);
 
 export const exportSaleOrdersCsv = (): Promise<boolean> =>
     descargarDeLaApi("/sale-orders/export", { format: "csv" }, `stockly-ventas-${new Date().toISOString().split("T")[0]}.csv`);
