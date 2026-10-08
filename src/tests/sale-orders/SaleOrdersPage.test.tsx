@@ -44,6 +44,8 @@ const ORDEN_ENVIADA: SaleOrder = {
     customerName: "Cliente de prueba",
     customerEmail: null,
     customerPhone: null,
+    customerDocument: null,
+    createdByEmail: "admin@stockly.app",
     notes: null,
     items: [
         item({ id: "i1", productId: "p1", product: { id: "p1", name: "Teclado", sku: null }, productName: "Teclado", quantity: 3, unitPrice: "50.00" }),
@@ -242,6 +244,31 @@ describe("SaleOrdersPage — el rol de almacén (T5-13)", () => {
         renderWithProviders(<SaleOrdersPage />);
 
         expect(screen.queryByRole("button", { name: /^Marcar como enviada la Venta #/ })).not.toBeInTheDocument();
+    });
+
+    // ── T6-06 — vendedor y documento del cliente ─────────────────────────────────────────
+    it("el detalle de la venta dice el documento del cliente y quién la registró", async () => {
+        ordenes = [{ ...ORDEN_PENDIENTE, customerDocument: "001-1234567-8", createdByEmail: "vendedora@stockly.app" }];
+        const user = userEvent.setup();
+        renderWithProviders(<SaleOrdersPage />);
+
+        expect(screen.queryByText(/Registrada por/)).not.toBeInTheDocument();
+        await user.click(screen.getByText("Venta #000042"));
+
+        expect(screen.getByText("Documento: 001-1234567-8")).toBeInTheDocument();
+        expect(screen.getByText("Registrada por vendedora@stockly.app")).toBeInTheDocument();
+    });
+
+    it("una venta anterior, sin vendedor ni documento, no deja huecos con rótulo y sin dato", async () => {
+        ordenes = [{ ...ORDEN_PENDIENTE, customerDocument: null, createdByEmail: null }];
+        const user = userEvent.setup();
+        renderWithProviders(<SaleOrdersPage />);
+
+        await user.click(screen.getByText("Venta #000042"));
+
+        expect(screen.getByRole("table")).toBeInTheDocument();
+        expect(screen.queryByText(/Registrada por/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Documento:/)).not.toBeInTheDocument();
     });
 
     it("un ADMIN también envía por la ruta nueva, no por el PATCH", async () => {

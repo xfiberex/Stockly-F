@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeftIcon, EnvelopeIcon, PencilIcon, PhoneIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, EnvelopeIcon, IdentificationIcon, PencilIcon, PhoneIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/components/Button";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Paginacion } from "@/shared/components/Paginacion";
@@ -95,6 +95,13 @@ export default function CustomerDetailPage() {
                                 <PhoneIcon aria-hidden="true" className="h-4 w-4 shrink-0" />
                                 <span className="sr-only">{t("clientes.telefono")}:</span>
                                 {cliente.phone}
+                            </span>
+                        )}
+                        {cliente.document && (
+                            <span className="inline-flex items-center gap-1 break-all">
+                                <IdentificationIcon aria-hidden="true" className="h-4 w-4 shrink-0" />
+                                <span className="sr-only">{t("clientes.documento")}:</span>
+                                {cliente.document}
                             </span>
                         )}
                         <span>{t("clientes.clienteDesde", { fecha: formatearFecha(idioma, cliente.createdAt) })}</span>

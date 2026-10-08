@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import type { Customer, CustomerForm } from "@/modules/customers/types/customer.types";
+import { LARGO_MAXIMO_DE_DOCUMENTO } from "@/shared/contratos";
 
 // Los mensajes son claves del catálogo (T4-04); ver `auth.schema.ts`.
 const customerSchema = z.object({
@@ -18,6 +19,8 @@ const customerSchema = z.object({
         z.literal(""),
     ]),
     phone: z.string().trim().max(30, "validacion.maximo30" satisfies Clave),
+    // T6-06 — el tope es el del contrato, el mismo que aplica el servidor.
+    document: z.string().trim().max(LARGO_MAXIMO_DE_DOCUMENTO, "validacion.maximo40" satisfies Clave),
     notes: z.string().trim().max(1000, "validacion.maximo1000" satisfies Clave),
 });
 
@@ -32,7 +35,7 @@ interface CustomerFormModalProps {
 }
 
 /**
- * Alta y edición. **Se mandan los cuatro campos siempre**, vacíos incluidos: en la edición el
+ * Alta y edición. **Se mandan los cinco campos siempre**, vacíos incluidos: en la edición el
  * servidor borra un campo que llega vacío, y es la forma de quitarle el teléfono a un cliente.
  * Omitirlos lo dejaría como estaba.
  */
@@ -44,6 +47,7 @@ export function CustomerFormModal({ isOpen, onClose, customer, onSubmit, isPendi
             name: customer?.name ?? "",
             email: customer?.email ?? "",
             phone: customer?.phone ?? "",
+            document: customer?.document ?? "",
             notes: customer?.notes ?? "",
         },
     });
@@ -88,6 +92,16 @@ export function CustomerFormModal({ isOpen, onClose, customer, onSubmit, isPendi
                     />
                 </div>
                 <p id="customer-email-ayuda" className="-mt-2 text-xs text-foreground-muted">{t("clientes.correoAyuda")}</p>
+                {/* T6-06 — texto libre: cada país llama y escribe el suyo a su manera. */}
+                <Input
+                    id="customer-document"
+                    label={t("clientes.documento")}
+                    placeholder={t("clientes.ejemploDocumento")}
+                    maxLength={LARGO_MAXIMO_DE_DOCUMENTO}
+                    autoComplete="off"
+                    error={te(errors.document?.message)}
+                    {...register("document")}
+                />
                 <Input
                     id="customer-notes"
                     label={t("clientes.notas")}

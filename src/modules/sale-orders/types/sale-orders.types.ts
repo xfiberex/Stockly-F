@@ -20,6 +20,8 @@ export interface CreateSaleOrderDto {
     customerName?: string;
     customerEmail?: string;
     customerPhone?: string;
+    /** T6-06 — el documento del cliente en esta venta; sin él, el servidor copia el del cliente elegido. */
+    customerDocument?: string;
     notes?: string;
     items: CreateSaleOrderItemDto[];
 }
@@ -29,5 +31,7 @@ export interface UpdateSaleOrderDto {
     customerName?: string;
     customerEmail?: string;
     customerPhone?: string;
+    /** T6-06 — el documento del cliente en esta venta; sin él, el servidor copia el del cliente elegido. */
+    customerDocument?: string;
     notes?: string;
 }

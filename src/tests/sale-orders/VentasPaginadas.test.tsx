@@ -21,6 +21,8 @@ const orden = (n: number, status: SaleOrderStatus): SaleOrder => ({
     customerName: `Cliente ${n}`,
     customerEmail: null,
     customerPhone: null,
+    customerDocument: null,
+    createdByEmail: "admin@stockly.app",
     notes: null,
     items: [],
     subtotal: "0.00",

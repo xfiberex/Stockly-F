@@ -35,6 +35,8 @@ const orden = (items: SaleOrderItem[], importes: Pick<SaleOrder, "subtotal" | "t
     customerName: "Cliente",
     customerEmail: null,
     customerPhone: null,
+    customerDocument: null,
+    createdByEmail: "admin@stockly.app",
     notes: null,
     items,
     ...importes,

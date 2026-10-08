@@ -17,6 +17,7 @@ const ANA: CustomerListItem = {
     name: "Ana Soto",
     email: "ana@correo.com",
     phone: "555-0100",
+    document: "001-1234567-8",
     notes: null,
     ordersCount: 2,
     createdAt: "2026-08-01T10:00:00.000Z",
@@ -29,6 +30,7 @@ const VEGA: CustomerListItem = {
     name: "Distribuidora Vega",
     email: "compras@vega.mx",
     phone: null,
+    document: null,
     ordersCount: 0,
 };
 
@@ -122,7 +124,7 @@ describe("CustomersPage", () => {
         renderWithProviders(<CustomersPage />);
         await screen.findByRole("link", { name: "Ana Soto" });
 
-        await user.type(screen.getByRole("searchbox", { name: "Buscar por nombre, correo o teléfono" }), "vega");
+        await user.type(screen.getByRole("searchbox", { name: "Buscar por nombre, correo, teléfono o documento" }), "vega");
 
         await waitFor(() => expect(api.getAll).toHaveBeenLastCalledWith({ page: 1, limit: 20, search: "vega" }));
     });
@@ -149,7 +151,7 @@ describe("CustomersPage", () => {
         await waitFor(() => expect(api.delete).toHaveBeenCalledWith(ANA.id, expect.anything()));
     });
 
-    it("editar manda los cuatro campos, vacíos incluidos: así se borra un teléfono", async () => {
+    it("editar manda los cinco campos, vacíos incluidos: así se borra un teléfono", async () => {
         const user = userEvent.setup();
         renderWithProviders(<CustomersPage />);
 
@@ -159,10 +161,26 @@ describe("CustomersPage", () => {
 
         await waitFor(() =>
             expect(api.update).toHaveBeenCalledWith(
-                { id: ANA.id, form: { name: "Ana Soto", email: "ana@correo.com", phone: "", notes: "" } },
+                { id: ANA.id, form: { name: "Ana Soto", email: "ana@correo.com", phone: "", document: "001-1234567-8", notes: "" } },
                 expect.anything(),
             ),
         );
+    });
+
+    it("el documento se escribe en el alta y viaja recortado (T6-06)", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<CustomersPage />);
+
+        await user.click(await screen.findByRole("button", { name: "Nuevo cliente" }));
+        await user.type(screen.getByLabelText("Nombre *"), "Beto");
+        await user.type(screen.getByLabelText("Documento"), " B-98765432 ");
+        // El campo no deja escribir más de lo que admite el servidor.
+        expect(screen.getByLabelText("Documento")).toHaveAttribute("maxlength", "40");
+        await user.click(screen.getByRole("button", { name: "Guardar" }));
+
+        await waitFor(() => expect(api.create).toHaveBeenCalled());
+        // Recortado: los espacios de alrededor no son parte del documento.
+        expect(api.create.mock.calls[0]![0]).toMatchObject({ name: "Beto", document: "B-98765432" });
     });
 
     it("un correo mal escrito se señala en el campo, en el idioma de la aplicación", async () => {
@@ -197,6 +215,8 @@ describe("CustomerDetailPage", () => {
         customerName: nombre,
         customerEmail: null,
         customerPhone: null,
+        customerDocument: null,
+        createdByEmail: null,
         notes: null,
         // T6-05 — con impuesto del 18 %: la ficha enseña el subtotal, no el total.
         items: [{
@@ -225,6 +245,8 @@ describe("CustomerDetailPage", () => {
 
         expect(await screen.findByRole("heading", { name: "Ana Soto", level: 1 })).toBeInTheDocument();
         expect(screen.getByText("ana@correo.com")).toBeInTheDocument();
+        // T6-06 — el documento, con su nombre para quien no ve el icono.
+        expect(screen.getByText("001-1234567-8").parentElement).toHaveTextContent("Documento:001-1234567-8");
         expect(screen.getByText(formatearImporte(1234.5))).toBeInTheDocument();
         expect(screen.getByText("Importe enviado")).toBeInTheDocument();
         expect(screen.getByText(/1 pendiente todavía no cuenta/)).toBeInTheDocument();
@@ -287,7 +309,39 @@ describe("El cliente de una venta nueva", () => {
             customerName: "Ana Soto",
             customerEmail: "ana@correo.com",
             customerPhone: "999",
+            // T6-06 — el documento del cliente elegido viaja con la venta.
+            customerDocument: "001-1234567-8",
         });
+    });
+
+    it("el documento del cliente elegido rellena el campo, y lo que se corrija ahí es lo que sale (T6-06)", async () => {
+        const { user, dialogo } = await abrirFormulario();
+
+        await user.click(within(dialogo).getByRole("combobox", { name: "Cliente existente" }));
+        await user.click(await within(dialogo).findByRole("option", { name: /Ana Soto/ }));
+        const documento = within(dialogo).getByLabelText("Documento");
+        expect(documento).toHaveValue("001-1234567-8");
+
+        await user.clear(documento);
+        await user.type(documento, "RNC 1-31-00000-1");
+        await user.type(within(dialogo).getByLabelText("Nombre"), "Servicio");
+        await user.click(within(dialogo).getByRole("button", { name: "Crear orden" }));
+
+        await waitFor(() => expect(api.createSaleOrder).toHaveBeenCalled());
+        expect(api.createSaleOrder.mock.calls.at(-1)![0]).toMatchObject({ customerId: ANA.id, customerDocument: "RNC 1-31-00000-1" });
+    });
+
+    it("un cliente sin documento deja el campo vacío, y la venta sale sin él (T6-06)", async () => {
+        const { user, dialogo } = await abrirFormulario();
+
+        await user.click(within(dialogo).getByRole("combobox", { name: "Cliente existente" }));
+        await user.click(await within(dialogo).findByRole("option", { name: /Distribuidora Vega/ }));
+        expect(within(dialogo).getByLabelText("Documento")).toHaveValue("");
+        await user.type(within(dialogo).getByLabelText("Nombre"), "Servicio");
+        await user.click(within(dialogo).getByRole("button", { name: "Crear orden" }));
+
+        await waitFor(() => expect(api.createSaleOrder).toHaveBeenCalled());
+        expect(api.createSaleOrder.mock.calls.at(-1)![0].customerDocument).toBeUndefined();
     });
 
     it("quitar el cliente deja la venta sin `customerId`: la vinculará el servidor por su correo", async () => {

@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { ALMACEN, api, apiCruda, login, stockDe, sufijo } from "./helpers";
+import { ALMACEN, EMAIL, api, apiCruda, login, stockDe, sufijo } from "./helpers";
 import { eanDePrueba, paginasComoPng } from "./etiquetas";
 
 // T1-23: los tres defectos funcionales de la auditoría (T0-03, T1-03 y T1-05) no
@@ -476,11 +476,13 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         expect(await stockDe(page, creado.id)).toBe(0);
     });
 
-    test("una venta con correo nuevo crea su cliente, la siguiente lo elige con el buscador y la ficha suma solo lo enviado (T5-06)", async ({ page }) => {
+    test("una venta con correo nuevo crea su cliente, la siguiente lo elige con el buscador y la ficha suma solo lo enviado (T5-06, T6-06)", async ({ page }) => {
         await login(page);
         const id = sufijo();
         const nombre = `Cliente E2E ${id}`;
         const correo = `cliente-${id}@e2e.test`;
+        // T6-06 — el documento del cliente, escrito en la primera venta.
+        const documento = `E2E-${id}`;
 
         // 1. Venta por la interfaz, con un correo que no tiene nadie y en mayúsculas: el
         //    servidor crea el cliente con el correo normalizado.
@@ -489,6 +491,7 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         const modal = page.getByRole("dialog");
         await modal.getByLabel("Nombre del cliente").fill(nombre);
         await modal.getByLabel("Correo").fill(correo.toUpperCase());
+        await modal.getByLabel("Documento").fill(documento);
         await modal.getByLabel("Nombre", { exact: true }).fill("Servicio E2E");
         await modal.getByLabel("P. unit.").fill("150");
         await modal.getByRole("button", { name: "Crear orden" }).click();
@@ -502,6 +505,8 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         await buscador.press("Enter");
         await expect(modal.getByRole("button", { name: `Quitar el cliente ${nombre}` })).toBeVisible();
         await expect(modal.getByLabel("Correo")).toHaveValue(correo);
+        // T6-06 — el cliente nació con el documento de la primera venta, y elegirlo lo trae.
+        await expect(modal.getByLabel("Documento")).toHaveValue(documento);
         await modal.getByLabel("Nombre", { exact: true }).fill("Otro servicio E2E");
         await modal.getByLabel("P. unit.").fill("40");
         await modal.getByRole("button", { name: "Crear orden" }).click();
@@ -509,22 +514,36 @@ test.describe("Flujos que cruzan frontend y backend", () => {
 
         // 3. Las dos quedaron en el mismo cliente, y la primera conserva lo que se escribió.
         const encontrados = (await api(page, "get", `/customers?search=${encodeURIComponent(correo)}`)) as {
-            data: Array<{ id: string; email: string; ordersCount: number }>;
+            data: Array<{ id: string; email: string; document: string | null; ordersCount: number }>;
         };
         expect(encontrados.data).toHaveLength(1);
         const cliente = encontrados.data[0]!;
-        expect(cliente).toMatchObject({ email: correo, ordersCount: 2 });
+        expect(cliente).toMatchObject({ email: correo, document: documento, ordersCount: 2 });
         const ventas = (await api(page, "get", `/sale-orders?customerId=${cliente.id}`)) as {
-            data: Array<{ id: string; customerEmail: string; items: Array<{ unitPrice: string }> }>;
+            data: Array<{
+                id: string; number: number; customerEmail: string; customerDocument: string | null; createdByEmail: string | null;
+                items: Array<{ unitPrice: string }>;
+            }>;
         };
         const primera = ventas.data.find((v) => Number(v.items[0]!.unitPrice) === 150)!;
         expect(primera.customerEmail).toBe(correo.toUpperCase());
+        // T6-06 — las dos llevan el documento en su instantánea y dicen quién las registró.
+        for (const venta of ventas.data) expect(venta).toMatchObject({ customerDocument: documento, createdByEmail: EMAIL });
+
+        // Y se lee en el detalle de la venta, sin ir a la auditoría.
+        await page.getByLabel("Nº de venta").fill(String(primera.number));
+        await page.getByText(`Venta #${String(primera.number).padStart(6, "0")}`, { exact: true }).click();
+        await expect(page.getByText(`Documento: ${documento}`)).toBeVisible();
+        await expect(page.getByText(`Registrada por ${EMAIL}`)).toBeVisible();
 
         // 4. La ficha, a la que se llega desde la lista: nada enviado todavía.
         await page.goto("/customers");
-        await page.getByRole("searchbox", { name: "Buscar por nombre, correo o teléfono" }).fill(correo);
+        // T6-06 — se le encuentra también por su documento.
+        await page.getByRole("searchbox", { name: "Buscar por nombre, correo, teléfono o documento" }).fill(documento);
         await page.getByRole("link", { name: nombre }).click();
         await expect(page.getByRole("heading", { name: nombre, level: 1 })).toBeVisible();
+        // La etiqueta para lector de pantalla va en el mismo `<span>`: no es un texto exacto.
+        await expect(page.getByRole("main").getByText(documento)).toBeVisible();
         const importe = page.getByText("Importe enviado").locator("..");
         await expect(importe).toContainText("$0.00");
         await expect(page.getByRole("region", { name: "Historial de ventas" }).getByRole("row")).toHaveCount(3);

@@ -10,6 +10,8 @@ export interface CustomerForm {
     name: string;
     email?: string;
     phone?: string;
+    /** T6-06 — cédula, RNC, NIF. */
+    document?: string;
     notes?: string;
 }
 

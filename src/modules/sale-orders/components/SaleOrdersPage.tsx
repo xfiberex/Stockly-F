@@ -37,7 +37,7 @@ import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONT
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 import { cn } from "@/shared/lib/cn";
 import { useDebounce } from "@/shared/hooks/useDebounce";
-import { aNumero, escribirNumeroDeVenta } from "@/shared/contratos";
+import { LARGO_MAXIMO_DE_DOCUMENTO, aNumero, escribirNumeroDeVenta } from "@/shared/contratos";
 import { useNegocio } from "@/modules/settings/hooks/useNegocio";
 
 // Mismo criterio que en las órdenes de compra: el descriptor de `shared/lib/estados`
@@ -192,6 +192,8 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
         setValue("customerName", elegido.name);
         setValue("customerEmail", elegido.email ?? "");
         setValue("customerPhone", elegido.phone ?? "");
+        // T6-06 — el documento también, y también editable: es el de esta venta.
+        setValue("customerDocument", elegido.document ?? "");
     };
     const cerrar = () => { setCliente(null); setAvisoDeEscaneo(null); onClose(); };
 
@@ -263,6 +265,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
             customerName: formData.customerName || undefined,
             customerEmail: formData.customerEmail || undefined,
             customerPhone: formData.customerPhone || undefined,
+            customerDocument: formData.customerDocument?.trim() || undefined,
             notes: formData.notes || undefined,
             items: formData.items.map((item) => ({
                 productId: item.productId || undefined,
@@ -286,8 +289,16 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                     <Input id="customerPhone" label={t("ventas.telefono")} placeholder={t("ventas.ejemploTelefono")} {...register("customerPhone")} />
-                    <Input id="notes" label={t("ordenes.notas")} placeholder={t("ordenes.ejemploNotas")} {...register("notes")} />
+                    <Input
+                        id="customerDocument"
+                        label={t("clientes.documento")}
+                        placeholder={t("clientes.ejemploDocumento")}
+                        maxLength={LARGO_MAXIMO_DE_DOCUMENTO}
+                        autoComplete="off"
+                        {...register("customerDocument")}
+                    />
                 </div>
+                <Input id="notes" label={t("ordenes.notas")} placeholder={t("ordenes.ejemploNotas")} {...register("notes")} />
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
@@ -647,11 +658,20 @@ export default function SaleOrdersPage() {
 
                             {expandedId === order.id && (
                                 <div className="border-t border-border px-5 py-4">
-                                    {(order.customerEmail || order.customerPhone) && (
-                                        <div className="flex gap-4 mb-3 text-xs text-foreground-muted">
+                                    {(order.customerEmail || order.customerPhone || order.customerDocument) && (
+                                        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-xs text-foreground-muted">
                                             {order.customerEmail && <span>✉ {order.customerEmail}</span>}
                                             {order.customerPhone && <span>📞 {order.customerPhone}</span>}
+                                            {order.customerDocument && (
+                                                <span>{t("ventas.documentoDe", { documento: order.customerDocument })}</span>
+                                            )}
                                         </div>
+                                    )}
+                                    {/* T6-06 — quién la registró. Las anteriores a este dato no lo dicen. */}
+                                    {order.createdByEmail && (
+                                        <p className="mb-3 text-xs text-foreground-muted break-all">
+                                            {t("ventas.registradaPor", { correo: order.createdByEmail })}
+                                        </p>
                                     )}
                                     {order.notes && (
                                         <p className="text-xs text-foreground-muted mb-3 italic">"{order.notes}"</p>

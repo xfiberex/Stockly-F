@@ -64,6 +64,8 @@ export const ordenDeVentaEnviada: SaleOrder = segunContrato(ordenDeVentaSchema, 
     customerName: "Cliente de prueba",
     customerEmail: null,
     customerPhone: null,
+    customerDocument: null,
+    createdByEmail: "admin@stockly.app",
     notes: null,
     items: [
         {
