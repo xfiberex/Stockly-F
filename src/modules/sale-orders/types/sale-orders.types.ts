@@ -26,6 +26,15 @@ export interface CreateSaleOrderDto {
     items: CreateSaleOrderItemDto[];
 }
 
+/**
+ * T6-08 — una venta de mostrador. Cada línea es un producto y una cantidad: **sin precio**, que
+ * lo pone el servidor con el del catálogo.
+ */
+export interface CounterSaleDto {
+    customerId?: string;
+    items: Array<{ productId: string; quantity: number }>;
+}
+
 export interface UpdateSaleOrderDto {
     status?: SaleOrderStatus;
     customerName?: string;

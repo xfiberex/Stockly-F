@@ -4,6 +4,7 @@ import { useAuth } from "@/modules/auth/hooks/useMe";
 import { useNegocio } from "@/modules/settings/hooks/useNegocio";
 import { useSimboloDeMoneda } from "@/shared/hooks/useSimboloDeMoneda";
 import { Spinner } from "@/shared/components/Spinner";
+import { puede, type RutaConPermiso } from "@/shared/contratos";
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -13,9 +14,15 @@ interface ProtectedRouteProps {
      * que solo puede mostrarle una cascada de errores 403.
      */
     requireRole?: string;
+    /**
+     * T6-08 — la ruta de la API que la pantalla necesita. Entra quien puede llamarla, según la
+     * misma matriz `PERMISOS` con la que el backend la protege. Es para las pantallas que abren
+     * **varios** roles —el mostrador: `ADMIN` y `SELLER`—, que `requireRole` no sabe expresar.
+     */
+    requirePermiso?: RutaConPermiso;
 }
 
-export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requireRole, requirePermiso }: ProtectedRouteProps) {
     const { user, isLoading, isError } = useAuth();
     // T6-03 — la moneda del negocio se pide en cuanto hay sesión y **se espera aquí**, con el
     // mismo spinner: una pantalla que pintara antes saldría con `$` y cambiaría a `RD$` un
@@ -36,6 +43,7 @@ export function ProtectedRoute({ children, requireRole }: ProtectedRouteProps) {
 
     // Al dashboard, no al login: la sesión es válida, lo que falta es el permiso.
     if (requireRole && user.role !== requireRole) return <Navigate to="/" replace />;
+    if (requirePermiso && !puede(user.role, requirePermiso)) return <Navigate to="/" replace />;
 
     // La clave vuelve a montar las pantallas cuando un administrador cambia el símbolo:
     // `formatearImporte` es una función pura y nada más les diría que vuelvan a pintar.

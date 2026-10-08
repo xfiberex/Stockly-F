@@ -13,6 +13,11 @@ interface BuscadorDeClienteProps {
     /** El cliente elegido, o `null` si la venta no está vinculada a ninguno. */
     seleccionado: CustomerListItem | null;
     onSeleccionar: (cliente: CustomerListItem | null) => void;
+    /**
+     * T6-08 — la ayuda de debajo del campo. Por defecto es la del formulario de venta, que
+     * promete vincular por el correo; el mostrador no tiene campo de correo y dice otra cosa.
+     */
+    ayuda?: string;
 }
 
 /**
@@ -25,7 +30,7 @@ interface BuscadorDeClienteProps {
  *
  * Elegir no es obligatorio: sin cliente elegido, la venta se vincula sola por su correo.
  */
-export function BuscadorDeCliente({ seleccionado, onSeleccionar }: BuscadorDeClienteProps) {
+export function BuscadorDeCliente({ seleccionado, onSeleccionar, ayuda }: BuscadorDeClienteProps) {
     const { t } = useT();
     const id = useId();
     const idLista = `${id}-lista`;
@@ -117,7 +122,7 @@ export function BuscadorDeCliente({ seleccionado, onSeleccionar }: BuscadorDeCli
                 onBlur={() => setAbierto(false)}
                 onKeyDown={onKeyDown}
             />
-            <p id={idAyuda} className="text-xs text-foreground-muted">{t("ventas.buscarClienteAyuda")}</p>
+            <p id={idAyuda} className="text-xs text-foreground-muted">{ayuda ?? t("ventas.buscarClienteAyuda")}</p>
             <ul
                 id={idLista}
                 role="listbox"

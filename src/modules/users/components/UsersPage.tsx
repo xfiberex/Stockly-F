@@ -7,7 +7,7 @@ import { Spinner } from "@/shared/components/Spinner";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useUsers, useUpdateUserRole, useSetUserActive } from "@/modules/users/hooks/useUsers";
 import type { AppUser, UserRole } from "@/modules/users/types/users.types";
-import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon, ArchiveBoxIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon, ArchiveBoxIcon, BanknotesIcon } from "@heroicons/react/24/outline";
 import type { Clave } from "@/shared/i18n/traducir";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ACTIVIDAD } from "@/shared/lib/estados";
@@ -25,6 +25,8 @@ const ROL: Record<UserRole, { clave: Clave; Icono: typeof UserIcon; variante: "i
     ADMIN: { clave: "usuarios.rol.ADMIN", Icono: ShieldCheckIcon, variante: "info" },
     USER: { clave: "usuarios.rol.USER", Icono: UserIcon, variante: "neutral" },
     WAREHOUSE: { clave: "usuarios.rol.WAREHOUSE", Icono: ArchiveBoxIcon, variante: "neutral" },
+    // T6-08 — quien atiende el mostrador.
+    SELLER: { clave: "usuarios.rol.SELLER", Icono: BanknotesIcon, variante: "neutral" },
 };
 
 export default function UsersPage() {

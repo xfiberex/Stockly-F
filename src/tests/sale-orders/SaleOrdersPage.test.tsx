@@ -240,6 +240,21 @@ describe("SaleOrdersPage — el rol de almacén (T5-13)", () => {
         expect(botonCancelarEnvio()).not.toBeInTheDocument();
     });
 
+    it("T6-08 — un SELLER ve las ventas y ninguno de los botones: ni crear, ni enviar, ni cancelar, ni eliminar, ni exportar", () => {
+        rol = "SELLER";
+        ordenes = [ORDEN_PENDIENTE, ORDEN_ENVIADA];
+        renderWithProviders(<SaleOrdersPage />);
+
+        expect(screen.getByText("Venta #000042")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Nueva orden" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^Marcar como enviada la Venta #/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^Cancelar la Venta #/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /^Eliminar la Venta #/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Exportar" })).not.toBeInTheDocument();
+        // Tampoco cancela una venta ya hecha: devolver stock no es suyo.
+        expect(botonCancelarEnvio()).not.toBeInTheDocument();
+    });
+
     it("un USER no envía nada", () => {
         rol = "USER";
         ordenes = [ORDEN_PENDIENTE];

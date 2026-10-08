@@ -75,6 +75,45 @@ describe("ProtectedRoute", () => {
         expect(screen.queryByText("Página de login")).toBeNull();
     });
 
+    describe("por permiso, para las pantallas que abren varios roles (T6-08)", () => {
+        function Mostrador() {
+            return (
+                <QueryClientProvider client={createTestQueryClient()}>
+                    <MemoryRouter initialEntries={["/counter"]}>
+                        <Routes>
+                            <Route path="/" element={<div>Panel</div>} />
+                            <Route
+                                path="/counter"
+                                element={
+                                    <ProtectedRoute requirePermiso="POST /sale-orders/counter">
+                                        <div>Mostrador</div>
+                                    </ProtectedRoute>
+                                }
+                            />
+                        </Routes>
+                    </MemoryRouter>
+                </QueryClientProvider>
+            );
+        }
+        const entrar = (role: Rol) => {
+            vi.mocked(useAuth).mockReturnValue({ user: { ...usuario, role }, isLoading: false, isError: false });
+            return render(<Mostrador />);
+        };
+
+        it.each(["ADMIN", "SELLER"] as const)("un %s entra", (role) => {
+            entrar(role);
+
+            expect(screen.getByText("Mostrador")).toBeInTheDocument();
+        });
+
+        it.each(["USER", "WAREHOUSE"] as const)("un %s vuelve al panel: tiene sesión, lo que no tiene es el permiso", (role) => {
+            entrar(role);
+
+            expect(screen.queryByText("Mostrador")).toBeNull();
+            expect(screen.getByText("Panel")).toBeInTheDocument();
+        });
+    });
+
     describe("la moneda del negocio (T6-03)", () => {
         afterEach(() => {
             negocioEn({ isLoading: false });

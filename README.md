@@ -177,6 +177,7 @@ Las crea el seed del backend (`pnpm db:seed` en `Stockly-B`).
 | ADMIN | `admin@stockly.app` | `Admin1234!` |
 | USER | `laura@stockly.app` | `User1234!` |
 | WAREHOUSE | `almacen@stockly.app` | `Almacen1234!` |
+| SELLER | `vendedor@stockly.app` | `Vendedor1234!` |
 
 > Las del E2E salen de ahí y son sobreescribibles por variables de entorno. **Nunca poner una
 > contraseña real en `e2e/`**: ese directorio está versionado.

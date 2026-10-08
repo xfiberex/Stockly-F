@@ -37,6 +37,8 @@ const ACTION_VARIANTS: Record<AuditAction, BadgeVariant> = {
     // lo contrario de para lo que se registra.
     REFRESH_REUSE: "danger",
     // T5-07 — cerrar un conteo ajusta stock, como un ajuste en bloque; cancelarlo no mueve nada.
+    // T6-08 — una venta hecha, como `SALE_SHIP`.
+    SALE_COUNTER: "success",
     COUNT_CLOSE: "info",
     COUNT_CANCEL: "danger",
 };

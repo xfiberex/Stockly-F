@@ -3,8 +3,8 @@ import { toast } from "react-toastify";
 import { useT } from "@/shared/hooks/useIdioma";
 import { mensajeDeError } from "@/shared/lib/errorApi";
 import { queryKeys } from "@/shared/constants/queryKeys";
-import { getSaleOrders, createSaleOrder, updateSaleOrder, shipSaleOrder, deleteSaleOrder, type SaleOrdersQuery } from "../api/sale-orders.api";
-import type { CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
+import { getSaleOrders, createSaleOrder, createCounterSale, updateSaleOrder, shipSaleOrder, deleteSaleOrder, type SaleOrdersQuery } from "../api/sale-orders.api";
+import type { CounterSaleDto, CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
 
 export const SALE_ORDERS_KEY = ["sale-orders"] as const;
 
@@ -32,6 +32,29 @@ export function useCreateSaleOrder() {
             toast.success(t("ventas.creada"));
         },
         onError: (error) => toast.error(mensajeDeError(idioma, error)),
+    });
+}
+
+/**
+ * T6-08 — `POST /sale-orders/counter`. Sin aviso de éxito: la pantalla del mostrador cambia
+ * entera para decirlo, con el número y el importe. El error sí se avisa, traducido —un 409 dice
+ * de qué producto no hay y cuánto queda—.
+ */
+export function useVentaDeMostrador() {
+    const qc = useQueryClient();
+    const { idioma } = useT();
+    return useMutation({
+        mutationFn: (dto: CounterSaleDto) => createCounterSale(dto),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: SALE_ORDERS_KEY });
+            qc.invalidateQueries({ queryKey: queryKeys.product });
+            qc.invalidateQueries({ queryKey: queryKeys.customers });
+        },
+        onError: (error) => {
+            // Lo más probable es que el disponible haya cambiado: el que hay en pantalla ya no vale.
+            qc.invalidateQueries({ queryKey: queryKeys.product });
+            toast.error(mensajeDeError(idioma, error));
+        },
     });
 }
 

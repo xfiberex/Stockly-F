@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { ALMACEN, EMAIL, api, apiCruda, login, stockDe, sufijo } from "./helpers";
+import { ALMACEN, EMAIL, VENDEDOR, api, apiCruda, login, stockDe, sufijo } from "./helpers";
 import { eanDePrueba, paginasComoPng, textoDelPdf } from "./etiquetas";
 
 // T1-23: los tres defectos funcionales de la auditoría (T0-03, T1-03 y T1-05) no
@@ -877,6 +877,125 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         const anulada = page.waitForEvent("download");
         await page.getByRole("button", { name: `Descargar el comprobante de la Venta #${numero}` }).click();
         expect((await textoDelPdf((await (await anulada).path())!))[0]).toContain("ANULADA");
+    });
+
+    test("un vendedor registra en el mostrador una venta de dos productos y queda hecha; no crea órdenes, no cancela y no cambia precios (T6-08)", async ({ page, browser }) => {
+        // ADMIN prepara dos productos; quien vende es el vendedor, en su propia sesión.
+        await login(page);
+        const id = sufijo();
+        const lapiz = `E2E-mostrador-lapiz-${id}`;
+        const libreta = `E2E-mostrador-libreta-${id}`;
+        const a = (await api(page, "post", "/products", { name: lapiz, price: 12.5, stock: 6, costPrice: 4 })) as { id: string };
+        const b = (await api(page, "post", "/products", { name: libreta, price: 80, stock: 3, costPrice: 35 })) as { id: string };
+
+        const contexto = await browser.newContext({ acceptDownloads: true });
+        const vendedor = await contexto.newPage();
+        try {
+            await login(vendedor, VENDEDOR);
+            await vendedor.goto("/counter");
+            await expect(vendedor.getByRole("heading", { name: "Mostrador", level: 1 })).toBeVisible();
+            const registrar = vendedor.getByRole("button", { name: "Registrar venta" });
+            await expect(registrar).toBeDisabled();
+
+            // Busca cada producto por su nombre y lo elige; el campo queda libre para el siguiente.
+            const buscar = async (nombre: string) => {
+                await vendedor.getByRole("combobox", { name: "Producto" }).fill(nombre);
+                await vendedor.getByRole("option", { name: new RegExp(nombre) }).click();
+            };
+            await buscar(lapiz);
+            await buscar(libreta);
+            await vendedor.getByRole("button", { name: `Una unidad más de ${lapiz}` }).click();
+            await expect(vendedor.getByRole("spinbutton", { name: `Cantidad de ${lapiz}` })).toHaveValue("2");
+            // La pantalla cabe en el móvil: nada la ensancha.
+            expect(await vendedor.evaluate(() => window.innerWidth)).toBe(vendedor.viewportSize()!.width);
+
+            // Pasarse de lo disponible no deja registrar; volver a lo que hay, sí.
+            const cantidadDeLibreta = vendedor.getByRole("spinbutton", { name: `Cantidad de ${libreta}` });
+            await cantidadDeLibreta.fill("4");
+            await expect(vendedor.getByText("Solo hay 3 disponibles")).toBeVisible();
+            await expect(registrar).toBeDisabled();
+            await cantidadDeLibreta.fill("1");
+            await expect(registrar).toBeEnabled();
+
+            // Sin más pasos: registrar la deja hecha.
+            const respuesta = vendedor.waitForResponse((r) => r.url().endsWith("/sale-orders/counter") && r.request().method() === "POST");
+            await registrar.click();
+            const venta = (await (await respuesta).json()).data as { id: string; number: number; status: string; total: string; createdByEmail: string };
+            // Lo que salió del navegador no llevaba precios.
+            expect((await respuesta).request().postDataJSON()).toEqual({ items: [{ productId: a.id, quantity: 2 }, { productId: b.id, quantity: 1 }] });
+            expect(venta).toMatchObject({ status: "SHIPPED", createdByEmail: VENDEDOR.email });
+            const numero = String(venta.number).padStart(6, "0");
+            const hecha = vendedor.getByRole("status");
+            await expect(hecha.getByText(`Venta #${numero} registrada`)).toBeVisible();
+            // 2 × 12.50 + 80.00, más el impuesto que hubiera en ese instante: el de la respuesta.
+            await expect(hecha).toContainText(Number(venta.total).toLocaleString("en-US", { minimumFractionDigits: 2 }));
+
+            // El comprobante, desde ahí mismo.
+            const descarga = vendedor.waitForEvent("download");
+            await vendedor.getByRole("button", { name: "Descargar comprobante" }).click();
+            const archivo = await descarga;
+            expect(archivo.suggestedFilename()).toBe(`comprobante-${numero}.pdf`);
+            const [papel] = await textoDelPdf((await archivo.path())!);
+            for (const dato of [`Nº ${numero}`, lapiz, libreta, VENDEDOR.email]) expect(papel).toContain(dato);
+
+            // En el servidor: el stock ha bajado y hay un movimiento de salida por producto.
+            expect(await stockDe(page, a.id)).toBe(4);
+            expect(await stockDe(page, b.id)).toBe(2);
+            for (const [producto, delta] of [[a.id, -2], [b.id, -1]] as const) {
+                const { movements } = (await api(page, "get", `/products/${producto}/movements`)) as {
+                    movements: Array<{ type: string; delta: number; note: string | null }>;
+                };
+                // El otro movimiento del producto es su stock inicial, de entrada.
+                expect(movements.filter((m) => m.type === "OUT")).toMatchObject([{ delta, note: `Venta de mostrador #${numero}` }]);
+            }
+
+            // «Nueva venta» deja el mostrador vacío.
+            await vendedor.getByRole("button", { name: "Nueva venta" }).click();
+            await expect(vendedor.getByText("Todavía no hay productos en esta venta.")).toBeVisible();
+
+            // Lo que no puede, por la API: crear una orden pendiente, cancelar la venta, cambiar un precio.
+            const pendiente = await apiCruda(vendedor, "post", "/sale-orders", { items: [{ productId: a.id, productName: lapiz, quantity: 1, unitPrice: 1 }] });
+            const cancelar = await apiCruda(vendedor, "patch", `/sale-orders/${venta.id}`, { status: "CANCELLED" });
+            const precio = await apiCruda(vendedor, "put", `/products/${a.id}`, { price: 1 });
+            expect([pendiente.status(), cancelar.status(), precio.status()]).toEqual([403, 403, 403]);
+            expect(Number(((await api(page, "get", `/products/${a.id}`)) as { price: string }).price)).toBe(12.5);
+            expect(await stockDe(page, a.id)).toBe(4);
+            // Y pedir más de lo que queda responde 409 sin mover nada.
+            const sinDisponible = await apiCruda(vendedor, "post", "/sale-orders/counter", { items: [{ productId: b.id, quantity: 3 }] });
+            expect(sinDisponible.status()).toBe(409);
+            expect((await sinDisponible.json()).code).toBe("INSUFFICIENT_AVAILABLE_STOCK");
+            expect(await stockDe(page, b.id)).toBe(2);
+
+            // Ni por la interfaz: la venta se ve, y no hay con qué crearla, cancelarla ni tocar el producto.
+            await vendedor.goto("/sale-orders");
+            const filtrada = vendedor.waitForResponse((r) => /\/sale-orders\?.*number=/.test(r.url()));
+            await vendedor.getByLabel("Nº de venta").fill(numero);
+            await filtrada;
+            await expect(vendedor.getByText(`Venta #${numero}`, { exact: true })).toBeVisible();
+            await expect(vendedor.getByRole("button", { name: "Nueva orden" })).toHaveCount(0);
+            await expect(vendedor.getByRole("button", { name: `Cancelar la orden enviada Venta #${numero}` })).toHaveCount(0);
+            await vendedor.goto("/catalog/products");
+            await vendedor.getByPlaceholder("Buscar producto...").fill(lapiz);
+            await expect(vendedor.getByText(lapiz)).toBeVisible();
+            await expect(vendedor.getByRole("button", { name: `Editar ${lapiz}` })).toHaveCount(0);
+            await expect(vendedor.getByRole("button", { name: /Nuevo producto/ })).toHaveCount(0);
+            // Una pantalla de administración lo devuelve al panel.
+            await vendedor.goto("/settings");
+            await expect(vendedor.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+        } finally {
+            await contexto.close();
+        }
+
+        // El almacén, que no vende, no entra en el mostrador.
+        const otro = await browser.newContext();
+        try {
+            const almacen = await otro.newPage();
+            await login(almacen, ALMACEN);
+            await almacen.goto("/counter");
+            await expect(almacen.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+        } finally {
+            await otro.close();
+        }
     });
 
     test("una venta creada con la tasa al 18 % enseña subtotal, impuesto y total, y cambiar la tasa después no la toca (T6-05)", async ({ page }, testInfo) => {

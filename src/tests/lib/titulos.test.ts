@@ -1,6 +1,7 @@
 import { isValidElement } from "react";
 import { Navigate } from "react-router-dom";
 import { router } from "@/routes";
+import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
 import { TITULOS_DE_RUTA, TITULO_POR_DEFECTO, tituloDeRuta } from "@/shared/lib/titulos";
 import type { RouteObject } from "react-router-dom";
 
@@ -29,6 +30,18 @@ function rutasDe(rutas: readonly RouteObject[], prefijo = ""): string[] {
         return ruta.element && !esRedireccion ? [propia, ...hijas] : hijas;
     });
 }
+
+describe("Guardias de ruta", () => {
+    it("el mostrador se guarda por permiso, no por rol: lo abren ADMIN y SELLER (T6-08)", () => {
+        const hijas = router.routes.find((ruta) => ruta.path === "/")?.children ?? [];
+        const mostrador = hijas.find((ruta) => ruta.path === "counter");
+
+        const guardia = mostrador?.element;
+        expect(isValidElement<{ requirePermiso?: string; requireRole?: string }>(guardia) && guardia.type === ProtectedRoute).toBe(true);
+        expect((guardia as { props: { requirePermiso?: string; requireRole?: string } }).props).toMatchObject({ requirePermiso: "POST /sale-orders/counter" });
+        expect((guardia as { props: { requireRole?: string } }).props.requireRole).toBeUndefined();
+    });
+});
 
 describe("Títulos de ruta (T2-18)", () => {
     const delRouter = [...new Set(rutasDe(router.routes))];

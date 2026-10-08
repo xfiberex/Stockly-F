@@ -59,6 +59,8 @@ function recorrido(raiz: HTMLElement): string[] {
 
 const RECORRIDO_ADMIN = [
     "Dashboard",
+    // T6-08 — el mostrador, para quien puede vender en él.
+    "Mostrador",
     "Catálogo", "Productos", "Categorías", "Marcas", "Proveedores", "Etiquetas",
     "Órdenes", "Compra", "Venta", "Clientes",
     "Conteos físicos",
@@ -82,8 +84,22 @@ describe("Orden de la navegación (T3-04, T4-10)", () => {
         renderWithProviders(layout());
 
         expect(recorrido(barraLateral())).toEqual(
-            RECORRIDO_ADMIN.filter((rotulo) => !["Admin", "Usuarios", "Auditoría", "Configuración"].includes(rotulo)),
+            RECORRIDO_ADMIN.filter((rotulo) => !["Mostrador", "Admin", "Usuarios", "Auditoría", "Configuración"].includes(rotulo)),
         );
+    });
+
+    it("un SELLER ve el mostrador y no el grupo de administración; el almacén, ninguno de los dos (T6-08)", () => {
+        rol = "SELLER";
+        const { unmount } = renderWithProviders(layout());
+
+        const delVendedor = recorrido(barraLateral());
+        expect(delVendedor).toEqual(RECORRIDO_ADMIN.filter((rotulo) => !["Admin", "Usuarios", "Auditoría", "Configuración"].includes(rotulo)));
+        expect(within(barraLateral()).getByRole("link", { name: "Mostrador" })).toHaveAttribute("href", "/counter");
+        unmount();
+
+        rol = "WAREHOUSE";
+        renderWithProviders(layout());
+        expect(recorrido(barraLateral())).not.toContain("Mostrador");
     });
 
     it("el panel de móvil pinta exactamente el mismo recorrido", async () => {
@@ -101,15 +117,16 @@ describe("Orden de la navegación (T3-04, T4-10)", () => {
 });
 
 describe("Barra lateral (T4-10)", () => {
-    it("cada sección se alcanza en un solo clic: son catorce enlaces, sin disparadores que abrir", () => {
+    it("cada sección se alcanza en un solo clic: son quince enlaces, sin disparadores que abrir", () => {
         renderWithProviders(layout());
         const lateral = barraLateral();
 
         // Ni un `<button>`: lo que había antes eran tres, y cada uno costaba una
         // interacción extra para llegar a lo que guardaba.
         expect(lateral.querySelectorAll("button")).toHaveLength(0);
-        // T5-07 — trece desde que los conteos físicos tienen su sección; T5-06, catorce con los clientes.
-        expect(lateral.querySelectorAll("a[href]")).toHaveLength(14);
+        // T5-07 — trece desde que los conteos físicos tienen su sección; T5-06, catorce con los
+        // clientes; T6-08, quince con el mostrador.
+        expect(lateral.querySelectorAll("a[href]")).toHaveLength(15);
     });
 
     it("los destinos de los grupos están en el DOM sin desplegar nada", () => {

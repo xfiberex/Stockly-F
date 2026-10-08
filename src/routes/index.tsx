@@ -19,6 +19,7 @@ const InformePorPeriodoPage = lazy(() => import("@/modules/reports/components/In
 const PurchaseOrdersPage = lazy(() => import("@/modules/purchase-orders/components/PurchaseOrdersPage"));
 const SugerenciasReposicionPage = lazy(() => import("@/modules/purchase-orders/components/SugerenciasReposicionPage"));
 const SaleOrdersPage = lazy(() => import("@/modules/sale-orders/components/SaleOrdersPage"));
+const MostradorPage = lazy(() => import("@/modules/sale-orders/components/MostradorPage"));
 const CustomersPage = lazy(() => import("@/modules/customers/components/CustomersPage"));
 const CustomerDetailPage = lazy(() => import("@/modules/customers/components/CustomerDetailPage"));
 const InventoryCountsPage = lazy(() => import("@/modules/inventory-counts/components/InventoryCountsPage"));
@@ -79,6 +80,8 @@ export const router = createBrowserRouter([
             // T5-05 — solo ADMIN: generar órdenes lo es, y la pantalla existe para eso.
             { path: "purchase-orders/suggestions", element: <ProtectedRoute requireRole="ADMIN"><S><SugerenciasReposicionPage /></S></ProtectedRoute> },
             { path: "sale-orders", element: <S><SaleOrdersPage /></S> },
+            // T6-08 — el mostrador lo abren dos roles: se guarda por permiso, no por rol.
+            { path: "counter", element: <ProtectedRoute requirePermiso="POST /sale-orders/counter"><S><MostradorPage /></S></ProtectedRoute> },
             // T5-06 — los ve quien ve las ventas; crear, editar y borrar lo decide la matriz.
             { path: "customers", element: <S><CustomersPage /></S> },
             { path: "customers/:id", element: <S><CustomerDetailPage /></S> },

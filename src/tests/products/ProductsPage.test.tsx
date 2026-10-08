@@ -137,6 +137,16 @@ describe("ProductsPage — el rol de almacén (T5-13)", () => {
         expect(screen.queryByRole("button", { name: /Importar/ })).toBeNull();
     });
 
+    it("T6-08 — un SELLER no cambia precios ni stock: ni selecciona, ni crea, ni importa", () => {
+        rol = "SELLER";
+        renderWithProviders(<ProductsPage />);
+
+        expect(screen.queryByRole("checkbox", { name: "Seleccionar Teclado Logitech" })).toBeNull();
+        expect(screen.queryByRole("button", { name: /Nuevo producto/ })).toBeNull();
+        expect(screen.queryByRole("button", { name: /Importar/ })).toBeNull();
+        expect(screen.queryByRole("button", { name: /^Editar/ })).toBeNull();
+    });
+
     it("un USER no puede seleccionar", () => {
         rol = "USER";
         renderWithProviders(<ProductsPage />);

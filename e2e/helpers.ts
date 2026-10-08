@@ -11,6 +11,12 @@ export const ALMACEN = {
     password: process.env.E2E_ALMACEN_PASSWORD ?? "Almacen1234!",
 };
 
+// T6-08 — la cuenta de vendedor del seed.
+export const VENDEDOR = {
+    email: process.env.E2E_VENDEDOR_EMAIL ?? "vendedor@stockly.app",
+    password: process.env.E2E_VENDEDOR_PASSWORD ?? "Vendedor1234!",
+};
+
 export const API_URL = process.env.E2E_API_URL ?? "http://localhost:3000";
 
 export async function login(page: Page, cuenta = { email: EMAIL, password: PASSWORD }): Promise<void> {

@@ -126,6 +126,9 @@ export function BuscadorDeProducto({ seleccionado, onSeleccionar }: BuscadorDePr
                     value={texto}
                     onChange={(e) => { setTexto(e.target.value); setAbierto(true); setActivo(0); }}
                     onFocus={() => setAbierto(true)}
+                    // T6-08 — en el mostrador el campo no se va al elegir: se queda con el foco
+                    // para el producto siguiente, y sin esto pulsarlo otra vez no abría la lista.
+                    onClick={() => setAbierto(true)}
                     onBlur={() => setAbierto(false)}
                     onKeyDown={onKeyDown}
                 />

@@ -2,7 +2,7 @@ import api from "@/shared/api/axios";
 import { descargarDeLaApi } from "@/shared/api/descargar";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
 import { escribirNumeroDeVenta } from "@/shared/contratos";
-import type { SaleOrder, SaleOrderStatus, CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
+import type { CounterSaleDto, SaleOrder, SaleOrderStatus, CreateSaleOrderDto, UpdateSaleOrderDto } from "../types/sale-orders.types";
 
 /**
  * T5-06 — `customerId` trae solo las de un cliente: el historial de su ficha.
@@ -30,6 +30,12 @@ export const getSaleOrders = async (params: SaleOrdersQuery = {}): Promise<Pagin
 
 export const createSaleOrder = async (dto: CreateSaleOrderDto): Promise<SaleOrder> => {
     const { data } = await api.post<ApiResponse<SaleOrder>>("/sale-orders", dto);
+    return data.data!;
+};
+
+/** T6-08 — la venta de mostrador: vuelve ya enviada, con su número y sus importes. */
+export const createCounterSale = async (dto: CounterSaleDto): Promise<SaleOrder> => {
+    const { data } = await api.post<ApiResponse<SaleOrder>>("/sale-orders/counter", dto);
     return data.data!;
 };
 
