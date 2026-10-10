@@ -8,7 +8,7 @@
 // Editar este archivo directamente no sirve de nada: `frescura.test.ts` compara
 // su contenido con el del backend y falla, y la próxima generación lo pisa.
 //
-// huella: 21738338247b0d7b
+// huella: f1c8c67fd515edae
 
 /**
  * T4-01 — El contrato de la API, en un solo archivo y en un solo sitio.
@@ -157,6 +157,7 @@ export const PERMISOS = {
     "GET /reports/abc": TODOS,
     // Administración
     "GET /users": SOLO_ADMIN,
+    "POST /users": SOLO_ADMIN,
     "GET /users/:id": SOLO_ADMIN,
     "PATCH /users/:id/role": SOLO_ADMIN,
     "PATCH /users/:id/activate": SOLO_ADMIN,

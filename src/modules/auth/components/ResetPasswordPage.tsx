@@ -12,7 +12,10 @@ export default function ResetPasswordPage() {
     const { t, te } = useT();
     const [params] = useSearchParams();
     const token = params.get("token") ?? "";
-    const reset = useResetPassword(token);
+    // T6-10 — el enlace de una invitación llega aquí con `invitacion=1`. Quien lo abre no ha
+    // olvidado nada: los textos dicen «elige», no «restablece». El servidor no lo mira.
+    const invitacion = params.get("invitacion") === "1";
+    const reset = useResetPassword(token, invitacion);
 
     const { register, handleSubmit, formState: { errors } } = useForm<ResetPasswordForm>({
         resolver: zodResolver(resetPasswordSchema),
@@ -30,8 +33,8 @@ export default function ResetPasswordPage() {
         <main className={CLASES_MARCO_CENTRADO}>
             <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-raised p-8 space-y-6">
                 <div className="text-center">
-                    <h1 className="text-xl font-bold text-foreground">{t("ruta.nuevaContrasena")}</h1>
-                    <p className="text-sm text-foreground-muted mt-1">{t("auth.restablecer.subtitulo")}</p>
+                    <h1 className="text-xl font-bold text-foreground">{t(invitacion ? "auth.invitacion.titulo" : "ruta.nuevaContrasena")}</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{t(invitacion ? "auth.invitacion.subtitulo" : "auth.restablecer.subtitulo")}</p>
                 </div>
 
                 <form onSubmit={handleSubmit((data) => reset.mutate(data))} className="space-y-4">
@@ -54,7 +57,7 @@ export default function ResetPasswordPage() {
                         {...register("passwordConfirmation")}
                     />
                     <Button type="submit" className="w-full" isLoading={reset.isPending}>
-                        {t("auth.restablecer.boton")}
+                        {t(invitacion ? "auth.invitacion.boton" : "auth.restablecer.boton")}
                     </Button>
                 </form>
             </div>

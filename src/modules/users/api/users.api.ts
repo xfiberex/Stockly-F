@@ -1,9 +1,14 @@
 import api from "@/shared/api/axios";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
-import type { AppUser, UserRole, UsersQuery } from "../types/users.types";
+import type { AppUser, InvitacionForm, UserRole, UsersQuery } from "../types/users.types";
 
 export const getUsers = async (params?: UsersQuery): Promise<PaginatedResponse<AppUser>> => {
     const { data } = await api.get<ApiResponse<PaginatedResponse<AppUser>>>("/users", { params });
+    return data.data!;
+};
+
+export const inviteUser = async (form: InvitacionForm): Promise<AppUser> => {
+    const { data } = await api.post<ApiResponse<AppUser>>("/users", form);
     return data.data!;
 };
 

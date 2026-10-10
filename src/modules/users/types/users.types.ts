@@ -5,6 +5,13 @@ import type { Rol, Usuario } from "@/shared/contratos";
 export type UserRole = Rol;
 export type AppUser = Usuario;
 
+/** T6-10 — `POST /users`. Sin contraseña: la elige la persona invitada con el enlace del correo. */
+export interface InvitacionForm {
+    name: string;
+    email: string;
+    role: UserRole;
+}
+
 export interface UsersQuery {
     page?: number;
     limit?: number;

@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/tests/utils";
 import UsersPage from "@/modules/users/components/UsersPage";
@@ -30,6 +30,8 @@ let cargando = false;
 const consultas: unknown[] = [];
 const cambiarRol = vi.fn();
 const cambiarActivo = vi.fn();
+const invitar = vi.fn();
+let miRol = "ADMIN";
 
 vi.mock("@/modules/users/hooks/useUsers", () => ({
     useUsers: (params: unknown) => {
@@ -41,10 +43,11 @@ vi.mock("@/modules/users/hooks/useUsers", () => ({
     },
     useUpdateUserRole: () => ({ mutate: cambiarRol, isPending: false }),
     useSetUserActive: () => ({ mutate: cambiarActivo, isPending: false }),
+    useInviteUser: () => ({ mutate: invitar, isPending: false }),
 }));
 
 vi.mock("@/modules/auth/hooks/useMe", () => ({
-    useAuth: () => ({ user: { id: YO, name: "Admin", role: "ADMIN" } }),
+    useAuth: () => ({ user: { id: YO, name: "Admin", role: miRol } }),
 }));
 
 /** La fila de un usuario, por su nombre. */
@@ -57,6 +60,7 @@ describe("UsersPage (T2-20)", () => {
         vi.clearAllMocks();
         consultas.length = 0;
         cargando = false;
+        miRol = "ADMIN";
         usuarios = [usuario(), usuario({ id: YO, name: "Admin Principal", email: "admin@stockly.app", role: "ADMIN" })];
         total = 2;
     });
@@ -187,5 +191,84 @@ describe("UsersPage (T2-20)", () => {
 
         expect(screen.getByText("Página 2 de 3")).toBeInTheDocument();
         expect(consultas.at(-1)).toMatchObject({ page: 2 });
+    });
+
+    describe("T6-10 — invitar a una persona", () => {
+        const abrir = async (user: ReturnType<typeof userEvent.setup>) => {
+            await user.click(screen.getByRole("button", { name: "Invitar usuario" }));
+            return within(screen.getByRole("dialog", { name: "Invitar usuario" }));
+        };
+
+        it("manda nombre, correo y rol, y ninguna contraseña", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<UsersPage />);
+            const formulario = await abrir(user);
+
+            // El formulario no pide contraseña: la elige la persona con su enlace.
+            expect(formulario.queryByLabelText(/contraseña/i)).not.toBeInTheDocument();
+            expect(formulario.getByText(/enlace para elegir su contraseña/)).toBeInTheDocument();
+
+            await user.type(formulario.getByLabelText(/Nombre/), "  Ana Pérez ");
+            await user.type(formulario.getByLabelText(/Correo electrónico/), "ana@stockly.app");
+            await user.selectOptions(formulario.getByLabelText("Rol"), "WAREHOUSE");
+            await user.click(formulario.getByRole("button", { name: "Enviar invitación" }));
+
+            await waitFor(() => expect(invitar).toHaveBeenCalledTimes(1));
+            expect(invitar.mock.calls[0]![0]).toEqual({ name: "Ana Pérez", email: "ana@stockly.app", role: "WAREHOUSE" });
+        });
+
+        it("el rol empieza en el de menos alcance", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<UsersPage />);
+            const formulario = await abrir(user);
+
+            expect(formulario.getByLabelText("Rol")).toHaveValue("USER");
+        });
+
+        it("sin nombre o con un correo que no lo es no llega a pedirlo", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<UsersPage />);
+            const formulario = await abrir(user);
+
+            await user.type(formulario.getByLabelText(/Correo electrónico/), "no-es-correo");
+            await user.click(formulario.getByRole("button", { name: "Enviar invitación" }));
+
+            expect(await formulario.findByText("El nombre es obligatorio")).toBeInTheDocument();
+            expect(formulario.getByText("Email no válido")).toBeInTheDocument();
+            expect(invitar).not.toHaveBeenCalled();
+        });
+
+        it("se cierra cuando la invitación sale, y sigue abierto si falla", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<UsersPage />);
+            let formulario = await abrir(user);
+
+            const enviar = async () => {
+                await user.type(formulario.getByLabelText(/Nombre/), "Ana");
+                await user.type(formulario.getByLabelText(/Correo electrónico/), "ana@stockly.app");
+                await user.click(formulario.getByRole("button", { name: "Enviar invitación" }));
+                await waitFor(() => expect(invitar).toHaveBeenCalled());
+            };
+
+            // Falla (409, 503…): el hook avisa y el formulario conserva lo escrito.
+            await enviar();
+            expect(screen.getByRole("dialog")).toBeInTheDocument();
+            expect(formulario.getByLabelText(/Nombre/)).toHaveValue("Ana");
+
+            invitar.mockImplementation((_form, opciones: { onSuccess: () => void }) => opciones.onSuccess());
+            await user.click(formulario.getByRole("button", { name: "Enviar invitación" }));
+            await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+            // Y la siguiente empieza limpia.
+            formulario = await abrir(user);
+            expect(formulario.getByLabelText(/Nombre/)).toHaveValue("");
+        });
+
+        it("quien no puede llamar a `POST /users` no ve el botón", () => {
+            miRol = "WAREHOUSE";
+            renderWithProviders(<UsersPage />);
+
+            expect(screen.queryByRole("button", { name: "Invitar usuario" })).not.toBeInTheDocument();
+        });
     });
 });

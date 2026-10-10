@@ -6,14 +6,15 @@ import { useT } from "@/shared/hooks/useIdioma";
 import { mensajeDeError } from "@/shared/lib/errorApi";
 import type { ResetPasswordForm } from "@/modules/auth/schemas/auth.schema";
 
-export function useResetPassword(token: string) {
+/** `invitacion` (T6-10) solo cambia el aviso: la petición es la misma. */
+export function useResetPassword(token: string, invitacion = false) {
     const navigate = useNavigate();
     const { t, idioma } = useT();
 
     return useMutation({
         mutationFn: (form: ResetPasswordForm) => AuthAPI.resetPassword(token, form.password),
         onSuccess: () => {
-            toast.success(t("auth.restablecer.hecho"));
+            toast.success(t(invitacion ? "auth.invitacion.hecho" : "auth.restablecer.hecho"));
             navigate("/auth/login");
         },
         onError: (error) => toast.error(mensajeDeError(idioma, error)),

@@ -5,9 +5,11 @@ import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
 import { Spinner } from "@/shared/components/Spinner";
 import { useDebounce } from "@/shared/hooks/useDebounce";
-import { useUsers, useUpdateUserRole, useSetUserActive } from "@/modules/users/hooks/useUsers";
+import { useUsers, useInviteUser, useUpdateUserRole, useSetUserActive } from "@/modules/users/hooks/useUsers";
+import { usePuede } from "@/modules/auth/hooks/usePuede";
+import { InvitarUsuarioModal } from "@/modules/users/components/InvitarUsuarioModal";
 import type { AppUser, UserRole } from "@/modules/users/types/users.types";
-import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon, ArchiveBoxIcon, BanknotesIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon, ArchiveBoxIcon, BanknotesIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 import type { Clave } from "@/shared/i18n/traducir";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ACTIVIDAD } from "@/shared/lib/estados";
@@ -59,6 +61,10 @@ export default function UsersPage() {
     });
 
     const roleMutation = useUpdateUserRole();
+    // T6-10
+    const puedeInvitar = usePuede()("POST /users");
+    const inviteMutation = useInviteUser();
+    const [invitando, setInvitando] = useState(false);
     const activeMutation = useSetUserActive();
 
     const users = data?.data ?? [];
@@ -66,9 +72,17 @@ export default function UsersPage() {
 
     return (
         <div className={CLASES_CONTENEDOR_DE_PAGINA}>
-            <div>
-                <h1 className="text-2xl font-bold text-foreground">{t("usuarios.titulo")}</h1>
-                <p className="text-sm text-foreground-muted mt-1">{tn("usuarios.registrados", meta?.total ?? 0)}</p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground">{t("usuarios.titulo")}</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{tn("usuarios.registrados", meta?.total ?? 0)}</p>
+                </div>
+                {puedeInvitar && (
+                    <Button onClick={() => setInvitando(true)}>
+                        <UserPlusIcon className="h-4 w-4" />
+                        {t("usuarios.invitar")}
+                    </Button>
+                )}
             </div>
 
             {/* Filtros */}
@@ -188,6 +202,17 @@ export default function UsersPage() {
                         <Button variant="secondary" disabled={page === meta.totalPages} onClick={() => setPage((p) => p + 1)}>{t("comun.siguiente")}</Button>
                     </div>
                 </div>
+            )}
+
+            {/* Se monta al abrir: cada invitación empieza con el formulario limpio. */}
+            {invitando && (
+                <InvitarUsuarioModal
+                    isOpen
+                    onClose={() => setInvitando(false)}
+                    roles={ROLES}
+                    isPending={inviteMutation.isPending}
+                    onSubmit={(form) => inviteMutation.mutate(form, { onSuccess: () => setInvitando(false) })}
+                />
             )}
         </div>
     );
