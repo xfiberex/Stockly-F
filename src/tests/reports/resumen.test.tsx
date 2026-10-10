@@ -3,6 +3,7 @@ import { renderWithProviders } from "@/tests/utils";
 import DashboardPage from "@/modules/dashboard/components/DashboardPage";
 import ReportsPage from "@/modules/reports/components/ReportsPage";
 import type { ReportSummary } from "@/modules/reports/types/reports.types";
+import { formatearDia } from "@/shared/lib/fechas";
 
 // T2-21: las dos páginas estaban al 0 %, y son la primera pantalla tras el login y el
 // informe que la amplía. Comparten el mismo endpoint (`useReports`), así que comparten
@@ -49,6 +50,20 @@ const RESUMEN: ReportSummary = {
             daysToStockout: 1,
             reorderSoon: true,
         },
+    ],
+    // T6-09 — siete días del negocio, dos con ventas y cinco a cero.
+    salesByDay: [
+        { day: "2026-09-24", orders: 0, revenue: 0 },
+        { day: "2026-09-25", orders: 0, revenue: 0 },
+        { day: "2026-09-26", orders: 0, revenue: 0 },
+        { day: "2026-09-27", orders: 1, revenue: 250.5 },
+        { day: "2026-09-28", orders: 0, revenue: 0 },
+        { day: "2026-09-29", orders: 0, revenue: 0 },
+        { day: "2026-09-30", orders: 2, revenue: 1300 },
+    ],
+    topSold: [
+        { name: "Cable HDMI", units: 10, revenue: 100 },
+        { name: "Teclado Logitech", units: 1, revenue: 450 },
     ],
     // T5-02 — con los casos que la interfaz tiene que saber enseñar: una categoría null,
     // un producto borrado (sin id) y un margen negativo.
@@ -280,5 +295,60 @@ describe("ReportsPage (T2-21)", () => {
         renderWithProviders(<ReportsPage />);
 
         expect(screen.queryByRole("heading", { name: "Reportes", level: 1 })).not.toBeInTheDocument();
+    });
+});
+
+describe("DashboardPage — ventas de la semana (T6-09)", () => {
+    beforeEach(() => {
+        resumen = RESUMEN;
+        cargando = false;
+    });
+
+    const diasDeVentas = () =>
+        within(screen.getByRole("list", { name: "Ventas enviadas por día" })).getAllByRole("listitem").map((li) => li.textContent);
+
+    it("da los siete días, del más antiguo a hoy: dos con ventas y cinco a cero", () => {
+        renderWithProviders(<DashboardPage />);
+
+        const dia = (d: string) => formatearDia("es", d);
+        // Un día sin ventas está, y a cero: no falta.
+        expect(diasDeVentas()).toEqual([
+            `${dia("2026-09-24")}: 0 ventas, $0.00`,
+            `${dia("2026-09-25")}: 0 ventas, $0.00`,
+            `${dia("2026-09-26")}: 0 ventas, $0.00`,
+            `${dia("2026-09-27")}: 1 venta, $250.50`,
+            `${dia("2026-09-28")}: 0 ventas, $0.00`,
+            `${dia("2026-09-29")}: 0 ventas, $0.00`,
+            `${dia("2026-09-30")}: 2 ventas, $1,300.00`,
+        ]);
+    });
+
+    it("suma la semana encima del gráfico", () => {
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByText("3 ventas enviadas · $1,550.50")).toBeInTheDocument();
+    });
+
+    it("lista los más vendidos por unidades, con su importe", () => {
+        renderWithProviders(<DashboardPage />);
+
+        const lista = within(screen.getByRole("region", { name: "Más vendidos" })).getAllByRole("listitem");
+        expect(lista.map((li) => li.textContent)).toEqual([
+            "Cable HDMI10 uds. · $100.00",
+            "Teclado Logitech1 ud. · $450.00",
+        ]);
+    });
+
+    it("sin ventas en la semana lo dice, y siguen saliendo sus siete días", () => {
+        resumen = {
+            ...RESUMEN,
+            salesByDay: RESUMEN.salesByDay.map((d) => ({ ...d, orders: 0, revenue: 0 })),
+            topSold: [],
+        };
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByText("0 ventas enviadas · $0.00")).toBeInTheDocument();
+        expect(screen.getByText("Ninguna venta enviada en estos siete días.")).toBeInTheDocument();
+        expect(diasDeVentas()).toHaveLength(7);
     });
 });

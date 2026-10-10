@@ -57,6 +57,14 @@ export function formatearDia(idioma: Idioma, dia: string): string {
     return new Date(`${dia}T00:00:00Z`).toLocaleDateString(LOCALES[idioma], { ...CORTO, timeZone: "UTC" });
 }
 
+/**
+ * T6-09 — el mismo día de calendario, en corto para el eje de un gráfico: `mié 30` / `30 Wed`.
+ * Con `timeZone: "UTC"` por lo mismo que `formatearDia`.
+ */
+export function formatearDiaDeSemana(idioma: Idioma, dia: string): string {
+    return new Date(`${dia}T00:00:00Z`).toLocaleDateString(LOCALES[idioma], { weekday: "short", day: "numeric", timeZone: "UTC" });
+}
+
 /** Con hora y minuto, para cuando el instante importa (auditoría, detalle de producto). */
 export function formatearFechaHora(idioma: Idioma, iso: string): string {
     return new Date(iso).toLocaleDateString(LOCALES[idioma], CON_HORA);

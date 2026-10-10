@@ -15,9 +15,10 @@ import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { cn } from "@/shared/lib/cn";
+import { formatearDia, formatearDiaDeSemana } from "@/shared/lib/fechas";
 
 export default function DashboardPage() {
-    const { t, tn } = useT();
+    const { t, tn, idioma } = useT();
     const { data, isLoading } = useReports();
 
     if (isLoading || !data) {
@@ -28,7 +29,9 @@ export default function DashboardPage() {
         );
     }
 
-    const { totals, stockByCategory, lowStockProducts } = data;
+    const { totals, stockByCategory, lowStockProducts, salesByDay, topSold } = data;
+    const ventasDeLaSemana = salesByDay.reduce((suma, d) => suma + d.orders, 0);
+    const importeDeLaSemana = salesByDay.reduce((suma, d) => suma + d.revenue, 0);
     const lowStockCount = totals.lowStockCount;
 
     // La `label` es la clave; se traduce al pintar. Como esta lista se arma en cada
@@ -114,6 +117,67 @@ export default function DashboardPage() {
                         {t("dashboard.verReporte")}
                     </Link>
                 </div>
+            </div>
+
+            {/* T6-09 — las ventas de la semana. El panel era solo de inventario: las ventas
+                estaban en Informes y por mes. Son siete días del negocio, del más antiguo a hoy,
+                y los que no tuvieron ventas vienen a cero: siempre hay siete barras. */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <section aria-labelledby="ventas-de-la-semana" className="bg-surface rounded-xl border border-border p-6 lg:col-span-2">
+                    <h2 id="ventas-de-la-semana" className="text-base font-semibold text-foreground">{t("dashboard.ventas.titulo")}</h2>
+                    <p className="mt-1 text-sm text-foreground tabular-nums">
+                        {tn("dashboard.ventas.total", ventasDeLaSemana, { importe: formatearImporte(importeDeLaSemana) })}
+                    </p>
+                    <p className="mb-6 text-xs text-foreground-muted">{t("dashboard.ventas.nota")}</p>
+                    {/* El gráfico es para la vista; las mismas cifras van en una lista para quien
+                        no lo ve: de un SVG de Recharts no llega nada útil al árbol de accesibilidad. */}
+                    <div aria-hidden="true">
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={salesByDay} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
+                                <XAxis dataKey="day" interval={0} tick={{ fontSize: 11 }} tickFormatter={(dia: string) => formatearDiaDeSemana(idioma, dia)} />
+                                <YAxis
+                                    tick={{ fontSize: 12 }}
+                                    width={56}
+                                    tickFormatter={(v: number) => conSimboloDeMoneda(v >= 1000 ? `${(v / 1000).toFixed(v >= 10_000 ? 0 : 1)}k` : String(v))}
+                                />
+                                <Tooltip
+                                    contentStyle={ESTILO_DE_TOOLTIP}
+                                    labelFormatter={(dia) => formatearDia(idioma, String(dia))}
+                                    formatter={(value) => [formatearImporte(Number(value)), t("dashboard.ventas.importe")]}
+                                />
+                                <Bar dataKey="revenue" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} name={t("dashboard.ventas.importe")} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <ul className="sr-only" aria-label={t("dashboard.ventas.porDia")}>
+                        {salesByDay.map((d) => (
+                            <li key={d.day}>
+                                {tn("dashboard.ventas.delDia", d.orders, { dia: formatearDia(idioma, d.day), importe: formatearImporte(d.revenue) })}
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+
+                <section aria-labelledby="mas-vendidos" className="bg-surface rounded-xl border border-border p-6">
+                    <h2 id="mas-vendidos" className="text-base font-semibold text-foreground mb-4">{t("dashboard.masVendidos.titulo")}</h2>
+                    {topSold.length === 0 ? (
+                        <p className="text-sm text-foreground-muted">{t("dashboard.masVendidos.vacio")}</p>
+                    ) : (
+                        <ol className="space-y-3">
+                            {topSold.map((p) => (
+                                // El nombre es el congelado en la línea de venta, y no se repite
+                                // en esta lista: el servidor agrupa por él.
+                                <li key={p.name} className="flex items-baseline justify-between gap-3 text-sm">
+                                    <span className="min-w-0 truncate font-medium text-foreground">{p.name}</span>
+                                    <span className="shrink-0 text-right tabular-nums text-foreground-muted">
+                                        {tn("dashboard.masVendidos.unidades", p.units)} · {formatearImporte(p.revenue)}
+                                    </span>
+                                </li>
+                            ))}
+                        </ol>
+                    )}
+                </section>
             </div>
 
             {/* Gráfico stock por categoría */}
