@@ -5,17 +5,24 @@ import { Button } from "@/shared/components/Button";
 import { useBulkStock } from "@/modules/products/hooks/useBulkStock";
 import type { Product } from "@/modules/products/types/product.types";
 import { useT } from "@/shared/hooks/useIdioma";
+import { stockEn } from "@/shared/lib/almacenes";
+import type { NivelDeStock } from "@/shared/contratos";
+import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
+import { useAlmacenDeOperacion } from "@/modules/warehouses/hooks/useWarehouses";
 
 interface BulkStockModalProps {
     isOpen: boolean;
     onClose: () => void;
-    products: Product[];
+    products: Array<Product & { stockLevels?: NivelDeStock[] }>;
     selectedIds: Set<string>;
 }
 
 export function BulkStockModal({ isOpen, onClose, products, selectedIds }: BulkStockModalProps) {
     const { t, tn } = useT();
     const mutation = useBulkStock();
+    // T5-14 — las cifras que se escriben son las de **un almacén**: lo que se ha contado en él.
+    const almacen = useAlmacenDeOperacion();
+    const actual = (product: BulkStockModalProps["products"][number]) => stockEn(product, almacen.paraEnviar);
     const [stockValues, setStockValues] = useState<Record<string, string>>({});
     // El motivo se **guarda** con el movimiento, así que su valor inicial sale del idioma
     // que hubiera al abrir el modal y no se recalcula: es un dato que el usuario puede
@@ -37,7 +44,7 @@ export function BulkStockModal({ isOpen, onClose, products, selectedIds }: BulkS
 
         if (items.length === 0) return;
 
-        mutation.mutate({ items, reason: reason || undefined }, { onSuccess: handleClose });
+        mutation.mutate({ items, reason: reason || undefined, warehouseId: almacen.paraEnviar }, { onSuccess: handleClose });
     };
 
     return (
@@ -50,20 +57,21 @@ export function BulkStockModal({ isOpen, onClose, products, selectedIds }: BulkS
                     onChange={(e) => setReason(e.target.value)}
                     placeholder={t("ajusteMasivo.ejemploMotivo")}
                 />
+                <SelectorDeAlmacen value={almacen.warehouseId} onChange={almacen.setWarehouseId} />
 
                 <div className="max-h-80 overflow-y-auto space-y-2">
                     {selectedProducts.map((product) => (
                         <div key={product.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-foreground truncate">{product.name}</p>
-                                <p className="text-xs text-foreground-muted">{t("ajusteMasivo.stockActual", { stock: product.stock })}</p>
+                                <p className="text-xs text-foreground-muted">{t("ajusteMasivo.stockActual", { stock: actual(product) })}</p>
                             </div>
                             <div className="w-24 shrink-0">
                                 <Input
                                     id={`stock-${product.id}`}
                                     type="number"
                                     min="0"
-                                    placeholder={String(product.stock)}
+                                    placeholder={String(actual(product))}
                                     value={stockValues[product.id] ?? ""}
                                     onChange={(e) => setStockValues((prev) => ({ ...prev, [product.id]: e.target.value }))}
                                 />

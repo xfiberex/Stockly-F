@@ -17,11 +17,33 @@ import { BotonDeComprobante } from "@/modules/sale-orders/components/BotonDeComp
 import { useVentaDeMostrador } from "@/modules/sale-orders/hooks/useSaleOrders";
 import type { SaleOrder } from "@/modules/sale-orders/types/sale-orders.types";
 import { useNegocio } from "@/modules/settings/hooks/useNegocio";
+import { disponibleEn } from "@/shared/lib/almacenes";
+import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
+import { useAlmacenDeOperacion } from "@/modules/warehouses/hooks/useWarehouses";
 
 /** Una línea de la venta que se está armando: un producto del catálogo y cuántos. */
 interface Linea {
     producto: ProductWithAvailability;
     cantidad: number;
+}
+
+/** Dónde se guarda el local del mostrador. Por dispositivo, como el idioma de la interfaz. */
+const CLAVE_DEL_ALMACEN = "stockly.mostrador.almacen";
+
+function almacenRecordado(): string | undefined {
+    try {
+        return localStorage.getItem(CLAVE_DEL_ALMACEN) ?? undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+function recordarAlmacen(id: string): void {
+    try {
+        localStorage.setItem(CLAVE_DEL_ALMACEN, id);
+    } catch {
+        // Sin almacenamiento —modo privado, cuota— la elección vale para esta visita y nada más.
+    }
 }
 
 /**
@@ -37,6 +59,9 @@ interface Linea {
  *   regla que el servidor); el de después es el que devuelve la venta.
  * - **Es una pantalla para usar de pie y con el móvil:** una columna, sin tabla, y con todo lo
  *   que se pulsa a 44 px.
+ * - **T5-14 — se vende desde un local.** Con varios almacenes, arriba se elige cuál, y el
+ *   disponible de cada línea es el de ese. La elección se recuerda **en este dispositivo**: la
+ *   caja de una sucursal vende siempre desde la misma.
  */
 export default function MostradorPage() {
     const { t } = useT();
@@ -50,6 +75,13 @@ export default function MostradorPage() {
     const [escaneando, setEscaneando] = useState(false);
     const [aviso, setAviso] = useState<string | null>(null);
     const { buscar, buscando } = useBuscarPorCodigo();
+
+    // T5-14 — el local desde el que se vende. Las líneas guardan el producto entero, con su
+    // desglose por almacén, así que cambiar de local recalcula el disponible de todas sin
+    // volver a pedirlas.
+    const almacen = useAlmacenDeOperacion(almacenRecordado());
+    const elegirAlmacen = (id: string) => { almacen.setWarehouseId(id); recordarAlmacen(id); };
+    const disponible = (producto: ProductWithAvailability) => disponibleEn(producto, almacen.paraEnviar);
 
     const anadir = (producto: ProductWithAvailability | null) => {
         if (!producto) return;
@@ -77,7 +109,7 @@ export default function MostradorPage() {
         setLineas((actuales) => actuales.map((l) => (l.producto.id === id ? { ...l, cantidad } : l)));
     const quitar = (id: string) => setLineas((actuales) => actuales.filter((l) => l.producto.id !== id));
 
-    const seExcede = (linea: Linea) => linea.cantidad > linea.producto.availableStock;
+    const seExcede = (linea: Linea) => linea.cantidad > disponible(linea.producto);
     const cantidadValida = (linea: Linea) => Number.isInteger(linea.cantidad) && linea.cantidad >= 1;
     const sePuedeVender = lineas.length > 0 && lineas.every((l) => cantidadValida(l) && !seExcede(l));
 
@@ -91,7 +123,7 @@ export default function MostradorPage() {
     const registrar = () => {
         if (!sePuedeVender) return;
         vender.mutate(
-            { customerId: cliente?.id, items: lineas.map((l) => ({ productId: l.producto.id, quantity: l.cantidad })) },
+            { customerId: cliente?.id, warehouseId: almacen.paraEnviar, items: lineas.map((l) => ({ productId: l.producto.id, quantity: l.cantidad })) },
             {
                 onSuccess: (orden) => {
                     setHecha(orden);
@@ -143,11 +175,13 @@ export default function MostradorPage() {
                 <p className="mt-1 text-sm text-foreground-muted">{t("mostrador.ayuda")}</p>
             </div>
 
+            <SelectorDeAlmacen label={t("mostrador.almacen")} value={almacen.warehouseId} onChange={elegirAlmacen} />
+
             {/* Buscar o escanear. El buscador nunca tiene un producto «elegido»: cada elección
                 pasa a la lista de abajo y el campo queda libre para el siguiente. */}
             <div className="flex items-end gap-2">
                 <div className="min-w-0 flex-1">
-                    <BuscadorDeProducto seleccionado={null} onSeleccionar={anadir} />
+                    <BuscadorDeProducto seleccionado={null} onSeleccionar={anadir} warehouseId={almacen.paraEnviar} />
                 </div>
                 <Button type="button" variant="secondary" onClick={() => setEscaneando(true)} isLoading={buscando}>
                     <ViewfinderCircleIcon className="h-4 w-4" />
@@ -231,8 +265,8 @@ export default function MostradorPage() {
                                     </div>
                                     <p id={idAyuda} className={cn("mt-1 text-xs", excede ? "text-danger" : "text-foreground-muted")}>
                                         {excede
-                                            ? t("mostrador.superaDisponible", { cantidad: producto.availableStock })
-                                            : t("ventas.form.disponible", { cantidad: producto.availableStock })}
+                                            ? t("mostrador.superaDisponible", { cantidad: disponible(producto) })
+                                            : t("ventas.form.disponible", { cantidad: disponible(producto) })}
                                     </p>
                                 </li>
                             );

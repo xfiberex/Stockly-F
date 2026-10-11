@@ -71,6 +71,40 @@ describe("Modal", () => {
         expect(cerrarAbajo).toHaveBeenCalledTimes(1);
     });
 
+    it("un repintado del padre con otro `onClose` no mueve el foco de donde estaba (T5-14)", async () => {
+        const user = userEvent.setup();
+        // Como lo usan los formularios: `onClose` es una funcion nueva en cada pintado.
+        const montar = (onClose: () => void) => (
+            <Modal isOpen onClose={onClose} title="Formulario">
+                <input aria-label="Primero" />
+                <input aria-label="Segundo" />
+            </Modal>
+        );
+        const { rerender } = render(montar(() => {}));
+        expect(screen.getByLabelText("Cerrar")).toHaveFocus();
+
+        await user.click(screen.getByLabelText("Segundo"));
+        await user.keyboard("ab");
+        rerender(montar(() => {}));
+        await user.keyboard("cd");
+
+        expect(screen.getByLabelText("Segundo")).toHaveFocus();
+        expect(screen.getByLabelText("Segundo")).toHaveValue("abcd");
+        expect(screen.getByLabelText("Primero")).toHaveValue("");
+    });
+
+    it("Escape llama al `onClose` del ultimo pintado, no al de cuando se abrio (T5-14)", () => {
+        const viejo = vi.fn();
+        const nuevo = vi.fn();
+        const { rerender } = render(<Modal isOpen onClose={viejo} title="Test">Contenido</Modal>);
+        rerender(<Modal isOpen onClose={nuevo} title="Test">Contenido</Modal>);
+
+        fireEvent.keyDown(document, { key: "Escape" });
+
+        expect(nuevo).toHaveBeenCalledOnce();
+        expect(viejo).not.toHaveBeenCalled();
+    });
+
     it("llama a onClose al hacer clic en el overlay semitransparente", () => {
         const onClose = vi.fn();
         render(

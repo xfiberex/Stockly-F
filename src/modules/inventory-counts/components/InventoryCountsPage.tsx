@@ -15,6 +15,8 @@ import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { useCategories } from "@/modules/catalog/hooks/useCategories";
 import { useCreateInventoryCount, useInventoryCounts } from "@/modules/inventory-counts/hooks/useInventoryCounts";
 import type { InventoryCountStatus } from "@/modules/inventory-counts/types/inventory-counts.types";
+import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
+import { useAlmacenDeOperacion, useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
 
 const PAGE_SIZE = 20;
 
@@ -28,11 +30,13 @@ function NuevoConteo({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
     const crear = useCreateInventoryCount();
     const [categoryId, setCategoryId] = useState("");
     const [note, setNote] = useState("");
+    // T5-14 — se cuenta un almacén: lo esperado de cada línea es lo que hay en él.
+    const almacen = useAlmacenDeOperacion();
 
     const enviar = (e: FormEvent) => {
         e.preventDefault();
         crear.mutate(
-            { categoryId: categoryId || null, note: note.trim() || undefined },
+            { warehouseId: almacen.paraEnviar, categoryId: categoryId || null, note: note.trim() || undefined },
             { onSuccess: (conteo) => navigate(`/inventory-counts/${conteo.id}`) },
         );
     };
@@ -40,6 +44,7 @@ function NuevoConteo({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={t("conteos.nuevo")}>
             <form onSubmit={enviar} className="space-y-4">
+                <SelectorDeAlmacen label={t("conteos.almacen")} value={almacen.warehouseId} onChange={almacen.setWarehouseId} />
                 <Select
                     label={t("conteos.categoria")}
                     value={categoryId}
@@ -70,8 +75,10 @@ export default function InventoryCountsPage() {
     const [page, setPage] = useState(1);
     const [status, setStatus] = useState<InventoryCountStatus | "">("");
     const [nuevo, setNuevo] = useState(false);
+    const [almacenFiltrado, setAlmacenFiltrado] = useState("");
+    const { hayVarios } = useAlmacenes();
 
-    const { data, isLoading } = useInventoryCounts({ page, limit: PAGE_SIZE, status: status || undefined });
+    const { data, isLoading } = useInventoryCounts({ page, limit: PAGE_SIZE, status: status || undefined, warehouseId: almacenFiltrado || undefined });
     const conteos = data?.data ?? [];
     const totalPages = data?.meta.totalPages ?? 1;
 
@@ -92,7 +99,7 @@ export default function InventoryCountsPage() {
                 </div>
             </div>
 
-            <div className="max-w-xs">
+            <div className="grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
                 <Select
                     label={t("conteos.filtroEstado")}
                     value={status}
@@ -104,6 +111,7 @@ export default function InventoryCountsPage() {
                         { value: "CANCELLED", label: t("estado.conteo.CANCELLED") },
                     ]}
                 />
+                <SelectorDeAlmacen comoFiltro value={almacenFiltrado} onChange={(id) => { setAlmacenFiltrado(id); setPage(1); }} />
             </div>
 
             {isLoading ? (
@@ -125,6 +133,7 @@ export default function InventoryCountsPage() {
                                             {t("conteos.numero", { numero: numeroDeConteo(conteo.id) })}
                                             {" · "}
                                             {conteo.category?.name ?? t("conteos.todoElCatalogo")}
+                                            {hayVarios && <> · {conteo.warehouse.name}</>}
                                         </p>
                                         <p className="text-xs text-foreground-muted truncate">
                                             {formatearFecha(idioma, conteo.createdAt)}

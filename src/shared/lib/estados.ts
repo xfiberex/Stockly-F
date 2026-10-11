@@ -8,6 +8,7 @@ import {
     ArrowDownTrayIcon,
     ArrowUpTrayIcon,
     AdjustmentsHorizontalIcon,
+    ArrowsRightLeftIcon,
     DocumentArrowUpIcon,
     QuestionMarkCircleIcon,
     InboxArrowDownIcon,
@@ -118,4 +119,6 @@ export const TIPO_MOVIMIENTO: Record<StockMovementType, Estado> = {
     OUT: { clave: "estado.movimiento.OUT", variant: "danger", Icon: ArrowUpTrayIcon },
     ADJUSTMENT: { clave: "estado.movimiento.ADJUSTMENT", variant: "info", Icon: AdjustmentsHorizontalIcon },
     IMPORT: { clave: "estado.movimiento.IMPORT", variant: "neutral", Icon: DocumentArrowUpIcon },
+    // T5-14 — las dos mitades de una transferencia. Neutra: no entra ni sale del negocio, cambia de sitio.
+    TRANSFER: { clave: "estado.movimiento.TRANSFER", variant: "neutral", Icon: ArrowsRightLeftIcon },
 };

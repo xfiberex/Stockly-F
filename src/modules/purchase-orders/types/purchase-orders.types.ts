@@ -17,6 +17,8 @@ export interface PurchaseOrderQuery {
     page?: number;
     limit?: number;
     status?: PurchaseOrderStatus;
+    /** T5-14 — solo las de ese almacén. */
+    warehouseId?: string;
 }
 
 /** T5-04 — una entrega: cuánto llega de cada línea. Las que no van no reciben nada. */
@@ -27,10 +29,14 @@ export interface RecepcionForm {
 export interface CreatePurchaseOrderForm {
     supplierId?: string;
     notes?: string;
+    /** T5-14 — a qué almacén entra lo recibido; sin él, al predeterminado. */
+    warehouseId?: string;
     items: PurchaseOrderItemForm[];
 }
 
 /** T5-05 — las líneas revisadas en la pantalla de sugerencias, tal como se envían. */
 export interface GenerarDesdeSugerenciasForm {
+    /** T5-14 — el almacén de las órdenes que salgan; sin él, el predeterminado. */
+    warehouseId?: string;
     items: Array<{ productId: string; quantity: number; unitPrice: number }>;
 }

@@ -24,6 +24,8 @@ const CustomersPage = lazy(() => import("@/modules/customers/components/Customer
 const CustomerDetailPage = lazy(() => import("@/modules/customers/components/CustomerDetailPage"));
 const InventoryCountsPage = lazy(() => import("@/modules/inventory-counts/components/InventoryCountsPage"));
 const InventoryCountPage = lazy(() => import("@/modules/inventory-counts/components/InventoryCountPage"));
+const WarehousesPage = lazy(() => import("@/modules/warehouses/components/WarehousesPage"));
+const TransfersPage = lazy(() => import("@/modules/stock-transfers/components/TransfersPage"));
 const AuditLogsPage = lazy(() => import("@/modules/audit-logs/components/AuditLogsPage"));
 const SettingsPage = lazy(() => import("@/modules/settings/components/SettingsPage"));
 const UsersPage = lazy(() => import("@/modules/users/components/UsersPage"));
@@ -88,6 +90,10 @@ export const router = createBrowserRouter([
             // T5-07 — todos los roles consultan; contar, cerrar y cancelar lo decide la matriz.
             { path: "inventory-counts", element: <S><InventoryCountsPage /></S> },
             { path: "inventory-counts/:id", element: <S><InventoryCountPage /></S> },
+            // T5-14 — las dos las abre cualquiera: dónde está el stock lo ve quien ve el stock.
+            // Dar de alta un almacén o registrar una transferencia lo decide la matriz, botón a botón.
+            { path: "warehouses", element: <S><WarehousesPage /></S> },
+            { path: "stock-transfers", element: <S><TransfersPage /></S> },
             // Rutas solo de ADMIN: el backend responde 403 a un USER, así que sin
             // este guardia la página se pintaba rota y llena de toasts de error.
             { path: "audit-logs", element: <ProtectedRoute requireRole="ADMIN"><S><AuditLogsPage /></S></ProtectedRoute> },

@@ -31,7 +31,7 @@ const A_MEDIAS = {
     id: "cccccccc-1111-2222-3333-444444444444",
     supplierId: null,
     supplier: null,
-    status: "PARTIALLY_RECEIVED",
+    warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, status: "PARTIALLY_RECEIVED",
     notes: null,
     items: [
         item({ id: "teclado", productId: "p-teclado", productName: "Teclado", quantity: 100, receivedQuantity: 60 }),

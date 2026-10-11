@@ -20,6 +20,8 @@ import { useTags } from "@/modules/tags/hooks/useTags";
 import type { Product } from "@/modules/products/types/product.types";
 import type { Resolver } from "react-hook-form";
 import { useT } from "@/shared/hooks/useIdioma";
+import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
+import { useAlmacenDeOperacion } from "@/modules/warehouses/hooks/useWarehouses";
 
 // Color de una etiqueta sin color propio.
 const COLOR_ETIQUETA_POR_DEFECTO = "#6366f1";
@@ -127,6 +129,10 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
         setValue("sku", `${catPrefix}-${brandPrefix}-${code}`, { shouldValidate: true });
     };
 
+    // T5-14 — el stock inicial entra en un almacén. Al editar no se elige: el campo es el total,
+    // y lo que cambie entra o sale del predeterminado.
+    const almacen = useAlmacenDeOperacion();
+
     const onSubmit = (formData: CreateProductFormData) => {
         const normalized = {
             ...formData,
@@ -150,7 +156,7 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
                 { onSuccess: () => { onClose(); reset({}); setRemoveImage(false); setSelectedTagIds([]); } },
             );
         } else {
-            createMutation.mutate(normalized, {
+            createMutation.mutate({ ...normalized, warehouseId: almacen.paraEnviar }, {
                 onSuccess: () => { onClose(); reset({}); setSelectedTagIds([]); },
             });
         }
@@ -256,6 +262,13 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
                         {...register("minStock")}
                     />
                 </div>
+                {almacen.hayVarios && (
+                    isEditing ? (
+                        <p className="-mt-2 text-xs text-foreground-muted">{t("productos.form.stockEsTotal")}</p>
+                    ) : (
+                        <SelectorDeAlmacen label={t("productos.form.almacenInicial")} value={almacen.warehouseId} onChange={almacen.setWarehouseId} />
+                    )
+                )}
                 <div className="grid grid-cols-2 gap-3">
                     <Select
                         id="categoryId"

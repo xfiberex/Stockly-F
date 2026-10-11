@@ -21,6 +21,8 @@ export interface SaleOrdersQuery {
     status?: SaleOrderStatus;
     from?: string;
     to?: string;
+    /** T5-14 — solo las de ese almacén. */
+    warehouseId?: string;
 }
 
 export const getSaleOrders = async (params: SaleOrdersQuery = {}): Promise<PaginatedResponse<SaleOrder>> => {

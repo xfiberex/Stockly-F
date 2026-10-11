@@ -17,7 +17,7 @@ const orden = (n: number, status: SaleOrderStatus): SaleOrder => ({
     id: `${String(n).padStart(8, "0")}-1111-2222-3333-444444444444`,
     number: n,
     status,
-    customerId: null,
+    warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, customerId: null,
     customerName: `Cliente ${n}`,
     customerEmail: null,
     customerPhone: null,

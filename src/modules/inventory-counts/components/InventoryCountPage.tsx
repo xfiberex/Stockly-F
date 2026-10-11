@@ -26,6 +26,7 @@ import {
     useRecordInventoryCountLines,
 } from "@/modules/inventory-counts/hooks/useInventoryCounts";
 import type { InventoryCount, InventoryCountLineFilter } from "@/modules/inventory-counts/types/inventory-counts.types";
+import { useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
 
 const PAGE_SIZE = 50;
 
@@ -282,6 +283,7 @@ export default function InventoryCountPage() {
     const { id = "" } = useParams();
     const { t, tn, idioma } = useT();
     const puede = usePuede();
+    const { hayVarios } = useAlmacenes();
     const { data: conteo, isLoading } = useInventoryCount(id);
     const [vista, setVista] = useState<"contar" | "revisar">("contar");
     const [confirmar, setConfirmar] = useState<"cerrar" | "cancelar" | null>(null);
@@ -319,7 +321,8 @@ export default function InventoryCountPage() {
                     </div>
                     <p className="text-sm text-foreground-muted mt-1">
                         {t("conteos.cabecera", {
-                            alcance: conteo.category?.name ?? t("conteos.todoElCatalogo"),
+                            // T5-14 — con varios almacenes, cuál se cuenta va delante de qué se cuenta.
+                            alcance: `${hayVarios ? `${conteo.warehouse.name} · ` : ""}${conteo.category?.name ?? t("conteos.todoElCatalogo")}`,
                             fecha: formatearFecha(idioma, conteo.createdAt),
                             quien: conteo.createdByEmail ?? "—",
                         })}

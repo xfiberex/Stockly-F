@@ -41,6 +41,8 @@ const ACTION_VARIANTS: Record<AuditAction, BadgeVariant> = {
     SALE_COUNTER: "success",
     COUNT_CLOSE: "info",
     COUNT_CANCEL: "danger",
+    // T5-14 — mover mercancía entre almacenes: informativo, como un movimiento de stock.
+    STOCK_TRANSFER: "info",
 };
 
 /**
@@ -59,11 +61,16 @@ const ACCIONES: readonly AuditAction[] = [
     "ORDER_RECEIVE", "ORDER_CANCEL", "SALE_SHIP", "SALE_CANCEL",
     "USER_ROLE_CHANGE", "USER_ACTIVATE", "USER_DEACTIVATE", "REFRESH_REUSE",
     "COUNT_CLOSE", "COUNT_CANCEL",
+    // T6-08 y T5-14. `SALE_COUNTER` faltaba en esta lista desde T6-08: la acción se pintaba en
+    // la tabla, pero no se podía filtrar por ella.
+    "SALE_COUNTER", "STOCK_TRANSFER",
 ];
 
 const ENTIDADES: readonly AuditEntity[] = [
     "Product", "PurchaseOrder", "SaleOrder", "User", "Tag", "Category", "Brand", "Supplier",
     "InventoryCount",
+    // `Customer` faltaba desde T5-06, por lo mismo que `SALE_COUNTER` arriba.
+    "Customer", "Warehouse", "StockTransfer",
 ];
 
 const claveDeAccion = (accion: AuditAction) => `auditoria.accion.${accion}` as Clave;

@@ -9,6 +9,10 @@ import { useManualMovement } from "@/modules/products/hooks/useManualMovement";
 import type { Product } from "@/modules/products/types/product.types";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
+import { stockEn } from "@/shared/lib/almacenes";
+import type { NivelDeStock } from "@/shared/contratos";
+import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
+import { useAlmacenDeOperacion } from "@/modules/warehouses/hooks/useWarehouses";
 
 /**
  * T4-04 — el motivo tiene dos caras: **lo que se ve** y **lo que se guarda**.
@@ -54,12 +58,16 @@ type FormData  = z.infer<typeof schema>;
 interface ManualMovementModalProps {
     isOpen: boolean;
     onClose: () => void;
-    product: Product;
+    /** T5-14 — con su desglose por almacén, si quien abre el diálogo lo tiene: es el del catálogo. */
+    product: Product & { stockLevels?: NivelDeStock[] };
 }
 
 export function ManualMovementModal({ isOpen, onClose, product }: ManualMovementModalProps) {
     const { t, te } = useT();
     const mutation = useManualMovement(product.id);
+    // T5-14 — un movimiento ocurre en un almacén. Con varios se elige, y el stock que se
+    // enseña —y al que se refiere un ajuste— es el de ese almacén, no el total.
+    const almacen = useAlmacenDeOperacion();
 
     const { register, control, handleSubmit, reset, formState: { errors } } = useForm<FormInput, unknown, FormData>({
         resolver: zodResolver(schema),
@@ -82,16 +90,21 @@ export function ManualMovementModal({ isOpen, onClose, product }: ManualMovement
     const handleClose = () => { reset(); onClose(); };
 
     const onSubmit = (data: FormData) => {
-        mutation.mutate(data, { onSuccess: handleClose });
+        mutation.mutate({ ...data, warehouseId: almacen.paraEnviar }, { onSuccess: handleClose });
     };
 
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title={t("movimientos.registrar")} className="max-w-md">
             <div className="mb-4 p-3 bg-surface-muted rounded-lg text-sm">
                 <p className="font-medium text-foreground">{product.name}</p>
-                <p className="text-foreground-muted">{t("productos.campo.stockActual")}: <span className="font-semibold">{product.stock}</span></p>
+                <p className="text-foreground-muted">
+                    {t(almacen.hayVarios ? "movimientos.stockEnAlmacen" : "productos.campo.stockActual")}:{" "}
+                    <span className="font-semibold">{stockEn(product, almacen.paraEnviar)}</span>
+                    {almacen.hayVarios && <> · {t("movimientos.stockTotal", { cantidad: product.stock })}</>}
+                </p>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+                <SelectorDeAlmacen value={almacen.warehouseId} onChange={almacen.setWarehouseId} />
                 <Select
                     id="type"
                     label={t("movimientos.tipo")}

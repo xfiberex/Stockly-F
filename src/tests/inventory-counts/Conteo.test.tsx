@@ -21,7 +21,7 @@ const CONTEO: InventoryCount = {
     id: ID,
     status: "OPEN",
     note: "Pasillo 2",
-    category: { id: "cat", name: "Periféricos" },
+    warehouse: { id: "almacen-1", name: "Principal" }, category: { id: "cat", name: "Periféricos" },
     createdByEmail: "almacen@stockly.app",
     closedByEmail: null,
     createdAt: "2026-09-29T10:00:00.000Z",

@@ -20,3 +20,25 @@ window.scrollTo = () => {};
  */
 Object.defineProperty(navigator, "languages", { value: ["es-ES", "es"], configurable: true });
 Object.defineProperty(navigator, "language", { value: "es-ES", configurable: true });
+
+/**
+ * T5-14 — por defecto, los tests corren con **un solo almacén**, el predeterminado.
+ *
+ * Casi todas las pantallas preguntan ya cuántos almacenes hay, y con uno solo se pintan como
+ * antes de que existieran: ni selectores ni columnas. Sin este doble, cada test que montara una
+ * de esas pantallas intentaría pedir `/warehouses` a un servidor que no existe. El test que
+ * quiera varios almacenes sustituye este módulo con su propio `vi.mock`.
+ */
+vi.mock("@/modules/warehouses/api/warehouses.api", () => ({
+    getWarehouses: vi.fn().mockResolvedValue([
+        {
+            id: "almacen-1", name: "Principal", address: null, isDefault: true, isActive: true,
+            createdAt: "2026-10-10T10:00:00.000Z", updatedAt: "2026-10-10T10:00:00.000Z",
+        },
+    ]),
+    getWarehousesSummary: vi.fn().mockResolvedValue([]),
+    createWarehouse: vi.fn(),
+    updateWarehouse: vi.fn(),
+    setDefaultWarehouse: vi.fn(),
+    setWarehouseActive: vi.fn(),
+}));

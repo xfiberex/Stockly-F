@@ -40,6 +40,9 @@ import { cn } from "@/shared/lib/cn";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { LARGO_MAXIMO_DE_DOCUMENTO, aNumero, escribirNumeroDeVenta } from "@/shared/contratos";
 import { useNegocio } from "@/modules/settings/hooks/useNegocio";
+import { disponibleEn } from "@/shared/lib/almacenes";
+import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
+import { useAlmacenDeOperacion, useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
 
 // Mismo criterio que en las órdenes de compra: el descriptor de `shared/lib/estados`
 // lleva etiqueta, color e icono juntos (T2-38).
@@ -208,7 +211,10 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
     // T6-02 — ya no hay una lista del catálogo cargada de antemano: el disponible de cada
     // producto es el que traía cuando se eligió en el buscador o se escaneó.
     const [elegidos, setElegidos] = useState<Map<string, ProductWithAvailability>>(() => new Map());
-    const disponiblePorProducto = new Map([...elegidos.values()].map((p) => [p.id, p.availableStock]));
+    // T5-14 — de qué almacén sale la venta. El disponible es **el de ese almacén**: cada
+    // producto elegido trae su desglose, así que cambiar de almacén lo recalcula sin pedir nada.
+    const almacen = useAlmacenDeOperacion();
+    const disponiblePorProducto = new Map([...elegidos.values()].map((p) => [p.id, disponibleEn(p, almacen.paraEnviar)]));
     const pedidoPorProducto = new Map<string, number>();
     for (const linea of lineas) {
         if (linea?.productId) pedidoPorProducto.set(linea.productId, (pedidoPorProducto.get(linea.productId) ?? 0) + (Number(linea.quantity) || 0));
@@ -268,6 +274,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
             customerPhone: formData.customerPhone || undefined,
             customerDocument: formData.customerDocument?.trim() || undefined,
             notes: formData.notes || undefined,
+            warehouseId: almacen.paraEnviar,
             items: formData.items.map((item) => ({
                 productId: item.productId || undefined,
                 productName: item.productName,
@@ -300,6 +307,11 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                     />
                 </div>
                 <Input id="notes" label={t("ordenes.notas")} placeholder={t("ordenes.ejemploNotas")} {...register("notes")} />
+                <SelectorDeAlmacen
+                    label={t("ventas.form.almacen")}
+                    value={almacen.warehouseId}
+                    onChange={(id) => { almacen.setWarehouseId(id); if (errors.items) void trigger("items"); }}
+                />
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
@@ -327,6 +339,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                     <BuscadorDeProducto
                                         seleccionado={elegidos.get(lineas[idx]?.productId ?? "") ?? null}
                                         onSeleccionar={(product) => elegirProducto(idx, product)}
+                                        warehouseId={almacen.paraEnviar}
                                     />
                                 </div>
                                 <div className="col-span-2 md:col-span-3">
@@ -424,10 +437,13 @@ export default function SaleOrdersPage() {
     // T6-04 — buscar por número. Se admite pegado como se lee, con la `#` y con sus ceros; al
     // servidor van solo las cifras, y cuando se deja de teclear.
     const [numero, setNumero] = useState("");
+    // T5-14 — las de un almacén. Solo se ofrece si hay más de uno.
+    const [almacenFiltrado, setAlmacenFiltrado] = useState("");
+    const { hayVarios } = useAlmacenes();
     const cifras = numero.trim().replace(/^#/, "");
     const numeroInvalido = !SOLO_CIFRAS.test(cifras);
     const numeroBuscado = useDebounce(cifras, 300);
-    const hayFiltros = estado !== "" || desde !== "" || hasta !== "" || numero !== "";
+    const hayFiltros = estado !== "" || desde !== "" || hasta !== "" || numero !== "" || almacenFiltrado !== "";
     // Cambiar un filtro vuelve a la página 1: la 3 de «todas» puede no existir en «enviadas».
     const filtrar = (cambio: () => void) => { cambio(); setPage(1); };
 
@@ -436,7 +452,10 @@ export default function SaleOrdersPage() {
     const rangoInvalido = desde !== "" && hasta !== "" && desde > hasta;
 
     const { data, isLoading } = useSaleOrders(
-        { page, limit: PAGE_SIZE, number: numeroBuscado || undefined, status: estado || undefined, from: desde || undefined, to: hasta || undefined },
+        {
+            page, limit: PAGE_SIZE, number: numeroBuscado || undefined, status: estado || undefined,
+            from: desde || undefined, to: hasta || undefined, warehouseId: almacenFiltrado || undefined,
+        },
         // Lo mismo con un número mal escrito —el servidor respondería 400—. Se mira también el
         // valor retardado: al corregir el campo, durante un instante todavía es el anterior.
         { enabled: !rangoInvalido && !numeroInvalido && SOLO_CIFRAS.test(numeroBuscado) },
@@ -538,10 +557,11 @@ export default function SaleOrdersPage() {
                         onChange={(e) => filtrar(() => setHasta(e.target.value))}
                         error={rangoInvalido ? t("ventas.filtro.rangoInvalido") : undefined}
                     />
+                    <SelectorDeAlmacen comoFiltro etiquetaOculta value={almacenFiltrado} onChange={(id) => filtrar(() => setAlmacenFiltrado(id))} />
                     {hayFiltros && (
                         <Button
                             variant="secondary"
-                            onClick={() => filtrar(() => { setNumero(""); setEstado(""); setDesde(""); setHasta(""); })}
+                            onClick={() => filtrar(() => { setNumero(""); setEstado(""); setDesde(""); setHasta(""); setAlmacenFiltrado(""); })}
                         >
                             {t("ventas.filtro.limpiar")}
                         </Button>
@@ -584,6 +604,8 @@ export default function SaleOrdersPage() {
                                                 order.customerName ?? t("ventas.clienteSinNombre")
                                             )}{" "}
                                             · {formatearFecha(idioma, order.createdAt)}
+                                            {/* T5-14 — de qué almacén sale, cuando hay más de uno. */}
+                                            {hayVarios && <> · {order.warehouse.name}</>}
                                         </p>
                                     </div>
                                 </div>

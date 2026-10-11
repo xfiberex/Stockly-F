@@ -21,7 +21,7 @@ function orden(over: Partial<PurchaseOrder> = {}): PurchaseOrder {
         id: "aaaaaaaa-1111-2222-3333-444444444444",
         supplierId: null,
         supplier: null,
-        status: "PENDING",
+        warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, status: "PENDING",
         notes: null,
         items: [
             { id: "i1", productId: "prod-1", productName: "Teclado Logitech", quantity: 4, receivedQuantity: 0, unitPrice: 450 },

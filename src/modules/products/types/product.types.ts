@@ -53,6 +53,8 @@ export interface MovementsQuery {
     type?: string;
     dateFrom?: string;
     dateTo?: string;
+    /** T5-14 — solo los de ese almacén. */
+    warehouseId?: string;
 }
 
 export interface PriceHistoryResponse {
@@ -76,6 +78,8 @@ export interface CreateProductDto {
     supplierId?: string;
     tagIds?: string[];
     image?: File;
+    /** T5-14 — el almacén en el que entra el stock inicial; sin él, el predeterminado. */
+    warehouseId?: string;
 }
 
 export interface UpdateProductDto {
@@ -111,6 +115,8 @@ export interface ProductQuery {
     isActive?: boolean;
     /** T5-10 — C incluye los productos sin ventas en el periodo; el filtro lo resuelve el servidor. */
     abcClass?: ClaseAbc;
+    /** T5-14 — solo los productos con existencias en ese almacén. */
+    warehouseId?: string;
 }
 
 /** Fila de un CSV/JSON de importación: todo puede llegar como cadena sin convertir. */
@@ -129,6 +135,8 @@ export interface CreateManualMovementDto {
     quantity: number;
     reason: string;
     note?: string;
+    /** T5-14 — en qué almacén; sin él, en el predeterminado. */
+    warehouseId?: string;
 }
 
 export interface BulkStockItem {
@@ -139,4 +147,6 @@ export interface BulkStockItem {
 export interface BulkStockDto {
     items: BulkStockItem[];
     reason?: string;
+    /** T5-14 — el almacén cuyas existencias se fijan; sin él, el predeterminado. */
+    warehouseId?: string;
 }

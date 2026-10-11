@@ -81,11 +81,11 @@ const TECLADO: ProductWithAvailability = {
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
     committedStock: 7,
-    availableStock: 3,
+    availableStock: 3, stockLevels: [],
     abcClass: "A",
 };
 const MONITOR: ProductWithAvailability = {
-    ...TECLADO, id: "p-monitor", name: "Monitor LG", sku: null, barcode: "5901234123457", price: "200.00", costPrice: null, availableStock: 5,
+    ...TECLADO, id: "p-monitor", name: "Monitor LG", sku: null, barcode: "5901234123457", price: "200.00", costPrice: null, availableStock: 5, stockLevels: [],
 };
 const RETIRADO: ProductWithAvailability = { ...TECLADO, id: "p-retirado", name: "Ratón retirado", barcode: "96385074", isActive: false };
 

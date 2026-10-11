@@ -6,6 +6,7 @@ import { useT } from "@/shared/hooks/useIdioma";
 import { cn } from "@/shared/lib/cn";
 import { useProducts } from "@/modules/products/hooks/useProducts";
 import type { ProductWithAvailability } from "@/modules/products/types/product.types";
+import { disponibleEn } from "@/shared/lib/almacenes";
 
 const RESULTADOS = 8;
 
@@ -13,6 +14,12 @@ interface BuscadorDeProductoProps {
     /** El producto del catálogo ligado a la línea, o `null` si el ítem va escrito a mano. */
     seleccionado: ProductWithAvailability | null;
     onSeleccionar: (producto: ProductWithAvailability | null) => void;
+    /**
+     * T5-14 — el almacén del formulario. Con él, el disponible que acompaña a cada opción es el
+     * de **ese almacén**, que es contra el que el servidor va a validar la cantidad; sin él, el
+     * de todos juntos.
+     */
+    warehouseId?: string;
 }
 
 /**
@@ -26,7 +33,7 @@ interface BuscadorDeProductoProps {
  * opción activa va en `aria-activedescendant`, Enter elige sin enviar el formulario y Escape
  * cierra la lista sin cerrar el diálogo.
  */
-export function BuscadorDeProducto({ seleccionado, onSeleccionar }: BuscadorDeProductoProps) {
+export function BuscadorDeProducto({ seleccionado, onSeleccionar, warehouseId }: BuscadorDeProductoProps) {
     const { t } = useT();
     const id = useId();
     const idLista = `${id}-lista`;
@@ -165,7 +172,7 @@ export function BuscadorDeProducto({ seleccionado, onSeleccionar }: BuscadorDePr
                                 <span className="font-medium">{producto.name}</span>
                                 <span className="block text-xs text-foreground-muted tabular-nums">
                                     {producto.sku && <>{producto.sku} · </>}
-                                    {t("ventas.form.disponible", { cantidad: producto.availableStock })}
+                                    {t("ventas.form.disponible", { cantidad: disponibleEn(producto, warehouseId) })}
                                 </span>
                             </li>
                         ))

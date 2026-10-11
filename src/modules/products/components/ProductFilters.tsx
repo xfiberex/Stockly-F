@@ -7,6 +7,7 @@ import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useEffect, useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
+import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
 
 interface ProductFiltersProps {
     onFilterChange: (filters: {
@@ -15,6 +16,7 @@ interface ProductFiltersProps {
         tagId?: string;
         isActive?: boolean;
         abcClass?: AbcClass;
+        warehouseId?: string;
     }) => void;
 }
 
@@ -27,6 +29,8 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     const [tagId, setTagId] = useState("");
     const [activeFilter, setActiveFilter] = useState<"true" | "false" | "">("true");
     const [abcClass, setAbcClass] = useState<AbcClass | "">("");
+    // T5-14 — los productos con existencias en un almacén.
+    const [warehouseId, setWarehouseId] = useState("");
 
     const debouncedSearch = useDebounce(search, 400);
     const { data: categories = [] } = useCategories();
@@ -62,8 +66,9 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
             tagId: tagId || undefined,
             isActive: activeFilter === "true" ? true : activeFilter === "false" ? false : undefined,
             abcClass: abcClass || undefined,
+            warehouseId: warehouseId || undefined,
         });
-    }, [debouncedSearch, categoryId, tagId, activeFilter, abcClass, onFilterChange]);
+    }, [debouncedSearch, categoryId, tagId, activeFilter, abcClass, warehouseId, onFilterChange]);
 
     return (
         /*
@@ -139,6 +144,10 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
                     className="w-full"
                 />
             </div>
+
+            {/* Sin envoltorio propio: con un solo almacén no pinta nada, y una celda vacía
+                descuadraría la rejilla. */}
+            <SelectorDeAlmacen comoFiltro etiquetaOculta label={t("productos.filtro.conExistenciasEn")} value={warehouseId} onChange={setWarehouseId} className="w-full" />
         </div>
     );
 }

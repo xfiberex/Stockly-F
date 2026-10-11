@@ -60,7 +60,8 @@ Stockly-F/
 ```
 
 Módulos: `auth`, `dashboard`, `products`, `catalog` (categorías y marcas), `suppliers`, `tags`,
-`purchase-orders`, `sale-orders`, `customers`, `inventory-counts`, `reports`, `notifications`,
+`purchase-orders`, `sale-orders`, `customers`, `inventory-counts`, `warehouses`, `stock-transfers`,
+`reports`, `notifications`,
 `users`, `settings` y `audit-logs`.
 
 ---
@@ -116,6 +117,8 @@ pnpm auditoria          # Dependencias; con --informe regenera el aviso de terce
 | `/sale-orders` | Órdenes de venta | Sesión |
 | `/customers` · `/customers/:id` | Clientes y su ficha | Sesión |
 | `/inventory-counts` · `/inventory-counts/:id` | Conteos físicos | Sesión |
+| `/stock-transfers` | Transferencias entre almacenes; registrarlas, `ADMIN` y `WAREHOUSE` | Sesión |
+| `/warehouses` | Almacenes y lo que guarda cada uno; gestionarlos, `ADMIN` | Sesión |
 | `/reports` · `/reports/period` | Informe general e informe por periodo | Sesión |
 | `/profile` | Perfil, contraseña y «Acerca de Stockly» | Sesión |
 | `/admin/users` · `/audit-logs` · `/settings` | Usuarios, auditoría y configuración | ADMIN |
@@ -142,6 +145,9 @@ y el menú de usuario. El grupo de administración solo se enseña a `ADMIN`.
 - **Conteos físicos.** Se cuenta **a ciegas** —la captura no enseña el stock del sistema—, se
   revisan las diferencias en unidades y en valor, y cerrar las convierte en ajustes. Las dos
   tablas caben a 393 px: se usan con el móvil en la mano.
+- **Almacenes.** Con más de uno, cada formulario que mueve stock pregunta en cuál, y el disponible
+  que valida una venta o una transferencia es el de ese almacén. **Con uno solo, nada de esto se
+  pinta**: ni selectores ni desgloses. El mostrador recuerda su local en el dispositivo.
 - **Informes.** Indicadores, valor a coste y a precio de venta, margen realizado, rotación y
   clasificación ABC, con PDF. **Ventas y compras por periodo**, con atajos o rango de fechas, en
   la zona horaria del negocio, con CSV y PDF.

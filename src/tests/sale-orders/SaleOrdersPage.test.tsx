@@ -40,7 +40,7 @@ const ORDEN_ENVIADA: SaleOrder = {
     id: ORDEN_ID,
     number: 41,
     status: "SHIPPED",
-    customerId: null,
+    warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, customerId: null,
     customerName: "Cliente de prueba",
     customerEmail: null,
     customerPhone: null,

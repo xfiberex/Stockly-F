@@ -213,7 +213,7 @@ describe("CustomerDetailPage", () => {
         id,
         number: Number(id.slice(-3)),
         status,
-        customerId: ANA.id,
+        warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, customerId: ANA.id,
         customerName: nombre,
         customerEmail: null,
         customerPhone: null,

@@ -31,7 +31,7 @@ const orden = (items: SaleOrderItem[], importes: Pick<SaleOrder, "subtotal" | "t
     id: "o1",
     number: 41,
     status: "PENDING",
-    customerId: null,
+    warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, customerId: null,
     customerName: "Cliente",
     customerEmail: null,
     customerPhone: null,

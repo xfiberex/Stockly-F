@@ -15,7 +15,7 @@ function ordenesDe(page: number, limit: number) {
         id: `orden-${desde + i}`,
         supplierId: null,
         supplier: null,
-        status: "PENDING" as const,
+        warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, status: "PENDING" as const,
         notes: null,
         items: [],
         createdAt: "2026-08-07T10:00:00.000Z",

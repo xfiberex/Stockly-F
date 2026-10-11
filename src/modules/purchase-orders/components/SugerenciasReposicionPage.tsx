@@ -11,6 +11,8 @@ import { formatearImporte } from "@/shared/lib/moneda";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 import { useGenerateFromSuggestions, useReorderSuggestions } from "@/modules/purchase-orders/hooks/usePurchaseOrders";
+import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
+import { useAlmacenDeOperacion } from "@/modules/warehouses/hooks/useWarehouses";
 
 // Más que las diez de la lista de órdenes: aquí se revisa y se marca, y partir un mismo
 // proveedor entre páginas obliga a generar su pedido en dos órdenes.
@@ -73,6 +75,8 @@ export default function SugerenciasReposicionPage() {
 
     const { data, isLoading } = useReorderSuggestions({ page, limit: PAGE_SIZE });
     const generar = useGenerateFromSuggestions();
+    // T5-14 — la sugerencia es del producto, no de un local; a qué almacén se pide se elige aquí.
+    const almacen = useAlmacenDeOperacion();
 
     const filas = data?.data ?? [];
     const totalPages = data?.meta.totalPages ?? 1;
@@ -104,7 +108,7 @@ export default function SugerenciasReposicionPage() {
     const confirmar = () => {
         if (incluidas.length === 0 || hayErrores) return;
         generar.mutate(
-            { items: incluidas.map((l) => ({ productId: l.s.productId, quantity: l.cantidad, unitPrice: l.precio })) },
+            { warehouseId: almacen.paraEnviar, items: incluidas.map((l) => ({ productId: l.s.productId, quantity: l.cantidad, unitPrice: l.precio })) },
             // Lo generado deja de sugerirse (ya es «pendiente de recibir»); lo escrito en las
             // líneas que quedan correspondía a la lista anterior.
             { onSuccess: () => setEdiciones({}) },
@@ -129,6 +133,10 @@ export default function SugerenciasReposicionPage() {
                         {t("reposicion.generar")}
                     </Button>
                 </div>
+            </div>
+
+            <div className="max-w-xs">
+                <SelectorDeAlmacen label={t("compras.form.almacen")} value={almacen.warehouseId} onChange={almacen.setWarehouseId} />
             </div>
 
             <div className="rounded-lg border border-border bg-surface-muted p-3 text-xs text-foreground-muted space-y-1">

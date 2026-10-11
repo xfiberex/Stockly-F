@@ -51,7 +51,7 @@ const makeProduct = (overrides: Partial<ProductWithAvailability> = {}): ProductW
     costPrice: null,
     stock: 10,
     committedStock: 0,
-    availableStock: 10,
+    availableStock: 10, stockLevels: [],
     abcClass: "C",
     minStock: 0,
     imageUrl: null,

@@ -28,6 +28,18 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
     const titleId = useId();
     const panelRef = useRef<HTMLDivElement>(null);
 
+    // T5-14 — `onClose` se guarda en una referencia y **no es dependencia del efecto de abajo**.
+    // Casi todos los formularios lo pasan como una función nueva en cada pintado, y con él en
+    // las dependencias el efecto se rehacía entero —devolver el foco, volver a ponerlo en el
+    // primer campo— cada vez que el padre se repintaba. No se notaba porque, con el diálogo
+    // abierto, el padre casi nunca se repintaba solo; desde que los formularios leen los
+    // almacenes, la respuesta llega un instante después de abrir y el foco saltaba al primer
+    // campo con el usuario ya escribiendo en otro.
+    const cerrar = useRef(onClose);
+    useEffect(() => {
+        cerrar.current = onClose;
+    });
+
     useEffect(() => {
         if (!isOpen) return;
 
@@ -39,7 +51,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
         const handleKey = (e: KeyboardEvent) => {
             if (abiertos.at(-1) !== propio) return;
             if (e.key === "Escape") {
-                onClose();
+                cerrar.current();
                 return;
             }
             // Focus trap: mantiene el tabulador dentro del modal.
@@ -71,7 +83,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
             if (abiertos.length === 0) document.body.style.overflow = "";
             previouslyFocused?.focus?.();
         };
-    }, [isOpen, onClose]);
+    }, [isOpen]);
 
     if (!isOpen) return null;
 

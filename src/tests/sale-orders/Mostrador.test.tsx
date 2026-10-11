@@ -14,8 +14,8 @@ import type { CounterSaleDto, SaleOrder } from "@/modules/sale-orders/types/sale
  */
 
 const PRODUCTOS = [
-    { id: "p-teclado", name: "Teclado", price: "50", stock: 10, committedStock: 7, availableStock: 3, isActive: true },
-    { id: "p-raton", name: "Ratón", price: "25.5", stock: 5, committedStock: 0, availableStock: 5, isActive: true },
+    { id: "p-teclado", name: "Teclado", price: "50", stock: 10, committedStock: 7, availableStock: 3, stockLevels: [], isActive: true },
+    { id: "p-raton", name: "Ratón", price: "25.5", stock: 5, committedStock: 0, availableStock: 5, stockLevels: [], isActive: true },
 ];
 
 const ANA = { id: "c-ana", name: "Ana Soto", email: "ana@correo.com", phone: null, document: "001-1", notes: null, ordersCount: 1 };
@@ -58,7 +58,7 @@ vi.mock("@/shared/components/EscanerModal", () => ({
 }));
 
 const ORDEN: SaleOrder = {
-    id: "o-1", number: 123, status: "SHIPPED", customerId: null, customerName: null, customerEmail: null, customerPhone: null,
+    id: "o-1", number: 123, status: "SHIPPED", warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, customerId: null, customerName: null, customerEmail: null, customerPhone: null,
     customerDocument: null, createdByEmail: "vendedor@stockly.app", shippedAt: "2026-10-08T15:00:00.000Z", notes: null, items: [],
     subtotal: "999.00", tax: "0.00", total: "999.00", createdAt: "2026-10-08T15:00:00.000Z", updatedAt: "2026-10-08T15:00:00.000Z",
 };

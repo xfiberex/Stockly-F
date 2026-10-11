@@ -62,7 +62,7 @@ const movimiento = (i: number): StockMovement => ({
     productId: "p1",
     type: "IN",
     delta: 1,
-    stockAfter: i,
+    stockAfter: i, warehouseId: "almacen-1", warehouseStockAfter: i, transferId: null,
     note: `mov ${i}`,
     createdAt: `2026-03-${String(i).padStart(2, "0")}T10:00:00Z`,
 });
@@ -159,6 +159,7 @@ describe("StockMovementsPage — histórico paginado (T4-15)", () => {
             type: "",
             dateFrom: "",
             dateTo: "",
+            warehouseId: "",
         });
     });
 

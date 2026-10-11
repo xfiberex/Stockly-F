@@ -108,8 +108,18 @@ const NAVEGACION: ElementoDeNav[] = [
             { to: "/customers", label: "ruta.clientes" },
         ],
     },
-    // T5-07 — el trabajo del almacén que no es una orden.
-    { kind: "link", to: "/inventory-counts", label: "ruta.conteos", end: false, Icon: ClipboardDocumentCheckIcon },
+    // T5-07 — el trabajo del almacén que no es una orden. T5-14 — con las transferencias y los
+    // almacenes pasa a ser un grupo: los tres destinos hablan de dónde está el stock.
+    {
+        kind: "group",
+        label: "nav.inventario",
+        Icon: ClipboardDocumentCheckIcon,
+        items: [
+            { to: "/inventory-counts", label: "ruta.conteos" },
+            { to: "/stock-transfers", label: "ruta.transferencias" },
+            { to: "/warehouses", label: "ruta.almacenes" },
+        ],
+    },
     { kind: "link", to: "/reports", label: "ruta.reportes", end: false, Icon: ChartBarIcon },
     {
         kind: "group",

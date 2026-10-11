@@ -33,6 +33,8 @@ import { formatearFecha } from "@/shared/lib/fechas";
 import { CLASES_BOTON_ICONO, clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
+import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
+import { useAlmacenDeOperacion, useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
 
 // Etiqueta, color e icono del estado salen del mismo descriptor (T2-38): pendiente
 // es un aviso —hay algo por hacer—, recibida es el final correcto y cancelada, el
@@ -333,10 +335,14 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
         append({ productId: product.id, productName: product.name, quantity: 1, unitPrice: precioDeCompra(product) });
     };
 
+    // T5-14 — a qué almacén entrará lo que se reciba.
+    const almacen = useAlmacenDeOperacion();
+
     const onSubmit = (data: CreatePurchaseOrderForm) => {
         const payload = {
             ...data,
             supplierId: data.supplierId || undefined,
+            warehouseId: almacen.paraEnviar,
             items: data.items.map((item) => ({
                 ...item,
                 productId: item.productId || undefined,
@@ -366,6 +372,7 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                         {...register("notes")}
                     />
                 </div>
+                <SelectorDeAlmacen label={t("compras.form.almacen")} value={almacen.warehouseId} onChange={almacen.setWarehouseId} />
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
@@ -470,7 +477,10 @@ export default function PurchaseOrdersPage() {
 
     const [page, setPage] = useState(1);
 
-    const { data, isLoading } = usePurchaseOrders({ page, limit: PAGE_SIZE });
+    // T5-14 — las de un almacén. Solo se ofrece, y solo se nombra en cada fila, si hay más de uno.
+    const [almacenFiltrado, setAlmacenFiltrado] = useState("");
+    const { hayVarios } = useAlmacenes();
+    const { data, isLoading } = usePurchaseOrders({ page, limit: PAGE_SIZE, warehouseId: almacenFiltrado || undefined });
     const orders = data?.data ?? [];
     const total = data?.meta.total ?? 0;
     const totalPages = data?.meta.totalPages ?? 1;
@@ -550,6 +560,10 @@ export default function PurchaseOrdersPage() {
                 </div>
             </div>
 
+            <div className="max-w-xs">
+                <SelectorDeAlmacen comoFiltro etiquetaOculta value={almacenFiltrado} onChange={(id) => { setAlmacenFiltrado(id); setPage(1); }} />
+            </div>
+
             {isLoading ? (
                 <div className="flex justify-center py-12"><Spinner size="lg" /></div>
             ) : orders.length === 0 ? (
@@ -571,6 +585,7 @@ export default function PurchaseOrdersPage() {
                                         </p>
                                         <p className="text-xs text-foreground-muted">
                                             {order.supplier?.name ?? t("productos.sinProveedor")} · {formatearFecha(idioma, order.createdAt)}
+                                            {hayVarios && <> · {order.warehouse.name}</>}
                                         </p>
                                     </div>
                                 </div>

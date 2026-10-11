@@ -922,7 +922,11 @@ test.describe("Flujos que cruzan frontend y backend", () => {
             await registrar.click();
             const venta = (await (await respuesta).json()).data as { id: string; number: number; status: string; total: string; createdByEmail: string };
             // Lo que salió del navegador no llevaba precios.
-            expect((await respuesta).request().postDataJSON()).toEqual({ items: [{ productId: a.id, quantity: 2 }, { productId: b.id, quantity: 1 }] });
+            // T5-14: y el local desde el que se vende, que con los dos almacenes del seed ya viaja.
+            expect((await respuesta).request().postDataJSON()).toEqual({
+                warehouseId: expect.any(String),
+                items: [{ productId: a.id, quantity: 2 }, { productId: b.id, quantity: 1 }],
+            });
             expect(venta).toMatchObject({ status: "SHIPPED", createdByEmail: VENDEDOR.email });
             const numero = String(venta.number).padStart(6, "0");
             const hecha = vendedor.getByRole("status");
@@ -995,6 +999,111 @@ test.describe("Flujos que cruzan frontend y backend", () => {
             await expect(almacen.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
         } finally {
             await otro.close();
+        }
+    });
+
+    test("una transferencia a otra sucursal no cambia el stock total y deja dos movimientos enlazados; lo transferido se vende desde allí (T5-14)", async ({ page, browser }) => {
+        // ADMIN prepara una sucursal y un producto propios: 25 unidades, todas en el predeterminado.
+        await login(page);
+        const marca = sufijo();
+        const sucursal = `E2E-Sucursal-${marca}`;
+        const producto = `E2E-transferible-${marca}`;
+        const almacenes = (await api(page, "get", "/warehouses")) as Array<{ id: string; name: string; isDefault: boolean }>;
+        const central = almacenes.find((a) => a.isDefault)!;
+        const nueva = (await api(page, "post", "/warehouses", { name: sucursal })) as { id: string };
+        const creado = (await api(page, "post", "/products", { name: producto, price: 30, stock: 25 })) as { id: string };
+
+        type Nivel = { warehouseId: string; stock: number };
+        const niveles = async () => {
+            const p = (await api(page, "get", `/products/${creado.id}`)) as { stock: number; stockLevels: Nivel[] };
+            const en = (id: string) => p.stockLevels.find((n) => n.warehouseId === id)?.stock ?? 0;
+            return { total: p.stock, central: en(central.id), sucursal: en(nueva.id) };
+        };
+
+        const contexto = await browser.newContext();
+        const almacen = await contexto.newPage();
+        try {
+            // ── El almacén registra la transferencia, por la interfaz ────────────────────────
+            await login(almacen, ALMACEN);
+            await almacen.goto("/stock-transfers");
+            await almacen.getByRole("button", { name: "Nueva transferencia" }).click();
+            const alta = almacen.getByRole("dialog", { name: "Nueva transferencia" });
+            // Abre con el predeterminado como origen.
+            await expect(alta.getByLabel("Sale de")).toHaveValue(central.id);
+            await alta.getByLabel("Entra en").selectOption({ label: sucursal });
+
+            await alta.getByRole("combobox", { name: "Producto" }).fill(producto);
+            await alta.getByRole("option", { name: new RegExp(producto) }).click();
+            const cantidad = alta.getByLabel(`Cantidad de ${producto}`);
+            await expect(alta.getByText("Disponible en el origen: 25")).toBeVisible();
+
+            // Más de lo que hay en el origen no se deja enviar.
+            await cantidad.fill("26");
+            await expect(alta.getByText("En el origen solo hay 25 disponibles")).toBeVisible();
+            await expect(alta.getByRole("button", { name: "Transferir" })).toBeDisabled();
+
+            await cantidad.fill("10");
+            await alta.getByRole("button", { name: "Transferir" }).click();
+            await expect(alta).toBeHidden();
+
+            // ── El criterio: el total no cambia, y hay dos movimientos enlazados ─────────────
+            await expect.poll(niveles).toEqual({ total: 25, central: 15, sucursal: 10 });
+            const { movements } = (await api(page, "get", `/products/${creado.id}/movements?type=TRANSFER`)) as {
+                movements: Array<{ delta: number; stockAfter: number; warehouseId: string; warehouseStockAfter: number; transferId: string | null }>;
+            };
+            expect(movements).toHaveLength(2);
+            const salida = movements.find((m) => m.delta < 0)!;
+            const entrada = movements.find((m) => m.delta > 0)!;
+            expect(salida).toMatchObject({ delta: -10, warehouseId: central.id, warehouseStockAfter: 15, stockAfter: 25 });
+            expect(entrada).toMatchObject({ delta: 10, warehouseId: nueva.id, warehouseStockAfter: 10, stockAfter: 25 });
+            expect(salida.transferId).not.toBeNull();
+            expect(entrada.transferId).toBe(salida.transferId);
+
+            // La lista la enseña, y al desplegarla dice lo que quedó en cada extremo.
+            const fila = almacen.getByRole("listitem").filter({ hasText: sucursal });
+            await expect(fila.getByText("10 uds.")).toBeVisible();
+            await fila.getByRole("button", { name: /Ver los productos de la transferencia/ }).click();
+            await expect(fila.getByText(`Quedan 15 en ${central.name} y 10 en ${sucursal}`)).toBeVisible();
+
+            // ── Lo transferido se vende desde la sucursal, y solo eso ────────────────────────
+            await page.goto("/counter");
+            await page.getByLabel("Vendes desde").selectOption({ label: sucursal });
+            await page.getByRole("combobox", { name: "Producto" }).fill(producto);
+            await page.getByRole("option", { name: new RegExp(producto) }).click();
+            // El disponible es el de la sucursal, no las 25 del total.
+            await expect(page.getByText("Disponible: 10", { exact: true })).toBeVisible();
+            await page.getByLabel(`Cantidad de ${producto}`).fill("11");
+            await expect(page.getByRole("button", { name: "Registrar venta" })).toBeDisabled();
+            await page.getByLabel(`Cantidad de ${producto}`).fill("4");
+            await page.getByRole("button", { name: "Registrar venta" }).click();
+            await expect(page.getByRole("status").getByText(/Venta #\d{6} registrada/)).toBeVisible();
+
+            await expect.poll(niveles).toEqual({ total: 21, central: 15, sucursal: 6 });
+
+            // ── Un almacén con existencias no se desactiva; vacío, sí ────────────────────────
+            await page.goto("/warehouses");
+            const tarjeta = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: sucursal }) });
+            await expect(tarjeta.getByText("6", { exact: true })).toBeVisible();
+            await tarjeta.getByRole("button", { name: `Desactivar ${sucursal}` }).click();
+            await expect(page.getByText(`«${sucursal}» todavía guarda 6 unidades: transfiérelas antes de desactivarlo.`)).toBeVisible();
+
+            await api(page, "post", "/stock-transfers", { fromWarehouseId: nueva.id, toWarehouseId: central.id, items: [{ productId: creado.id, quantity: 6 }] });
+            await expect.poll(niveles).toEqual({ total: 21, central: 21, sucursal: 0 });
+            const desactivado = page.waitForResponse((r) => r.url().includes(`/warehouses/${nueva.id}/deactivate`));
+            await tarjeta.getByRole("button", { name: `Desactivar ${sucursal}` }).click();
+            expect((await desactivado).status()).toBe(200);
+            await expect(tarjeta.getByText("Inactivo")).toBeVisible();
+
+            // Desactivado, ya no admite operaciones: ni por la API.
+            const rechazada = await apiCruda(page, "post", "/stock-transfers", {
+                fromWarehouseId: central.id, toWarehouseId: nueva.id, items: [{ productId: creado.id, quantity: 1 }],
+            });
+            expect(rechazada.status()).toBe(409);
+            expect((await rechazada.json()).code).toBe("WAREHOUSE_INACTIVE");
+        } finally {
+            await contexto.close();
+            // Si algo falló a medias, la sucursal no se queda activa para los demás escenarios.
+            await apiCruda(page, "patch", `/warehouses/${nueva.id}/deactivate`);
         }
     });
 

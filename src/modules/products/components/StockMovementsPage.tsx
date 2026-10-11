@@ -24,6 +24,8 @@ import { type Idioma } from "@/shared/i18n/idioma";
 // puede recorrer el histórico entero por lotes.
 import { formatearFecha, LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
+import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
+import { useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
 
 /** El eje del gráfico va sin año: son puntos de una serie, no fechas que haya que leer. */
 function formatDateShort(idioma: Idioma, iso: string) {
@@ -37,6 +39,9 @@ export default function StockMovementsPage() {
     const [typeFilter, setTypeFilter] = useState<string>("");
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
+    // T5-14 — los de un almacén. Con varios, la tabla dice además dónde pasó cada cosa.
+    const [almacenFiltrado, setAlmacenFiltrado] = useState("");
+    const { hayVarios, nombreDe } = useAlmacenes();
     const [page, setPage] = useState(1);
     const [activeTab, setActiveTab] = useState<"movements" | "prices" | "costs">("movements");
     const [costPage, setCostPage] = useState(1);
@@ -48,6 +53,7 @@ export default function StockMovementsPage() {
         type: typeFilter,
         dateFrom,
         dateTo,
+        warehouseId: almacenFiltrado,
     });
     const { data: priceData } = usePriceHistory(id!);
     const { data: costData } = useCostHistory(id!, costPage);
@@ -85,14 +91,15 @@ export default function StockMovementsPage() {
     const priceHistory = priceData?.history ?? [];
     const costHistory = costData?.history ?? [];
     const costMeta = costData?.meta;
-    const hayFiltros = Boolean(typeFilter || dateFrom || dateTo);
+    const hayFiltros = Boolean(typeFilter || dateFrom || dateTo || almacenFiltrado);
 
     // El servidor los manda del más reciente al más antiguo —la primera página es lo último
     // que pasó—, así que una serie temporal hay que invertirla: un gráfico de evolución
     // dibujado al revés cuenta la historia del revés.
     const chartData = [...movements].reverse().map((m) => ({
         date: formatDateShort(idioma, m.createdAt),
-        stock: m.stockAfter,
+        // Filtrando por almacén, la curva es la de ese almacén; sin filtro, la del total.
+        stock: almacenFiltrado ? m.warehouseStockAfter : m.stockAfter,
         type: m.type,
     }));
 
@@ -155,7 +162,7 @@ export default function StockMovementsPage() {
                              */
                             <Button
                                 variant="secondary"
-                                onClick={() => exportProductMovementsCsv(product.id, product.name, { type: typeFilter, dateFrom, dateTo })}
+                                onClick={() => exportProductMovementsCsv(product.id, product.name, { type: typeFilter, dateFrom, dateTo, warehouseId: almacenFiltrado })}
                             >
                                 <ArrowDownTrayIcon className="h-4 w-4" />
                                 {t("movimientos.exportarTodo")}
@@ -269,10 +276,11 @@ export default function StockMovementsPage() {
                                 value={dateTo}
                                 onChange={(e) => filtrar(() => setDateTo(e.target.value))}
                             />
+                            <SelectorDeAlmacen comoFiltro etiquetaOculta value={almacenFiltrado} onChange={(id) => filtrar(() => setAlmacenFiltrado(id))} />
                             {hayFiltros && (
                                 <Button
                                     variant="secondary"
-                                    onClick={() => filtrar(() => { setTypeFilter(""); setDateFrom(""); setDateTo(""); })}
+                                    onClick={() => filtrar(() => { setTypeFilter(""); setDateFrom(""); setDateTo(""); setAlmacenFiltrado(""); })}
                                 >
                                     {t("movimientos.limpiarFiltros")}
                                 </Button>
@@ -301,7 +309,9 @@ export default function StockMovementsPage() {
                                             <th className="px-6 py-3">{t("comun.fecha")}</th>
                                             <th className="px-6 py-3">{t("movimientos.columnaTipo")}</th>
                                             <th className="px-6 py-3">{t("movimientos.columnaCambio")}</th>
-                                            <th className="px-6 py-3">{t("movimientos.columnaStockResultante")}</th>
+                                            {hayVarios && <th className="px-6 py-3">{t("almacenes.almacen")}</th>}
+                                            {hayVarios && <th className="px-6 py-3">{t("movimientos.columnaEnAlmacen")}</th>}
+                                            <th className="px-6 py-3">{t(hayVarios ? "movimientos.columnaStockTotal" : "movimientos.columnaStockResultante")}</th>
                                             <th className="px-6 py-3">{t("movimientos.columnaNota")}</th>
                                         </tr>
                                     </thead>
@@ -321,7 +331,9 @@ export default function StockMovementsPage() {
                                                         {m.delta >= 0 ? `+${m.delta}` : m.delta}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-3 text-foreground">{m.stockAfter}</td>
+                                                {hayVarios && <td className="px-6 py-3 text-foreground">{nombreDe(m.warehouseId)}</td>}
+                                                {hayVarios && <td className="px-6 py-3 text-foreground tabular-nums">{m.warehouseStockAfter}</td>}
+                                                <td className="px-6 py-3 text-foreground tabular-nums">{m.stockAfter}</td>
                                                 <td className="px-6 py-3 text-foreground-muted text-xs">{m.note ?? "—"}</td>
                                             </tr>
                                         ))}

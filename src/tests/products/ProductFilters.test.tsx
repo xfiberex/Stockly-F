@@ -21,6 +21,12 @@ vi.mock("@/modules/reports/hooks/useReports", () => ({
     }),
 }));
 
+// T5-14 — con un solo almacén el filtro por almacén no se pinta: siguen siendo tres desplegables.
+// Con varios lo comprueba `Almacenes.test.tsx`.
+vi.mock("@/modules/warehouses/hooks/useWarehouses", () => ({
+    useAlmacenes: () => ({ almacenes: [], activos: [], predeterminado: undefined, hayVarios: false, nombreDe: () => "—", isLoading: false }),
+}));
+
 describe("ProductFilters", () => {
     it("renderiza el campo de búsqueda y los tres selects", () => {
         render(<ProductFilters onFilterChange={vi.fn()} />);

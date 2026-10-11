@@ -12,6 +12,7 @@ import { useT } from "@/shared/hooks/useIdioma";
 import { formatearFechaHora } from "@/shared/lib/fechas";
 import {
     BanknotesIcon,
+    BuildingStorefrontIcon,
     ChartBarIcon,
     PencilIcon,
     CubeIcon,
@@ -24,6 +25,8 @@ import {
     PrinterIcon,
     QrCodeIcon,
 } from "@heroicons/react/24/outline";
+import { nivelEn } from "@/shared/contratos";
+import { useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
 
 interface ProductDetailModalProps {
     product: ProductWithAvailability | null;
@@ -58,6 +61,7 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: 
     const { t, tn, idioma } = useT();
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
+    const { activos, hayVarios } = useAlmacenes();
 
     if (!product) return null;
 
@@ -157,6 +161,29 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: 
                             )}
                         </div>
                     </Field>
+
+                    {/* T5-14 — dónde está ese stock. Solo con varios almacenes, y uno por fila:
+                        los que no tienen nada también, para que «cero» se lea y no se suponga. */}
+                    {hayVarios && (
+                        <Field icon={BuildingStorefrontIcon} label={t("productos.porAlmacen")}>
+                            <ul className="space-y-0.5">
+                                {activos.map((almacen) => {
+                                    const nivel = nivelEn(product, almacen.id);
+                                    return (
+                                        <li key={almacen.id} className="flex justify-between gap-3 text-foreground">
+                                            <span className="min-w-0 truncate">{almacen.name}</span>
+                                            <span className="shrink-0 tabular-nums">
+                                                {nivel.stock}
+                                                {nivel.committedStock > 0 && (
+                                                    <span className="text-xs text-foreground-muted"> · {t("productos.disponibleEnAlmacen", { cantidad: nivel.availableStock })}</span>
+                                                )}
+                                            </span>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </Field>
+                    )}
 
                     <Field icon={ExclamationTriangleIcon} label={t("productos.campo.stockMinimo")}>
                         {product.minStock > 0 ? (

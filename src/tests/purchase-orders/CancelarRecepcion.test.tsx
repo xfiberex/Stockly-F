@@ -18,7 +18,7 @@ const ORDEN_RECIBIDA = {
     id: "bbbbbbbb-1111-2222-3333-444444444444",
     supplierId: null,
     supplier: null,
-    status: "RECEIVED",
+    warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, status: "RECEIVED",
     notes: null,
     items: [
         { id: "i1", purchaseOrderId: "x", productId: "prod-1", product: null, productName: "Teclado", quantity: 3, receivedQuantity: 3, unitPrice: "450", createdAt: "" },

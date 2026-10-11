@@ -14,4 +14,10 @@ export const queryKeys = {
     reports: ["reports"] as const,
     inventoryCounts: ["inventory-counts"] as const,
     notifications: ["notifications"] as const,
+    // T5-14: la lista de almacenes, que casi no cambia, y lo que guarda cada uno, que cambia con
+    // cada movimiento. La segunda va **bajo `products` a proposito**: todo lo que mueve stock ya
+    // invalida esa clave, y asi no hay que acordarse en cada mutacion.
+    warehouses: ["warehouses"] as const,
+    warehousesSummary: ["products", "almacenes"] as const,
+    stockTransfers: ["stock-transfers"] as const,
 }

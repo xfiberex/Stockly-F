@@ -11,6 +11,8 @@ export interface InventoryCountsQuery {
     page?: number;
     limit?: number;
     status?: InventoryCountStatus;
+    /** T5-14 — solo los de ese almacén. */
+    warehouseId?: string;
 }
 
 export interface InventoryCountLinesQuery {
@@ -23,6 +25,8 @@ export interface InventoryCountLinesQuery {
 }
 
 export interface NewInventoryCount {
+    /** T5-14 — qué almacén se cuenta; sin él, el predeterminado. */
+    warehouseId?: string;
     categoryId?: string | null;
     note?: string;
 }
