@@ -29,6 +29,7 @@ export const TITULOS_DE_RUTA: ReadonlyArray<{ patron: string; titulo: Clave }> =
     { patron: "/inventory-counts/:id", titulo: "ruta.conteo" },
     { patron: "/warehouses", titulo: "ruta.almacenes" },
     { patron: "/stock-transfers", titulo: "ruta.transferencias" },
+    { patron: "/expiry", titulo: "ruta.caducidades" },
     { patron: "/audit-logs", titulo: "ruta.auditoria" },
     { patron: "/settings", titulo: "ruta.configuracion" },
     { patron: "/admin/users", titulo: "ruta.usuarios" },

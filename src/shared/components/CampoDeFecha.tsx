@@ -6,6 +6,12 @@ import { useT } from "@/shared/hooks/useIdioma";
 interface CampoDeFechaProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
     label?: string;
     error?: string;
+    /**
+     * T5-15 — dónde vive el campo. `filtro` (por defecto) lleva el rótulo pequeño y gris de las
+     * barras de filtros, que es donde nació; `formulario`, el de `Input`, para que una fecha
+     * junto a otro campo de un formulario no parezca de otra pantalla.
+     */
+    variante?: "filtro" | "formulario";
 }
 
 /**
@@ -31,7 +37,7 @@ interface CampoDeFechaProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
  *    esquina es exactamente lo que el mínimo de 44 px del sistema de diseño quiere evitar.
  */
 export const CampoDeFecha = forwardRef<HTMLInputElement, CampoDeFechaProps>(
-    ({ label, error, className, id, value, ...props }, ref) => {
+    ({ label, error, className, id, value, variante = "filtro", ...props }, ref) => {
         const { t } = useT();
         const generado = useId();
         const idCampo = id ?? generado;
@@ -41,7 +47,7 @@ export const CampoDeFecha = forwardRef<HTMLInputElement, CampoDeFechaProps>(
         return (
             <div className="flex flex-col gap-1">
                 {label && (
-                    <label htmlFor={idCampo} className="text-xs text-foreground-muted">
+                    <label htmlFor={idCampo} className={variante === "formulario" ? "text-sm font-medium text-foreground" : "text-xs text-foreground-muted"}>
                         {label}
                     </label>
                 )}

@@ -237,8 +237,8 @@ describe("disponibleEn y stockEn (T5-14)", () => {
         stock: 10,
         availableStock: 6,
         stockLevels: [
-            { warehouseId: "w-central", stock: 6, committedStock: 1, availableStock: 5 },
-            { warehouseId: "w-norte", stock: 4, committedStock: 3, availableStock: 1 },
+            { warehouseId: "w-central", stock: 6, expiredStock: 0, committedStock: 1, availableStock: 5 },
+            { warehouseId: "w-norte", stock: 4, expiredStock: 0, committedStock: 3, availableStock: 1 },
         ],
     };
 

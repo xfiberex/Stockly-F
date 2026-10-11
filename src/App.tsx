@@ -117,6 +117,8 @@ const NAVEGACION: ElementoDeNav[] = [
         items: [
             { to: "/inventory-counts", label: "ruta.conteos" },
             { to: "/stock-transfers", label: "ruta.transferencias" },
+            // T5-15 — lo que caduca: es trabajo de almacén, ir a retirarlo.
+            { to: "/expiry", label: "ruta.caducidades" },
             { to: "/warehouses", label: "ruta.almacenes" },
         ],
     },

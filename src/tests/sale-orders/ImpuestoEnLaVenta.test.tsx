@@ -21,6 +21,7 @@ const linea = (id: string, taxRate: number | null, subtotal: string, tax: string
     quantity: 3,
     unitPrice: "1.00",
     taxRate,
+    lots: [],
     subtotal,
     tax,
     total: (Number(subtotal) + Number(tax)).toFixed(2),

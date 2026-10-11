@@ -21,11 +21,11 @@ const ALMACENES = [
 const TECLADO = {
     id: "p-teclado", name: "Teclado", sku: "TEC-1", price: "50", stock: 10, committedStock: 4, availableStock: 6, isActive: true,
     stockLevels: [
-        { warehouseId: "w-central", stock: 6, committedStock: 1, availableStock: 5 },
-        { warehouseId: "w-norte", stock: 4, committedStock: 3, availableStock: 1 },
+        { warehouseId: "w-central", stock: 6, expiredStock: 0, committedStock: 1, availableStock: 5 },
+        { warehouseId: "w-norte", stock: 4, expiredStock: 0, committedStock: 3, availableStock: 1 },
     ],
 };
-const RATON = { id: "p-raton", name: "Ratón", sku: null, price: "25", stock: 2, committedStock: 0, availableStock: 2, isActive: true, stockLevels: [{ warehouseId: "w-central", stock: 2, committedStock: 0, availableStock: 2 }] };
+const RATON = { id: "p-raton", name: "Ratón", sku: null, price: "25", stock: 2, committedStock: 0, availableStock: 2, isActive: true, stockLevels: [{ warehouseId: "w-central", stock: 2, expiredStock: 0, committedStock: 0, availableStock: 2 }] };
 
 const TRANSFERENCIA = {
     id: "abcdef12-0000-4000-8000-000000000001",

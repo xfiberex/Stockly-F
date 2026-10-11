@@ -19,3 +19,7 @@ export type PeriodPreset = AtajoDePeriodo;
 /** T5-10 — periodo de la clasificación ABC y productos por clase. */
 export type AbcSummary = ResumenAbc;
 export type AbcClass = ClaseAbc;
+
+/** T5-15 — el informe de caducidades, y una de sus filas: un lote en un almacén. */
+export type ExpiryReport = import("@/shared/contratos").InformeDeCaducidades;
+export type ExpiryRow = import("@/shared/contratos").Caducidad;

@@ -42,7 +42,7 @@ const producto = {
     price: "100.00",
     costPrice: null,
     stock: 5,
-    minStock: 1,
+    minStock: 1, tracksLots: false,
     imageUrl: null,
     imagePublicId: null,
     categoryId: null,
@@ -62,7 +62,7 @@ const movimiento = (i: number): StockMovement => ({
     productId: "p1",
     type: "IN",
     delta: 1,
-    stockAfter: i, warehouseId: "almacen-1", warehouseStockAfter: i, transferId: null,
+    stockAfter: i, warehouseId: "almacen-1", warehouseStockAfter: i, transferId: null, lotId: null, lot: null,
     note: `mov ${i}`,
     createdAt: `2026-03-${String(i).padStart(2, "0")}T10:00:00Z`,
 });
@@ -108,6 +108,21 @@ describe("StockMovementsPage — histórico paginado (T4-15)", () => {
 
         await screen.findByText("Teclado Logitech");
         expect(getMovements).toHaveBeenCalledWith("p1", expect.objectContaining({ page: 1 }));
+    });
+
+    it("un movimiento con lote dice cuál y su caducidad, como día; los demás, nada (T5-15)", async () => {
+        getMovements.mockResolvedValue({
+            ...respuesta(1, 2),
+            movements: [
+                { ...movimiento(1), note: "Orden de compra #abc", lotId: "l1", lot: { id: "l1", code: "L-20261231", expiresAt: "2026-12-31" } },
+                movimiento(2),
+            ],
+        } as MovementsResponse);
+        renderWithProviders(<StockMovementsPage />);
+
+        const fila = (await screen.findByText("Orden de compra #abc")).closest("tr")!;
+        expect(fila).toHaveTextContent("Lote L-20261231 · 31 dic 2026");
+        expect(screen.getAllByText(/^Lote /)).toHaveLength(1);
     });
 
     it("el recuento sale del total del servidor, no de la página cargada", async () => {

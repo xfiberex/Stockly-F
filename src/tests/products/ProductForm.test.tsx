@@ -25,7 +25,7 @@ const productoExistente: Product = {
     price: "49.99",
     costPrice: null,
     stock: 12,
-    minStock: 3,
+    minStock: 3, tracksLots: false,
     imageUrl: null,
     imagePublicId: null,
     categoryId: null,

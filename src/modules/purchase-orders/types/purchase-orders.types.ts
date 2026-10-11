@@ -23,7 +23,8 @@ export interface PurchaseOrderQuery {
 
 /** T5-04 — una entrega: cuánto llega de cada línea. Las que no van no reciben nada. */
 export interface RecepcionForm {
-    items: Array<{ itemId: string; quantity: number }>;
+    /** T5-15 — `expiresAt` (`AAAA-MM-DD`) y `lotCode`: el lote en el que entra, si el producto los lleva. */
+    items: Array<{ itemId: string; quantity: number; expiresAt?: string; lotCode?: string }>;
 }
 
 export interface CreatePurchaseOrderForm {

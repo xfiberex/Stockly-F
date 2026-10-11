@@ -24,8 +24,8 @@ const ALMACENES = [
 ];
 
 const NIVELES = [
-    { warehouseId: "w-central", stock: 6, committedStock: 1, availableStock: 5 },
-    { warehouseId: "w-norte", stock: 4, committedStock: 3, availableStock: 1 },
+    { warehouseId: "w-central", stock: 6, expiredStock: 0, committedStock: 1, availableStock: 5 },
+    { warehouseId: "w-norte", stock: 4, expiredStock: 0, committedStock: 3, availableStock: 1 },
 ];
 const TECLADO = { id: "p-teclado", name: "Teclado", price: "50", stock: 10, minStock: 0, committedStock: 4, availableStock: 6, isActive: true, stockLevels: NIVELES };
 

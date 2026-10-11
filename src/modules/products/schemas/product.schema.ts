@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { motivoCodigoDeBarrasInvalido } from "@/shared/contratos";
+import { LARGO_MAXIMO_DE_CODIGO_DE_LOTE, motivoCodigoDeBarrasInvalido } from "@/shared/contratos";
 import type { Clave } from "@/shared/i18n/traducir";
 
 // T4-04 — los mensajes son **claves del catálogo**, no frases; los traduce el campo con
@@ -35,6 +35,13 @@ const codigoDeBarras = z.string().optional().superRefine((valor, ctx) => {
     if (motivo) ctx.addIssue({ code: "custom", message: mensaje(MENSAJE_CODIGO[motivo]) });
 });
 
+// T5-15 — el lote del stock inicial. Un campo de fecha vacío llega como "".
+const camposDeLote = {
+    tracksLots: z.boolean().optional(),
+    lotExpiresAt: z.preprocess((v) => (v === "" ? undefined : v), z.string().optional()),
+    lotCode: z.string().max(LARGO_MAXIMO_DE_CODIGO_DE_LOTE, mensaje("validacion.loteLargo")).optional(),
+};
+
 export const createProductSchema = z.object({
     name: z.string().min(1, mensaje("validacion.nombreRequerido")).max(200, mensaje("validacion.maximo200")),
     description: z.string().max(1000, mensaje("validacion.maximo1000")).optional(),
@@ -58,7 +65,15 @@ export const createProductSchema = z.object({
     brandId: uuidOptional,
     supplierId: uuidOptional,
     image: z.instanceof(File).optional(),
-});
+    ...camposDeLote,
+})
+    // T5-15 — un producto que lleva lotes no nace con stock sin decir cuándo caduca: es la regla
+    // del servidor (`LOT_EXPIRY_REQUIRED`), dicha junto al campo antes de enviar.
+    .superRefine((datos, ctx) => {
+        if (datos.tracksLots && (datos.stock ?? 0) > 0 && !datos.lotExpiresAt) {
+            ctx.addIssue({ code: "custom", path: ["lotExpiresAt"], message: mensaje("validacion.caducidadRequerida") });
+        }
+    });
 
 export const updateProductSchema = z.object({
     name: z.string().min(1, mensaje("validacion.nombreVacio")).max(200).optional(),
@@ -73,6 +88,7 @@ export const updateProductSchema = z.object({
     brandId: uuidOptional,
     supplierId: uuidOptional,
     image: z.instanceof(File).optional(),
+    tracksLots: z.boolean().optional(),
 });
 
 export type CreateProductFormData = z.infer<typeof createProductSchema>;

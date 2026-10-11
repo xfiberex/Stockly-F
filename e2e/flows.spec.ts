@@ -1107,6 +1107,153 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         }
     });
 
+    test("lo recibido de un producto con lotes entra en su lote, la venta saca primero el que caduca antes y el informe lo enseña (T5-15)", async ({ page, browser }) => {
+        // Los días se cuentan en la zona del negocio, que es la del seed; el reloj de la máquina
+        // del test puede ir por delante.
+        const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santo_Domingo" }).format(new Date());
+        const dia = (n: number) => new Date(Date.parse(`${hoy}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
+        await login(page);
+        const producto = `E2E-lotes-${sufijo()}`;
+
+        // ── El producto se marca al darlo de alta, por la interfaz ───────────────────────────
+        await page.goto("/catalog/products");
+        await page.getByRole("button", { name: "Nuevo producto" }).click();
+        const alta = page.getByRole("dialog");
+        await alta.getByLabel("Nombre *").fill(producto);
+        await alta.getByLabel("Precio *").fill("12");
+        await alta.getByRole("checkbox", { name: "Lleva lotes y fecha de caducidad" }).check();
+        // Con stock inicial pide su caducidad; sin stock, no hay nada que fechar.
+        await alta.getByLabel("Stock inicial").fill("3");
+        await expect(alta.getByLabel("Fecha de caducidad *")).toBeVisible();
+        await alta.getByLabel("Stock inicial").fill("");
+        await expect(alta.getByLabel("Fecha de caducidad *")).toBeHidden();
+        await alta.getByRole("button", { name: "Crear producto" }).click();
+        await expect(alta).toBeHidden();
+
+        const { data: [creado] } = (await api(page, "get", `/products?search=${encodeURIComponent(producto)}`)) as {
+            data: Array<{ id: string; tracksLots: boolean }>;
+        };
+        expect(creado.tracksLots).toBe(true);
+
+        const orden = (await api(page, "post", "/purchase-orders", {
+            items: [{ productId: creado.id, productName: producto, quantity: 10, unitPrice: 5 }],
+        })) as { id: string };
+        const numero = orden.id.slice(0, 8).toUpperCase();
+
+        type Lotes = { withoutLot: number; lots: Array<{ code: string; expiresAt: string; stock: number; daysLeft: number }> };
+        const lotes = async () => ((await api(page, "get", `/products/${creado.id}/lots`)) as Lotes).lots.map((l) => [l.code, l.stock]);
+
+        const contexto = await browser.newContext();
+        const almacen = await contexto.newPage();
+        try {
+            // ── El almacén recibe en dos entregas, cada una con su lote ──────────────────────
+            await login(almacen, ALMACEN);
+            await almacen.goto("/purchase-orders");
+            const recibir = async (cantidad: number, caducidad: string, codigo: string) => {
+                await almacen.getByRole("button", { name: `Recibir mercancía de la orden #${numero}` }).click();
+                const entrega = almacen.getByRole("dialog");
+                await entrega.getByLabel(`Llega ahora de ${producto}`).fill(String(cantidad));
+                // Sin fecha no se puede confirmar: es lo que no se puede apuntar después.
+                await expect(entrega.getByText("Indica cuándo caduca")).toBeVisible();
+                await expect(entrega.getByRole("button", { name: "Registrar recepción" })).toBeDisabled();
+                await entrega.getByLabel(`Caducidad de ${producto}`).fill(caducidad);
+                await entrega.getByLabel(`Lote de ${producto}`).fill(codigo);
+                await entrega.getByRole("button", { name: "Registrar recepción" }).click();
+                await expect(entrega).toBeHidden();
+            };
+            // El que caduca más tarde llega primero: el orden de salida no es el de llegada.
+            await recibir(6, dia(40), "TARDE");
+            await expect.poll(lotes).toEqual([["TARDE", 6]]);
+            await recibir(4, dia(5), "PRONTO");
+            await expect.poll(lotes).toEqual([["PRONTO", 4], ["TARDE", 6]]);
+
+            // ── El criterio: enviar la venta consume primero el lote que caduca antes ────────
+            const venta = (await api(page, "post", "/sale-orders", {
+                items: [{ productId: creado.id, productName: producto, quantity: 5, unitPrice: 12 }],
+            })) as { id: string; number: number };
+            const enviada = await apiCruda(almacen, "post", `/sale-orders/${venta.id}/ship`);
+            expect(enviada.status()).toBe(200);
+            const lineas = (await enviada.json()).data.items as Array<{ lots: Array<{ code: string; quantity: number }> }>;
+            expect(lineas[0].lots.map((l) => [l.code, l.quantity])).toEqual([["PRONTO", 4], ["TARDE", 1]]);
+            await expect.poll(lotes).toEqual([["TARDE", 5]]);
+
+            // El histórico del producto dice de qué lote fue cada salida.
+            await page.goto(`/catalog/products/${creado.id}/movements`);
+            await expect(page.getByText(`Lote PRONTO · ${new Date(`${dia(5)}T00:00:00Z`).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })}`).first()).toBeVisible();
+
+            // ── El informe: lo que vence en el plazo, con su valor a coste ───────────────────
+            await almacen.goto("/expiry");
+            const fila = almacen.getByRole("listitem").filter({ hasText: producto });
+            // A cuarenta días no entra en el plazo de treinta con el que abre…
+            await expect(almacen.getByLabel("Caduca en los próximos")).toHaveValue("30");
+            await expect(fila).toHaveCount(0);
+            // …y a noventa, sí: cinco unidades a 5 de coste.
+            await almacen.getByLabel("Caduca en los próximos").selectOption("90");
+            await expect(fila.getByText("Caduca en 40 días")).toBeVisible();
+            await expect(fila.getByText("5 uds.")).toBeVisible();
+            await expect(fila.getByText("$25.00 a coste")).toBeVisible();
+            // No ha caducado: se vende, no se da de baja.
+            await expect(fila.getByRole("button", { name: /Dar de baja/ })).toHaveCount(0);
+
+            // ── Una entrada a mano sin fecha no entra, ni por la API ─────────────────────────
+            const sinFecha = await apiCruda(almacen, "post", `/products/${creado.id}/movements`, { type: "IN", quantity: 1, reason: "Otro" });
+            expect(sinFecha.status()).toBe(400);
+            expect((await sinFecha.json()).code).toBe("LOT_EXPIRY_REQUIRED");
+        } finally {
+            await contexto.close();
+        }
+    });
+
+    test("un lote caducado no se puede vender, y se da de baja desde Caducidades como un ajuste (T5-15)", async ({ page }, testInfo) => {
+        // El lote caducado es del seed y solo se puede dar de baja una vez: un solo proyecto.
+        test.skip(testInfo.project.name !== "chromium", "consume un dato del seed");
+
+        await login(page);
+        type Ficha = { id: string; name: string; stock: number; expiredStock: number; availableStock: number };
+        const ficha = async () => (await api(page, "get", "/products/lookup?code=ALI-YOG-125")) as Ficha;
+        const antes = await ficha();
+        expect(antes.expiredStock).toBe(6);
+        // Lo caducado está en el stock, pero no en lo que se puede vender.
+        expect(antes.availableStock).toBeLessThanOrEqual(antes.stock - 6);
+
+        // Vender todo lo que hay —caducado incluido— no se acepta.
+        const rechazada = await apiCruda(page, "post", "/sale-orders", {
+            items: [{ productId: antes.id, productName: antes.name, quantity: antes.availableStock + 1, unitPrice: 95 }],
+        });
+        expect(rechazada.status()).toBe(409);
+        expect((await rechazada.json()).code).toBe("INSUFFICIENT_AVAILABLE_STOCK");
+
+        // ── La ficha dice por qué el disponible es menos que lo que hay ──────────────────────
+        await page.goto("/catalog/products");
+        await page.getByPlaceholder("Buscar producto...").fill("Yogur natural");
+        await page.getByRole("button", { name: `Ver detalles de ${antes.name}` }).click();
+        const detalle = page.getByRole("dialog", { name: "Detalle del producto" });
+        await expect(detalle.getByText("6 unidades caducadas, que no se pueden vender")).toBeVisible();
+        await expect(detalle.getByText("Caducó hace 3 días")).toBeVisible();
+        await page.keyboard.press("Escape");
+
+        // ── Se da de baja desde el informe ───────────────────────────────────────────────────
+        await page.goto("/expiry");
+        const fila = page.getByRole("listitem").filter({ hasText: antes.name }).filter({ hasText: "Caducó hace 3 días" });
+        await expect(fila.getByText("6 uds.")).toBeVisible();
+        await fila.getByRole("button", { name: /^Dar de baja el lote/ }).click();
+        const confirmacion = page.getByRole("dialog", { name: "Dar de baja un lote caducado" });
+        await expect(confirmacion.getByText(/Se retiran del inventario 6 uds\./)).toBeVisible();
+        await confirmacion.getByRole("button", { name: "Dar de baja" }).click();
+        await expect(confirmacion).toBeHidden();
+        await expect(fila).toHaveCount(0);
+
+        const despues = await ficha();
+        expect(despues).toMatchObject({ stock: antes.stock - 6, expiredStock: 0, availableStock: antes.availableStock });
+        // Un ajuste, no una salida: tirar no es vender.
+        const { movements } = (await api(page, "get", `/products/${antes.id}/movements?type=ADJUSTMENT`)) as {
+            movements: Array<{ delta: number; note: string | null; lot: { code: string } | null }>;
+        };
+        expect(movements[0]).toMatchObject({ delta: -6, note: "Caducado" });
+        expect(movements[0].lot).not.toBeNull();
+    });
+
     test("una venta creada con la tasa al 18 % enseña subtotal, impuesto y total, y cambiar la tasa después no la toca (T6-05)", async ({ page }, testInfo) => {
         // La tasa es de toda la instalación, como el interruptor de arriba: en un solo proyecto.
         test.skip(testInfo.project.name !== "chromium", "estado global compartido entre proyectos");

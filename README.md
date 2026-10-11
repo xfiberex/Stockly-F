@@ -118,6 +118,7 @@ pnpm auditoria          # Dependencias; con --informe regenera el aviso de terce
 | `/customers` · `/customers/:id` | Clientes y su ficha | Sesión |
 | `/inventory-counts` · `/inventory-counts/:id` | Conteos físicos | Sesión |
 | `/stock-transfers` | Transferencias entre almacenes; registrarlas, `ADMIN` y `WAREHOUSE` | Sesión |
+| `/expiry` | Caducidades: lo caducado y lo que caduca en un plazo; darlo de baja, `ADMIN` y `WAREHOUSE` | Sesión |
 | `/warehouses` | Almacenes y lo que guarda cada uno; gestionarlos, `ADMIN` | Sesión |
 | `/reports` · `/reports/period` | Informe general e informe por periodo | Sesión |
 | `/profile` | Perfil, contraseña y «Acerca de Stockly» | Sesión |
@@ -148,6 +149,12 @@ y el menú de usuario. El grupo de administración solo se enseña a `ADMIN`.
 - **Almacenes.** Con más de uno, cada formulario que mueve stock pregunta en cuál, y el disponible
   que valida una venta o una transferencia es el de ese almacén. **Con uno solo, nada de esto se
   pinta**: ni selectores ni desgloses. El mostrador recuerda su local en el dispositivo.
+- **Lotes y caducidad.** Un producto marcado como «lleva lotes» pide la fecha de caducidad en
+  cada entrada —al recibir una compra, en un movimiento, en su alta—, y su ficha desglosa sus
+  lotes en el orden en que salen. **Caducidades** lista lo ya caducado y lo que caduca en un
+  plazo, con su valor a coste, y da de baja lo vencido. Cuánto le queda a un lote lo calcula el
+  servidor, en la zona del negocio, y se dice con palabras además de con color. **Un producto
+  que no lleva lotes no enseña nada de esto.**
 - **Informes.** Indicadores, valor a coste y a precio de venta, margen realizado, rotación y
   clasificación ABC, con PDF. **Ventas y compras por periodo**, con atajos o rango de fechas, en
   la zona horaria del negocio, con CSV y PDF.

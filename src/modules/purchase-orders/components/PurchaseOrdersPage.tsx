@@ -5,6 +5,7 @@ import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
+import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { Button } from "@/shared/components/Button";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ESTADO_ORDEN_COMPRA, buscarEstado } from "@/shared/lib/estados";
@@ -27,7 +28,7 @@ import { exportPurchaseOrdersCsv } from "@/modules/purchase-orders/api/purchase-
 import type { PurchaseOrder, CreatePurchaseOrderForm, RecepcionForm } from "@/modules/purchase-orders/types/purchase-orders.types";
 import { PlusIcon, TrashIcon, XMarkIcon, ArrowDownTrayIcon, InboxArrowDownIcon, SparklesIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
-import { aNumero } from "@/shared/contratos";
+import { LARGO_MAXIMO_DE_CODIGO_DE_LOTE, aNumero } from "@/shared/contratos";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearFecha } from "@/shared/lib/fechas";
 import { CLASES_BOTON_ICONO, clasesDeBoton } from "@/shared/lib/clasesDeBoton";
@@ -159,6 +160,10 @@ function pendienteDe(item: PurchaseOrder["items"][number]): number {
  * Cada línea arranca con lo que le falta, así que el caso más común —llegó todo— sigue siendo
  * confirmar sin escribir nada. El tope por línea se comprueba aquí mientras se escribe; el
  * backend lo vuelve a comprobar (`RECEIPT_EXCEEDS_PENDING`) por si la orden cambió entre medias.
+ *
+ * T5-15 — la línea de un producto que lleva lotes pide además **cuándo caduca** lo que llega, y
+ * no deja confirmar sin ello: es lo único que no se puede apuntar después. El código del lote es
+ * opcional. Si de una línea llegan dos lotes, son dos recepciones.
  */
 function RecepcionModal({ orden, isPending, onConfirm, onClose }: RecepcionModalProps) {
     const { t, tn } = useT();
@@ -167,6 +172,10 @@ function RecepcionModal({ orden, isPending, onConfirm, onClose }: RecepcionModal
     const [cantidades, setCantidades] = useState<Record<string, string>>(() =>
         Object.fromEntries((orden?.items ?? []).map((item) => [item.id, String(pendienteDe(item))])),
     );
+    const [lotes, setLotes] = useState<Record<string, { expiresAt: string; lotCode: string }>>({});
+    const loteDe = (itemId: string) => lotes[itemId] ?? { expiresAt: "", lotCode: "" };
+    const anotarLote = (itemId: string, cambio: Partial<{ expiresAt: string; lotCode: string }>) =>
+        setLotes((prev) => ({ ...prev, [itemId]: { ...loteDe(itemId), ...cambio } }));
 
     if (!orden) return null;
 
@@ -179,10 +188,14 @@ function RecepcionModal({ orden, isPending, onConfirm, onClose }: RecepcionModal
             : cantidad > pendiente
                 ? t("compras.recepcion.superaPendiente", { pendiente })
                 : undefined;
-        return { item, pendiente, texto, cantidad, error };
+        const llevaLotes = item.product?.tracksLots ?? false;
+        const lote = loteDe(item.id);
+        // Solo falta la fecha si de esa línea va a entrar algo.
+        const faltaCaducidad = llevaLotes && !error && cantidad > 0 && !lote.expiresAt;
+        return { item, pendiente, texto, cantidad, error, llevaLotes, lote, faltaCaducidad };
     });
 
-    const hayErrores = lineas.some((l) => l.error);
+    const hayErrores = lineas.some((l) => l.error || l.faltaCaducidad);
     const aRecibir = lineas.filter((l) => !l.error && l.cantidad > 0);
     const unidades = aRecibir.filter((l) => l.item.productId !== null).reduce((sum, l) => sum + l.cantidad, 0);
     const quedaCompleta = lineas.every((l) => l.cantidad === l.pendiente);
@@ -196,7 +209,11 @@ function RecepcionModal({ orden, isPending, onConfirm, onClose }: RecepcionModal
                 onSubmit={(e) => {
                     e.preventDefault();
                     if (hayErrores || aRecibir.length === 0) return;
-                    onConfirm(aRecibir.map((l) => ({ itemId: l.item.id, quantity: l.cantidad })));
+                    onConfirm(aRecibir.map((l) => ({
+                        itemId: l.item.id,
+                        quantity: l.cantidad,
+                        ...(l.llevaLotes && { expiresAt: l.lote.expiresAt, lotCode: l.lote.lotCode.trim() || undefined }),
+                    })));
                 }}
             >
                 <p className="text-sm text-foreground">
@@ -214,12 +231,34 @@ function RecepcionModal({ orden, isPending, onConfirm, onClose }: RecepcionModal
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {lineas.map(({ item, pendiente, texto, error }) => (
+                            {lineas.map(({ item, pendiente, texto, error, llevaLotes, lote, faltaCaducidad }) => (
                                 <tr key={item.id}>
                                     <td className="py-2 text-foreground">
                                         {item.productName}
                                         {item.productId === null && (
                                             <span className="block text-xs text-foreground-muted">{t("compras.recepcion.sinInventario")}</span>
+                                        )}
+                                        {llevaLotes && pendiente > 0 && (
+                                            <div className="mt-2 grid w-56 grid-cols-1 gap-2 sm:w-auto sm:max-w-sm sm:grid-cols-2">
+                                                <CampoDeFecha
+                                                    label={`${t("lotes.caducidad")} *`}
+                                                    aria-label={t("lotes.caducidadDe", { producto: item.productName })}
+                                                    value={lote.expiresAt}
+                                                    error={faltaCaducidad ? t("lotes.faltaCaducidad") : undefined}
+                                                    onChange={(e) => anotarLote(item.id, { expiresAt: e.target.value })}
+                                                />
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-xs text-foreground-muted">{t("lotes.codigoOpcional")}</span>
+                                                    <Input
+                                                        aria-label={t("lotes.codigoDe", { producto: item.productName })}
+                                                        placeholder={t("lotes.ejemploCodigo")}
+                                                        autoComplete="off"
+                                                        maxLength={LARGO_MAXIMO_DE_CODIGO_DE_LOTE}
+                                                        value={lote.lotCode}
+                                                        onChange={(e) => anotarLote(item.id, { lotCode: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
                                         )}
                                     </td>
                                     <td className="py-2 text-right tabular-nums text-foreground-muted">{item.quantity}</td>

@@ -32,7 +32,7 @@ import type { SaleOrder, SaleOrderStatus, CreateSaleOrderDto } from "@/modules/s
 import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
-import { formatearFecha } from "@/shared/lib/fechas";
+import { formatearDia, formatearFecha } from "@/shared/lib/fechas";
 import { CLASES_BOTON_ICONO } from "@/shared/lib/clasesDeBoton";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
@@ -712,7 +712,20 @@ export default function SaleOrdersPage() {
                                             <tbody className="divide-y divide-border">
                                                 {order.items.map((item) => (
                                                     <tr key={item.id}>
-                                                        <td className="py-2 text-foreground">{item.productName}</td>
+                                                        <td className="py-2 text-foreground">
+                                                            {item.productName}
+                                                            {/* T5-15 — de qué lotes salió, una vez enviada. Con más de uno,
+                                                                cada cual dice cuántas unidades son suyas. */}
+                                                            {item.lots.map((lote) => (
+                                                                <span key={lote.id} className="block text-xs text-foreground-muted">
+                                                                    {t(item.lots.length > 1 ? "lotes.salioDeConCantidad" : "lotes.salioDe", {
+                                                                        codigo: lote.code,
+                                                                        fecha: formatearDia(idioma, lote.expiresAt),
+                                                                        cantidad: lote.quantity,
+                                                                    })}
+                                                                </span>
+                                                            ))}
+                                                        </td>
                                                         <td className="py-2 text-right text-foreground-muted">{item.quantity}</td>
                                                         <td className="py-2 text-right text-foreground-muted">{formatearImporte(item.unitPrice)}</td>
                                                         <td className="py-2 text-right font-medium text-foreground">

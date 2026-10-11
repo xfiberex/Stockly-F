@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type ComponentType, type FocusEvent, type SVGProps } from "react";
 import { Link } from "react-router-dom";
-import { BellIcon, ExclamationTriangleIcon, ShoppingCartIcon, TruckIcon } from "@heroicons/react/24/outline";
+import { BellIcon, CalendarDaysIcon, ExclamationTriangleIcon, ShoppingCartIcon, TruckIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
 import { formatearDia, haceCuanto } from "@/shared/lib/fechas";
 import { Spinner } from "@/shared/components/Spinner";
@@ -75,6 +75,16 @@ function presentar(aviso: Notification, { t, idioma }: Traductor): Presentacion 
                 destino: "/purchase-orders",
             };
         }
+        // T5-15 — una copia del momento: `units` es lo que quedaba al avisar. Lleva al informe,
+        // que dice lo que queda ahora y dónde.
+        case "LOT_EXPIRING":
+            return {
+                Icono: CalendarDaysIcon,
+                tono: "bg-warning-surface text-warning",
+                titulo: t("avisos.loteCaduca.titulo", { lote: aviso.data.lotCode, producto: aviso.data.productName }),
+                detalle: t("avisos.loteCaduca.detalle", { fecha: formatearDia(idioma, aviso.data.expiresAt), unidades: aviso.data.units }),
+                destino: "/expiry",
+            };
     }
 }
 

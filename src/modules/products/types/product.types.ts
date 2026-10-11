@@ -9,6 +9,8 @@ import type {
     ClaseAbc,
     HistorialCosteDeProducto,
     HistorialPrecio,
+    LoteDeProducto,
+    LotesDeProducto,
     MovimientoStock,
     ProductoConDisponible,
     MovimientosDeProducto,
@@ -39,6 +41,10 @@ export type ImportResult = ResultadoImportacion;
  * cambia la forma, esto deja de compilar en lugar de fallar en ejecución.
  */
 export type MovementsResponse = MovimientosDeProducto;
+
+/** T5-15 — los lotes con existencias de un producto, en el orden en que salen. */
+export type ProductLots = LotesDeProducto;
+export type ProductLot = LoteDeProducto;
 
 /** T5-08 — lo que hace falta de un producto para etiquetarlo. */
 export type ProductoEtiquetable = Pick<Product, "id" | "name" | "sku" | "barcode">;
@@ -80,6 +86,10 @@ export interface CreateProductDto {
     image?: File;
     /** T5-14 — el almacén en el que entra el stock inicial; sin él, el predeterminado. */
     warehouseId?: string;
+    /** T5-15 — si sus entradas piden lote y, entonces, el del stock inicial. */
+    tracksLots?: boolean;
+    lotExpiresAt?: string;
+    lotCode?: string;
 }
 
 export interface UpdateProductDto {
@@ -102,6 +112,8 @@ export interface UpdateProductDto {
     tagIds?: string[];
     image?: File;
     removeImage?: boolean;
+    /** T5-15 — marcarlo o desmarcarlo. Viaja siempre: `false` es desmarcarlo. */
+    tracksLots?: boolean;
 }
 
 export interface ProductQuery {
@@ -137,6 +149,10 @@ export interface CreateManualMovementDto {
     note?: string;
     /** T5-14 — en qué almacén; sin él, en el predeterminado. */
     warehouseId?: string;
+    /** T5-15 — el lote: uno que existe, o —en una entrada— su caducidad (`AAAA-MM-DD`) y su código. */
+    lotId?: string;
+    expiresAt?: string;
+    lotCode?: string;
 }
 
 export interface BulkStockItem {

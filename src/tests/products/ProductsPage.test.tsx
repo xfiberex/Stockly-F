@@ -31,7 +31,7 @@ const mockProductos: Product[] = [
         price: "100.00",
         costPrice: null,
         stock: 5,
-        minStock: 1,
+        minStock: 1, tracksLots: false,
         imageUrl: null,
         imagePublicId: null,
         categoryId: null,

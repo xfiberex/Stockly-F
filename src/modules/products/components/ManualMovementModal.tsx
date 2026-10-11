@@ -5,12 +5,15 @@ import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
+import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { useManualMovement } from "@/modules/products/hooks/useManualMovement";
-import type { Product } from "@/modules/products/types/product.types";
+import { useProductLots } from "@/modules/products/hooks/useProductLots";
+import type { Product, ProductLot } from "@/modules/products/types/product.types";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { stockEn } from "@/shared/lib/almacenes";
-import type { NivelDeStock } from "@/shared/contratos";
+import { formatearDia } from "@/shared/lib/fechas";
+import { LARGO_MAXIMO_DE_CODIGO_DE_LOTE, type NivelDeStock } from "@/shared/contratos";
 import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
 import { useAlmacenDeOperacion } from "@/modules/warehouses/hooks/useWarehouses";
 
@@ -44,16 +47,36 @@ const MOTIVOS: Record<"IN" | "OUT" | "ADJUSTMENT", ReadonlyArray<{ valor: string
     ],
 };
 
-// Los mensajes son claves; ver la cabecera de `auth.schema.ts`.
-const schema = z.object({
-    type: z.enum(["IN", "OUT", "ADJUSTMENT"]),
-    quantity: z.coerce.number().int().positive("validacion.mayorQueCero" satisfies Clave),
-    reason: z.string().min(1, "validacion.motivoRequerido" satisfies Clave),
-    note: z.string().max(500).optional(),
-});
+/**
+ * Los mensajes son claves; ver la cabecera de `auth.schema.ts`.
+ *
+ * T5-15 — dos reglas que son las del servidor, dichas junto al campo antes de enviar: cero
+ * unidades solo vale en un ajuste —es como se da de baja un lote—, y la entrada de un producto
+ * que lleva lotes dice su lote o su fecha de caducidad.
+ */
+const esquema = (llevaLotes: boolean) =>
+    z
+        .object({
+            type: z.enum(["IN", "OUT", "ADJUSTMENT"]),
+            quantity: z.coerce.number().int().min(0, "validacion.cantidadNoNegativa" satisfies Clave),
+            reason: z.string().min(1, "validacion.motivoRequerido" satisfies Clave),
+            note: z.string().max(500).optional(),
+            lotId: z.string().optional(),
+            expiresAt: z.string().optional(),
+            lotCode: z.string().max(LARGO_MAXIMO_DE_CODIGO_DE_LOTE, "validacion.loteLargo" satisfies Clave).optional(),
+        })
+        .superRefine((datos, ctx) => {
+            if (datos.type !== "ADJUSTMENT" && datos.quantity < 1) {
+                ctx.addIssue({ code: "custom", path: ["quantity"], message: "validacion.mayorQueCero" satisfies Clave });
+            }
+            if (llevaLotes && datos.type === "IN" && !datos.lotId && !datos.expiresAt) {
+                ctx.addIssue({ code: "custom", path: ["expiresAt"], message: "validacion.caducidadRequerida" satisfies Clave });
+            }
+        });
 
-type FormInput = z.input<typeof schema>;
-type FormData  = z.infer<typeof schema>;
+type Esquema = ReturnType<typeof esquema>;
+type FormInput = z.input<Esquema>;
+type FormData  = z.infer<Esquema>;
 
 interface ManualMovementModalProps {
     isOpen: boolean;
@@ -63,18 +86,22 @@ interface ManualMovementModalProps {
 }
 
 export function ManualMovementModal({ isOpen, onClose, product }: ManualMovementModalProps) {
-    const { t, te } = useT();
+    const { t, te, idioma } = useT();
     const mutation = useManualMovement(product.id);
     // T5-14 — un movimiento ocurre en un almacén. Con varios se elige, y el stock que se
     // enseña —y al que se refiere un ajuste— es el de ese almacén, no el total.
     const almacen = useAlmacenDeOperacion();
+    // T5-15 — los lotes solo se piden para un producto que los lleva, y con el diálogo abierto.
+    const lotes = useProductLots(product.id, isOpen && product.tracksLots === true).data?.lots ?? [];
 
-    const { register, control, handleSubmit, reset, formState: { errors } } = useForm<FormInput, unknown, FormData>({
-        resolver: zodResolver(schema),
-        defaultValues: { type: "IN", quantity: 1, reason: "" },
+    const { register, control, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormInput, unknown, FormData>({
+        resolver: zodResolver(esquema(product.tracksLots)),
+        defaultValues: { type: "IN", quantity: 1, reason: "", lotId: "", expiresAt: "", lotCode: "" },
     });
 
     const selectedType = useWatch({ control, name: "type", defaultValue: "IN" as const });
+    const lotId = useWatch({ control, name: "lotId" }) ?? "";
+    const caducidad = useWatch({ control, name: "expiresAt" }) ?? "";
 
     const reasonOptions = [
         { value: "", label: t("movimientos.elegirMotivo") },
@@ -87,11 +114,44 @@ export function ManualMovementModal({ isOpen, onClose, product }: ManualMovement
         { value: "ADJUSTMENT", label: t("movimientos.ajuste") },
     ];
 
+    /** Lo que hay de un lote **donde va a ocurrir el movimiento**: en el almacén elegido, o en total si solo hay uno. */
+    const enEsteAlmacen = (lote: ProductLot) =>
+        almacen.paraEnviar ? (lote.levels.find((n) => n.warehouseId === almacen.paraEnviar)?.stock ?? 0) : lote.stock;
+    const opcionDe = (lote: ProductLot) => ({
+        value: lote.id,
+        label: t(lote.expired ? "lotes.opcionCaducada" : "lotes.opcion", {
+            codigo: lote.code,
+            fecha: formatearDia(idioma, lote.expiresAt),
+            cantidad: enEsteAlmacen(lote),
+        }),
+    });
+    // Una entrada puede sumar a cualquier lote del producto; una salida o un ajuste, solo a los
+    // que tienen algo en este almacén. La primera opción es no elegir ninguno.
+    const lotOptions = selectedType === "IN"
+        ? [{ value: "", label: t("lotes.loteNuevo") }, ...lotes.map(opcionDe)]
+        : [
+            { value: "", label: t(selectedType === "OUT" ? "lotes.porOrdenDeCaducidad" : "lotes.todosLosLotes") },
+            ...lotes.filter((lote) => enEsteAlmacen(lote) > 0).map(opcionDe),
+        ];
+
     const handleClose = () => { reset(); onClose(); };
 
-    const onSubmit = (data: FormData) => {
-        mutation.mutate({ ...data, warehouseId: almacen.paraEnviar }, { onSuccess: handleClose });
+    const onSubmit = ({ lotId: lote, expiresAt, lotCode, ...data }: FormData) => {
+        // El lote viaja de una de dos formas, nunca las dos: uno que existe, o —solo en una
+        // entrada— la fecha y el código del que se crea.
+        const deLote = !product.tracksLots
+            ? {}
+            : lote
+                ? { lotId: lote }
+                : data.type === "IN"
+                    ? { expiresAt, lotCode: lotCode?.trim() || undefined }
+                    : {};
+        mutation.mutate({ ...data, ...deLote, warehouseId: almacen.paraEnviar }, { onSuccess: handleClose });
     };
+
+    const etiquetaDeCantidad = selectedType !== "ADJUSTMENT"
+        ? t("movimientos.cantidad")
+        : lotId ? t("lotes.unidadesDelLote") : t("movimientos.stockObjetivo");
 
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title={t("movimientos.registrar")} className="max-w-md">
@@ -104,19 +164,51 @@ export function ManualMovementModal({ isOpen, onClose, product }: ManualMovement
                 </p>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                <SelectorDeAlmacen value={almacen.warehouseId} onChange={almacen.setWarehouseId} />
+                <SelectorDeAlmacen value={almacen.warehouseId} onChange={(id) => { almacen.setWarehouseId(id); setValue("lotId", ""); }} />
                 <Select
                     id="type"
                     label={t("movimientos.tipo")}
                     options={typeOptions}
                     error={te(errors.type?.message)}
-                    {...register("type")}
+                    {...register("type", { onChange: () => setValue("lotId", "") })}
                 />
+                {product.tracksLots && (
+                    <Select
+                        id="lotId"
+                        label={t("lotes.lote")}
+                        options={lotOptions}
+                        error={te(errors.lotId?.message)}
+                        {...register("lotId")}
+                    />
+                )}
+                {product.tracksLots && selectedType === "IN" && !lotId && (
+                    <>
+                        <p className="-mt-2 text-xs text-foreground-muted">{t("lotes.ayudaEntrada")}</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <CampoDeFecha
+                                variante="formulario"
+                                id="expiresAt"
+                                label={`${t("lotes.caducidad")} *`}
+                                value={caducidad}
+                                error={te(errors.expiresAt?.message)}
+                                {...register("expiresAt")}
+                            />
+                            <Input
+                                id="lotCode"
+                                label={t("lotes.codigoOpcional")}
+                                placeholder={t("lotes.ejemploCodigo")}
+                                autoComplete="off"
+                                error={te(errors.lotCode?.message)}
+                                {...register("lotCode")}
+                            />
+                        </div>
+                    </>
+                )}
                 <Input
                     id="quantity"
-                    label={selectedType === "ADJUSTMENT" ? t("movimientos.stockObjetivo") : t("movimientos.cantidad")}
+                    label={etiquetaDeCantidad}
                     type="number"
-                    min="1"
+                    min={selectedType === "ADJUSTMENT" ? "0" : "1"}
                     placeholder={selectedType === "ADJUSTMENT" ? t("movimientos.ejemploObjetivo") : t("movimientos.ejemploCantidad")}
                     error={te(errors.quantity?.message)}
                     {...register("quantity")}

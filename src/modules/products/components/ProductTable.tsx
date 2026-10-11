@@ -240,7 +240,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
                                     </div>
                                     {/* T5-03 — solo cuando hay algo comprometido: con cero, el
                                         disponible es el stock y repetirlo sería ruido en cada fila. */}
-                                    {product.committedStock > 0 && (
+                                    {(product.committedStock > 0 || product.expiredStock > 0) && (
                                         <div className={cn("text-xs whitespace-nowrap", product.availableStock <= 0 ? "text-danger" : "text-foreground-muted")}>
                                             {t("productos.disponibleCorto", { cantidad: product.availableStock })}
                                         </div>

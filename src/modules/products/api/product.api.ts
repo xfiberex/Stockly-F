@@ -14,6 +14,7 @@ import type {
     MovementsQuery,
     PriceHistoryResponse,
     CostHistoryResponse,
+    ProductLots,
     CreateManualMovementDto,
     BulkStockDto,
 } from "../types/product.types";
@@ -32,7 +33,9 @@ const toFormData = (dto: CreateProductDto | UpdateProductDto): FormData => {
             else ids.forEach((id) => form.append("tagIds", id));
             return;
         }
-        if (typeof value === "boolean" && !value) return;
+        // `removeImage: false` no viaja: el backend lee cualquier valor como «quítala». Los demás
+        // booleanos sí —`tracksLots: false` es desmarcar los lotes (T5-15)—.
+        if (key === "removeImage" && !value) return;
         form.append(key, value instanceof File ? value : String(value));
     });
     return form;
@@ -118,6 +121,12 @@ export const getCostHistory = async (productId: string, page = 1): Promise<CostH
 
 export const getPriceHistory = async (productId: string): Promise<PriceHistoryResponse> => {
     const { data } = await api.get<ApiResponse<PriceHistoryResponse>>(`/products/${productId}/price-history`);
+    return data.data!;
+};
+
+/** T5-15 — los lotes con existencias de un producto y dónde está cada uno. */
+export const getProductLots = async (productId: string): Promise<ProductLots> => {
+    const { data } = await api.get<ApiResponse<ProductLots>>(`/products/${productId}/lots`);
     return data.data!;
 };
 

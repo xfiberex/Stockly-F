@@ -27,6 +27,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { nivelEn } from "@/shared/contratos";
 import { useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
+import { LotesDelProducto } from "@/modules/products/components/LotesDelProducto";
 
 interface ProductDetailModalProps {
     product: ProductWithAvailability | null;
@@ -159,6 +160,11 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: 
                             {product.committedStock > 0 && (
                                 <p className="text-xs text-foreground-muted">{tn("productos.comprometido", product.committedStock)}</p>
                             )}
+                            {/* T5-15 — lo caducado sigue en el stock, pero no se puede vender: se dice por qué
+                                el disponible es menos que lo que hay. */}
+                            {product.expiredStock > 0 && (
+                                <p className="text-xs text-danger">{tn("lotes.caducadas", product.expiredStock)}</p>
+                            )}
                         </div>
                     </Field>
 
@@ -174,7 +180,7 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: 
                                             <span className="min-w-0 truncate">{almacen.name}</span>
                                             <span className="shrink-0 tabular-nums">
                                                 {nivel.stock}
-                                                {nivel.committedStock > 0 && (
+                                                {(nivel.committedStock > 0 || nivel.expiredStock > 0) && (
                                                     <span className="text-xs text-foreground-muted"> · {t("productos.disponibleEnAlmacen", { cantidad: nivel.availableStock })}</span>
                                                 )}
                                             </span>
@@ -182,6 +188,14 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: 
                                     );
                                 })}
                             </ul>
+                        </Field>
+                    )}
+
+                    {/* T5-15 — de qué lotes es ese stock y cuándo caduca cada uno. Se pide al abrir la
+                        ficha, y solo para un producto que los lleva. */}
+                    {product.tracksLots && (
+                        <Field icon={CalendarDaysIcon} label={t("lotes.delProducto")}>
+                            <LotesDelProducto productId={product.id} />
                         </Field>
                     )}
 

@@ -225,7 +225,7 @@ describe("CustomerDetailPage", () => {
         // T6-05 — con impuesto del 18 %: la ficha enseña el subtotal, no el total.
         items: [{
             id: `i-${id}`, saleOrderId: id, productId: null, product: null, productName: "Algo", quantity: 2, unitPrice: precio,
-            taxRate: 18, subtotal: (Number(precio) * 2).toFixed(2), tax: (Number(precio) * 0.36).toFixed(2), total: (Number(precio) * 2.36).toFixed(2),
+            taxRate: 18, lots: [], subtotal: (Number(precio) * 2).toFixed(2), tax: (Number(precio) * 0.36).toFixed(2), total: (Number(precio) * 2.36).toFixed(2),
             createdAt: "2026-09-01T10:00:00.000Z",
         }],
         subtotal: (Number(precio) * 2).toFixed(2),

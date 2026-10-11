@@ -51,9 +51,10 @@ const makeProduct = (overrides: Partial<ProductWithAvailability> = {}): ProductW
     costPrice: null,
     stock: 10,
     committedStock: 0,
+    expiredStock: 0,
     availableStock: 10, stockLevels: [],
     abcClass: "C",
-    minStock: 0,
+    minStock: 0, tracksLots: false,
     imageUrl: null,
     imagePublicId: null,
     categoryId: "cat-1",
@@ -82,6 +83,14 @@ describe("ProductTable — disponible (T5-03)", () => {
         renderWithProviders(<ProductTable products={[makeProduct()]} isLoading={false} onEdit={vi.fn()} />);
 
         expect(screen.queryByText(/disp./)).not.toBeInTheDocument();
+    });
+
+    it("con unidades caducadas también lo enseña: lo que se puede vender es menos que el stock (T5-15)", () => {
+        renderWithProviders(
+            <ProductTable products={[makeProduct({ stock: 10, expiredStock: 4, availableStock: 6 })]} isLoading={false} onEdit={vi.fn()} />,
+        );
+
+        expect(screen.getByText("6 disp.")).toBeInTheDocument();
     });
 
     it("todo comprometido se marca en rojo", () => {

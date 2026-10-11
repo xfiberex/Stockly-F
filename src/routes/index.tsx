@@ -26,6 +26,7 @@ const InventoryCountsPage = lazy(() => import("@/modules/inventory-counts/compon
 const InventoryCountPage = lazy(() => import("@/modules/inventory-counts/components/InventoryCountPage"));
 const WarehousesPage = lazy(() => import("@/modules/warehouses/components/WarehousesPage"));
 const TransfersPage = lazy(() => import("@/modules/stock-transfers/components/TransfersPage"));
+const CaducidadesPage = lazy(() => import("@/modules/reports/components/CaducidadesPage"));
 const AuditLogsPage = lazy(() => import("@/modules/audit-logs/components/AuditLogsPage"));
 const SettingsPage = lazy(() => import("@/modules/settings/components/SettingsPage"));
 const UsersPage = lazy(() => import("@/modules/users/components/UsersPage"));
@@ -94,6 +95,8 @@ export const router = createBrowserRouter([
             // Dar de alta un almacén o registrar una transferencia lo decide la matriz, botón a botón.
             { path: "warehouses", element: <S><WarehousesPage /></S> },
             { path: "stock-transfers", element: <S><TransfersPage /></S> },
+            // T5-15 — lo caducado y lo que caduca pronto. Lo lee cualquier rol, como los informes.
+            { path: "expiry", element: <S><CaducidadesPage /></S> },
             // Rutas solo de ADMIN: el backend responde 403 a un USER, así que sin
             // este guardia la página se pintaba rota y llena de toasts de error.
             { path: "audit-logs", element: <ProtectedRoute requireRole="ADMIN"><S><AuditLogsPage /></S></ProtectedRoute> },

@@ -32,7 +32,7 @@ const ENVIADA: SaleOrder = {
     notes: null,
     items: [{
         id: "i1", saleOrderId: "aaaaaaaa-1111-2222-3333-444444444444", productId: null, product: null, productName: "Servicio",
-        quantity: 1, unitPrice: "100.00", taxRate: 18, subtotal: "100.00", tax: "18.00", total: "118.00", createdAt: "2026-10-08T10:00:00.000Z",
+        quantity: 1, unitPrice: "100.00", taxRate: 18, lots: [], subtotal: "100.00", tax: "18.00", total: "118.00", createdAt: "2026-10-08T10:00:00.000Z",
     }],
     subtotal: "100.00",
     tax: "18.00",

@@ -46,7 +46,7 @@ const PRODUCTO: ProductWithAvailability = {
     price: "100.00",
     costPrice: null,
     stock: 5,
-    minStock: 1,
+    minStock: 1, tracksLots: false,
     imageUrl: null,
     imagePublicId: null,
     categoryId: null,
@@ -60,6 +60,7 @@ const PRODUCTO: ProductWithAvailability = {
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
     committedStock: 0,
+    expiredStock: 0,
     availableStock: 5, stockLevels: [],
     abcClass: "A",
 };

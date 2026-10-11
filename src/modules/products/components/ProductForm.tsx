@@ -8,6 +8,7 @@ import { textoLegibleSobre } from "@/shared/lib/color";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
+import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { ProductImageUpload } from "./ProductImageUpload";
 import { EscanerModal } from "@/shared/components/EscanerModal";
 import { createProductSchema, updateProductSchema, type CreateProductFormData } from "@/modules/products/schemas/product.schema";
@@ -53,6 +54,7 @@ function valoresIniciales(product?: Product, codigoInicial?: string) {
         costPrice: product.costPrice === null ? undefined : aNumero(product.costPrice),
         stock: product.stock,
         minStock: product.minStock ?? 0,
+        tracksLots: product.tracksLots,
         categoryId: product.category?.id ?? "",
         brandId: product.brand?.id ?? "",
         supplierId: product.supplier?.id ?? "",
@@ -103,6 +105,14 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
     const watchedName       = useWatch({ control, name: "name",       defaultValue: "" });
     const watchedCategoryId = useWatch({ control, name: "categoryId", defaultValue: "" });
     const watchedBrandId    = useWatch({ control, name: "brandId",    defaultValue: "" });
+    // T5-15 — lo que decide si hay que pedir el lote del stock inicial.
+    const llevaLotes  = useWatch({ control, name: "tracksLots" }) ?? false;
+    const stockInicial = Number(useWatch({ control, name: "stock" }) ?? 0);
+    const caducidad   = useWatch({ control, name: "lotExpiresAt" }) ?? "";
+    const pideLote    = !isEditing && llevaLotes && stockInicial > 0;
+    // Al editar, el stock de un producto que **ya** lleva lotes no se toca desde aquí: subirlo
+    // sería una entrada sin lote, y el servidor la rechaza.
+    const stockBloqueado = isEditing && product.tracksLots;
 
     const handleGenerateSku = () => {
         const removeDiacritics = (s: string) =>
@@ -136,6 +146,7 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
     const onSubmit = (formData: CreateProductFormData) => {
         const normalized = {
             ...formData,
+            tracksLots: formData.tracksLots ?? false,
             sku: formData.sku || undefined,
             barcode: formData.barcode?.trim() || undefined,
             categoryId: formData.categoryId || undefined,
@@ -151,12 +162,19 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
             const costPrice = formData.costPrice ?? (product.costPrice !== null ? "" : undefined);
             // T5-08 — el código viaja siempre al editar: vacío es **quitarlo**, igual que el coste.
             const barcode = formData.barcode?.trim() ?? "";
+            // T5-15 — el total de un producto con lotes no viaja: no se edita aquí, y mandar el que
+            // se cargó al abrir el formulario deshacería lo que se haya vendido entretanto.
+            const stock = stockBloqueado ? undefined : normalized.stock;
             updateMutation.mutate(
-                { id: product.id, dto: { ...normalized, barcode, costPrice, tagIds: selectedTagIds, removeImage } },
+                { id: product.id, dto: { ...normalized, stock, barcode, costPrice, tagIds: selectedTagIds, removeImage } },
                 { onSuccess: () => { onClose(); reset({}); setRemoveImage(false); setSelectedTagIds([]); } },
             );
         } else {
-            createMutation.mutate({ ...normalized, warehouseId: almacen.paraEnviar }, {
+            // El lote solo viaja si hay stock que meter en él.
+            const lote = pideLote
+                ? { lotExpiresAt: formData.lotExpiresAt, lotCode: formData.lotCode?.trim() || undefined }
+                : { lotExpiresAt: undefined, lotCode: undefined };
+            createMutation.mutate({ ...normalized, ...lote, warehouseId: almacen.paraEnviar }, {
                 onSuccess: () => { onClose(); reset({}); setSelectedTagIds([]); },
             });
         }
@@ -251,6 +269,7 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
                         type="number"
                         placeholder={t("productos.form.ejemploCero")}
                         error={te(errors.stock?.message)}
+                        disabled={stockBloqueado}
                         {...register("stock")}
                     />
                     <Input
@@ -268,6 +287,34 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
                     ) : (
                         <SelectorDeAlmacen label={t("productos.form.almacenInicial")} value={almacen.warehouseId} onChange={almacen.setWarehouseId} />
                     )
+                )}
+                {stockBloqueado && <p className="-mt-2 text-xs text-foreground-muted">{t("productos.form.stockConLotes")}</p>}
+                <div className="flex flex-col gap-1">
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <input type="checkbox" className="h-4 w-4" {...register("tracksLots")} />
+                        {t("productos.form.llevaLotes")}
+                    </label>
+                    <p className="text-xs text-foreground-muted">{t("productos.form.llevaLotesAyuda")}</p>
+                </div>
+                {pideLote && (
+                    <div className="grid grid-cols-2 gap-3">
+                        <CampoDeFecha
+                            variante="formulario"
+                            id="lotExpiresAt"
+                            label={`${t("lotes.caducidadDelStockInicial")} *`}
+                            value={caducidad}
+                            error={te(errors.lotExpiresAt?.message)}
+                            {...register("lotExpiresAt")}
+                        />
+                        <Input
+                            id="lotCode"
+                            label={t("lotes.codigoOpcional")}
+                            placeholder={t("lotes.ejemploCodigo")}
+                            autoComplete="off"
+                            error={te(errors.lotCode?.message)}
+                            {...register("lotCode")}
+                        />
+                    </div>
                 )}
                 <div className="grid grid-cols-2 gap-3">
                     <Select

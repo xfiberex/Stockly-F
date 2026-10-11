@@ -157,6 +157,22 @@ describe("CampanaDeAvisos (T5-12)", () => {
             expect(within(panel).getByText("Vencía el 23 sep 2026")).toBeInTheDocument();
         });
 
+        it("un lote en plazo de aviso dice cuál, de qué producto y su fecha —sin afirmar si ya venció—, y lleva al informe (T5-15)", async () => {
+            servidorCon([{
+                id: "a9", type: "LOT_EXPIRING", entityId: "lote-1", readAt: null, createdAt: HACE_UN_RATO,
+                data: { productName: "Yogur", lotCode: "L-20261020", expiresAt: "2026-10-20", units: 18 },
+            }]);
+            const user = userEvent.setup();
+            renderWithProviders(<CampanaDeAvisos />);
+
+            const panel = await abrir(user);
+
+            const aviso = (await within(panel).findByText("Revisa la caducidad del lote L-20261020 de Yogur")).closest("a")!;
+            // El día que dice el aviso es el del lote, no el anterior: es un día, no un instante.
+            expect(within(aviso).getByText("Fecha de caducidad: 20 oct 2026 · 18 uds. en el almacén")).toBeInTheDocument();
+            expect(aviso).toHaveAttribute("href", "/expiry");
+        });
+
         it("Escape lo cierra y devuelve el foco a la campana", async () => {
             const user = userEvent.setup();
             renderWithProviders(<CampanaDeAvisos />);

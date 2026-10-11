@@ -27,7 +27,7 @@ const item = (over: Partial<SaleOrderItem> & { id: string }): SaleOrderItem => {
         productName: "Artículo",
         quantity: 1,
         unitPrice: "10.00",
-        taxRate: null,
+        taxRate: null, lots: [],
         createdAt: "2026-08-08T10:00:00.000Z",
         ...over,
     };
@@ -299,5 +299,43 @@ describe("SaleOrdersPage — el rol de almacén (T5-13)", () => {
         expect(envios).toEqual([ORDEN_PENDIENTE.id]);
         expect(mutaciones).toEqual([]);
         expect(screen.getByRole("button", { name: "Exportar" })).toBeInTheDocument();
+    });
+});
+
+describe("SaleOrdersPage — de qué lotes salió cada línea (T5-15)", () => {
+    const conLotes = (lots: SaleOrderItem["lots"]): SaleOrder => ({
+        ...ORDEN_ENVIADA,
+        items: [
+            item({ id: "i1", productId: "p1", product: { id: "p1", name: "Yogur", sku: null }, productName: "Yogur", quantity: 5, lots }),
+            item({ id: "i2", productId: "p2", product: { id: "p2", name: "Ratón", sku: null }, productName: "Ratón", quantity: 2 }),
+        ],
+    });
+
+    beforeEach(() => { rol = "ADMIN"; });
+
+    it("con un lote dice cuál y cuándo caduca; con dos, cuántas unidades son de cada uno", async () => {
+        const user = userEvent.setup();
+        ordenes = [conLotes([
+            { id: "l1", code: "PRONTO", expiresAt: "2026-10-15", quantity: 4 },
+            { id: "l2", code: "TARDE", expiresAt: "2026-11-20", quantity: 1 },
+        ])];
+        renderWithProviders(<SaleOrdersPage />);
+        await user.click(screen.getByText("Venta #000041"));
+
+        const fila = screen.getAllByText("Yogur").map((el) => el.closest("td")).find(Boolean)!;
+        // El día es el del lote, no el anterior: `expiresAt` es un día, no un instante.
+        expect(fila).toHaveTextContent("Lote PRONTO · caduca el 15 oct 2026 · 4 uds.");
+        expect(fila).toHaveTextContent("Lote TARDE · caduca el 20 nov 2026 · 1 uds.");
+        // La línea que no salió de ningún lote no dice nada.
+        expect(screen.getAllByText(/^Lote /)).toHaveLength(2);
+    });
+
+    it("con uno solo no repite la cantidad: es la de la línea", async () => {
+        const user = userEvent.setup();
+        ordenes = [conLotes([{ id: "l1", code: "UNICO", expiresAt: "2026-10-15", quantity: 5 }])];
+        renderWithProviders(<SaleOrdersPage />);
+        await user.click(screen.getByText("Venta #000041"));
+
+        expect(screen.getByText("Lote UNICO · caduca el 15 oct 2026")).toBeInTheDocument();
     });
 });

@@ -67,7 +67,7 @@ const TECLADO: ProductWithAvailability = {
     price: "30.00",
     costPrice: "18.50",
     stock: 10,
-    minStock: 1,
+    minStock: 1, tracksLots: false,
     imageUrl: null,
     imagePublicId: null,
     categoryId: null,
@@ -81,6 +81,7 @@ const TECLADO: ProductWithAvailability = {
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
     committedStock: 7,
+    expiredStock: 0,
     availableStock: 3, stockLevels: [],
     abcClass: "A",
 };

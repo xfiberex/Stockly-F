@@ -1,7 +1,7 @@
 import api from "@/shared/api/axios";
 import { descargarDeLaApi } from "@/shared/api/descargar";
 import type { ApiResponse } from "@/shared/types";
-import type { AbcSummary, PeriodPreset, PeriodReport, ReportSummary } from "../types/reports.types";
+import type { AbcSummary, ExpiryReport, PeriodPreset, PeriodReport, ReportSummary } from "../types/reports.types";
 
 export const getReportSummary = async (): Promise<ReportSummary> => {
     const { data } = await api.get<ApiResponse<ReportSummary>>("/reports");
@@ -35,3 +35,16 @@ export const downloadPeriodReport = (periodo: { from: string; to: string }, form
         { from: periodo.from, to: periodo.to, format: formato },
         `informe-${periodo.from}-${periodo.to}.${formato}`,
     );
+
+/** T5-15 — sin `days`, el plazo es el de Configuración; la respuesta dice cuál se usó. */
+export interface ConsultaDeCaducidades {
+    days?: number;
+    warehouseId?: string;
+    page?: number;
+    limit?: number;
+}
+
+export const getExpiryReport = async (params: ConsultaDeCaducidades): Promise<ExpiryReport> => {
+    const { data } = await api.get<ApiResponse<ExpiryReport>>("/reports/expiring", { params });
+    return data.data!;
+};

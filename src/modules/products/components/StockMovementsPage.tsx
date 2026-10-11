@@ -22,7 +22,7 @@ import { useT } from "@/shared/hooks/useIdioma";
 import { type Idioma } from "@/shared/i18n/idioma";
 // T4-15: el CSV ya no se construye aquí. El archivo lo escribe el backend, que es quien
 // puede recorrer el histórico entero por lotes.
-import { formatearFecha, LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
+import { formatearDia, formatearFecha, LOCALE_DE_GRAFICO } from "@/shared/lib/fechas";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
 import { useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
@@ -334,7 +334,15 @@ export default function StockMovementsPage() {
                                                 {hayVarios && <td className="px-6 py-3 text-foreground">{nombreDe(m.warehouseId)}</td>}
                                                 {hayVarios && <td className="px-6 py-3 text-foreground tabular-nums">{m.warehouseStockAfter}</td>}
                                                 <td className="px-6 py-3 text-foreground tabular-nums">{m.stockAfter}</td>
-                                                <td className="px-6 py-3 text-foreground-muted text-xs">{m.note ?? "—"}</td>
+                                                <td className="px-6 py-3 text-foreground-muted text-xs">
+                                                    {m.note ?? (m.lot ? "" : "—")}
+                                                    {/* T5-15 — de qué lote eran las unidades. */}
+                                                    {m.lot && (
+                                                        <span className="block whitespace-nowrap text-foreground-muted">
+                                                            {t("lotes.delMovimiento", { codigo: m.lot.code, fecha: formatearDia(idioma, m.lot.expiresAt) })}
+                                                        </span>
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
