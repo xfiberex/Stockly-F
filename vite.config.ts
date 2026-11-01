@@ -13,7 +13,9 @@ export default defineConfig(({ mode }) => ({
     ],
     resolve: {
         alias: {
-            "@": path.resolve(__dirname, "./src"),
+            // `import.meta.dirname` y no `__dirname`: el cargador nativo de configuración, que
+            // Vite piensa hacer el predeterminado, no define `__dirname` (avisa desde Vite 8.3).
+            "@": path.resolve(import.meta.dirname, "./src"),
         },
     },
     /*
