@@ -7,17 +7,17 @@ import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
-import { rolSchema } from "@/shared/contratos";
+import { rolAsignableSchema } from "@/shared/contratos";
 import type { InvitacionForm } from "@/modules/users/types/users.types";
 
 // Los mensajes son claves del catálogo (T4-04); ver `auth.schema.ts`. Las reglas son las de
-// `users.validator.ts` del backend, y el rol sale del contrato.
+// `users.validator.ts` del backend, y el rol sale del contrato: uno asignable (AUD-001).
 const invitacionSchema = z.object({
     name: z.string().trim()
         .min(1, "validacion.nombreRequerido" satisfies Clave)
         .max(80, "validacion.maximo80" satisfies Clave),
     email: z.string().trim().email("validacion.correoInvalido" satisfies Clave),
-    role: rolSchema,
+    role: rolAsignableSchema,
 });
 
 interface InvitarUsuarioModalProps {

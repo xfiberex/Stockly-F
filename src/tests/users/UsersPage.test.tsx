@@ -69,9 +69,9 @@ describe("UsersPage (T2-20)", () => {
         renderWithProviders(<UsersPage />);
 
         expect(screen.getByText("2 usuarios registrados")).toBeInTheDocument();
-        // `:not(option)` porque «Usuario» y «Admin» son además las opciones del
+        // `:not(option)` porque «Consulta» y «Admin» son además las opciones del
         // selector de rol que hay en la misma fila.
-        expect(within(fila("Laura Gómez")).getByText("Usuario", { selector: ":not(option)" })).toBeInTheDocument();
+        expect(within(fila("Laura Gómez")).getByText("Consulta", { selector: ":not(option)" })).toBeInTheDocument();
         expect(within(fila("Admin Principal")).getByText("Admin", { selector: ":not(option)" })).toBeInTheDocument();
         expect(within(fila("Laura Gómez")).getByText("Activo")).toBeInTheDocument();
     });
@@ -269,6 +269,73 @@ describe("UsersPage (T2-20)", () => {
             renderWithProviders(<UsersPage />);
 
             expect(screen.queryByRole("button", { name: "Invitar usuario" })).not.toBeInTheDocument();
+        });
+
+        it("no se puede invitar a alguien sin rol (AUD-001)", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<UsersPage />);
+            const formulario = await abrir(user);
+
+            const valores = Array.from(formulario.getByLabelText("Rol").querySelectorAll("option")).map((o) => o.value);
+            expect(valores).toEqual(["ADMIN", "USER", "WAREHOUSE", "SELLER"]);
+        });
+    });
+
+    describe("AUD-001 — aprobar una cuenta pendiente", () => {
+        beforeEach(() => {
+            usuarios = [...usuarios, usuario({ id: "u-p", name: "Diego Castro", email: "pendiente@stockly.app", role: "PENDING" })];
+            total = 3;
+        });
+
+        it("la fila dice que está pendiente, con icono, y su selector empieza en «Aprobar como…»", () => {
+            renderWithProviders(<UsersPage />);
+
+            const suya = within(fila("Diego Castro"));
+            const insignia = suya.getByText("Pendiente", { selector: ":not(option)" });
+            expect(insignia.querySelector("svg")).not.toBeNull();
+            const selector = suya.getByRole("combobox", { name: "Aprobar a Diego Castro con un rol" });
+            expect(selector).toHaveValue("");
+            expect(within(selector).getByRole("option", { name: "Aprobar como…" })).toBeInTheDocument();
+        });
+
+        it("elegir un rol la aprueba con ese rol, y el aviso lleva su nombre", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<UsersPage />);
+
+            await user.selectOptions(within(fila("Diego Castro")).getByRole("combobox"), "WAREHOUSE");
+
+            expect(cambiarRol).toHaveBeenCalledWith({ id: "u-p", role: "WAREHOUSE", aprobando: "Diego Castro" });
+        });
+
+        it("ningún selector de la tabla ofrece «Pendiente»: no se le quita el rol a nadie", () => {
+            renderWithProviders(<UsersPage />);
+
+            for (const nombre of ["Laura Gómez", "Diego Castro"]) {
+                const valores = Array.from(within(fila(nombre)).getByRole("combobox").querySelectorAll("option")).map((o) => o.value);
+                expect(valores).not.toContain("PENDING");
+            }
+        });
+
+        it("el filtro de rol ofrece las pendientes", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<UsersPage />);
+
+            await user.selectOptions(screen.getByRole("combobox", { name: "Todos los roles" }), "PENDING");
+
+            expect(consultas.at(-1)).toMatchObject({ role: "PENDING" });
+        });
+
+        it("el aviso de la campana trae con `?role=PENDING` y la lista ya sale filtrada", () => {
+            renderWithProviders(<UsersPage />, { initialRoute: "/admin/users?role=PENDING" });
+
+            expect(consultas.at(-1)).toMatchObject({ role: "PENDING" });
+            expect(screen.getByRole("combobox", { name: "Todos los roles" })).toHaveValue("PENDING");
+        });
+
+        it("un `?role=` que no es un rol se ignora en vez de pedirlo", () => {
+            renderWithProviders(<UsersPage />, { initialRoute: "/admin/users?role=NADA" });
+
+            expect(consultas.at(-1)).toMatchObject({ role: undefined });
         });
     });
 });

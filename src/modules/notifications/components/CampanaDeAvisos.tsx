@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type ComponentType, type FocusEvent, type SVGProps } from "react";
 import { Link } from "react-router-dom";
-import { BellIcon, CalendarDaysIcon, ExclamationTriangleIcon, ShoppingCartIcon, TruckIcon } from "@heroicons/react/24/outline";
+import { BellIcon, CalendarDaysIcon, ExclamationTriangleIcon, ShoppingCartIcon, TruckIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/lib/cn";
 import { formatearDia, haceCuanto } from "@/shared/lib/fechas";
 import { Spinner } from "@/shared/components/Spinner";
@@ -84,6 +84,15 @@ function presentar(aviso: Notification, { t, idioma }: Traductor): Presentacion 
                 titulo: t("avisos.loteCaduca.titulo", { lote: aviso.data.lotCode, producto: aviso.data.productName }),
                 detalle: t("avisos.loteCaduca.detalle", { fecha: formatearDia(idioma, aviso.data.expiresAt), unidades: aviso.data.units }),
                 destino: "/expiry",
+            };
+        // AUD-001 — lleva a Usuarios ya filtrado: allí se aprueba eligiendo su rol.
+        case "USER_PENDING":
+            return {
+                Icono: UserPlusIcon,
+                tono: "bg-info-surface text-info",
+                titulo: t("avisos.cuentaPendiente.titulo", { nombre: aviso.data.name }),
+                detalle: t("avisos.cuentaPendiente.detalle", { correo: aviso.data.email }),
+                destino: "/admin/users?role=PENDING",
             };
     }
 }

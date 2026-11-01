@@ -1,6 +1,7 @@
 import api from "@/shared/api/axios";
 import type { ApiResponse, PaginatedResponse } from "@/shared/types";
-import type { AppUser, InvitacionForm, UserRole, UsersQuery } from "../types/users.types";
+import type { AppUser, InvitacionForm, UsersQuery } from "../types/users.types";
+import type { RolAsignable } from "@/shared/contratos";
 
 export const getUsers = async (params?: UsersQuery): Promise<PaginatedResponse<AppUser>> => {
     const { data } = await api.get<ApiResponse<PaginatedResponse<AppUser>>>("/users", { params });
@@ -12,7 +13,7 @@ export const inviteUser = async (form: InvitacionForm): Promise<AppUser> => {
     return data.data!;
 };
 
-export const updateUserRole = async (id: string, role: UserRole): Promise<AppUser> => {
+export const updateUserRole = async (id: string, role: RolAsignable): Promise<AppUser> => {
     const { data } = await api.patch<ApiResponse<AppUser>>(`/users/${id}/role`, { role });
     return data.data!;
 };

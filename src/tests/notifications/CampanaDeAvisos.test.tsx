@@ -173,6 +173,21 @@ describe("CampanaDeAvisos (T5-12)", () => {
             expect(aviso).toHaveAttribute("href", "/expiry");
         });
 
+        it("una cuenta que espera aprobación dice quién es y lleva a Usuarios ya filtrado (AUD-001)", async () => {
+            servidorCon([{
+                id: "a10", type: "USER_PENDING", entityId: "u-p", readAt: null, createdAt: HACE_UN_RATO,
+                data: { name: "Diego Castro", email: "pendiente@stockly.app" },
+            }]);
+            const user = userEvent.setup();
+            renderWithProviders(<CampanaDeAvisos />);
+
+            const panel = await abrir(user);
+
+            const aviso = (await within(panel).findByText("Diego Castro espera aprobación")).closest("a")!;
+            expect(within(aviso).getByText("pendiente@stockly.app confirmó su correo y necesita un rol para entrar")).toBeInTheDocument();
+            expect(aviso).toHaveAttribute("href", "/admin/users?role=PENDING");
+        });
+
         it("Escape lo cierra y devuelve el foco a la campana", async () => {
             const user = userEvent.setup();
             renderWithProviders(<CampanaDeAvisos />);

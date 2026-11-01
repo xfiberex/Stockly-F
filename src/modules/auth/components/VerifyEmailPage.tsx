@@ -47,6 +47,8 @@ export default function VerifyEmailPage() {
             {status === "success" && (
                 <>
                     <p className="text-success font-medium text-xl">{t("auth.verificar.confirmada")}</p>
+                    {/* AUD-001 — sin esto, entraría al login y se encontraría el 403 sin saber por qué. */}
+                    <p className="max-w-sm text-center text-sm text-foreground-muted">{t("auth.verificar.esperaAprobacion")}</p>
                     <Link to="/auth/login" className="text-info hover:underline text-sm">
                         {t("auth.registro.inicia")}
                     </Link>

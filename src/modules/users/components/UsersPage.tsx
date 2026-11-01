@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
@@ -9,7 +10,8 @@ import { useUsers, useInviteUser, useUpdateUserRole, useSetUserActive } from "@/
 import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { InvitarUsuarioModal } from "@/modules/users/components/InvitarUsuarioModal";
 import type { AppUser, UserRole } from "@/modules/users/types/users.types";
-import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon, ArchiveBoxIcon, BanknotesIcon, UserPlusIcon } from "@heroicons/react/24/outline";
+import type { RolAsignable } from "@/shared/contratos";
+import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon, ArchiveBoxIcon, BanknotesIcon, UserPlusIcon, ClockIcon } from "@heroicons/react/24/outline";
 import type { Clave } from "@/shared/i18n/traducir";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ACTIVIDAD } from "@/shared/lib/estados";
@@ -23,13 +25,17 @@ import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTab
  * cada valor del enum, así que un cuarto rol no se pinta con el rótulo de otro. Solo ADMIN va
  * destacado: es el que puede cambiar precios, usuarios y configuración.
  */
-const ROL: Record<UserRole, { clave: Clave; Icono: typeof UserIcon; variante: "info" | "neutral" }> = {
+const ROL: Record<UserRole, { clave: Clave; Icono: typeof UserIcon; variante: "info" | "neutral" | "warning" }> = {
     ADMIN: { clave: "usuarios.rol.ADMIN", Icono: ShieldCheckIcon, variante: "info" },
     USER: { clave: "usuarios.rol.USER", Icono: UserIcon, variante: "neutral" },
     WAREHOUSE: { clave: "usuarios.rol.WAREHOUSE", Icono: ArchiveBoxIcon, variante: "neutral" },
     // T6-08 — quien atiende el mostrador.
     SELLER: { clave: "usuarios.rol.SELLER", Icono: BanknotesIcon, variante: "neutral" },
+    // AUD-001 — se registró por su cuenta y espera rol: es lo que hay que atender.
+    PENDING: { clave: "usuarios.rol.PENDING", Icono: ClockIcon, variante: "warning" },
 };
+
+const esRol = (valor: string | null): valor is UserRole => valor !== null && valor in ROL;
 
 export default function UsersPage() {
     const { t, tn, idioma } = useT();
@@ -37,8 +43,15 @@ export default function UsersPage() {
 
     // Las listas se arman dentro del componente (T4-04): fuera se construirían al cargar
     // el módulo, con el idioma que hubiera entonces, y no cambiarían al elegir otro.
-    const ROLES = (Object.keys(ROL) as UserRole[]).map((rol) => ({ value: rol, label: t(ROL[rol].clave) }));
-    const ROLE_OPTIONS = [{ value: "", label: t("usuarios.todosLosRoles") }, ...ROLES];
+    // AUD-001 — los que se pueden dar no incluyen `PENDING`; el filtro, sí: es como se encuentran.
+    const ROLES = (Object.keys(ROL) as UserRole[])
+        .filter((rol): rol is RolAsignable => rol !== "PENDING")
+        .map((rol) => ({ value: rol, label: t(ROL[rol].clave) }));
+    const ROLE_OPTIONS = [
+        { value: "", label: t("usuarios.todosLosRoles") },
+        ...(Object.keys(ROL) as UserRole[]).map((rol) => ({ value: rol, label: t(ROL[rol].clave) })),
+    ];
+    const OPCIONES_DE_APROBACION = [{ value: "", label: t("usuarios.aprobarComo") }, ...ROLES];
 
     const STATUS_OPTIONS = [
         { value: "", label: t("comun.todos") },
@@ -46,7 +59,18 @@ export default function UsersPage() {
         { value: "false", label: t("usuarios.inactivos") },
     ];
     const [search, setSearch] = useState("");
-    const [roleFilter, setRoleFilter] = useState<string>("");
+    // AUD-001 — el filtro de rol vive en la URL: el aviso de la campana trae aquí con
+    // `?role=PENDING`, también cuando la pantalla ya está abierta. Un valor que no es un rol se
+    // ignora, en vez de mandarlo y recibir un 400.
+    const [parametros, setParametros] = useSearchParams();
+    const roleFilter = esRol(parametros.get("role")) ? parametros.get("role")! : "";
+    const setRoleFilter = (rol: string) =>
+        setParametros((actuales) => {
+            const siguientes = new URLSearchParams(actuales);
+            if (rol) siguientes.set("role", rol);
+            else siguientes.delete("role");
+            return siguientes;
+        }, { replace: true });
     const [activeFilter, setActiveFilter] = useState<string>("");
     const [page, setPage] = useState(1);
 
@@ -164,17 +188,33 @@ export default function UsersPage() {
                                             <td className="px-6 py-3 text-foreground-muted">{formatearFecha(idioma, u.createdAt)}</td>
                                             <td className="px-6 py-3">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <Select
-                                                        // Nombra la fila, como los botones de solo icono: sin esto un
-                                                        // lector de pantalla anuncia tres desplegables llamados «Admin»
-                                                        // y no dice de quién es el rol que se está cambiando.
-                                                        aria-label={t("usuarios.cambiarRolDe", { nombre: u.name })}
-                                                        options={ROLES}
-                                                        value={u.role}
-                                                        disabled={isSelf || roleMutation.isPending}
-                                                        onChange={(e) => roleMutation.mutate({ id: u.id, role: e.target.value as UserRole })}
-                                                        className="text-xs py-1 h-auto"
-                                                    />
+                                                    {u.role === "PENDING" ? (
+                                                        // AUD-001 — aprobar es elegir su primer rol. Empieza en
+                                                        // «Aprobar como…» y no en un rol: si empezara en uno, la
+                                                        // cuenta parecería tenerlo ya.
+                                                        <Select
+                                                            aria-label={t("usuarios.aprobarA", { nombre: u.name })}
+                                                            options={OPCIONES_DE_APROBACION}
+                                                            value=""
+                                                            disabled={roleMutation.isPending}
+                                                            onChange={(e) => {
+                                                                if (e.target.value) roleMutation.mutate({ id: u.id, role: e.target.value as RolAsignable, aprobando: u.name });
+                                                            }}
+                                                            className="text-xs py-1 h-auto"
+                                                        />
+                                                    ) : (
+                                                        <Select
+                                                            // Nombra la fila, como los botones de solo icono: sin esto un
+                                                            // lector de pantalla anuncia tres desplegables llamados «Admin»
+                                                            // y no dice de quién es el rol que se está cambiando.
+                                                            aria-label={t("usuarios.cambiarRolDe", { nombre: u.name })}
+                                                            options={ROLES}
+                                                            value={u.role}
+                                                            disabled={isSelf || roleMutation.isPending}
+                                                            onChange={(e) => roleMutation.mutate({ id: u.id, role: e.target.value as RolAsignable })}
+                                                            className="text-xs py-1 h-auto"
+                                                        />
+                                                    )}
                                                     <Button
                                                         variant={u.isActive ? "danger" : "secondary"}
                                                         disabled={isSelf || activeMutation.isPending}
