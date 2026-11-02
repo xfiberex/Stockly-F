@@ -890,6 +890,7 @@ export const es = {
     "ordenes.buscandoProductos": "Buscando…",
     "ordenes.quitarProducto": "Quitar el producto {nombre}",
     "ordenes.escaneoInactivo": "«{nombre}» está inactivo y no se puede añadir.",
+    "ordenes.maximoDeLineas": "Una orden admite {maximo} líneas como mucho.",
     "ordenes.nombreItem": "Nombre del ítem",
     "ordenes.cantidadCorta": "Cant.",
     "ordenes.precioUnitario": "P. unit.",
@@ -1211,6 +1212,8 @@ export const es = {
     "error.INSUFFICIENT_AVAILABLE_STOCK": "No hay suficiente disponible de «{producto}»: quedan {disponible} sin comprometer en ventas pendientes y la venta pide {requerido}.",
     "error.COUNT_ADJUSTMENT_NEGATIVE": "Cerrar dejaría {productos} productos en negativo («{producto}»…): han salido unidades después de contarlos. Vuelve a contarlos.",
     "error.SALE_ORDER_NOT_SHIPPED": "La orden no se ha enviado: todavía no tiene comprobante.",
+    // AUD-005 — casi siempre, que otra persona la cambió entretanto: la lista se vuelve a pedir.
+    "error.INVALID_STATUS_TRANSITION": "La orden ya no admite ese cambio de estado. Puede que otra persona la haya cambiado: revisa cómo está ahora.",
     "error.WAREHOUSE_INACTIVE": "El almacén «{almacen}» está desactivado.",
     "error.DEFAULT_WAREHOUSE_REQUIRED": "El almacén predeterminado no se puede desactivar: elige antes otro.",
     "error.WAREHOUSE_NOT_EMPTY": "«{almacen}» todavía guarda {unidades} unidades: transfiérelas antes de desactivarlo.",

@@ -71,7 +71,12 @@ export function useUpdateSaleOrder() {
             qc.invalidateQueries({ queryKey: queryKeys.customers });
             toast.success(t("ordenes.actualizada"));
         },
-        onError: (error) => toast.error(mensajeDeError(idioma, error)),
+        onError: (error) => {
+            // AUD-005 — un rechazo por estado casi siempre es que otra persona la cambió
+            // entretanto: lo que hay en pantalla ya no es su estado.
+            qc.invalidateQueries({ queryKey: SALE_ORDERS_KEY });
+            toast.error(mensajeDeError(idioma, error));
+        },
     });
 }
 
@@ -87,7 +92,11 @@ export function useShipSaleOrder() {
             qc.invalidateQueries({ queryKey: queryKeys.customers });
             toast.success(t("ordenes.actualizada"));
         },
-        onError: (error) => toast.error(mensajeDeError(idioma, error)),
+        onError: (error) => {
+            // AUD-005 — como en `useUpdateSaleOrder`: si otro la envió antes, que se vea.
+            qc.invalidateQueries({ queryKey: SALE_ORDERS_KEY });
+            toast.error(mensajeDeError(idioma, error));
+        },
     });
 }
 

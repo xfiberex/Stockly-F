@@ -8,7 +8,7 @@
 // Editar este archivo directamente no sirve de nada: `frescura.test.ts` compara
 // su contenido con el del backend y falla, y la próxima generación lo pisa.
 //
-// huella: d7fc940a754f3373
+// huella: 98797fc047b39b9f
 
 /**
  * T4-01 — El contrato de la API, en un solo archivo y en un solo sitio.
@@ -503,6 +503,9 @@ export const CODIGOS_DE_ERROR = [
     "PRODUCTS_IN_OPEN_COUNT",
     // T6-07 — se pidió el comprobante de una orden que no se ha enviado: todavía no es una venta.
     "SALE_ORDER_NOT_SHIPPED",
+    // AUD-005 — el estado al que se pide pasar una venta no se alcanza desde el suyo: una
+    // enviada no vuelve a pendiente.
+    "INVALID_STATUS_TRANSITION",
     // T5-14 — el almacén está desactivado y no admite operaciones nuevas.
     "WAREHOUSE_INACTIVE",
     // T5-14 — no se desactiva el predeterminado, ni uno con existencias, ni uno con órdenes o
@@ -961,6 +964,12 @@ export function esTasaDeImpuestoValida(tasa: number): boolean {
 
 /** T6-08 — cuántas líneas admite una venta de mostrador. */
 export const MAXIMO_DE_LINEAS_DE_MOSTRADOR = 100;
+
+/**
+ * AUD-005 — y una orden de venta. Sin tope, una sola petición con miles de líneas bloqueaba
+ * otros tantos productos dentro de una transacción, y el cuerpo de 100 kB no lo frenaba.
+ */
+export const MAXIMO_DE_LINEAS_DE_VENTA = 100;
 
 /**
  * T6-08 — lo que va a sumar una venta **que todavía no existe**: lo que el mostrador enseña

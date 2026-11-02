@@ -38,7 +38,7 @@ import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONT
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 import { cn } from "@/shared/lib/cn";
 import { useDebounce } from "@/shared/hooks/useDebounce";
-import { LARGO_MAXIMO_DE_DOCUMENTO, aNumero, escribirNumeroDeVenta } from "@/shared/contratos";
+import { LARGO_MAXIMO_DE_DOCUMENTO, MAXIMO_DE_LINEAS_DE_VENTA, aNumero, escribirNumeroDeVenta } from "@/shared/contratos";
 import { useNegocio } from "@/modules/settings/hooks/useNegocio";
 import { disponibleEn } from "@/shared/lib/almacenes";
 import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
@@ -262,6 +262,8 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
         }
         const libre = actuales.findIndex((l) => !l.productId && !l.productName.trim());
         if (libre !== -1) return elegirProducto(libre, product);
+        // AUD-005 — el tope de la API: una línea más no se guardaría.
+        if (actuales.length >= MAXIMO_DE_LINEAS_DE_VENTA) return setAvisoDeEscaneo(t("ordenes.maximoDeLineas", { maximo: MAXIMO_DE_LINEAS_DE_VENTA }));
         setElegidos((prev) => new Map(prev).set(product.id, product));
         append({ productId: product.id, productName: product.name, quantity: 1, unitPrice: Number(product.price) });
     };
@@ -324,6 +326,8 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                             <Button
                                 type="button"
                                 variant="secondary"
+                                disabled={fields.length >= MAXIMO_DE_LINEAS_DE_VENTA}
+                                title={fields.length >= MAXIMO_DE_LINEAS_DE_VENTA ? t("ordenes.maximoDeLineas", { maximo: MAXIMO_DE_LINEAS_DE_VENTA }) : undefined}
                                 onClick={() => append({ productName: "", quantity: 1, unitPrice: 0 })}
                             >
                                 <PlusIcon className="h-3.5 w-3.5" />
