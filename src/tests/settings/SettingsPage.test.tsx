@@ -68,11 +68,13 @@ describe("SettingsPage", () => {
         expect(screen.queryByText(/ajuste\.ajusteQueNoExisteTodavia/)).not.toBeInTheDocument();
     });
 
-    it("muestra el spinner mientras carga", () => {
+    it("mientras carga, anuncia «Cargando…» y no pinta el formulario", () => {
         isLoading = true;
-        settingsData = [];
-        const { container } = renderWithProviders(<SettingsPage />);
-        expect(container.querySelector(".animate-spin")).toBeInTheDocument();
+        // Con datos: si los hubiera pintado, el ajuste aparecería.
+        settingsData = [booleanEntry];
+        renderWithProviders(<SettingsPage />);
+        expect(screen.getByRole("status")).toHaveTextContent("Cargando…");
+        expect(screen.queryByText("Alertas de bajo stock por correo")).not.toBeInTheDocument();
     });
 
     it("el botón Guardar está deshabilitado si no hay cambios", () => {

@@ -6,7 +6,7 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
     AreaChart, Area,
 } from "recharts";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoPagina } from "@/shared/components/Esqueleto";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { TIPO_MOVIMIENTO, ACTIVIDAD } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
@@ -69,11 +69,7 @@ export default function StockMovementsPage() {
     }
 
     if (isLoading) {
-        return (
-            <div className="flex justify-center py-32">
-                <Spinner size="lg" />
-            </div>
-        );
+        return <EsqueletoPagina cifras={3} cuerpo="tabla" />;
     }
 
     if (isError || !data) {

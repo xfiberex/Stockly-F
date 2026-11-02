@@ -5,7 +5,7 @@ import { Button } from "@/shared/components/Button";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Input } from "@/shared/components/Input";
 import { Modal } from "@/shared/components/Modal";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoRejilla } from "@/shared/components/Esqueleto";
 import { useT } from "@/shared/hooks/useIdioma";
 import { ACTIVIDAD } from "@/shared/lib/estados";
 import { formatearImporte } from "@/shared/lib/moneda";
@@ -92,7 +92,7 @@ export default function WarehousesPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoRejilla tarjetas={3} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" claseDeTarjeta="h-48 p-5" />
             ) : (
                 <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {almacenes.map((almacen) => (

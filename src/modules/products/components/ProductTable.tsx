@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { ProductDetailModal } from "@/modules/products/components/ProductDetailModal";
 import { useDeleteProduct } from "@/modules/products/hooks/useDeleteProduct";
 import { useRestoreProduct } from "@/modules/products/hooks/useRestoreProduct";
@@ -28,13 +28,15 @@ const CLASE_NIVEL: Record<NivelStock, string> = {
 interface ProductTableProps {
     products: ProductWithAvailability[];
     isLoading: boolean;
+    /** Los filtros de encima aún no tienen su altura final: no se pinta el esqueleto (ver `ZonaCargando`). */
+    esperandoFiltros?: boolean;
     onEdit: (product: Product) => void;
     selectedIds?: Set<string>;
     onToggleSelect?: (id: string) => void;
     onPrintLabels?: (product: Product) => void;
 }
 
-export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggleSelect, onPrintLabels }: ProductTableProps) {
+export function ProductTable({ products, isLoading, esperandoFiltros = false, onEdit, selectedIds, onToggleSelect, onPrintLabels }: ProductTableProps) {
     const { t } = useT();
     const deleteMutation = useDeleteProduct();
     const restoreMutation = useRestoreProduct();
@@ -43,11 +45,7 @@ export function ProductTable({ products, isLoading, onEdit, selectedIds, onToggl
     const [detailProduct, setDetailProduct] = useState<ProductWithAvailability | null>(null);
 
     if (isLoading) {
-        return (
-            <div className="flex justify-center py-16">
-                <Spinner size="lg" />
-            </div>
-        );
+        return <EsqueletoTabla filas={10} columnas={6} esperando={esperandoFiltros} />;
     }
 
     if (products.length === 0) {

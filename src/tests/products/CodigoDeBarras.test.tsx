@@ -236,7 +236,7 @@ describe("Escanear en el catálogo (T5-08)", () => {
         const user = userEvent.setup();
         renderWithProviders(<ProductsPage />);
 
-        await user.click(screen.getByRole("checkbox", { name: "Seleccionar Teclado Logitech" }));
+        await user.click(await screen.findByRole("checkbox", { name: "Seleccionar Teclado Logitech" }));
         await user.click(screen.getByRole("checkbox", { name: "Seleccionar Cable sin código" }));
         await user.click(screen.getByRole("button", { name: "Etiquetas" }));
 

@@ -6,7 +6,7 @@ import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Input } from "@/shared/components/Input";
 import { Modal } from "@/shared/components/Modal";
 import { Select } from "@/shared/components/Select";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoLista } from "@/shared/components/Esqueleto";
 import { useT } from "@/shared/hooks/useIdioma";
 import { formatearFecha } from "@/shared/lib/fechas";
 import { ESTADO_CONTEO, buscarEstado } from "@/shared/lib/estados";
@@ -115,7 +115,7 @@ export default function InventoryCountsPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoLista />
             ) : conteos.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">{t("conteos.vacio")}</div>
             ) : (

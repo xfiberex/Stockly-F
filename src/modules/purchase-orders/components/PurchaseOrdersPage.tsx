@@ -9,7 +9,7 @@ import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { Button } from "@/shared/components/Button";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ESTADO_ORDEN_COMPRA, buscarEstado } from "@/shared/lib/estados";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoLista } from "@/shared/components/Esqueleto";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { EscanerModal } from "@/shared/components/EscanerModal";
 import { usePuede } from "@/modules/auth/hooks/usePuede";
@@ -604,7 +604,7 @@ export default function PurchaseOrdersPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoLista />
             ) : orders.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">{t("compras.vacio")}</div>
             ) : (

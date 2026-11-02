@@ -4,7 +4,7 @@ import { ArrowLeftIcon, EnvelopeIcon, IdentificationIcon, PencilIcon, PhoneIcon 
 import { Button } from "@/shared/components/Button";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Paginacion } from "@/shared/components/Paginacion";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoPagina } from "@/shared/components/Esqueleto";
 import { useT } from "@/shared/hooks/useIdioma";
 import { cn } from "@/shared/lib/cn";
 import { ESTADO_ORDEN_VENTA, buscarEstado } from "@/shared/lib/estados";
@@ -55,7 +55,7 @@ export default function CustomerDetailPage() {
         </Link>
     );
 
-    if (isLoading) return <div className="flex justify-center py-12"><Spinner size="lg" /></div>;
+    if (isLoading) return <EsqueletoPagina cifras={3} cuerpo="tabla" />;
     if (isError || !cliente) {
         return (
             <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, "space-y-4")}>

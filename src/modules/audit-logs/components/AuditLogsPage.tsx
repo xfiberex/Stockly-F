@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Badge, type BadgeVariant } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { useAuditLogs } from "@/modules/audit-logs/hooks/useAuditLogs";
 import type { AuditAction, AuditEntity } from "@/modules/audit-logs/types/audit-logs.types";
 import { useT } from "@/shared/hooks/useIdioma";
@@ -133,7 +133,7 @@ export default function AuditLogsPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoTabla columnas={6} />
             ) : logs.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">{t("auditoria.sinRegistros")}</div>
             ) : (

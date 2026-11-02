@@ -1,5 +1,6 @@
 import { type ButtonHTMLAttributes } from "react";
 import { clasesDeBoton, type VarianteBoton } from "@/shared/lib/clasesDeBoton";
+import { Spinner } from "@/shared/components/Spinner";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: VarianteBoton;
@@ -17,12 +18,11 @@ export function Button({
     return (
         <button
             disabled={disabled || isLoading}
+            aria-busy={isLoading || undefined}
             className={clasesDeBoton(variant, className)}
             {...props}
         >
-            {isLoading && (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            )}
+            {isLoading && <Spinner size="sm" decorativo className="border-current border-t-transparent" />}
             {children}
         </button>
     );

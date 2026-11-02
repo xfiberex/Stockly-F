@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
@@ -153,7 +153,7 @@ export function CatalogItemSection({
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoTabla columnas={4} />
             ) : items.length === 0 ? (
                 <div className="py-12 text-center text-sm text-foreground-muted">
                     {t(textos.vacio)}

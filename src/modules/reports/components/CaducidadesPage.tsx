@@ -4,7 +4,7 @@ import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Modal } from "@/shared/components/Modal";
 import { Select } from "@/shared/components/Select";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoLista } from "@/shared/components/Esqueleto";
 import { useT } from "@/shared/hooks/useIdioma";
 import { formatearDia } from "@/shared/lib/fechas";
 import { formatearImporte } from "@/shared/lib/moneda";
@@ -128,7 +128,7 @@ export default function CaducidadesPage() {
             )}
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoLista />
             ) : filas.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">{t("caducidades.vacio")}</div>
             ) : (

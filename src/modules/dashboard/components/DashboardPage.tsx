@@ -1,6 +1,6 @@
 import { conSimboloDeMoneda, formatearImporte } from "@/shared/lib/moneda";
 import { useReports } from "@/modules/reports/hooks/useReports";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoPagina } from "@/shared/components/Esqueleto";
 import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
@@ -22,11 +22,7 @@ export default function DashboardPage() {
     const { data, isLoading } = useReports();
 
     if (isLoading || !data) {
-        return (
-            <div className="flex justify-center py-32">
-                <Spinner size="lg" />
-            </div>
-        );
+        return <EsqueletoPagina cifras={4} />;
     }
 
     const { totals, stockByCategory, lowStockProducts, salesByDay, topSold } = data;

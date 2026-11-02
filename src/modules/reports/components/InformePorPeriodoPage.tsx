@@ -4,7 +4,7 @@ import { ArrowDownTrayIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Button } from "@/shared/components/Button";
 import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoPagina } from "@/shared/components/Esqueleto";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearImporte } from "@/shared/lib/moneda";
@@ -141,7 +141,7 @@ export default function InformePorPeriodoPage() {
             </div>
 
             {isLoading || !data || !totales ? (
-                <div className="flex justify-center py-16"><Spinner size="lg" /></div>
+                <EsqueletoPagina dentro cifras={6} />
             ) : (
                 <>
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">

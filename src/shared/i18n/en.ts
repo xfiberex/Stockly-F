@@ -21,6 +21,7 @@ export const en: Record<keyof typeof es, string> = {
     "comun.guardarCambios": "Save changes",
     "comun.cancelar": "Cancel",
     "comun.cerrar": "Close",
+    "comun.cargando": "Loading…",
     "comun.editar": "Edit",
     "comun.eliminar": "Delete",
     "comun.restaurar": "Restore",

@@ -5,7 +5,7 @@ import { Button } from "@/shared/components/Button";
 import { Input } from "@/shared/components/Input";
 import { Modal } from "@/shared/components/Modal";
 import { Paginacion } from "@/shared/components/Paginacion";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useT } from "@/shared/hooks/useIdioma";
 import { cn } from "@/shared/lib/cn";
@@ -123,7 +123,7 @@ export default function CustomersPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoTabla columnas={6} />
             ) : clientes.length === 0 ? (
                 <div className="py-12 text-center text-sm text-foreground-muted">
                     {search ? t("clientes.sinResultados") : t("clientes.vacio")}

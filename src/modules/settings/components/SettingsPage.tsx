@@ -4,7 +4,7 @@ import { Button } from "@/shared/components/Button";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { cn } from "@/shared/lib/cn";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoBloques } from "@/shared/components/Esqueleto";
 import { SelectorDeIdioma } from "@/modules/settings/components/SelectorDeIdioma";
 import { SelectorDeTema } from "@/modules/settings/components/SelectorDeTema";
 import { LogoDelNegocio } from "@/modules/settings/components/LogoDelNegocio";
@@ -281,7 +281,7 @@ export default function SettingsPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoBloques />
             ) : (
                 <>
                     {/*

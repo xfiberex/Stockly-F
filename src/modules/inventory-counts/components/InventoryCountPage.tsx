@@ -6,7 +6,7 @@ import { EscanerModal } from "@/shared/components/EscanerModal";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Modal } from "@/shared/components/Modal";
 import { Paginacion } from "@/shared/components/Paginacion";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoTabla, EsqueletoPagina } from "@/shared/components/Esqueleto";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
@@ -142,7 +142,7 @@ function Captura({ id }: { id: string }) {
             )}
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoTabla columnas={5} sinTarjeta />
             ) : lineas.length === 0 ? (
                 <p className="px-4 pb-6 text-sm text-foreground-muted">
                     {escaneado
@@ -224,7 +224,7 @@ function Revision({ conteo }: { conteo: InventoryCount }) {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoTabla columnas={5} sinTarjeta />
             ) : lineas.length === 0 ? (
                 <p className="px-4 pb-6 text-sm text-foreground-muted">{t("conteos.sinLineas")}</p>
             ) : (
@@ -291,7 +291,7 @@ export default function InventoryCountPage() {
     const cancelar = useCancelInventoryCount(id);
 
     if (isLoading || !conteo) {
-        return <div className="flex justify-center py-16"><Spinner size="lg" /></div>;
+        return <EsqueletoPagina cifras={4} cuerpo="tabla" />;
     }
 
     const abierta = conteo.status === "OPEN";

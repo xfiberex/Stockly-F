@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { useSuppliers } from "@/modules/suppliers/hooks/useSuppliers";
 import { useCreateSupplier, useUpdateSupplier, useDeleteSupplier } from "@/modules/suppliers/hooks/useSupplierMutations";
 import { useAuth } from "@/modules/auth/hooks/useMe";
@@ -187,7 +187,7 @@ export default function SuppliersPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoTabla columnas={6} />
             ) : suppliers.length === 0 ? (
                 <div className="py-12 text-center text-sm text-foreground-muted">{t("proveedores.vacio")}</div>
             ) : (

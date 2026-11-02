@@ -4,7 +4,7 @@ import { useAuth } from "@/modules/auth/hooks/useMe";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useUsers, useInviteUser, useUpdateUserRole, useSetUserActive } from "@/modules/users/hooks/useUsers";
 import { usePuede } from "@/modules/auth/hooks/usePuede";
@@ -140,7 +140,7 @@ export default function UsersPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoTabla columnas={6} />
             ) : users.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">{t("usuarios.sinResultados")}</div>
             ) : (

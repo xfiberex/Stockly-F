@@ -88,7 +88,7 @@ describe("ProductsPage — hueco bajo el botón flotante (T3-09)", () => {
         const user = userEvent.setup();
         const { container } = renderWithProviders(<ProductsPage />);
 
-        await user.click(screen.getByRole("checkbox", { name: "Seleccionar Teclado Logitech" }));
+        await user.click(await screen.findByRole("checkbox", { name: "Seleccionar Teclado Logitech" }));
 
         expect(screen.getByRole("button", { name: /Movimiento manual/ })).toBeInTheDocument();
         expect(contenedor(container).className).toMatch(/\bpb-28\b/);
@@ -100,7 +100,7 @@ describe("ProductsPage — hueco bajo el botón flotante (T3-09)", () => {
         const user = userEvent.setup();
         const { container } = renderWithProviders(<ProductsPage />);
 
-        const casilla = screen.getByRole("checkbox", { name: "Seleccionar Teclado Logitech" });
+        const casilla = await screen.findByRole("checkbox", { name: "Seleccionar Teclado Logitech" });
         await user.click(casilla);
         await user.click(casilla);
 
@@ -129,7 +129,7 @@ describe("ProductsPage — el rol de almacén (T5-13)", () => {
         const user = userEvent.setup();
         renderWithProviders(<ProductsPage />);
 
-        await user.click(screen.getByRole("checkbox", { name: "Seleccionar Teclado Logitech" }));
+        await user.click(await screen.findByRole("checkbox", { name: "Seleccionar Teclado Logitech" }));
 
         expect(screen.getByRole("button", { name: /Ajuste masivo/ })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /Movimiento manual/ })).toBeInTheDocument();
@@ -137,9 +137,11 @@ describe("ProductsPage — el rol de almacén (T5-13)", () => {
         expect(screen.queryByRole("button", { name: /Importar/ })).toBeNull();
     });
 
-    it("T6-08 — un SELLER no cambia precios ni stock: ni selecciona, ni crea, ni importa", () => {
+    it("T6-08 — un SELLER no cambia precios ni stock: ni selecciona, ni crea, ni importa", async () => {
         rol = "SELLER";
         renderWithProviders(<ProductsPage />);
+        // La tabla espera a los filtros: sin esto, la casilla faltaría porque aún no hay tabla.
+        await screen.findByText("Teclado Logitech");
 
         expect(screen.queryByRole("checkbox", { name: "Seleccionar Teclado Logitech" })).toBeNull();
         expect(screen.queryByRole("button", { name: /Nuevo producto/ })).toBeNull();
@@ -147,9 +149,10 @@ describe("ProductsPage — el rol de almacén (T5-13)", () => {
         expect(screen.queryByRole("button", { name: /^Editar/ })).toBeNull();
     });
 
-    it("un USER no puede seleccionar", () => {
+    it("un USER no puede seleccionar", async () => {
         rol = "USER";
         renderWithProviders(<ProductsPage />);
+        await screen.findByText("Teclado Logitech");
 
         expect(screen.queryByRole("checkbox", { name: "Seleccionar Teclado Logitech" })).toBeNull();
     });

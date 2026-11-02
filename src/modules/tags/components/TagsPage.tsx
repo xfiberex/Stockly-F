@@ -3,7 +3,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoRejilla } from "@/shared/components/Esqueleto";
 import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from "@/modules/tags/hooks/useTags";
 import type { Tag } from "@/modules/tags/types/tags.types";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
@@ -145,7 +145,7 @@ export default function TagsPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoRejilla className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" />
             ) : tags.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">
                     {t("etiquetas.vacio")}

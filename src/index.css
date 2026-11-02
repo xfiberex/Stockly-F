@@ -306,6 +306,41 @@ table {
 }
 
 /*
+ * Esqueleto de carga (`shared/components/Esqueleto.tsx`, design-system.md §8).
+ *
+ * `.esqueleto` aparece a los 200 ms: una respuesta más rápida no llega a enseñarlo, y la
+ * pantalla no destella gris y contenido seguidos. El hueco lo ocupa desde el principio
+ * —`opacity`, no `display`—, así que el retraso no mueve nada. Es un `animation-delay` y no
+ * un temporizador de React: no cuesta ni un render.
+ *
+ * `.esqueleto-pulso` late con `opacity`, que el navegador anima en el compositor sin repintar;
+ * y lo hace el envoltorio, una capa, no cada barra. Con movimiento reducido la regla de abajo
+ * lo deja en una pasada de 0.01ms: quieto, y visible a los 200 ms igual.
+ */
+.esqueleto {
+  animation: esqueleto-aparece 0.01ms linear 200ms both;
+}
+
+.esqueleto-pulso {
+  animation: esqueleto-pulso 1.6s ease-in-out 200ms infinite;
+}
+
+@keyframes esqueleto-aparece {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes esqueleto-pulso {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/*
  * Movimiento reducido (T2-12) — WCAG 2.3.3.
  *
  * La interfaz usa `transition-*` por todas partes, un `hover:scale-110` en los

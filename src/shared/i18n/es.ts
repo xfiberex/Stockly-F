@@ -22,6 +22,7 @@ export const es = {
     "comun.guardarCambios": "Guardar cambios",
     "comun.cancelar": "Cancelar",
     "comun.cerrar": "Cerrar",
+    "comun.cargando": "Cargando…",
     "comun.editar": "Editar",
     "comun.eliminar": "Eliminar",
     "comun.restaurar": "Restaurar",

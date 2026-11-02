@@ -42,3 +42,13 @@ vi.mock("@/modules/warehouses/api/warehouses.api", () => ({
     setDefaultWarehouse: vi.fn(),
     setWarehouseActive: vi.fn(),
 }));
+
+/**
+ * Las etiquetas, por lo mismo: sin ninguna. Desde el esqueleto de carga, la tabla de productos
+ * espera a saber si hay etiquetas —su filtro cambia la altura de la barra— y sin este doble
+ * esperaría a un servidor que no existe. El test que quiera etiquetas sustituye este módulo.
+ */
+vi.mock("@/modules/tags/api/tags.api", async (original) => ({
+    ...(await original<typeof import("@/modules/tags/api/tags.api")>()),
+    getTags: vi.fn().mockResolvedValue([]),
+}));

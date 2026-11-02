@@ -5,6 +5,7 @@ import { Button } from "@/shared/components/Button";
 import { Input } from "@/shared/components/Input";
 import { Modal } from "@/shared/components/Modal";
 import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoLista } from "@/shared/components/Esqueleto";
 import { useT } from "@/shared/hooks/useIdioma";
 import { disponibleEn } from "@/shared/lib/almacenes";
 import { CLASES_BOTON_ICONO } from "@/shared/lib/clasesDeBoton";
@@ -238,7 +239,7 @@ export default function TransfersPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoLista />
             ) : transferencias.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">{t("transferencias.vacio")}</div>
             ) : (

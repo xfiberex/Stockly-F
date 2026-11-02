@@ -16,6 +16,8 @@ import { DropdownButton } from "@/shared/components/DropdownButton";
 import { useProducts } from "@/modules/products/hooks/useProducts";
 import { useImportProducts } from "@/modules/products/hooks/useImportProducts";
 import { useAbcSummary } from "@/modules/reports/hooks/useReports";
+import { useTags } from "@/modules/tags/hooks/useTags";
+import { useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
 import { formatearDia } from "@/shared/lib/fechas";
 import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { exportProducts } from "@/modules/products/api/product.api";
@@ -39,6 +41,9 @@ interface Filters {
     tagId?: string;
     isActive?: boolean;
 }
+
+/** Un día con las cifras más anchas del formato, para la leyenda ABC mientras carga. */
+const DIA_DE_RELLENO = "2026-12-28";
 
 export default function ProductsPage() {
     const { t, tn, te, idioma } = useT();
@@ -65,7 +70,13 @@ export default function ProductsPage() {
 
     const { data, isLoading } = useProducts({ ...filters, page, limit: 10 });
     const importMutation = useImportProducts();
-    const { data: resumenAbc } = useAbcSummary();
+    const { data: resumenAbc, isLoading: cargandoAbc } = useAbcSummary();
+    // Los dos desplegables que solo salen si hay datos: hasta que se sepa, la barra de filtros
+    // no tiene su altura final y la tabla espera (ver `ZonaCargando`). Misma caché que
+    // `ProductFilters`: no son peticiones de más.
+    const { isLoading: cargandoEtiquetas } = useTags();
+    const { isLoading: cargandoAlmacenes } = useAlmacenes();
+    const filtrosCargando = cargandoEtiquetas || cargandoAlmacenes;
     // T5-13 — seleccionar sirve para mover stock (ajuste en bloque o movimiento manual), y eso
     // también lo hace el almacén; crear e importar fijan precios y siguen siendo de ADMIN.
     const puede = usePuede();
@@ -288,18 +299,23 @@ export default function ProductsPage() {
 
             {/* T5-10 — de dónde sale la columna ABC. Sin esto, una C en un producto que se
                 vende a diario parecería un error: es C si este mes aún no cuenta. */}
-            {resumenAbc && (
-                <p className="text-xs text-foreground-muted">
+            {/* Mientras su consulta carga, la leyenda ocupa ya su sitio, invisible y con una fecha
+                de relleno del mismo formato: llegaba después que la tabla y la empujaba hacia
+                abajo, y con el esqueleto de 10 filas eso era un CLS de 0.37 medido. La propia
+                frase mide lo mismo en cualquier ancho; una altura mínima fija, no. */}
+            {(resumenAbc || cargandoAbc) && (
+                <p className={cn("text-xs text-foreground-muted", !resumenAbc && "invisible")} aria-hidden={!resumenAbc || undefined}>
                     {t("productos.abc.leyenda", {
-                        desde: formatearDia(idioma, resumenAbc.from),
-                        hasta: formatearDia(idioma, resumenAbc.to),
+                        desde: formatearDia(idioma, resumenAbc?.from ?? DIA_DE_RELLENO),
+                        hasta: formatearDia(idioma, resumenAbc?.to ?? DIA_DE_RELLENO),
                     })}
                 </p>
             )}
 
             <ProductTable
                 products={allProducts}
-                isLoading={isLoading}
+                isLoading={isLoading || filtrosCargando}
+                esperandoFiltros={filtrosCargando}
                 onEdit={handleEdit}
                 selectedIds={puedeSeleccionar ? selectedIds : undefined}
                 onToggleSelect={puedeSeleccionar ? handleToggleSelect : undefined}

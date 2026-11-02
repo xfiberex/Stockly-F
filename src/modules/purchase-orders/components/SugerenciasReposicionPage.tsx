@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeftIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/components/Button";
 import { Input } from "@/shared/components/Input";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { OrigenPrecioSugerido, SugerenciaReposicion } from "@/shared/contratos";
 import type { Clave } from "@/shared/i18n/traducir";
@@ -145,7 +145,7 @@ export default function SugerenciasReposicionPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoTabla columnas={6} />
             ) : filas.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">{t("reposicion.vacio")}</div>
             ) : (

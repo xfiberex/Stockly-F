@@ -4,7 +4,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoPagina } from "@/shared/components/Esqueleto";
 import { Badge } from "@/shared/components/Badge";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { NIVEL_STOCK, nivelDeStock } from "@/shared/lib/estados";
@@ -33,11 +33,7 @@ export default function ReportsPage() {
     const { data, isLoading } = useReports();
 
     if (isLoading) {
-        return (
-            <div className="flex justify-center py-32">
-                <Spinner size="lg" />
-            </div>
-        );
+        return <EsqueletoPagina cifras={4} />;
     }
 
     if (!data) return null;

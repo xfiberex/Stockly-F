@@ -544,6 +544,52 @@ en vez de congelarlo baja a una vuelta cada tres segundos.
 
 **Lo vigila:** [`src/tests/movimiento.test.ts`](../src/tests/movimiento.test.ts).
 
+### Cargar: esqueleto o spinner
+
+| Qué carga | Con qué |
+|---|---|
+| Una tabla, una lista de tarjetas, una rejilla, una pantalla de datos | **Esqueleto**, con su forma: `EsqueletoTabla`, `EsqueletoLista`, `EsqueletoRejilla`, `EsqueletoBloques`, `EsqueletoPagina` ([`Esqueleto.tsx`](../src/shared/components/Esqueleto.tsx)) |
+| Un botón (`isLoading`), un desplegable, una zona pequeña dentro de una ficha | **Spinner** pequeño |
+| Lo que no tiene forma que anticipar: una ruta que se descarga, la sesión, un enlace de verificación, la cámara | **Spinner** grande |
+
+**Solo la primera carga.** Al paginar o filtrar, la pantalla conserva lo que había y lo atenúa
+(`isFetching`): un esqueleto ahí haría parpadear la tabla en cada clic.
+
+**Ocupa el sitio de lo que viene, o no sirve.** El esqueleto se hizo para que la pantalla no salte
+al llegar los datos, y lo hace solo si debajo y encima no cambia nada más. Lo que se midió
+(Slow 4G, CPU ×4):
+
+| | Antes, spinner | Esqueleto a secas | Con lo de abajo |
+|---|---:|---:|---:|
+| Productos, escritorio | 0.050 | **0.343** | 0.019 |
+| Productos, móvil | 0.076 | — | 0.013 |
+| Ventas, móvil | **0.183** | — | 0 |
+
+Las dos causas que hubo que arreglar, y que se repetirán en una pantalla nueva:
+
+- **Lo que aparece encima cuando llega otra consulta.** En Ventas, los filtros salían solo «si
+  hay órdenes», y en móvil sus cinco campos empujaban la lista: ahora se pintan también mientras
+  carga. En Productos, la leyenda ABC llegaba después que la tabla: ahora ocupa su sitio,
+  invisible, con una fecha de relleno del mismo formato —una altura mínima fija no acierta en
+  todos los anchos—.
+- **Una barra de filtros que crece al saber si hay etiquetas o varios almacenes.** No se le puede
+  reservar el hueco —con un solo almacén el selector no sale, y el hueco se cerraría—, así que la
+  tabla **espera** (`esperando`): anuncia «Cargando…» pero no pinta formas hasta que la barra
+  tiene su altura final. Lo que aparece no cuenta como desplazamiento; lo que se mueve, sí.
+
+**Lo que lo hace barato:** el retraso de 200 ms con el que aparece es un `animation-delay`, no un
+temporizador de React; el pulso anima `opacity` del envoltorio —una capa, sin repintar—, no un
+brillo con `background-position` en cada barra; y no hay librería. El JavaScript de entrada creció
+0.2 kB comprimido.
+
+**Accesibilidad:** el esqueleto es un `status` con «Cargando…» y las formas van con
+`aria-hidden`; el spinner suelto, igual. El de un botón es decorativo: lo anuncia el botón con
+`aria-busy`. Con movimiento reducido el esqueleto no late, y el spinner gira despacio (arriba).
+
+**Lo vigilan:** [`src/tests/cargas.test.ts`](../src/tests/cargas.test.ts) —el CSS, y quién puede
+usar el spinner grande— y
+[`src/tests/components/Esqueleto.test.tsx`](../src/tests/components/Esqueleto.test.tsx).
+
 ---
 
 ## Cómo añadir una página nueva
@@ -561,6 +607,9 @@ en vez de congelarlo baja a una vuelta cada tres segundos.
 6. Si algo flota (`fixed`), reserva su hueco en el contenedor: no ocupa sitio en el flujo y
    se planta sobre lo último de la página. Ya pasó con el botón flotante del catálogo, que
    dejaba la paginación **sin poder pulsarse**.
+7. La primera carga, con el esqueleto de su forma (§8), y **medida**: con la red y la CPU
+   ralentizadas, que nada de lo que aparece después empuje lo que ya está. Si un filtro sale
+   según los datos, la lista espera (`esperando`).
 
 Si en algún punto tuviste que elegir un valor que no está en este documento, ese es el
 hallazgo: apúntalo aquí antes de que se convierta en la próxima excepción.

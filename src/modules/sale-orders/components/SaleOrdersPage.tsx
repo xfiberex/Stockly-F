@@ -8,7 +8,7 @@ import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ESTADO_ORDEN_VENTA, buscarEstado } from "@/shared/lib/estados";
-import { Spinner } from "@/shared/components/Spinner";
+import { EsqueletoLista } from "@/shared/components/Esqueleto";
 import { DropdownButton } from "@/shared/components/DropdownButton";
 import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { Paginacion } from "@/shared/components/Paginacion";
@@ -523,8 +523,10 @@ export default function SaleOrdersPage() {
             </div>
 
             {/* Los filtros se pintan si hay órdenes o si hay un filtro puesto: si desaparecieran
-                al quedarse sin resultados, no habría forma de deshacer el que los vació. */}
-            {(total > 0 || hayFiltros) && (
+                al quedarse sin resultados, no habría forma de deshacer el que los vació. Y
+                **mientras carga**: antes salían al llegar los datos y, en móvil, sus cinco campos
+                apilados empujaban la lista hacia abajo (CLS de 0.18 medido, el peor de la app). */}
+            {(isLoading || total > 0 || hayFiltros) && (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
                     {/* Como el filtro de estado: sin etiqueta visible, que la pista ya dice qué
                         es. La de `Input` es la de un formulario, más grande que la de las fechas. */}
@@ -574,7 +576,7 @@ export default function SaleOrdersPage() {
             )}
 
             {isLoading ? (
-                <div className="flex justify-center py-12"><Spinner size="lg" /></div>
+                <EsqueletoLista />
             ) : orders.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">
                     {t(hayFiltros ? "ventas.sinResultados" : "ventas.vacio")}
