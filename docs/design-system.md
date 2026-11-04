@@ -590,6 +590,19 @@ brillo con `background-position` en cada barra; y no hay librería. El JavaScrip
 usar el spinner grande— y
 [`src/tests/components/Esqueleto.test.tsx`](../src/tests/components/Esqueleto.test.tsx).
 
+### Fallar: decirlo y dejar reintentar
+
+**El esqueleto no es el estado de error.** El panel principal compartía la rama de «cargando» con
+la de «falló», y una consulta rota dejaba las formas grises para siempre: la pantalla parecía
+lenta, no rota (`AUD-008`). Una carga que falla sin datos que enseñar pinta
+[`ErrorDeCarga`](../src/shared/components/ErrorDeCarga.tsx): qué no se cargó, el motivo con
+`mensajeDeError` —sin conexión, demasiadas peticiones, el código del servidor traducido— y
+«Reintentar», que llama a `refetch` y gira mientras tanto. Es `role="alert"`: el fallo llega después
+de que la pantalla se anunció.
+
+**Con datos ya en pantalla, un fallo no los borra.** Se quedan y se avisa de que son los de antes
+—«No se pudo actualizar: son los datos de las 14:32»—, con el mismo «Reintentar».
+
 ---
 
 ## Cómo añadir una página nueva
@@ -610,6 +623,7 @@ usar el spinner grande— y
 7. La primera carga, con el esqueleto de su forma (§8), y **medida**: con la red y la CPU
    ralentizadas, que nada de lo que aparece después empuje lo que ya está. Si un filtro sale
    según los datos, la lista espera (`esperando`).
+8. Si la carga falla, `ErrorDeCarga` con «Reintentar» (§8), nunca el esqueleto para siempre.
 
 Si en algún punto tuviste que elegir un valor que no está en este documento, ese es el
 hallazgo: apúntalo aquí antes de que se convierta en la próxima excepción.

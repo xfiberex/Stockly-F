@@ -10,11 +10,13 @@ import type { ExpiryRow } from "../types/reports.types";
 const CLAVE = [...queryKeys.reports, "expiring"] as const;
 
 /** T5-15 — lo caducado y lo que caduca en el plazo. Cambiar de página o de plazo no vacía la lista. */
-export function useExpiryReport(consulta: ConsultaDeCaducidades) {
+export function useExpiryReport(consulta: ConsultaDeCaducidades, { enabled = true, staleTime }: { enabled?: boolean; staleTime?: number } = {}) {
     return useQuery({
         queryKey: [...CLAVE, consulta],
         queryFn: () => getExpiryReport(consulta),
         placeholderData: keepPreviousData,
+        enabled,
+        staleTime,
     });
 }
 

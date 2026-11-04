@@ -21,11 +21,13 @@ import type {
 
 const QUERY_KEY = ["purchase-orders"] as const;
 
-export function usePurchaseOrders(params?: PurchaseOrderQuery) {
+export function usePurchaseOrders(params?: PurchaseOrderQuery, { enabled = true, staleTime }: { enabled?: boolean; staleTime?: number } = {}) {
     return useQuery({
         // Los parámetros entran en la clave: cada página se cachea por separado.
         queryKey: [...QUERY_KEY, params],
         queryFn: () => getPurchaseOrders(params),
+        enabled,
+        staleTime,
     });
 }
 

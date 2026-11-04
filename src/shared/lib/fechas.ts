@@ -65,6 +65,14 @@ export function formatearDiaDeSemana(idioma: Idioma, dia: string): string {
     return new Date(`${dia}T00:00:00Z`).toLocaleDateString(LOCALES[idioma], { weekday: "short", day: "numeric", timeZone: "UTC" });
 }
 
+/**
+ * Solo la hora, `14:32` / `02:32 PM`, para lo que es de hoy: cuándo se actualizó un panel. Una
+ * hora fija y no «hace 2 minutos», que se quedaría congelado en pantalla hasta el siguiente render.
+ */
+export function formatearHora(idioma: Idioma, instante: Date | number): string {
+    return new Date(instante).toLocaleTimeString(LOCALES[idioma], { hour: "2-digit", minute: "2-digit" });
+}
+
 /** Con hora y minuto, para cuando el instante importa (auditoría, detalle de producto). */
 export function formatearFechaHora(idioma: Idioma, iso: string): string {
     return new Date(iso).toLocaleDateString(LOCALES[idioma], CON_HORA);

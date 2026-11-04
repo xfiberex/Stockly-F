@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/tests/utils";
 import DashboardPage from "@/modules/dashboard/components/DashboardPage";
 import ReportsPage from "@/modules/reports/components/ReportsPage";
@@ -88,9 +89,55 @@ const RESUMEN: ReportSummary = {
 
 let resumen: ReportSummary | undefined = RESUMEN;
 let cargando = false;
+let fallo: unknown = null;
+const refetch = vi.fn();
+// 14:32 del 3 de noviembre de 2026, en la hora local de quien corre los tests.
+const ACTUALIZADO = new Date(2026, 10, 3, 14, 32).getTime();
 
 vi.mock("@/modules/reports/hooks/useReports", () => ({
-    useReports: () => ({ data: resumen, isLoading: cargando }),
+    useReports: () => ({
+        data: resumen,
+        isLoading: cargando,
+        isError: fallo !== null,
+        error: fallo,
+        refetch,
+        isFetching: false,
+        dataUpdatedAt: ACTUALIZADO,
+    }),
+}));
+
+// El bloque «Necesita atención» pide tres listas más y lee el rol de la sesión. Se sustituyen
+// por valores fijos: lo que se prueba aquí es lo que el panel pinta con ellos.
+const listo = (valor: number | null) => ({ valor, cargando: false, error: false });
+const ATENCION = {
+    caducidades: listo(3),
+    diasDeCaducidad: 30,
+    unidadesCaducadas: 0,
+    conteos: listo(1),
+    compras: listo(0),
+    ventas: listo(2),
+};
+let atencion = ATENCION;
+let rol = "ADMIN";
+const SIN_VENTAS = {
+    ventas: [] as { id: string; number: number; status: string; total: string; createdAt: string }[],
+    cantidad: 0,
+    importe: 0,
+    cargando: false,
+    error: null as unknown,
+    reintentar: vi.fn(),
+    reintentando: false,
+};
+let misVentas = SIN_VENTAS;
+
+vi.mock("@/modules/dashboard/hooks/useAtencionDeHoy", () => ({
+    useAtencionDeHoy: () => atencion,
+}));
+vi.mock("@/modules/auth/hooks/useMe", () => ({
+    useAuth: () => ({ user: { role: rol, email: "vende@stockly.app" }, isLoading: false, isError: false }),
+}));
+vi.mock("@/modules/dashboard/hooks/useMisVentasDeHoy", () => ({
+    useMisVentasDeHoy: () => misVentas,
 }));
 
 // Recharts mide su contenedor con ResizeObserver, que en jsdom no existe y siempre da
@@ -121,6 +168,7 @@ describe("DashboardPage (T2-21)", () => {
     beforeEach(() => {
         resumen = RESUMEN;
         cargando = false;
+        rol = "ADMIN";
     });
 
     it("pinta las cuatro tarjetas de KPI con sus cifras", () => {
@@ -169,21 +217,26 @@ describe("DashboardPage (T2-21)", () => {
         expect(screen.getByText("Stock bajo").closest("a")).toHaveAttribute("href", "/reports");
     });
 
-    it("la alerta de stock bajo lista los productos afectados", () => {
+    it("«Reponer primero» lista los productos afectados con su nivel de stock", () => {
         renderWithProviders(<DashboardPage />);
 
-        expect(screen.getByText("2 productos con stock bajo o agotado")).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: /Teclado Logitech/ })).toHaveAttribute(
-            "href",
-            "/catalog/products/p3/movements",
-        );
+        expect(screen.getByRole("heading", { name: "Reponer primero" })).toBeInTheDocument();
+        const teclado = screen.getByRole("link", { name: /Teclado Logitech/ });
+        expect(teclado).toHaveAttribute("href", "/catalog/products/p3/movements");
+        // El nivel va con el descriptor de `estados.ts`: agotado no es un «bajo» más.
+        const fila = (nombre: RegExp) => screen.getByRole("link", { name: nombre }).closest("li")!;
+        expect(within(fila(/Teclado Logitech/)).getByText("Bajo")).toBeInTheDocument();
+        expect(within(fila(/Monitor LG/)).getByText("Agotado")).toBeInTheDocument();
     });
 
-    it("sin productos en riesgo, la alerta no se pinta", () => {
+    it("sin productos en riesgo no hay lista de reposición, pero la fila sigue a cero", () => {
         resumen = { ...RESUMEN, totals: { ...RESUMEN.totals, lowStockCount: 0 }, lowStockProducts: [] };
         renderWithProviders(<DashboardPage />);
 
-        expect(screen.queryByText(/stock bajo o agotado/)).not.toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Reponer primero" })).not.toBeInTheDocument();
+        const fila = screen.getByText("Productos con stock bajo o agotado").closest("li")!;
+        expect(within(fila).getByText("0")).toBeInTheDocument();
+        expect(within(fila).queryByRole("link")).not.toBeInTheDocument();
     });
 
     it("mientras carga no se pinta ninguna cifra", () => {
@@ -201,6 +254,228 @@ describe("DashboardPage (T2-21)", () => {
         renderWithProviders(<DashboardPage />);
 
         expect(screen.queryByText("Total productos")).not.toBeInTheDocument();
+    });
+});
+
+describe("DashboardPage — errores y frescura", () => {
+    beforeEach(() => {
+        resumen = RESUMEN;
+        cargando = false;
+        fallo = null;
+        rol = "ADMIN";
+        refetch.mockClear();
+    });
+    afterAll(() => {
+        fallo = null;
+    });
+
+    it("dice a qué hora son los datos", () => {
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByText(/^Actualizado a las /)).toHaveTextContent(/2:32|14:32/);
+    });
+
+    it("si la primera carga falla, no se queda en el esqueleto: lo dice y deja reintentar", async () => {
+        resumen = undefined;
+        fallo = new Error("Network Error");
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByRole("alert")).toHaveTextContent("No se pudo cargar el panel");
+        await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+        expect(refetch).toHaveBeenCalled();
+    });
+
+    it("si falla una actualización, los datos se quedan y se avisa de que son los de antes", async () => {
+        fallo = new Error("Network Error");
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByText("Total productos")).toBeInTheDocument();
+        expect(screen.getByText(/No se pudo actualizar: son los datos de las/)).toBeInTheDocument();
+        await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+        expect(refetch).toHaveBeenCalled();
+    });
+});
+
+describe("DashboardPage — necesita atención", () => {
+    beforeEach(() => {
+        resumen = RESUMEN;
+        cargando = false;
+        rol = "ADMIN";
+        atencion = ATENCION;
+    });
+
+    const fila = (etiqueta: string) => screen.getByText(etiqueta).closest("li")!;
+
+    it("va antes que las cifras del catálogo: lo primero es lo que pide actuar", () => {
+        renderWithProviders(<DashboardPage />);
+
+        const bloque = screen.getByRole("heading", { name: "Necesita atención" });
+        const kpi = screen.getByText("Total productos");
+        expect(bloque.compareDocumentPosition(kpi) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("cada fila con algo pendiente lleva su cifra y su acción", () => {
+        renderWithProviders(<DashboardPage />);
+
+        expect(within(fila("Productos con stock bajo o agotado")).getByRole("link", { name: "Generar reposición" }))
+            .toHaveAttribute("href", "/purchase-orders/suggestions");
+        expect(within(fila("Lotes caducados o por caducar")).getByText("3")).toBeInTheDocument();
+        expect(within(fila("Lotes caducados o por caducar")).getByText("En los próximos 30 días")).toBeInTheDocument();
+        expect(within(fila("Lotes caducados o por caducar")).getByRole("link", { name: "Ver caducidades" }))
+            .toHaveAttribute("href", "/expiry");
+        expect(within(fila("Ventas por enviar")).getByRole("link", { name: "Ver ventas" }))
+            .toHaveAttribute("href", "/sale-orders");
+    });
+
+    it("una fila a cero se queda, sin acción", () => {
+        renderWithProviders(<DashboardPage />);
+
+        expect(within(fila("Compras por recibir")).getByText("0")).toBeInTheDocument();
+        expect(within(fila("Compras por recibir")).queryByRole("link")).not.toBeInTheDocument();
+    });
+
+    it("quien no es ADMIN no recibe un enlace a la reposición, que no puede abrir", () => {
+        rol = "WAREHOUSE";
+        renderWithProviders(<DashboardPage />);
+
+        expect(within(fila("Productos con stock bajo o agotado")).getByRole("link", { name: "Ver informe" }))
+            .toHaveAttribute("href", "/reports");
+    });
+
+    it("con unidades ya caducadas lo dice en la fila", () => {
+        atencion = { ...atencion, unidadesCaducadas: 12 };
+        renderWithProviders(<DashboardPage />);
+
+        expect(within(fila("Lotes caducados o por caducar")).getByText("12 uds. ya caducadas")).toBeInTheDocument();
+    });
+
+    it("si una cifra no se pudo pedir, la fila lo dice en lugar de inventar un cero", () => {
+        atencion = { ...atencion, ventas: { valor: null, cargando: false, error: true } };
+        renderWithProviders(<DashboardPage />);
+
+        expect(within(fila("Ventas por enviar")).getByText("No disponible")).toBeInTheDocument();
+        expect(within(fila("Ventas por enviar")).queryByText("0")).not.toBeInTheDocument();
+    });
+
+    it("con todo a cero lo dice arriba", () => {
+        resumen = { ...RESUMEN, totals: { ...RESUMEN.totals, lowStockCount: 0 }, lowStockProducts: [] };
+        atencion = { ...ATENCION, caducidades: listo(0), conteos: listo(0), ventas: listo(0) };
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByText("Todo al día: no hay nada pendiente.")).toBeInTheDocument();
+    });
+});
+
+describe("DashboardPage — un panel por rol", () => {
+    beforeEach(() => {
+        resumen = RESUMEN;
+        cargando = false;
+        atencion = ATENCION;
+    });
+
+    const filasDeAtencion = () =>
+        within(screen.getByRole("heading", { name: "Necesita atención" }).closest("section")!)
+            .getAllByRole("listitem")
+            .map((li) => li.textContent);
+
+    it("ADMIN ve las cinco filas, los importes del negocio y el gráfico por categoría", () => {
+        rol = "ADMIN";
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByText("Conteos abiertos")).toBeInTheDocument();
+        expect(screen.getByText("Margen potencial")).toBeInTheDocument();
+        expect(screen.getByText("Stock y valor por categoría")).toBeInTheDocument();
+        expect(screen.getByText("Ventas de los últimos 7 días")).toBeInTheDocument();
+    });
+
+    it("USER ve compras y ventas, sin los importes del negocio", () => {
+        rol = "USER";
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByText("Compras por recibir")).toBeInTheDocument();
+        expect(screen.getByText("Ventas por enviar")).toBeInTheDocument();
+        expect(screen.queryByText("Lotes caducados o por caducar")).not.toBeInTheDocument();
+        expect(screen.queryByText("Margen potencial")).not.toBeInTheDocument();
+        expect(screen.queryByText("Stock y valor por categoría")).not.toBeInTheDocument();
+        expect(screen.getByText("Ventas de los últimos 7 días")).toBeInTheDocument();
+    });
+
+    it("WAREHOUSE ve caducidades y conteos, y nada de dinero ni de ventas", () => {
+        rol = "WAREHOUSE";
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByText("Lotes caducados o por caducar")).toBeInTheDocument();
+        expect(screen.getByText("Conteos abiertos")).toBeInTheDocument();
+        expect(screen.queryByText("Ventas por enviar")).not.toBeInTheDocument();
+        expect(screen.queryByText("Valor a coste")).not.toBeInTheDocument();
+        expect(screen.queryByText("Ventas de los últimos 7 días")).not.toBeInTheDocument();
+        expect(screen.queryByText("Más vendidos")).not.toBeInTheDocument();
+    });
+
+    it("el orden de las filas es fijo, sea cual sea el rol", () => {
+        rol = "WAREHOUSE";
+        renderWithProviders(<DashboardPage />);
+
+        const textos = filasDeAtencion().filter((t) => !t?.includes("uds. — mín."));
+        expect(textos.map((t) => t!.replace(/[^A-Za-zÁ-ú ]/g, "").trim().split(" ")[0])).toEqual([
+            "Productos",
+            "Lotes",
+            "Conteos",
+            "Compras",
+        ]);
+    });
+
+    describe("SELLER", () => {
+        beforeEach(() => {
+            rol = "SELLER";
+            misVentas = SIN_VENTAS;
+        });
+
+        it("tiene su propio panel: el mostrador a un clic y ningún importe del negocio", () => {
+            renderWithProviders(<DashboardPage />);
+
+            expect(screen.getByRole("link", { name: "Ir a mostrador" })).toHaveAttribute("href", "/counter");
+            expect(screen.queryByText("Necesita atención")).not.toBeInTheDocument();
+            expect(screen.queryByText("Margen potencial")).not.toBeInTheDocument();
+            expect(screen.queryByText("Total productos")).not.toBeInTheDocument();
+        });
+
+        it("si sus ventas no se cargan, lo dice y deja reintentar", async () => {
+            const reintentar = vi.fn();
+            misVentas = { ...SIN_VENTAS, error: new Error("red"), reintentar };
+            renderWithProviders(<DashboardPage />);
+
+            expect(screen.getByRole("alert")).toHaveTextContent("No se pudieron cargar tus ventas de hoy");
+            await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+            expect(reintentar).toHaveBeenCalled();
+        });
+
+        it("sin ventas hoy lo dice", () => {
+            renderWithProviders(<DashboardPage />);
+
+            expect(screen.getByText("Todavía no has registrado ninguna venta hoy.")).toBeInTheDocument();
+        });
+
+        it("lista sus ventas con número e importe, y marca solo la excepción", () => {
+            misVentas = {
+                ventas: [
+                    { id: "v1", number: 42, status: "SHIPPED", total: "349.00", createdAt: new Date().toISOString() },
+                    { id: "v2", number: 43, status: "CANCELLED", total: "20.00", createdAt: new Date().toISOString() },
+                ],
+                cantidad: 1,
+                importe: 349,
+                cargando: false,
+                error: null,
+                reintentar: vi.fn(),
+                reintentando: false,
+            };
+            renderWithProviders(<DashboardPage />);
+
+            expect(screen.getByText("1 venta · $349.00")).toBeInTheDocument();
+            const fila = (n: RegExp) => screen.getByText(n).closest("li")!;
+            expect(within(fila(/Venta #0*42/)).queryByText("Enviado")).not.toBeInTheDocument();
+            expect(within(fila(/Venta #0*43/)).getByText("Cancelado")).toBeInTheDocument();
+        });
     });
 });
 
@@ -302,6 +577,7 @@ describe("DashboardPage — ventas de la semana (T6-09)", () => {
     beforeEach(() => {
         resumen = RESUMEN;
         cargando = false;
+        rol = "ADMIN";
     });
 
     const diasDeVentas = () =>

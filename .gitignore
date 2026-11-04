@@ -40,3 +40,8 @@ coverage
 # Caché de Python de los guiones de las skills (.claude/skills/*/scripts)
 __pycache__/
 *.pyc
+
+# Impeccable: se versionan PRODUCT.md y las críticas (.impeccable/critique/); la caché del
+# detector y el modo live son de cada máquina.
+.impeccable/hook.cache.json
+.impeccable/live/

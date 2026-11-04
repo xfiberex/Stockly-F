@@ -16,8 +16,8 @@ import type { CountedLine, InventoryCountLinesQuery, InventoryCountsQuery, NewIn
 
 const CLAVE = queryKeys.inventoryCounts;
 
-export function useInventoryCounts(params?: InventoryCountsQuery) {
-    return useQuery({ queryKey: [...CLAVE, "lista", params], queryFn: () => getInventoryCounts(params) });
+export function useInventoryCounts(params?: InventoryCountsQuery, { enabled = true, staleTime }: { enabled?: boolean; staleTime?: number } = {}) {
+    return useQuery({ queryKey: [...CLAVE, "lista", params], queryFn: () => getInventoryCounts(params), enabled, staleTime });
 }
 
 export function useInventoryCount(id: string) {
