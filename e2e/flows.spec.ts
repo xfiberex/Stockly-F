@@ -985,7 +985,7 @@ test.describe("Flujos que cruzan frontend y backend", () => {
             await expect(vendedor.getByRole("button", { name: /Nuevo producto/ })).toHaveCount(0);
             // Una pantalla de administración lo devuelve al panel.
             await vendedor.goto("/settings");
-            await expect(vendedor.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+            await expect(vendedor.getByRole("heading", { name: "Panel", level: 1 })).toBeVisible();
         } finally {
             await contexto.close();
         }
@@ -996,7 +996,7 @@ test.describe("Flujos que cruzan frontend y backend", () => {
             const almacen = await otro.newPage();
             await login(almacen, ALMACEN);
             await almacen.goto("/counter");
-            await expect(almacen.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+            await expect(almacen.getByRole("heading", { name: "Panel", level: 1 })).toBeVisible();
         } finally {
             await otro.close();
         }

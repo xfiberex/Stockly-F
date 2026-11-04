@@ -4,14 +4,7 @@ import { EsqueletoPagina } from "@/shared/components/Esqueleto";
 import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
-import {
-    CubeIcon,
-    CheckCircleIcon,
-    ExclamationTriangleIcon,
-    TagIcon,
-    CurrencyDollarIcon,
-    ChevronRightIcon,
-} from "@heroicons/react/24/outline";
+import { ChevronRightIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
@@ -96,30 +89,32 @@ function PanelGeneral({ rol }: { rol: Rol }) {
     // La `label` es la clave; se traduce al pintar. Como esta lista se arma en cada
     // render tampoco haría falta, pero deja el criterio a la vista y hace que la `key`
     // del `map` no dependa del idioma.
-    const stats: {
-        label: Clave;
-        value: number;
-        bg: string;
-        text: string;
-        Icon: React.ElementType;
-        to: string;
-        highlight?: boolean;
-    }[] = [
-        { label: "dashboard.totalProductos", value: totals.totalProducts, bg: "bg-info-surface", text: "text-info", Icon: CubeIcon, to: "/catalog/products" },
-        { label: "dashboard.productosActivos", value: totals.activeProducts, bg: "bg-success-surface", text: "text-success", Icon: CheckCircleIcon, to: "/catalog/products" },
-        { label: "dashboard.stockBajo", value: lowStockCount, bg: "bg-warning-surface", text: "text-warning", Icon: ExclamationTriangleIcon, to: "/reports", highlight: lowStockCount > 0 },
-        // Categorías es un recuento, no un estado: se queda en la variante neutra en
-        // vez de repetir el informativo de «Total productos».
-        { label: "ruta.categorias", value: stockByCategory.length, bg: "bg-surface-muted", text: "text-foreground-muted", Icon: TagIcon, to: "/catalog/categories" },
+    // AUD-008, paso 5 (`quieter`): eran cuatro tarjetas, cada una con su fondo de color —azul,
+    // verde, ámbar, gris— para cifras que no son estados (design-system, «el color comunica
+    // estado»). «Stock bajo» repetía la primera fila de «Necesita atención», y su tarjeta
+    // resaltada mezclaba `bg-surface` con `bg-warning-surface/30`. Quedan tres recuentos del
+    // catálogo, neutros, en una sola franja: dicen qué hay, no qué hacer.
+    const catalogo: { label: Clave; value: number; to: string }[] = [
+        { label: "dashboard.totalProductos", value: totals.totalProducts, to: "/catalog/products" },
+        { label: "dashboard.productosActivos", value: totals.activeProducts, to: "/catalog/products" },
+        { label: "ruta.categorias", value: stockByCategory.length, to: "/catalog/categories" },
+    ];
+    const importes: { clave: Clave; valor: number; ayuda?: Clave }[] = [
+        { clave: "dashboard.valorACoste", valor: totals.inventoryCostValue },
+        { clave: "dashboard.valorInventario", valor: totals.inventoryValue },
+        // Paso 6: el margen no es «venta menos coste» de las otras dos cifras —la de venta
+        // incluye los productos sin coste—, así que dice qué cuenta.
+        { clave: "dashboard.margenPotencial", valor: totals.potentialMargin, ayuda: "dashboard.margenPotencial.ayuda" },
     ];
 
     return (
         <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, "space-y-6")}>
             <div>
                 <h1 className="text-2xl font-bold text-foreground">{t("ruta.dashboard")}</h1>
+                {/* AUD-008, paso 6: el subtítulo decía «Resumen general del inventario», que no
+                    contaba nada que el título y la pantalla no dijeran ya. Queda lo que sí informa:
+                    de cuándo son los datos. */}
                 <p className="text-sm text-foreground-muted mt-1">
-                    {t("dashboard.subtitulo")}
-                    {" · "}
                     {/* Con datos ya en pantalla, una actualización fallida no los borra: se avisa
                         de que son los de antes y de cuándo, y se puede volver a intentar. La región
                         `status` está siempre montada —una que nace ya con texto no se anuncia— y
@@ -148,53 +143,40 @@ function PanelGeneral({ rol }: { rol: Rol }) {
                 lowStockProducts={lowStockProducts}
             />
 
-            {/* Stats cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {stats.map(({ label, value, bg, text, Icon, to, highlight }) => (
-                    <Link
-                        key={label}
-                        to={to}
-                        className={`bg-surface rounded-xl border p-3 sm:p-5 flex items-center gap-3 sm:gap-4 hover:shadow-raised transition-shadow ${
-                            highlight
-                                ? "border-warning bg-warning-surface/30"
-                                : "border-border"
-                        }`}
-                    >
-                        <div className={`rounded-lg p-2 sm:p-2.5 shrink-0 ${bg}`}>
-                            <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${text}`} />
-                        </div>
-                        <div className="min-w-0">
-                            <p className={`text-xl sm:text-2xl font-bold tabular-nums wrap-anywhere ${highlight ? "text-warning" : "text-foreground"}`}>{value}</p>
-                            <p className="text-xs sm:text-sm text-foreground-muted leading-tight">{t(label)}</p>
-                        </div>
+            {/* Los recuentos del catálogo. Tres columnas también en móvil: con dos, la tercera
+                se quedaba sola en una fila. Al pasar el ratón se subraya la etiqueta, como
+                cualquier otro enlace; antes aparecía una sombra que no decía nada. */}
+            <div className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-surface">
+                {catalogo.map(({ label, value, to }) => (
+                    // Arriba y no centradas: a 390 px «Productos activos» parte en dos líneas, y
+                    // centrando, su cifra subía y dejaba de alinearse con las otras dos.
+                    <Link key={label} to={to} className="group flex min-h-11 min-w-0 flex-col gap-0.5 px-3 py-3 sm:px-6 sm:py-4">
+                        <span className="text-xl font-semibold tabular-nums text-foreground wrap-anywhere sm:text-2xl">{value}</span>
+                        <span className="text-xs leading-tight text-foreground-muted group-hover:underline sm:text-sm">{t(label)}</span>
                     </Link>
                 ))}
             </div>
 
             {/* Valor del inventario — T5-02: a coste y a precio de venta, cada uno con su
                 nombre. Solo había el de venta, rotulado «Valor total», y se leía como lo
-                invertido cuando incluye un beneficio que todavía no existe. */}
+                invertido cuando incluye un beneficio que todavía no existe. Sin el icono de
+                dólar sobre fondo verde (paso 5): el verde es «éxito», y aquí no hay ninguno.
+                `p-5 sm:p-6` (polish), como el resto de bloques del panel: con `p-5` a secas sus
+                cifras arrancaban 4 px a la izquierda de los demás títulos. */}
             {panel.importes && (
-                <div className="bg-surface rounded-xl border border-border p-5">
-                    <div className="flex items-start gap-4">
-                        <div className="rounded-lg p-2.5 shrink-0 bg-success-surface">
-                            <CurrencyDollarIcon className="h-6 w-6 text-success" />
-                        </div>
-                        <dl className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
-                            {[
-                                { clave: "dashboard.valorACoste" as const, valor: totals.inventoryCostValue },
-                                { clave: "dashboard.valorInventario" as const, valor: totals.inventoryValue },
-                                { clave: "dashboard.margenPotencial" as const, valor: totals.potentialMargin },
-                            ].map(({ clave, valor }) => (
-                                <div key={clave} className="min-w-0">
-                                    <dt className="text-sm text-foreground-muted">{t(clave)}</dt>
-                                    {/* El KPI que más se refresca: sin cifras tabulares cambiaba de ancho
-                                        con cada actualización, y el bloque entero se movía. */}
-                                    <dd className="text-2xl font-bold text-foreground tabular-nums wrap-anywhere">{formatearImporte(valor)}</dd>
-                                </div>
-                            ))}
-                        </dl>
-                    </div>
+                <div className="bg-surface rounded-xl border border-border p-5 sm:p-6">
+                    <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        {importes.map(({ clave, valor, ayuda }) => (
+                            <div key={clave} className="min-w-0">
+                                <dt className="text-sm text-foreground-muted">{t(clave)}</dt>
+                                {/* El KPI que más se refresca: sin cifras tabulares cambiaba de ancho
+                                    con cada actualización, y el bloque entero se movía. Semibold, como
+                                    las cifras del catálogo: el negrita competía con «Necesita atención». */}
+                                <dd className="text-2xl font-semibold text-foreground tabular-nums wrap-anywhere">{formatearImporte(valor)}</dd>
+                                {ayuda && <dd className="text-xs text-foreground-muted">{t(ayuda)}</dd>}
+                            </div>
+                        ))}
+                    </dl>
                     <div className="mt-3 flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
                         {totals.productsWithoutCost > 0 ? (
                             <p className="text-warning">{tn("dashboard.sinCoste", totals.productsWithoutCost)}</p>
@@ -214,7 +196,7 @@ function PanelGeneral({ rol }: { rol: Rol }) {
                 y los que no tuvieron ventas vienen a cero: siempre hay siete barras. */}
             {panel.ventas && (
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    <section aria-labelledby="ventas-de-la-semana" className="bg-surface rounded-xl border border-border p-6 lg:col-span-2">
+                    <section aria-labelledby="ventas-de-la-semana" className="bg-surface rounded-xl border border-border p-5 sm:p-6 lg:col-span-2">
                         <h2 id="ventas-de-la-semana" className="text-base font-semibold text-foreground">{t("dashboard.ventas.titulo")}</h2>
                         <p className="mt-1 text-sm text-foreground tabular-nums">
                             {tn("dashboard.ventas.total", ventasDeLaSemana, { importe: formatearImporte(importeDeLaSemana) })}
@@ -250,7 +232,7 @@ function PanelGeneral({ rol }: { rol: Rol }) {
                         </ul>
                     </section>
 
-                    <section aria-labelledby="mas-vendidos" className="bg-surface rounded-xl border border-border p-6">
+                    <section aria-labelledby="mas-vendidos" className="bg-surface rounded-xl border border-border p-5 sm:p-6">
                         <h2 id="mas-vendidos" className="text-base font-semibold text-foreground mb-4">{t("dashboard.masVendidos.titulo")}</h2>
                         {topSold.length === 0 ? (
                             <p className="text-sm text-foreground-muted">{t("dashboard.masVendidos.vacio")}</p>

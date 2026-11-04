@@ -171,15 +171,30 @@ describe("DashboardPage (T2-21)", () => {
         rol = "ADMIN";
     });
 
-    it("pinta las cuatro tarjetas de KPI con sus cifras", () => {
+    it("pinta los tres recuentos del catálogo con sus cifras", () => {
         renderWithProviders(<DashboardPage />);
 
         const tarjeta = (etiqueta: string) => screen.getByText(etiqueta).closest("a")!;
         expect(within(tarjeta("Total productos")).getByText("48")).toBeInTheDocument();
         expect(within(tarjeta("Productos activos")).getByText("45")).toBeInTheDocument();
-        expect(within(tarjeta("Stock bajo")).getByText("2")).toBeInTheDocument();
         // «Categorías» no viene en `totals`: sale de la longitud de `stockByCategory`.
         expect(within(tarjeta("Categorías")).getByText("2")).toBeInTheDocument();
+    });
+
+    it("el stock bajo se dice una vez, en «Necesita atención», no en una tarjeta aparte (AUD-008)", () => {
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.queryByText("Stock bajo")).not.toBeInTheDocument();
+        const fila = screen.getByText("Productos con stock bajo o agotado").closest("li")!;
+        expect(within(fila).getByText("2")).toBeInTheDocument();
+    });
+
+    it("las cifras del catálogo no llevan color: no son estados (AUD-008)", () => {
+        renderWithProviders(<DashboardPage />);
+
+        const franja = screen.getByText("Total productos").closest("a")!.parentElement!;
+        expect(franja.innerHTML).not.toMatch(/\b(bg|text|border)-(info|success|warning|danger)\b/);
+        expect(franja.innerHTML).not.toMatch(/shadow-/);
     });
 
     it("el valor del inventario usa el formato único de moneda (T2-44)", () => {
@@ -195,6 +210,23 @@ describe("DashboardPage (T2-21)", () => {
         expect(valor("Valor a coste")).toHaveTextContent("$1,400,000.00");
         expect(valor("Valor a precio de venta")).toHaveTextContent("$2,211,974.50");
         expect(valor("Margen potencial")).toHaveTextContent("$650,000.25");
+    });
+
+    it("el título está en español y el subtítulo solo dice de cuándo son los datos (AUD-008)", () => {
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByRole("heading", { level: 1, name: "Panel" })).toBeInTheDocument();
+        expect(screen.queryByText(/Resumen general/)).not.toBeInTheDocument();
+        expect(screen.getByText(/^Actualizado a las /)).toBeInTheDocument();
+    });
+
+    it("el margen potencial dice qué cuenta: no sale de restar las otras dos cifras (AUD-008)", () => {
+        renderWithProviders(<DashboardPage />);
+
+        const margen = screen.getByText("Margen potencial").parentElement!;
+        expect(margen).toHaveTextContent("Venta menos coste, solo de los productos con coste");
+        // Solo el margen lleva la aclaración: las otras dos cifras se entienden por su nombre.
+        expect(screen.getAllByText(/solo de los productos con coste/)).toHaveLength(1);
     });
 
     it("avisa de los productos con stock que quedan fuera por no tener coste (T5-02)", () => {
@@ -214,7 +246,7 @@ describe("DashboardPage (T2-21)", () => {
         renderWithProviders(<DashboardPage />);
 
         expect(screen.getByText("Total productos").closest("a")).toHaveAttribute("href", "/catalog/products");
-        expect(screen.getByText("Stock bajo").closest("a")).toHaveAttribute("href", "/reports");
+        expect(screen.getByText("Categorías").closest("a")).toHaveAttribute("href", "/catalog/categories");
     });
 
     it("«Reponer primero» lista los productos afectados con su nivel de stock", () => {

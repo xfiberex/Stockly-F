@@ -130,8 +130,8 @@ describe("Enlaces sueltos de la barra", () => {
     it("el de la ruta actual lleva su borde puesto, sin esperar al cursor", () => {
         renderWithProviders(<UserMenuDePrueba />);
 
-        // El layout se monta en «/», así que Dashboard es la ruta activa.
-        const activo = screen.getAllByRole("link", { name: "Dashboard" })[0];
+        // El layout se monta en «/», así que el Panel es la ruta activa.
+        const activo = screen.getAllByRole("link", { name: "Panel" })[0];
         expect(activo.className).toContain("border-info/30");
         expect(activo.className).toContain("bg-info-surface");
     });

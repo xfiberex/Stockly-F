@@ -58,7 +58,7 @@ function recorrido(raiz: HTMLElement): string[] {
 }
 
 const RECORRIDO_ADMIN = [
-    "Dashboard",
+    "Panel",
     // T6-08 — el mostrador, para quien puede vender en él.
     "Mostrador",
     "Catálogo", "Productos", "Categorías", "Marcas", "Proveedores", "Etiquetas",

@@ -119,7 +119,9 @@ export function AtencionDeHoy({
     const conReposicion = visibles.includes("stock") && lowStockProducts.length > 0;
 
     return (
-        <section aria-labelledby="atencion-de-hoy" className="rounded-xl border border-border bg-surface p-5 shadow-raised sm:p-6">
+        // Sin `shadow-raised` (AUD-008, paso 5): era la única tarjeta del panel con sombra. Lo
+        // primero ya lo marca su sitio, arriba, y en el sistema la jerarquía la da el borde.
+        <section aria-labelledby="atencion-de-hoy" className="rounded-xl border border-border bg-surface p-5 sm:p-6">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <h2 id="atencion-de-hoy" className="text-base font-semibold text-foreground">
                     {t("dashboard.atencion.titulo")}

@@ -27,7 +27,7 @@ export function PanelDeVendedor({ email }: { email: string | undefined }) {
         <div className="grid gap-6 lg:grid-cols-3">
             <section
                 aria-labelledby="mostrador"
-                className="flex flex-col justify-between gap-6 rounded-xl border border-border bg-surface p-5 shadow-raised sm:p-6"
+                className="flex flex-col justify-between gap-6 rounded-xl border border-border bg-surface p-5 sm:p-6"
             >
                 <div>
                     <h2 id="mostrador" className="text-base font-semibold text-foreground">{t("dashboard.vendedor.titulo")}</h2>
@@ -39,7 +39,7 @@ export function PanelDeVendedor({ email }: { email: string | undefined }) {
                 </Link>
             </section>
 
-            <section aria-labelledby="mis-ventas" className="rounded-xl border border-border bg-surface p-5 shadow-raised sm:p-6 lg:col-span-2">
+            <section aria-labelledby="mis-ventas" className="rounded-xl border border-border bg-surface p-5 sm:p-6 lg:col-span-2">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <h2 id="mis-ventas" className="text-base font-semibold text-foreground">{t("dashboard.vendedor.misVentas")}</h2>
                     {/* A cero lo dice el texto de abajo; «0 ventas · $0.00» al lado solo lo repetiría. */}

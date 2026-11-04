@@ -1038,13 +1038,12 @@ export const en: Record<keyof typeof es, string> = {
     "clientes.vendidaA": "Sold to",
 
     // ── Dashboard ────────────────────────────────────────────────────────────
-    "dashboard.subtitulo": "Inventory at a glance",
     "dashboard.totalProductos": "Total products",
     "dashboard.productosActivos": "Active products",
-    "dashboard.stockBajo": "Low stock",
     "dashboard.valorInventario": "Value at selling price",
     "dashboard.valorACoste": "Value at cost",
     "dashboard.margenPotencial": "Potential margin",
+    "dashboard.margenPotencial.ayuda": "Selling price minus cost, only for products with a cost",
     "dashboard.sinCoste_one": "{cantidad} product in stock has no cost: it is left out of the value at cost and the potential margin.",
     "dashboard.sinCoste_other": "{cantidad} products in stock have no cost: they are left out of the value at cost and the potential margin.",
     "dashboard.verReporte": "See the full report",

@@ -24,7 +24,7 @@ export async function login(page: Page, cuenta = { email: EMAIL, password: PASSW
     await page.getByLabel("Correo electrónico").fill(cuenta.email);
     await page.getByLabel("Contraseña").fill(cuenta.password);
     await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Panel", level: 1 })).toBeVisible();
 }
 
 /** Sufijo único para que los datos de una ejecución no choquen con los de otra. */

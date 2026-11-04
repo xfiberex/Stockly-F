@@ -63,7 +63,7 @@ describe("AnuncioDeRuta (T2-18)", () => {
         const { container } = renderWithProviders(layout());
         const region = container.querySelector("[aria-live='polite']")!;
 
-        expect(region).toHaveTextContent("Dashboard");
+        expect(region).toHaveTextContent("Panel");
 
         await user.click(screen.getByRole("link", { name: "Ir a reportes" }));
 
@@ -85,7 +85,7 @@ describe("AnuncioDeRuta (T2-18)", () => {
         const user = userEvent.setup();
         renderWithProviders(layout());
 
-        expect(document.title).toBe("Dashboard · Stockly");
+        expect(document.title).toBe("Panel · Stockly");
 
         await user.click(screen.getByRole("link", { name: "Ir a reportes" }));
 
@@ -102,7 +102,7 @@ describe("AnuncioDeRuta (T2-18)", () => {
 
         await user.click(screen.getByRole("link", { name: "Ir al inicio" }));
 
-        await waitFor(() => expect(region).toHaveTextContent("Dashboard"));
+        await waitFor(() => expect(region).toHaveTextContent("Panel"));
         expect(document.getElementById("contenido")).toHaveFocus();
     });
 });
@@ -162,7 +162,7 @@ describe("AnuncioDeRuta — la página vuelve arriba al navegar", () => {
 
         // El navegador devuelve la entrada del historial a donde estaba; forzar el
         // principio borraría justo lo que se espera recuperar al volver.
-        await waitFor(() => expect(document.title).toBe("Dashboard · Stockly"));
+        await waitFor(() => expect(document.title).toBe("Panel · Stockly"));
         expect(desplazar).toHaveBeenCalledTimes(1);
     });
 });

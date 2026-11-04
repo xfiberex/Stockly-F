@@ -69,7 +69,9 @@ export const es = {
     "estado.movimiento.TRANSFER": "Transferencia",
 
     // ── Títulos de ruta (T2-18): los anuncia la región viva y el <title> ──────
-    "ruta.dashboard": "Dashboard",
+    // AUD-008, paso 6: era «Dashboard», en inglés, en una interfaz en español. «Panel» es como
+    // lo llaman ya los documentos del proyecto («el panel principal»).
+    "ruta.dashboard": "Panel",
     "ruta.perfil": "Mi perfil",
     "ruta.reportes": "Reportes",
     "ruta.ordenesCompra": "Órdenes de compra",
@@ -1084,14 +1086,15 @@ export const es = {
     "clientes.vendidaA": "Vendida a",
 
     // ── Dashboard ────────────────────────────────────────────────────────────
-    "dashboard.subtitulo": "Resumen general del inventario",
     "dashboard.totalProductos": "Total productos",
     "dashboard.productosActivos": "Productos activos",
-    "dashboard.stockBajo": "Stock bajo",
     "dashboard.valorInventario": "Valor a precio de venta",
     // T5-02 — valor a coste y margen
     "dashboard.valorACoste": "Valor a coste",
     "dashboard.margenPotencial": "Margen potencial",
+    // AUD-008, paso 6: sin esto no cuadraba a simple vista —venta menos coste da otra cifra—,
+    // porque el valor a precio de venta incluye los productos sin coste y el margen no.
+    "dashboard.margenPotencial.ayuda": "Venta menos coste, solo de los productos con coste",
     "dashboard.sinCoste_one": "{cantidad} producto con stock no tiene coste: no cuenta en el valor a coste ni en el margen potencial.",
     "dashboard.sinCoste_other": "{cantidad} productos con stock no tienen coste: no cuentan en el valor a coste ni en el margen potencial.",
     "dashboard.verReporte": "Ver reporte completo",
