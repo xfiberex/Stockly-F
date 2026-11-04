@@ -47,11 +47,12 @@ interface Fila {
  */
 export function AtencionDeHoy({
     filas: visibles,
-    lowStockCount,
+    stock,
     lowStockProducts,
 }: {
     filas: readonly FilaDeAtencion[];
-    lowStockCount: number;
+    /** Sale de `/reports`, que pide el panel: si falla, la fila dice «no disponible» y el resto sigue. */
+    stock: Recuento;
     lowStockProducts: ReportSummary["lowStockProducts"];
 }) {
     const { t, tn } = useT();
@@ -62,7 +63,7 @@ export function AtencionDeHoy({
         {
             clave: "stock",
             etiqueta: "dashboard.atencion.stock",
-            recuento: { valor: lowStockCount, cargando: false, error: false },
+            recuento: stock,
             Icon: CubeIcon,
             gravedad: lowStockProducts.some((p) => p.stock === 0) ? "peligro" : "aviso",
             // La reposición sugerida es de ADMIN (`routes/index.tsx`); el resto ve el informe.
@@ -156,9 +157,9 @@ export function AtencionDeHoy({
                                 </li>
                             ))}
                         </ul>
-                        {lowStockCount > PRODUCTOS_A_LA_VISTA && (
+                        {(stock.valor ?? 0) > PRODUCTOS_A_LA_VISTA && (
                             <Link to="/reports" className={CLASES_DE_ACCION}>
-                                {t("dashboard.atencion.verMas", { cantidad: lowStockCount - PRODUCTOS_A_LA_VISTA })}
+                                {t("dashboard.atencion.verMas", { cantidad: (stock.valor ?? 0) - PRODUCTOS_A_LA_VISTA })}
                                 <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
                             </Link>
                         )}

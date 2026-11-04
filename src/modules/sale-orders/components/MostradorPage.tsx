@@ -237,6 +237,10 @@ export default function MostradorPage() {
                                                 type="number"
                                                 inputMode="numeric"
                                                 min={1}
+                                                // Sin `max`, Chrome expone el campo con un máximo de 0. Aquí
+                                                // sirve para eso: no hay `<form>` y el aviso de «supera lo
+                                                // disponible» lo sigue dando `seExcede`.
+                                                max={disponible(producto)}
                                                 step={1}
                                                 aria-label={t("mostrador.cantidadDe", { nombre: producto.name })}
                                                 aria-describedby={idAyuda}

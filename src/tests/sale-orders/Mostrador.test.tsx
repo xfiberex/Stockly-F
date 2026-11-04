@@ -176,6 +176,8 @@ describe("MostradorPage (T6-08)", () => {
         const cantidad = screen.getByRole("spinbutton", { name: "Cantidad de Teclado" });
         // Stock 10, pero 7 comprometidas: se pueden vender 3.
         expect(screen.getByText("Disponible: 3")).toBeInTheDocument();
+        // El campo lo dice también como máximo: sin él, Chrome lo exponía con un máximo de 0.
+        expect(cantidad).toHaveAttribute("max", "3");
 
         await user.clear(cantidad);
         await user.type(cantidad, "4");

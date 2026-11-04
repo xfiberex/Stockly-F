@@ -1137,9 +1137,10 @@ export const es = {
     "dashboard.vendedor.resumen_other": "{cantidad} ventas · {importe}",
     "dashboard.vendedor.vacio": "Todavía no has registrado ninguna venta hoy.",
     "dashboard.vendedor.verVentas": "Ver todas las ventas",
-    "dashboard.error.titulo": "No se pudo cargar el panel",
+    "dashboard.error.titulo": "No se pudo cargar el resumen del inventario",
     "dashboard.actualizado": "Actualizado a las {hora}",
-    "dashboard.noActualizado": "No se pudo actualizar: son los datos de las {hora}.",
+    // Sin punto final: en `es-MX` la hora ya acaba en «p.m.» y salía «12:17 p.m..».
+    "dashboard.noActualizado": "No se pudo actualizar: son los datos de las {hora}",
     "dashboard.vendedor.error": "No se pudieron cargar tus ventas de hoy",
     "errorDeCarga.reintentar": "Reintentar",
     "grafico.valor": "Valor",

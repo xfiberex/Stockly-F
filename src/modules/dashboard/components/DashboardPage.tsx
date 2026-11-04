@@ -64,12 +64,15 @@ function PanelGeneral({ rol }: { rol: Rol }) {
     const panel = PANEL[rol];
 
     // Sin datos y con error: el esqueleto se quedaba para siempre y la pantalla parecía lenta,
-    // no rota. Ahora dice qué falló y deja reintentar sin recargar.
+    // no rota. Ahora dice qué falló y deja reintentar sin recargar. «Necesita atención» se queda:
+    // sus otras cifras no dependen de `/reports`, y lo pendiente de hoy es lo último que conviene
+    // esconder. Solo su fila de stock, que sí sale de ahí, dice «no disponible».
     if (isError && !data) {
         return (
             <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, "space-y-6")}>
                 <h1 className="text-2xl font-bold text-foreground">{t("ruta.dashboard")}</h1>
-                <div className="rounded-xl border border-border bg-surface p-5 shadow-raised sm:p-6">
+                <AtencionDeHoy filas={panel.atencion} stock={{ valor: null, cargando: false, error: true }} lowStockProducts={[]} />
+                <div className="rounded-xl border border-border bg-surface p-5 sm:p-6">
                     <ErrorDeCarga
                         titulo={t("dashboard.error.titulo")}
                         error={error}
@@ -118,15 +121,20 @@ function PanelGeneral({ rol }: { rol: Rol }) {
                     {t("dashboard.subtitulo")}
                     {" · "}
                     {/* Con datos ya en pantalla, una actualización fallida no los borra: se avisa
-                        de que son los de antes y de cuándo, y se puede volver a intentar. */}
-                    {isError ? (
-                        <span className="text-warning">
-                            {t("dashboard.noActualizado", { hora: formatearHora(idioma, dataUpdatedAt) })}{" "}
-                            <button type="button" onClick={() => void refetch()} className="font-medium text-info hover:underline">
-                                {t("errorDeCarga.reintentar")}
-                            </button>
-                        </span>
-                    ) : (
+                        de que son los de antes y de cuándo, y se puede volver a intentar. La región
+                        `status` está siempre montada —una que nace ya con texto no se anuncia— y
+                        solo lleva el aviso: la hora de cada actualización buena no se lee en voz alta. */}
+                    <span role="status">
+                        {isError && (
+                            <span className="text-warning">
+                                {t("dashboard.noActualizado", { hora: formatearHora(idioma, dataUpdatedAt) })}{" "}
+                                <button type="button" onClick={() => void refetch()} className="font-medium text-info hover:underline">
+                                    {t("errorDeCarga.reintentar")}
+                                </button>
+                            </span>
+                        )}
+                    </span>
+                    {!isError && (
                         <span className="tabular-nums">{t("dashboard.actualizado", { hora: formatearHora(idioma, dataUpdatedAt) })}</span>
                     )}
                 </p>
@@ -134,7 +142,11 @@ function PanelGeneral({ rol }: { rol: Rol }) {
 
             {/* Lo primero, lo que pide actuar hoy. La alerta de stock bajo vivía al final,
                 detrás de los dos gráficos: a 1440 px quedaba a unos 1600 px de profundidad. */}
-            <AtencionDeHoy filas={panel.atencion} lowStockCount={lowStockCount} lowStockProducts={lowStockProducts} />
+            <AtencionDeHoy
+                filas={panel.atencion}
+                stock={{ valor: lowStockCount, cargando: false, error: false }}
+                lowStockProducts={lowStockProducts}
+            />
 
             {/* Stats cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

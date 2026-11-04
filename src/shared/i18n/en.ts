@@ -1090,7 +1090,7 @@ export const en: Record<keyof typeof es, string> = {
     "dashboard.vendedor.resumen_other": "{cantidad} sales · {importe}",
     "dashboard.vendedor.vacio": "You haven't recorded any sales today yet.",
     "dashboard.vendedor.verVentas": "See all sales",
-    "dashboard.error.titulo": "The dashboard could not be loaded",
+    "dashboard.error.titulo": "The inventory summary could not be loaded",
     "dashboard.actualizado": "Updated at {hora}",
     "dashboard.noActualizado": "Could not refresh: showing data from {hora}.",
     "dashboard.vendedor.error": "Your sales for today could not be loaded",

@@ -280,9 +280,26 @@ describe("DashboardPage — errores y frescura", () => {
         fallo = new Error("Network Error");
         renderWithProviders(<DashboardPage />);
 
-        expect(screen.getByRole("alert")).toHaveTextContent("No se pudo cargar el panel");
+        expect(screen.getByRole("alert")).toHaveTextContent("No se pudo cargar el resumen del inventario");
         await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
         expect(refetch).toHaveBeenCalled();
+    });
+
+    it("si la primera carga falla, «Necesita atención» se queda y solo la fila de stock no está disponible", () => {
+        resumen = undefined;
+        fallo = new Error("Network Error");
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByRole("heading", { name: "Necesita atención" })).toBeInTheDocument();
+        const fila = (etiqueta: string) => screen.getByText(etiqueta).closest("li")!;
+        expect(within(fila("Productos con stock bajo o agotado")).getByText("No disponible")).toBeInTheDocument();
+        expect(within(fila("Productos con stock bajo o agotado")).queryByRole("link")).not.toBeInTheDocument();
+        // Las cifras que no salen de `/reports` siguen ahí, con su acción.
+        expect(within(fila("Ventas por enviar")).getByText("2")).toBeInTheDocument();
+        expect(within(fila("Ventas por enviar")).getByRole("link")).toHaveAttribute("href", "/sale-orders");
+        // Lo que sí depende de `/reports` no se pinta a medias.
+        expect(screen.queryByText("Total productos")).not.toBeInTheDocument();
+        expect(screen.queryByText(/Todo al día/)).not.toBeInTheDocument();
     });
 
     it("si falla una actualización, los datos se quedan y se avisa de que son los de antes", async () => {
@@ -290,9 +307,20 @@ describe("DashboardPage — errores y frescura", () => {
         renderWithProviders(<DashboardPage />);
 
         expect(screen.getByText("Total productos")).toBeInTheDocument();
-        expect(screen.getByText(/No se pudo actualizar: son los datos de las/)).toBeInTheDocument();
-        await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+        // El aviso va en una región `status`, para que el lector de pantalla lo anuncie, y sin
+        // el doble punto de «p.m..»: en `es-MX` la hora ya trae el suyo.
+        const aviso = screen.getByRole("status");
+        expect(aviso).toHaveTextContent(/No se pudo actualizar: son los datos de las/);
+        expect(aviso.textContent).not.toMatch(/\.\./);
+        await userEvent.click(within(aviso).getByRole("button", { name: "Reintentar" }));
         expect(refetch).toHaveBeenCalled();
+    });
+
+    it("con la actualización al día, la región de avisos está vacía: la hora no se anuncia", () => {
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.getByRole("status")).toBeEmptyDOMElement();
+        expect(screen.getByText(/^Actualizado a las /)).toBeInTheDocument();
     });
 });
 

@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "@/App";
 import NotFoundPage from "@/shared/components/NotFoundPage";
 import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
+import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { Spinner } from "@/shared/components/Spinner";
 
 const LoginPage = lazy(() => import("@/modules/auth/components/LoginPage"));
@@ -51,17 +52,31 @@ function S({ children }: { children: ReactNode }) {
     return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
 }
 
+/**
+ * Las pantallas de acceso no pasan por `App`, que es donde vive `AnuncioDeRuta`: el título de
+ * la pestaña se quedaba en el de la última pantalla con sesión («Dashboard · Stockly» en el
+ * login, tras cerrarla). Cada una lo pone al montarse; no hay `#contenido` al que mover el foco.
+ */
+function Acceso({ children }: { children: ReactNode }) {
+    return (
+        <>
+            <AnuncioDeRuta />
+            <S>{children}</S>
+        </>
+    );
+}
+
 export const router = createBrowserRouter([
     {
         // --- Rutas de la autenticación  ---
         path: "/auth",
         children: [
-            { path: "login", element: <S><LoginPage /></S> },
-            { path: "register", element: <S><RegisterPage /></S> },
-            { path: "forgot-password", element: <S><ForgotPasswordPage /></S> },
-            { path: "reset-password", element: <S><ResetPasswordPage /></S> },
-            { path: "confirm-account", element: <S><VerifyEmailPage /></S> },
-            { path: "resend-verification", element: <S><ResendVerificationPage /></S> },
+            { path: "login", element: <Acceso><LoginPage /></Acceso> },
+            { path: "register", element: <Acceso><RegisterPage /></Acceso> },
+            { path: "forgot-password", element: <Acceso><ForgotPasswordPage /></Acceso> },
+            { path: "reset-password", element: <Acceso><ResetPasswordPage /></Acceso> },
+            { path: "confirm-account", element: <Acceso><VerifyEmailPage /></Acceso> },
+            { path: "resend-verification", element: <Acceso><ResendVerificationPage /></Acceso> },
             { index: true, element: <Navigate to="/auth/login" replace /> },
         ],
     },
