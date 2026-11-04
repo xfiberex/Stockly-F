@@ -1048,7 +1048,6 @@ export const en: Record<keyof typeof es, string> = {
     "dashboard.sinCoste_one": "{cantidad} product in stock has no cost: it is left out of the value at cost and the potential margin.",
     "dashboard.sinCoste_other": "{cantidad} products in stock have no cost: they are left out of the value at cost and the potential margin.",
     "dashboard.verReporte": "See the full report",
-    "dashboard.stockPorCategoria": "Stock and value by category",
     "dashboard.unidadesMinimo": "{stock} units — min. {minimo}",
     "dashboard.ventas.titulo": "Sales in the last 7 days",
     "dashboard.ventas.total_one": "{cantidad} shipped sale · {importe}",

@@ -1095,7 +1095,6 @@ export const es = {
     "dashboard.sinCoste_one": "{cantidad} producto con stock no tiene coste: no cuenta en el valor a coste ni en el margen potencial.",
     "dashboard.sinCoste_other": "{cantidad} productos con stock no tienen coste: no cuentan en el valor a coste ni en el margen potencial.",
     "dashboard.verReporte": "Ver reporte completo",
-    "dashboard.stockPorCategoria": "Stock y valor por categoría",
     "dashboard.unidadesMinimo": "{stock} uds. — mín. {minimo}",
     "dashboard.ventas.titulo": "Ventas de los últimos 7 días",
     "dashboard.ventas.total_one": "{cantidad} venta enviada · {importe}",

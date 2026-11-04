@@ -272,33 +272,11 @@ function PanelGeneral({ rol }: { rol: Rol }) {
                 </div>
             )}
 
-            {/* Gráfico stock por categoría: lleva el valor en dinero, así que es de quien ve importes. */}
-            {panel.importes && (
-                <div className="bg-surface rounded-xl border border-border p-6">
-                    <h2 className="text-base font-semibold text-foreground mb-6">{t("dashboard.stockPorCategoria")}</h2>
-                    <ResponsiveContainer width="100%" height={280}>
-                        <BarChart data={stockByCategory} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} />
-                            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                            <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
-                            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} tickFormatter={(v) => conSimboloDeMoneda(`${(v / 1000).toFixed(0)}k`)} />
-                            <Tooltip
-                                contentStyle={ESTILO_DE_TOOLTIP}
-                                // La serie se identifica por su `dataKey`, no por el nombre
-                                // visible: ese ya viene traducido y compararlo con un literal
-                                // en español dejaría de casar en inglés.
-                                formatter={(value, name) =>
-                                    name === t("grafico.valor")
-                                        ? [formatearImporte(Number(value)), t("grafico.valor")]
-                                        : [Number(value), t("productos.campo.stock")]
-                                }
-                            />
-                            <Bar yAxisId="left" dataKey="stock" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} name={t("productos.campo.stock")} />
-                            <Bar yAxisId="right" dataKey="value" fill="var(--color-chart-2)" radius={[4, 4, 0, 0]} name={t("grafico.valor")} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            )}
+            {/* AUD-008, paso 4 — aquí iba «Stock y valor por categoría»: dos medidas en un gráfico,
+                con doble eje sin leyenda, el derecho en «$0k», 3 de 9 categorías a 390 px y nada
+                para el lector de pantalla. Es análisis, no lo pendiente de hoy, e Informes ya da
+                las dos medidas por separado y bien («Valor por categoría» y «Distribución»): se
+                llega por «Ver reporte completo», en el bloque de importes. */}
         </div>
     );
 }

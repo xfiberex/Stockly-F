@@ -406,14 +406,17 @@ describe("DashboardPage — un panel por rol", () => {
             .getAllByRole("listitem")
             .map((li) => li.textContent);
 
-    it("ADMIN ve las cinco filas, los importes del negocio y el gráfico por categoría", () => {
+    it("ADMIN ve las cinco filas y los importes del negocio, con el camino al informe", () => {
         rol = "ADMIN";
         renderWithProviders(<DashboardPage />);
 
         expect(screen.getByText("Conteos abiertos")).toBeInTheDocument();
         expect(screen.getByText("Margen potencial")).toBeInTheDocument();
-        expect(screen.getByText("Stock y valor por categoría")).toBeInTheDocument();
         expect(screen.getByText("Ventas de los últimos 7 días")).toBeInTheDocument();
+        // AUD-008, paso 4: el gráfico por categoría se fue a Informes, que ya lo tenía; desde
+        // el panel se llega por el enlace del bloque de importes.
+        expect(screen.queryByText("Stock y valor por categoría")).not.toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /Ver reporte completo/ })).toHaveAttribute("href", "/reports");
     });
 
     it("USER ve compras y ventas, sin los importes del negocio", () => {
@@ -424,7 +427,6 @@ describe("DashboardPage — un panel por rol", () => {
         expect(screen.getByText("Ventas por enviar")).toBeInTheDocument();
         expect(screen.queryByText("Lotes caducados o por caducar")).not.toBeInTheDocument();
         expect(screen.queryByText("Margen potencial")).not.toBeInTheDocument();
-        expect(screen.queryByText("Stock y valor por categoría")).not.toBeInTheDocument();
         expect(screen.getByText("Ventas de los últimos 7 días")).toBeInTheDocument();
     });
 
