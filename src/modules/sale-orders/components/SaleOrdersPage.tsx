@@ -1,6 +1,8 @@
 import { formatearImporte } from "@/shared/lib/moneda";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/modules/auth/hooks/useMe";
+import { FiltroActivo } from "@/shared/components/FiltroActivo";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
@@ -421,8 +423,14 @@ const PAGE_SIZE = 10;
 
 export default function SaleOrdersPage() {
     const { t, tn, idioma } = useT();
+    // AUD-008, paso 9 — los enlaces del panel llegan con el filtro puesto: `?estado=PENDING`
+    // («ventas por enviar»), `?mias=1&desde=…&hasta=…` («mis ventas de hoy») o
+    // `?numero=27&venta=<id>` (una venta del vendedor, desplegada para reimprimir su
+    // comprobante). Se leen al abrir; al tocar un filtro, la URL se limpia.
+    const [params, setParams] = useSearchParams();
+    const { user } = useAuth();
     const [formOpen, setFormOpen] = useState(false);
-    const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [expandedId, setExpandedId] = useState<string | null>(() => params.get("venta"));
     const [ordenACancelar, setOrdenACancelar] = useState<SaleOrder | null>(null);
 
     // T5-13 — cada botón por su ruta: el almacén envía, pero no crea, cancela ni borra.
@@ -435,21 +443,30 @@ export default function SaleOrdersPage() {
     // que no estuviera entre las diez últimas no se alcanzaba desde aquí. Los filtros van al
     // servidor, en el `where`; filtrar lo ya cargado solo filtraría la página que se ve.
     const [page, setPage] = useState(1);
-    const [estado, setEstado] = useState<SaleOrderStatus | "">("");
-    const [desde, setDesde] = useState("");
-    const [hasta, setHasta] = useState("");
+    const [estado, setEstado] = useState<SaleOrderStatus | "">(() => {
+        const deLaUrl = params.get("estado") ?? "";
+        return Object.hasOwn(ESTADO_ORDEN_VENTA, deLaUrl) ? (deLaUrl as SaleOrderStatus) : "";
+    });
+    const [desde, setDesde] = useState(() => params.get("desde") ?? "");
+    const [hasta, setHasta] = useState(() => params.get("hasta") ?? "");
+    const [mias, setMias] = useState(() => params.get("mias") === "1");
     // T6-04 — buscar por número. Se admite pegado como se lee, con la `#` y con sus ceros; al
     // servidor van solo las cifras, y cuando se deja de teclear.
-    const [numero, setNumero] = useState("");
+    const [numero, setNumero] = useState(() => params.get("numero") ?? "");
     // T5-14 — las de un almacén. Solo se ofrece si hay más de uno.
     const [almacenFiltrado, setAlmacenFiltrado] = useState("");
     const { hayVarios } = useAlmacenes();
     const cifras = numero.trim().replace(/^#/, "");
     const numeroInvalido = !SOLO_CIFRAS.test(cifras);
     const numeroBuscado = useDebounce(cifras, 300);
-    const hayFiltros = estado !== "" || desde !== "" || hasta !== "" || numero !== "" || almacenFiltrado !== "";
+    const hayFiltros = estado !== "" || desde !== "" || hasta !== "" || numero !== "" || almacenFiltrado !== "" || mias;
     // Cambiar un filtro vuelve a la página 1: la 3 de «todas» puede no existir en «enviadas».
-    const filtrar = (cambio: () => void) => { cambio(); setPage(1); };
+    // Y deja la URL sin los filtros del panel: ya no son los de la lista.
+    const filtrar = (cambio: () => void) => {
+        cambio();
+        setPage(1);
+        if (params.toString() !== "") setParams({}, { replace: true });
+    };
 
     // Un rango al revés no se envía —el servidor lo rechazaría con 400—: se dice en el campo y
     // la lista se queda como estaba hasta que se corrija.
@@ -459,6 +476,7 @@ export default function SaleOrdersPage() {
         {
             page, limit: PAGE_SIZE, number: numeroBuscado || undefined, status: estado || undefined,
             from: desde || undefined, to: hasta || undefined, warehouseId: almacenFiltrado || undefined,
+            createdByEmail: mias ? user?.email : undefined,
         },
         // Lo mismo con un número mal escrito —el servidor respondería 400—. Se mira también el
         // valor retardado: al corregir el campo, durante un instante todavía es el anterior.
@@ -567,13 +585,15 @@ export default function SaleOrdersPage() {
                     {hayFiltros && (
                         <Button
                             variant="secondary"
-                            onClick={() => filtrar(() => { setNumero(""); setEstado(""); setDesde(""); setHasta(""); setAlmacenFiltrado(""); })}
+                            onClick={() => filtrar(() => { setNumero(""); setEstado(""); setDesde(""); setHasta(""); setAlmacenFiltrado(""); setMias(false); })}
                         >
                             {t("ventas.filtro.limpiar")}
                         </Button>
                     )}
                 </div>
             )}
+
+            {mias && <FiltroActivo texto={t("filtro.mias")} onQuitar={() => filtrar(() => setMias(false))} />}
 
             {isLoading ? (
                 <EsqueletoLista />

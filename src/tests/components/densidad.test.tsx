@@ -10,11 +10,12 @@ import { DropdownButton } from "@/shared/components/DropdownButton";
  *
  * Los píxeles reales se midieron en el navegador (jsdom no aplica Tailwind ni
  * resuelve `md:`), así que aquí solo se blinda el par de clases que produce esa
- * medida: `min-h-11` (44 px, mínimo táctil) hasta `md` y `md:min-h-9` (36 px,
- * perfil denso) a partir de ahí. Si alguien quita una de las dos, la regresión
- * se ve aquí en vez de en un móvil.
+ * medida: `min-h-11` (44 px, mínimo táctil) y `md:pointer-fine:min-h-9` (36 px,
+ * perfil denso) desde `md` **y con ratón**. AUD-008, paso 11: era solo `md:`, y una
+ * tableta táctil de 1024 px —la del mostrador— recibía los 36 px del ratón. Si alguien
+ * quita una de las dos, la regresión se ve aquí en vez de en un móvil.
  */
-const PAR_DE_DENSIDAD = ["min-h-11", "md:min-h-9"];
+const PAR_DE_DENSIDAD = ["min-h-11", "md:pointer-fine:min-h-9"];
 
 describe("Densidad y mínimo táctil (T2-40)", () => {
     it("el botón lleva las dos densidades, no una", () => {

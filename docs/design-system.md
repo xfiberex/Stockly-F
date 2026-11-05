@@ -218,12 +218,16 @@ y falla nombrando archivo y clase si aparece un radio o una sombra fuera de esta
 ## 4. Densidad y mínimo táctil
 
 **Un componente, dos densidades.** No hay versión móvil y versión escritorio: el mismo
-botón cambia de altura en el punto de ruptura.
+botón cambia de altura según **cómo se apunta**, no solo según el ancho.
 
 ```
-min-h-11  →  44px  hasta `md`  — mínimo táctil: se pulsa con el pulgar
-md:min-h-9 →  36px  desde `md`  — perfil denso: se apunta con el ratón
+min-h-11               →  44px  por defecto           — mínimo táctil: se pulsa con el dedo
+md:pointer-fine:min-h-9 →  36px  desde `md` y con ratón — perfil denso: se apunta con el ratón
 ```
+
+`pointer-fine` (AUD-008, paso 11): con solo `md:`, una tableta táctil de 1024 px —la del
+mostrador— recibía la altura del ratón, y «Ir al mostrador» medía 40 px. Los cuadrados igual:
+`min-w-11` y `md:pointer-fine:min-w-9`.
 
 Ese par va en **todo control interactivo**: botones, campos, desplegables, el botón de
 cerrar de los modales. Los controles cuadrados necesitan además `min-w-11`, o cumplirían de

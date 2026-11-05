@@ -1,6 +1,7 @@
 import { formatearImporte } from "@/shared/lib/moneda";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { FiltroActivo } from "@/shared/components/FiltroActivo";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
@@ -25,7 +26,7 @@ import {
     useReceivePurchaseOrder,
 } from "@/modules/purchase-orders/hooks/usePurchaseOrders";
 import { exportPurchaseOrdersCsv } from "@/modules/purchase-orders/api/purchase-orders.api";
-import type { PurchaseOrder, CreatePurchaseOrderForm, RecepcionForm } from "@/modules/purchase-orders/types/purchase-orders.types";
+import { POR_RECIBIR, type PurchaseOrder, type CreatePurchaseOrderForm, type RecepcionForm } from "@/modules/purchase-orders/types/purchase-orders.types";
 import { PlusIcon, TrashIcon, XMarkIcon, ArrowDownTrayIcon, InboxArrowDownIcon, SparklesIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import { LARGO_MAXIMO_DE_CODIGO_DE_LOTE, aNumero } from "@/shared/contratos";
@@ -516,10 +517,21 @@ export default function PurchaseOrdersPage() {
 
     const [page, setPage] = useState(1);
 
+    // AUD-008, paso 9 — «Compras por recibir» del panel llega con `?estado=porRecibir`: las
+    // pendientes y las recibidas en parte, las que cuenta su cifra. La lista no tiene filtro de
+    // estado propio, así que se dice encima y se quita con un toque.
+    const [params, setParams] = useSearchParams();
+    const porRecibir = params.get("estado") === "porRecibir";
+
     // T5-14 — las de un almacén. Solo se ofrece, y solo se nombra en cada fila, si hay más de uno.
     const [almacenFiltrado, setAlmacenFiltrado] = useState("");
     const { hayVarios } = useAlmacenes();
-    const { data, isLoading } = usePurchaseOrders({ page, limit: PAGE_SIZE, warehouseId: almacenFiltrado || undefined });
+    const { data, isLoading } = usePurchaseOrders({
+        page,
+        limit: PAGE_SIZE,
+        warehouseId: almacenFiltrado || undefined,
+        status: porRecibir ? POR_RECIBIR : undefined,
+    });
     const orders = data?.data ?? [];
     const total = data?.meta.total ?? 0;
     const totalPages = data?.meta.totalPages ?? 1;
@@ -602,6 +614,16 @@ export default function PurchaseOrdersPage() {
             <div className="max-w-xs">
                 <SelectorDeAlmacen comoFiltro etiquetaOculta value={almacenFiltrado} onChange={(id) => { setAlmacenFiltrado(id); setPage(1); }} />
             </div>
+
+            {porRecibir && (
+                <FiltroActivo
+                    texto={t("filtro.porRecibir")}
+                    onQuitar={() => {
+                        setParams({}, { replace: true });
+                        setPage(1);
+                    }}
+                />
+            )}
 
             {isLoading ? (
                 <EsqueletoLista />

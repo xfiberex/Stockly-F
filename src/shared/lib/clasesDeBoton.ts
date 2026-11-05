@@ -17,7 +17,7 @@ const VARIANTES: Record<VarianteBoton, string> = {
 // paginación, que se pulsan con el pulgar—; de `md` en adelante vuelve a los 36 px del
 // perfil denso, donde se apunta con ratón y la altura solo gasta espacio.
 const BASE =
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed md:min-h-9";
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed md:pointer-fine:min-h-9";
 
 /**
  * Botón de solo icono: cuadrado, no una cápsula con `px-4`.
@@ -29,7 +29,7 @@ const BASE =
  * el mínimo táctil lo sostiene `min-w-11`, que es la regla del sistema de diseño para los
  * controles cuadrados —cumplir de alto y fallar de ancho es el descuido habitual—.
  */
-export const CLASES_BOTON_ICONO = "px-0 min-w-11 md:min-w-9";
+export const CLASES_BOTON_ICONO = "px-0 min-w-11 md:pointer-fine:min-w-9";
 
 /**
  * Las clases del botón, para lo que **no puede ser un `<button>`**.

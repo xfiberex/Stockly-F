@@ -101,3 +101,33 @@ describe("PurchaseOrdersPage — paginación (T2-04)", () => {
         expect(screen.getAllByText(/^Orden #/)).toHaveLength(TOTAL - 20);
     });
 });
+
+describe("PurchaseOrdersPage — llegar desde el panel (AUD-008)", () => {
+    beforeEach(() => {
+        consultas.length = 0;
+    });
+
+    it("`?estado=porRecibir` pide las pendientes y las parciales, y lo dice encima", () => {
+        renderWithProviders(<PurchaseOrdersPage />, { initialRoute: "/purchase-orders?estado=porRecibir" });
+
+        expect(consultas.at(-1)).toMatchObject({ status: "PENDING,PARTIALLY_RECEIVED" });
+        expect(screen.getByText("Solo las compras por recibir: pendientes y recibidas en parte")).toBeInTheDocument();
+    });
+
+    it("«Quitar filtro» vuelve a la lista entera", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<PurchaseOrdersPage />, { initialRoute: "/purchase-orders?estado=porRecibir" });
+
+        await user.click(screen.getByRole("button", { name: "Quitar filtro" }));
+
+        expect(consultas.at(-1)?.status).toBeUndefined();
+        expect(screen.queryByText(/Solo las compras por recibir/)).not.toBeInTheDocument();
+    });
+
+    it("sin el parámetro no hay filtro ni aviso", () => {
+        renderWithProviders(<PurchaseOrdersPage />);
+
+        expect(consultas.at(-1)?.status).toBeUndefined();
+        expect(screen.queryByRole("button", { name: "Quitar filtro" })).not.toBeInTheDocument();
+    });
+});

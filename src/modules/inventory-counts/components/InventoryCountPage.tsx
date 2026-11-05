@@ -108,7 +108,7 @@ function Captura({ id }: { id: string }) {
                             onChange={(e) => { setBusqueda(e.target.value); setPage(1); }}
                             placeholder={t("conteos.buscar")}
                             aria-label={t("conteos.buscar")}
-                            className="w-full min-h-11 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 sm:w-64 md:min-h-9"
+                            className="w-full min-h-11 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 sm:w-64 md:pointer-fine:min-h-9"
                         />
                     )}
                     <Button variant="secondary" onClick={() => setEscaneando(true)} isLoading={buscando}>
@@ -184,7 +184,7 @@ function Captura({ id }: { id: string }) {
                                             // tuviera seleccionada: se escribe encima sin borrar.
                                             autoFocus={escaneado?.id === l.productId}
                                             onFocus={(e) => { if (escaneado?.id === l.productId) e.target.select(); }}
-                                            className="w-24 min-h-11 rounded-lg border border-border bg-surface px-2 py-1 text-right text-sm tabular-nums text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 md:min-h-9"
+                                            className="w-24 min-h-11 rounded-lg border border-border bg-surface px-2 py-1 text-right text-sm tabular-nums text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 md:pointer-fine:min-h-9"
                                         />
                                     </td>
                                 </tr>

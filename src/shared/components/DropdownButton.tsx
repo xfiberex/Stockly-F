@@ -60,7 +60,7 @@ export function DropdownButton({
                 aria-expanded={open}
                 className={cn(
                     // Misma densidad que `Button` (T2-40): 44 px al pulgar, 36 al ratón.
-                    "inline-flex min-h-11 items-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed md:min-h-9",
+                    "inline-flex min-h-11 items-center gap-2 rounded-lg border border-transparent px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed md:pointer-fine:min-h-9",
                     // `w-full` para que el disparador ocupe lo que le den. En el encabezado
                     // de una página, en móvil, las acciones se estiran a media fila cada una
                     // (ver `clasesDeEncabezado.ts`) y sin esto el desplegable se quedaba

@@ -79,7 +79,7 @@ export function BuscadorDeCliente({ seleccionado, onSeleccionar, ayuda }: Buscad
         return (
             <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium text-foreground">{t("ventas.clienteVinculado")}</span>
-                <div className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-accent/40 bg-accent/5 px-3 py-1.5 md:min-h-9">
+                <div className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-accent/40 bg-accent/5 px-3 py-1.5 md:pointer-fine:min-h-9">
                     <span className="min-w-0 truncate text-sm text-foreground">
                         {seleccionado.name}
                         {seleccionado.email && <span className="text-foreground-muted"> · {seleccionado.email}</span>}
@@ -113,7 +113,7 @@ export function BuscadorDeCliente({ seleccionado, onSeleccionar, ayuda }: Buscad
                 aria-activedescendant={abierto && opciones[activo] ? idOpcion(activo) : undefined}
                 placeholder={t("ventas.buscarClientePlaceholder")}
                 className={cn(
-                    "min-h-11 rounded-lg border border-border px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none transition md:min-h-9",
+                    "min-h-11 rounded-lg border border-border px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none transition md:pointer-fine:min-h-9",
                     "focus:border-accent focus:ring-2 focus:ring-accent/20",
                 )}
                 value={texto}

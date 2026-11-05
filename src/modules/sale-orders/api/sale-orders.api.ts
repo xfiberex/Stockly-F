@@ -23,6 +23,8 @@ export interface SaleOrdersQuery {
     to?: string;
     /** T5-14 — solo las de ese almacén. */
     warehouseId?: string;
+    /** AUD-008 — solo las que registró ese correo («Mis ventas de hoy»). */
+    createdByEmail?: string;
 }
 
 export const getSaleOrders = async (params: SaleOrdersQuery = {}): Promise<PaginatedResponse<SaleOrder>> => {

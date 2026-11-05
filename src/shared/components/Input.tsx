@@ -35,7 +35,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                     className={cn(
                         // Mismo criterio de densidad que `Button` (T2-40): cómodo al
                         // pulgar por debajo de `md`, denso a partir de ahí.
-                        "min-h-11 rounded-lg border border-border px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none transition md:min-h-9",
+                        "min-h-11 rounded-lg border border-border px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none transition md:pointer-fine:min-h-9",
                         "focus:border-accent focus:ring-2 focus:ring-accent/20",
                         error && "border-danger focus:border-danger focus:ring-danger/20",
                         className,

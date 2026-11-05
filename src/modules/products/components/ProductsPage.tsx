@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import { FiltroActivo } from "@/shared/components/FiltroActivo";
 import { toast } from "react-toastify";
 import { ProductFilters } from "@/modules/products/components/ProductFilters";
 import { ProductTable } from "@/modules/products/components/ProductTable";
@@ -56,7 +58,22 @@ export default function ProductsPage() {
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [movementProduct, setMovementProduct] = useState<Product | undefined>();
     // T5-08 — escanear, lo que salió del escaneo, y las etiquetas.
-    const [escaneando, setEscaneando] = useState(false);
+    // AUD-008, paso 9 — lo que llega del panel: `?aviso=stockBajo` o `?aviso=sinCoste` (la
+    // lista que cuenta cada aviso, que la barra de filtros no tiene) y `?escanear=1`, la acción
+    // principal del almacén, que abre la cámara nada más llegar.
+    const [params, setParams] = useSearchParams();
+    const aviso = params.get("aviso");
+    const filtroDeAviso = aviso === "stockBajo" ? { lowStock: true } : aviso === "sinCoste" ? { withoutCost: true } : {};
+    const quitarParametro = (nombre: string) =>
+        setParams(
+            (actuales) => {
+                const siguientes = new URLSearchParams(actuales);
+                siguientes.delete(nombre);
+                return siguientes;
+            },
+            { replace: true },
+        );
+    const [escaneando, setEscaneando] = useState(() => params.get("escanear") === "1");
     const [escaneado, setEscaneado] = useState<ProductWithAvailability | null>(null);
     const [codigoDesconocido, setCodigoDesconocido] = useState<string | null>(null);
     const [codigoNuevo, setCodigoNuevo] = useState<string | undefined>();
@@ -68,7 +85,7 @@ export default function ProductsPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const importFormatRef = useRef<"json" | "csv">("json");
 
-    const { data, isLoading } = useProducts({ ...filters, page, limit: 10 });
+    const { data, isLoading } = useProducts({ ...filters, ...filtroDeAviso, page, limit: 10 });
     const importMutation = useImportProducts();
     const { data: resumenAbc, isLoading: cargandoAbc } = useAbcSummary();
     // Los dos desplegables que solo salen si hay datos: hasta que se sepa, la barra de filtros
@@ -295,7 +312,16 @@ export default function ProductsPage() {
                 aria-label={t("productos.seleccionarArchivo")}
             />
 
-            <ProductFilters onFilterChange={handleFilterChange} />
+            <ProductFilters onFilterChange={handleFilterChange} conInactivos={params.get("activos") === "todos"} />
+            {(aviso === "stockBajo" || aviso === "sinCoste") && (
+                <FiltroActivo
+                    texto={t(aviso === "stockBajo" ? "filtro.stockBajo" : "filtro.sinCoste")}
+                    onQuitar={() => {
+                        quitarParametro("aviso");
+                        setPage(1);
+                    }}
+                />
+            )}
 
             {/* T5-10 — de dónde sale la columna ABC. Sin esto, una C en un producto que se
                 vende a diario parecería un error: es C si este mes aún no cuenta. */}
@@ -372,7 +398,15 @@ export default function ProductsPage() {
                 codigoInicial={codigoNuevo}
             />
 
-            <EscanerModal isOpen={escaneando} onClose={() => setEscaneando(false)} onCodigo={handleCodigo} />
+            <EscanerModal
+                isOpen={escaneando}
+                onClose={() => {
+                    setEscaneando(false);
+                    // Que recargar la página no vuelva a abrir la cámara.
+                    if (params.get("escanear")) quitarParametro("escanear");
+                }}
+                onCodigo={handleCodigo}
+            />
 
             <ProductDetailModal
                 product={escaneado}

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/components/Button";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
@@ -73,7 +73,12 @@ export default function InventoryCountsPage() {
     const { t, tn, idioma } = useT();
     const puede = usePuede();
     const [page, setPage] = useState(1);
-    const [status, setStatus] = useState<InventoryCountStatus | "">("");
+    // AUD-008, paso 9 — «Conteos abiertos» del panel llega con `?estado=OPEN`.
+    const [params] = useSearchParams();
+    const [status, setStatus] = useState<InventoryCountStatus | "">(() => {
+        const deLaUrl = params.get("estado");
+        return deLaUrl === "OPEN" || deLaUrl === "CLOSED" || deLaUrl === "CANCELLED" ? deLaUrl : "";
+    });
     const [nuevo, setNuevo] = useState(false);
     const [almacenFiltrado, setAlmacenFiltrado] = useState("");
     const { hayVarios } = useAlmacenes();

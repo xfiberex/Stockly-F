@@ -159,7 +159,7 @@ export function CampanaDeAvisos() {
                 aria-expanded={abierto}
                 aria-controls={abierto ? idPanel : undefined}
                 className={cn(
-                    "relative flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-transparent text-foreground-muted transition-colors md:min-h-9 md:min-w-9",
+                    "relative flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-transparent text-foreground-muted transition-colors md:pointer-fine:min-h-9 md:pointer-fine:min-w-9",
                     "hover:border-border hover:bg-surface-muted",
                     "focus-visible:border-border focus-visible:bg-surface-muted focus-visible:outline-none",
                     abierto && "border-border bg-surface-muted",

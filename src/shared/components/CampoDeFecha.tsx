@@ -60,7 +60,7 @@ export const CampoDeFecha = forwardRef<HTMLInputElement, CampoDeFechaProps>(
                         aria-invalid={error ? true : undefined}
                         aria-describedby={idError}
                         className={cn(
-                            "campo-de-fecha w-full min-h-11 appearance-none rounded-lg border border-border bg-surface pl-3 pr-9 py-2 text-sm text-foreground outline-none transition md:min-h-9",
+                            "campo-de-fecha w-full min-h-11 appearance-none rounded-lg border border-border bg-surface pl-3 pr-9 py-2 text-sm text-foreground outline-none transition md:pointer-fine:min-h-9",
                             "focus:border-accent focus:ring-2 focus:ring-accent/20",
                             // Sin esto salían **dos** pistas superpuestas y el campo era
                             // ilegible: Chrome de escritorio dibuja su propio «dd/mm/aaaa»

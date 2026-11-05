@@ -1,5 +1,6 @@
 import { ExclamationTriangleIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/components/Button";
+import { Spinner } from "@/shared/components/Spinner";
 import { useT } from "@/shared/hooks/useIdioma";
 import { mensajeDeError } from "@/shared/lib/errorApi";
 import { cn } from "@/shared/lib/cn";
@@ -36,8 +37,23 @@ export function ErrorDeCarga({
                 <p className="text-sm font-semibold text-foreground">{titulo}</p>
                 <p className="text-sm text-foreground-muted">{mensajeDeError(idioma, error)}</p>
             </div>
-            <Button variant="secondary" onClick={onReintentar} isLoading={reintentando} className="shrink-0">
-                {!reintentando && <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />}
+            {/* AUD-008, paso 8: mientras reintenta no se desactiva (`isLoading` lo haría): un
+                botón desactivado con el foco dentro lo suelta en `<body>`, y quien usa teclado o
+                lector tenía que volver a recorrer la página. Se marca ocupado y no repite. */}
+            <Button
+                variant="secondary"
+                onClick={() => {
+                    if (!reintentando) onReintentar();
+                }}
+                aria-busy={reintentando || undefined}
+                aria-disabled={reintentando || undefined}
+                className="shrink-0"
+            >
+                {reintentando ? (
+                    <Spinner size="sm" decorativo className="border-current border-t-transparent" />
+                ) : (
+                    <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />
+                )}
                 {t("errorDeCarga.reintentar")}
             </Button>
         </div>

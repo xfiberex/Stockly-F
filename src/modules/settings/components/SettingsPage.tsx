@@ -222,7 +222,7 @@ export default function SettingsPage() {
                             type="number"
                             value={String(valorDe(entry))}
                             onChange={(e) => handleChange(entry.key, Number(e.target.value))}
-                            className="min-h-11 rounded-lg border border-border px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition w-40 md:min-h-9"
+                            className="min-h-11 rounded-lg border border-border px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition w-40 md:pointer-fine:min-h-9"
                         />
                     ) : (
                         // T6-03 — un texto va con `Input`, que trae el borde de error y ata

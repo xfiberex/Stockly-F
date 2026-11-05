@@ -57,7 +57,7 @@ vi.mock("@/modules/sale-orders/api/sale-orders.api", () => ({
 }));
 
 vi.mock("@/modules/auth/hooks/useMe", () => ({
-    useAuth: () => ({ user: { id: "u1", name: "Admin", role: "ADMIN" } }),
+    useAuth: () => ({ user: { id: "u1", name: "Admin", role: "ADMIN", email: "admin@stockly.app" } }),
 }));
 
 vi.mock("@/modules/products/hooks/useProducts", () => ({
@@ -225,5 +225,38 @@ describe("SaleOrdersPage — paginación y filtros (T6-01)", () => {
 
         expect(await screen.findByText("No hay órdenes de venta. Crea la primera.")).toBeInTheDocument();
         expect(screen.queryByRole("combobox", { name: "Estado" })).not.toBeInTheDocument();
+    });
+});
+
+describe("SaleOrdersPage — llegar desde el panel (AUD-008)", () => {
+    beforeEach(() => {
+        existentes = TODAS;
+        pedidas.length = 0;
+    });
+
+    it("`?estado=PENDING` abre con el filtro de estado puesto: la cifra del panel y la de la lista coinciden", async () => {
+        renderWithProviders(<SaleOrdersPage />, { initialRoute: "/sale-orders?estado=PENDING" });
+
+        await screen.findByText("18 órdenes");
+        expect(ultimaPedida()).toMatchObject({ status: "PENDING", page: 1 });
+        expect(screen.getByRole("combobox", { name: "Estado" })).toHaveValue("PENDING");
+    });
+
+    it("«Mis ventas de hoy» llega con las suyas y el día, y dice el filtro que no está en la barra", async () => {
+        renderWithProviders(<SaleOrdersPage />, { initialRoute: "/sale-orders?mias=1&desde=2026-03-05&hasta=2026-03-05" });
+
+        await waitFor(() => expect(ultimaPedida()).toMatchObject({ createdByEmail: "admin@stockly.app", from: "2026-03-05", to: "2026-03-05" }));
+        expect(screen.getByText("Solo las que registraste tú")).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole("button", { name: "Quitar filtro" }));
+        await waitFor(() => expect(ultimaPedida().createdByEmail).toBeUndefined());
+    });
+
+    it("una venta del panel abre filtrada por su número y desplegada", async () => {
+        renderWithProviders(<SaleOrdersPage />, { initialRoute: `/sale-orders?numero=12&venta=${TODAS.find((o) => o.number === 12)!.id}` });
+
+        await screen.findByText(cliente(12));
+        expect(ultimaPedida()).toMatchObject({ number: "12" });
+        expect(screen.getAllByText(/^Cliente \d+ ·/)).toHaveLength(1);
     });
 });

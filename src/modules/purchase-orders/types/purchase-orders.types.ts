@@ -13,10 +13,17 @@ export interface PurchaseOrderItemForm {
     unitPrice: number;
 }
 
+/** AUD-008 — las compras que esperan mercancía: pendientes y recibidas en parte. */
+export const POR_RECIBIR = "PENDING,PARTIALLY_RECEIVED";
+
 export interface PurchaseOrderQuery {
     page?: number;
     limit?: number;
-    status?: PurchaseOrderStatus;
+    /**
+     * Un estado, o «por recibir» (AUD-008): pendientes y parciales, como la fila del panel. El
+     * servidor acepta varios separados por comas.
+     */
+    status?: PurchaseOrderStatus | typeof POR_RECIBIR;
     /** T5-14 — solo las de ese almacén. */
     warehouseId?: string;
 }

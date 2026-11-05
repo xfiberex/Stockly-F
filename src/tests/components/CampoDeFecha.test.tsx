@@ -48,7 +48,7 @@ describe("CampoDeFecha", () => {
     it("mantiene el par de densidades (T2-40)", () => {
         render(<CampoDeFecha label="Desde" value="" onChange={() => {}} />);
 
-        expect(campo()).toHaveClass("min-h-11", "md:min-h-9");
+        expect(campo()).toHaveClass("min-h-11", "md:pointer-fine:min-h-9");
     });
 
     it("la etiqueta rotula el campo aunque no se le pase `id`", () => {

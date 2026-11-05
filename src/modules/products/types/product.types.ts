@@ -129,6 +129,10 @@ export interface ProductQuery {
     abcClass?: ClaseAbc;
     /** T5-14 — solo los productos con existencias en ese almacén. */
     warehouseId?: string;
+    /** AUD-008 — los de stock bajo o agotado, los que cuenta el panel. */
+    lowStock?: boolean;
+    /** AUD-008 — los que tienen stock y no tienen coste. */
+    withoutCost?: boolean;
 }
 
 /** Fila de un CSV/JSON de importación: todo puede llegar como cadena sin convertir. */

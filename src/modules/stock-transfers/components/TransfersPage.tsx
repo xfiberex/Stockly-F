@@ -122,7 +122,7 @@ function NuevaTransferencia({ onClose }: { onClose: () => void }) {
                                         aria-describedby={idAyuda}
                                         aria-invalid={invalida}
                                         className={cn(
-                                            "min-h-11 w-20 shrink-0 rounded-lg border bg-surface px-2 text-center text-sm tabular-nums text-foreground outline-none transition md:min-h-9",
+                                            "min-h-11 w-20 shrink-0 rounded-lg border bg-surface px-2 text-center text-sm tabular-nums text-foreground outline-none transition md:pointer-fine:min-h-9",
                                             "focus:border-accent focus:ring-2 focus:ring-accent/20",
                                             invalida ? "border-danger" : "border-border",
                                         )}

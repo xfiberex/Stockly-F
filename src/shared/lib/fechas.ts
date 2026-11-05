@@ -66,11 +66,22 @@ export function formatearDiaDeSemana(idioma: Idioma, dia: string): string {
 }
 
 /**
- * Solo la hora, `14:32` / `02:32 PM`, para lo que es de hoy: cuándo se actualizó un panel. Una
- * hora fija y no «hace 2 minutos», que se quedaría congelado en pantalla hasta el siguiente render.
+ * AUD-008, paso 12 — el día de la semana y el número por separado, para un eje en dos líneas
+ * (`vie` / `30`): en una sola, a 390 px las siete etiquetas se montaban unas sobre otras.
  */
-export function formatearHora(idioma: Idioma, instante: Date | number): string {
-    return new Date(instante).toLocaleTimeString(LOCALES[idioma], { hour: "2-digit", minute: "2-digit" });
+export function partesDelDia(idioma: Idioma, dia: string): { semana: string; numero: number } {
+    const fecha = new Date(`${dia}T00:00:00Z`);
+    return { semana: fecha.toLocaleDateString(LOCALES[idioma], { weekday: "short", timeZone: "UTC" }), numero: fecha.getUTCDate() };
+}
+
+/**
+ * Solo la hora, `2:32 p.m.` / `2:32 PM`, para lo que es de hoy: cuándo se actualizó un panel o
+ * se hizo una venta. Una hora fija y no «hace 2 minutos», que se quedaría congelado en pantalla
+ * hasta el siguiente render. La hora sin cero delante (AUD-008): «01:26 p.m.» no es como se
+ * escribe, ni en un ticket.
+ */
+export function formatearHora(idioma: Idioma, instante: Date | number | string): string {
+    return new Date(instante).toLocaleTimeString(LOCALES[idioma], { hour: "numeric", minute: "2-digit" });
 }
 
 /** Con hora y minuto, para cuando el instante importa (auditoría, detalle de producto). */

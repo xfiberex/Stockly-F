@@ -16,7 +16,7 @@ import { cn } from "@/shared/lib/cn";
 export function clasesDeItemDeMenu(className?: string) {
     return cn(
         "flex min-h-11 w-full items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5",
-        "text-left text-sm transition-colors md:min-h-9",
+        "text-left text-sm transition-colors md:pointer-fine:min-h-9",
         "hover:border-border hover:bg-surface-muted",
         "focus-visible:border-border focus-visible:bg-surface-muted focus-visible:outline-none",
         className,

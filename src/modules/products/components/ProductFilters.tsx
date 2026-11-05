@@ -18,16 +18,21 @@ interface ProductFiltersProps {
         abcClass?: AbcClass;
         warehouseId?: string;
     }) => void;
+    /**
+     * AUD-008, paso 9 — abrir con «Todos» en el estado en vez de «Activos»: «Total de
+     * productos» del panel cuenta también los inactivos (`?activos=todos`).
+     */
+    conInactivos?: boolean;
 }
 
 const CLASES_ABC: AbcClass[] = ["A", "B", "C"];
 
-export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
+export function ProductFilters({ onFilterChange, conInactivos = false }: ProductFiltersProps) {
     const { t } = useT();
     const [search, setSearch] = useState("");
     const [categoryId, setCategoryId] = useState("");
     const [tagId, setTagId] = useState("");
-    const [activeFilter, setActiveFilter] = useState<"true" | "false" | "">("true");
+    const [activeFilter, setActiveFilter] = useState<"true" | "false" | "">(conInactivos ? "" : "true");
     const [abcClass, setAbcClass] = useState<AbcClass | "">("");
     // T5-14 — los productos con existencias en un almacén.
     const [warehouseId, setWarehouseId] = useState("");
@@ -95,7 +100,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
                     placeholder={t("productos.filtro.buscar")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full min-h-11 rounded-lg border border-border pl-9 pr-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition md:min-h-9"
+                    className="w-full min-h-11 rounded-lg border border-border pl-9 pr-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition md:pointer-fine:min-h-9"
                 />
             </div>
 

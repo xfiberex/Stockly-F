@@ -42,7 +42,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                             // una fila flexible el envoltorio no reclama sitio y el select colapsa
                             // a 50 px, de los que 48 son `pl-3` + `pr-9`. Le pasaba a la columna de
                             // acciones de usuarios: se veía el chevron y **ni una letra del rol**.
-                            "w-full min-w-28 min-h-11 appearance-none rounded-lg border border-border pl-3 pr-9 py-2 text-sm text-foreground outline-none transition bg-surface md:min-h-9",
+                            "w-full min-w-28 min-h-11 appearance-none rounded-lg border border-border pl-3 pr-9 py-2 text-sm text-foreground outline-none transition bg-surface md:pointer-fine:min-h-9",
                             "focus:border-accent focus:ring-2 focus:ring-accent/20",
                             error && "border-danger focus:border-danger focus:ring-danger/20",
                             className,

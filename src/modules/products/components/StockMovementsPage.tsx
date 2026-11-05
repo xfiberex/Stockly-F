@@ -174,7 +174,7 @@ export default function StockMovementsPage() {
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`min-h-11 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px md:min-h-9 ${
+                        className={`min-h-11 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px md:pointer-fine:min-h-9 ${
                             activeTab === tab
                                 ? "border-info text-info"
                                 : "border-transparent text-foreground-muted hover:text-foreground"

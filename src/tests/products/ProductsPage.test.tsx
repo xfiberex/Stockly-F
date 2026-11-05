@@ -47,8 +47,9 @@ const mockProductos: Product[] = [
     },
 ];
 
+const consultasDeProductos: unknown[] = [];
 vi.mock("@/modules/products/hooks/useProducts", () => ({
-    useProducts: () => ({
+    useProducts: (params: unknown) => (consultasDeProductos.push(params), {
         data: { data: mockProductos, meta: { total: 1, page: 1, limit: 10, totalPages: 1 } },
         isLoading: false,
         isError: false,
@@ -155,5 +156,35 @@ describe("ProductsPage — el rol de almacén (T5-13)", () => {
         await screen.findByText("Teclado Logitech");
 
         expect(screen.queryByRole("checkbox", { name: "Seleccionar Teclado Logitech" })).toBeNull();
+    });
+});
+
+describe("ProductsPage — llegar desde el panel (AUD-008)", () => {
+    beforeEach(() => {
+        rol = "ADMIN";
+        consultasDeProductos.length = 0;
+    });
+
+    it("`?aviso=stockBajo` pide los de stock bajo y lo dice encima, con cómo quitarlo", async () => {
+        renderWithProviders(<ProductsPage />, { initialRoute: "/catalog/products?aviso=stockBajo" });
+
+        expect(consultasDeProductos.at(-1)).toMatchObject({ lowStock: true });
+        expect(screen.getByText("Solo los productos con stock bajo o agotado")).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole("button", { name: "Quitar filtro" }));
+        expect(consultasDeProductos.at(-1)).not.toHaveProperty("lowStock");
+    });
+
+    it("`?aviso=sinCoste` pide los que tienen stock y no tienen coste", () => {
+        renderWithProviders(<ProductsPage />, { initialRoute: "/catalog/products?aviso=sinCoste" });
+
+        expect(consultasDeProductos.at(-1)).toMatchObject({ withoutCost: true });
+        expect(screen.getByText("Solo los productos con stock y sin coste")).toBeInTheDocument();
+    });
+
+    it("`?activos=todos` abre con «Todos» en el estado: el total del panel incluye los inactivos", () => {
+        renderWithProviders(<ProductsPage />, { initialRoute: "/catalog/products?activos=todos" });
+
+        expect(consultasDeProductos.at(-1)).toMatchObject({ isActive: undefined });
     });
 });

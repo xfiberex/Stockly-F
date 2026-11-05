@@ -2,6 +2,7 @@ import { useExpiryReport } from "@/modules/reports/hooks/useExpiryReport";
 import { usePurchaseOrders } from "@/modules/purchase-orders/hooks/usePurchaseOrders";
 import { useSaleOrders } from "@/modules/sale-orders/hooks/useSaleOrders";
 import { useInventoryCounts } from "@/modules/inventory-counts/hooks/useInventoryCounts";
+import { POR_RECIBIR } from "@/modules/purchase-orders/types/purchase-orders.types";
 
 /** Una cifra del bloque «Necesita atención»: `null` mientras carga o si la petición falló. */
 export interface Recuento {
@@ -13,8 +14,12 @@ export interface Recuento {
 /** Las filas que puede tener el bloque. `stock` sale de `/reports` y no se pide aquí. */
 export type FilaDeAtencion = "stock" | "caducidades" | "conteos" | "compras" | "ventas";
 
+/**
+ * Con error, `valor` es `null` aunque haya una cifra de antes (AUD-008, paso 10): una fila no
+ * puede decir «No disponible» y a la vez enseñar el detalle y el enlace de la cifra vieja.
+ */
 function recuento(valor: number | undefined, cargando: boolean, error: boolean): Recuento {
-    return { valor: valor ?? null, cargando, error };
+    return { valor: error ? null : (valor ?? null), cargando, error };
 }
 
 /**
@@ -39,25 +44,19 @@ export function useAtencionDeHoy(filas: readonly FilaDeAtencion[]) {
 
     const caducidades = useExpiryReport({ limit: 1 }, quiere("caducidades"));
     const conteos = useInventoryCounts({ status: "OPEN", limit: 1 }, quiere("conteos"));
-    const comprasPendientes = usePurchaseOrders({ status: "PENDING", limit: 1 }, quiere("compras"));
-    const comprasParciales = usePurchaseOrders({ status: "PARTIALLY_RECEIVED", limit: 1 }, quiere("compras"));
+    // AUD-008 — «por recibir» en una sola petición: la API acepta varios estados. Eran dos.
+    const compras = usePurchaseOrders({ status: POR_RECIBIR, limit: 1 }, quiere("compras"));
     const ventas = useSaleOrders({ status: "PENDING", limit: 1 }, quiere("ventas"));
-
-    const totalDeCompras =
-        comprasPendientes.data && comprasParciales.data
-            ? comprasPendientes.data.meta.total + comprasParciales.data.meta.total
-            : undefined;
 
     return {
         caducidades: recuento(caducidades.data?.meta.total, caducidades.isLoading, caducidades.isError),
         diasDeCaducidad: caducidades.data?.days,
         unidadesCaducadas: caducidades.data?.summary.expiredUnits ?? 0,
+        // AUD-008 — el lote que antes caduca (el informe los ordena por fecha), con su nombre:
+        // la campana decía «lote L-20261030 de Yogur natural» y el panel solo «8».
+        primerLote: caducidades.isError ? undefined : caducidades.data?.data[0],
         conteos: recuento(conteos.data?.meta.total, conteos.isLoading, conteos.isError),
-        compras: recuento(
-            totalDeCompras,
-            comprasPendientes.isLoading || comprasParciales.isLoading,
-            comprasPendientes.isError || comprasParciales.isError,
-        ),
+        compras: recuento(compras.data?.meta.total, compras.isLoading, compras.isError),
         ventas: recuento(ventas.data?.meta.total, ventas.isLoading, ventas.isError),
     };
 }

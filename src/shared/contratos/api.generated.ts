@@ -8,7 +8,7 @@
 // Editar este archivo directamente no sirve de nada: `frescura.test.ts` compara
 // su contenido con el del backend y falla, y la próxima generación lo pisa.
 //
-// huella: 98797fc047b39b9f
+// huella: 19193ecd8013b069
 
 /**
  * T4-01 — El contrato de la API, en un solo archivo y en un solo sitio.
@@ -1512,6 +1512,8 @@ export const totalesReporteSchema = z.object({
     /** Activos con stock y sin coste: quedan fuera de las dos cifras anteriores. */
     productsWithoutCost: z.number(),
     lowStockCount: z.number(),
+    /** AUD-008 — categorías del catálogo; `stockByCategory` incluye además «Sin categoría». */
+    categoryCount: z.number(),
 });
 
 export const stockPorCategoriaSchema = z.object({
