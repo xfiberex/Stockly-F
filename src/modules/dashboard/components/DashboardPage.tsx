@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { ArrowsRightLeftIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, InboxArrowDownIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
+import { ArrowsRightLeftIcon, ChevronRightIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { conSimboloDeMoneda, formatearImporte } from "@/shared/lib/moneda";
 import { useReports } from "@/modules/reports/hooks/useReports";
 import type { ReportSummary } from "@/modules/reports/types/reports.types";
@@ -17,8 +17,6 @@ import { cn } from "@/shared/lib/cn";
 import { formatearDia, formatearHora, partesDelDia } from "@/shared/lib/fechas";
 import { ErrorDeCarga } from "@/shared/components/ErrorDeCarga";
 import { AtencionDeHoy } from "./AtencionDeHoy";
-import { DESTINOS } from "../destinos";
-import { PanelDeVendedor } from "./PanelDeVendedor";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import type { FilaDeAtencion } from "../hooks/useAtencionDeHoy";
 
@@ -41,20 +39,12 @@ const PANEL: Record<Rol, { atencion: readonly FilaDeAtencion[]; resumen: boolean
 };
 
 export default function DashboardPage() {
-    const { t } = useT();
     const { user } = useAuth();
 
-    if (user?.role === "SELLER") {
-        return (
-            <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, "space-y-6")}>
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground">{t("ruta.dashboard")}</h1>
-                    <p className="text-sm text-foreground-muted mt-1">{t("dashboard.vendedor.subtitulo")}</p>
-                </div>
-                <PanelDeVendedor email={user.email} />
-            </div>
-        );
-    }
+    // AUD-008, crítica del 2026-11-06 — SELLER no tiene panel: su «hoy» es el mostrador, con sus
+    // ventas del día debajo (`MisVentasDeHoy`). Su panel propio solo llevaba allí, un toque de
+    // más con el cliente delante. `replace`: «atrás» no vuelve a una pantalla que no existe.
+    if (user?.role === "SELLER") return <Navigate to="/counter" replace />;
 
     // Un rol que no está en la tabla —no debería llegar ninguno con sesión— ve lo mínimo, no lo de ADMIN.
     const rol: Rol = user?.role === "ADMIN" || user?.role === "WAREHOUSE" ? user.role : "USER";
@@ -87,8 +77,9 @@ function PanelGeneral({ rol }: { rol: Rol }) {
         falloAntes.current = fallo;
     }, [fallo]);
 
+    // En móvil, «Escanear» va fijo abajo (`AccionesDeAlmacen`): lo último no queda debajo.
     return (
-        <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, "space-y-6")}>
+        <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, "space-y-6", panel.almacen && "max-sm:pb-28")}>
             <div>
                 <h1 ref={titulo} tabIndex={-1} className="text-2xl font-bold text-foreground focus:outline-none">
                     {t("ruta.dashboard")}
@@ -114,14 +105,16 @@ function PanelGeneral({ rol }: { rol: Rol }) {
                 </p>
             </div>
 
-            {panel.almacen && <AccionesDeAlmacen />}
-
             {/* Lo primero, lo que pide actuar hoy. Solo su fila de stock sale de `/reports`. */}
             <AtencionDeHoy
                 filas={panel.atencion}
                 stock={{ valor: data?.totals.lowStockCount ?? null, cargando, error: fallo }}
                 lowStockProducts={data ? data.lowStockProducts : fallo ? [] : null}
             />
+
+            {/* Crítica del 2026-11-06 — después de lo pendiente, también en el orden del teclado:
+                en móvil «Escanear» ya está siempre a mano, fijo abajo. */}
+            {panel.almacen && <AccionesDeAlmacen />}
 
             {fallo ? (
                 // El aviso se queda montado mientras se reintenta (`useFalloDeCarga`).
@@ -160,36 +153,36 @@ function ReintentoEnLinea({ onReintentar, reintentando }: { onReintentar: () => 
 
 /**
  * AUD-008, paso 9 — lo que hace quien está en el almacén, a un toque. Escanear abre Productos
- * con la cámara: el producto, su stock por almacén, sus lotes y sus movimientos. Va a todo lo
- * ancho y alto en móvil, en vez de detrás de la hamburguesa de arriba.
+ * con la cámara: el producto, su stock por almacén, sus lotes y sus movimientos.
+ *
+ * Crítica del 2026-11-06:
+ * - **En móvil, «Escanear» va fijo abajo**, donde llega el pulgar de la mano que no sostiene
+ *   nada. Arriba del todo era la zona más difícil a una mano. Desde `sm` vuelve a su sitio.
+ * - **Sin accesos que repiten una fila.** «Recibir compras» llevaba a lo mismo que «Compras por
+ *   recibir», y «Conteos» abría la lista sin filtrar cuando la fila la abría filtrada. Queda
+ *   lo que no tiene fila: las transferencias.
  */
 function AccionesDeAlmacen() {
     const { t } = useT();
-    const secundarias = [
-        { to: DESTINOS.compras, texto: "dashboard.almacen.recibir", Icon: InboxArrowDownIcon },
-        { to: "/inventory-counts", texto: "dashboard.almacen.conteos", Icon: ClipboardDocumentCheckIcon },
-        { to: "/stock-transfers", texto: "dashboard.almacen.transferencias", Icon: ArrowsRightLeftIcon },
-    ] as const;
 
     return (
         <section aria-labelledby="en-el-almacen" className="rounded-xl border border-border bg-surface p-5 sm:p-6">
             <h2 id="en-el-almacen" className="text-base font-semibold text-foreground">{t("dashboard.almacen.titulo")}</h2>
-            <div className="mt-4 grid gap-3 lg:grid-cols-[2fr_1fr_1fr_1fr]">
-                <div>
-                    <Link to="/catalog/products?escanear=1" className={clasesDeBoton("primary", "w-full min-h-12 text-base")}>
-                        <ViewfinderCircleIcon className="h-5 w-5" aria-hidden="true" />
-                        {t("dashboard.almacen.escanear")}
-                    </Link>
-                    <p className="mt-1.5 text-xs text-foreground-muted">{t("dashboard.almacen.escanear.ayuda")}</p>
-                </div>
-                <div className="grid grid-cols-3 gap-3 lg:contents">
-                    {secundarias.map(({ to, texto, Icon }) => (
-                        <Link key={to} to={to} className={clasesDeBoton("secondary", "w-full min-w-0 flex-col gap-1 px-2 sm:flex-row sm:gap-2 lg:self-start")}>
-                            <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                            <span className="text-center text-xs leading-tight sm:text-sm">{t(texto)}</span>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start">
+                <div className="sm:w-80">
+                    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0">
+                        <Link to="/catalog/products?escanear=1" className={clasesDeBoton("primary", "w-full min-h-12 text-base")}>
+                            <ViewfinderCircleIcon className="h-5 w-5" aria-hidden="true" />
+                            {t("dashboard.almacen.escanear")}
                         </Link>
-                    ))}
+                    </div>
+                    {/* En móvil el botón está abajo, lejos: la ayuda suelta no diría de qué habla. */}
+                    <p className="mt-1.5 hidden text-xs text-foreground-muted sm:block">{t("dashboard.almacen.escanear.ayuda")}</p>
                 </div>
+                <Link to="/stock-transfers" className={clasesDeBoton("secondary", "w-full sm:w-auto")}>
+                    <ArrowsRightLeftIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    {t("dashboard.almacen.transferencias")}
+                </Link>
             </div>
         </section>
     );
@@ -309,79 +302,90 @@ function ResumenDeNegocio({ data }: { data: ReportSummary }) {
             <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
                 <section aria-labelledby="ventas-de-la-semana" className="bg-surface rounded-xl border border-border p-5 sm:p-6 lg:col-span-2">
                     <h2 id="ventas-de-la-semana" className="text-base font-semibold text-foreground">{t("dashboard.ventas.titulo")}</h2>
-                    <p className="mt-1 text-sm text-foreground tabular-nums">
-                        {tn("dashboard.ventas.total", ventasDeLaSemana, { importe: formatearImporte(importeDeLaSemana) })}
-                    </p>
-                    <p className="mb-6 text-xs text-foreground-muted">{t("dashboard.ventas.nota")}</p>
+                    {/* AUD-008, crítica del 2026-11-06 — sin ventas, una frase y no un gráfico de
+                        siete barras a cero con un eje de $0 a $4: parecía roto, y era lo último que
+                        se veía del panel. */}
+                    {ventasDeLaSemana === 0 ? (
+                        <p className="mt-1 text-sm text-foreground-muted">{t("dashboard.ventas.vacio")}</p>
+                    ) : (
+                        <p className="mt-1 text-sm text-foreground tabular-nums">
+                            {tn("dashboard.ventas.total", ventasDeLaSemana, { importe: formatearImporte(importeDeLaSemana) })}
+                        </p>
+                    )}
+                    <p className={cn("text-xs text-foreground-muted", ventasDeLaSemana > 0 && "mb-6")}>{t("dashboard.ventas.nota")}</p>
                     {/* El gráfico es para la vista; las mismas cifras van en una lista para quien
                         no lo ve. Paso 12: `accessibilityLayer={false}`, o el SVG recibía el foco
                         dentro de este `aria-hidden` y era una parada muda para el lector. */}
-                    <div aria-hidden="true">
-                        <ResponsiveContainer width="100%" height={220}>
-                            <BarChart data={salesByDay} margin={{ top: 0, right: 0, left: 0, bottom: 0 }} accessibilityLayer={false}>
-                                {/* Solo líneas horizontales: en barras, las verticales son ruido. */}
-                                <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} vertical={false} />
-                                <XAxis
-                                    dataKey="day"
-                                    interval={0}
-                                    height={40}
-                                    tickLine={false}
-                                    axisLine={{ stroke: COLOR_DE_REJILLA }}
-                                    tick={({ x, y, payload }) => {
-                                        // Día de la semana y número en dos líneas; hoy, nombrado y
-                                        // en el color del texto, no en el atenuado.
-                                        const dia = String(payload.value);
-                                        const { semana, numero } = partesDelDia(idioma, dia);
-                                        const esHoy = dia === hoy;
-                                        return (
-                                            <text
-                                                x={x}
-                                                y={y}
-                                                textAnchor="middle"
-                                                fontSize={TEXTO_DE_EJE.fontSize}
-                                                fontWeight={esHoy ? 600 : undefined}
-                                                fill={esHoy ? "var(--color-foreground)" : TEXTO_DE_EJE.fill}
-                                            >
-                                                <tspan x={x} dy="0.9em">{esHoy ? t("dashboard.ventas.hoy") : semana}</tspan>
-                                                <tspan x={x} dy="1.25em">{numero}</tspan>
-                                            </text>
-                                        );
-                                    }}
-                                />
-                                <YAxis
-                                    tick={TEXTO_DE_EJE}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    width={56}
-                                    tickFormatter={(v: number) => conSimboloDeMoneda(abreviarImporte(v))}
-                                />
-                                <Tooltip
-                                    contentStyle={ESTILO_DE_TOOLTIP}
-                                    cursor={{ fill: "var(--color-surface-muted)" }}
-                                    separator=": "
-                                    labelFormatter={(dia) => formatearDia(idioma, String(dia))}
-                                    formatter={(value) => [formatearImporte(Number(value)), t("dashboard.ventas.importe")]}
-                                />
-                                {/* Un día con ventas nunca se queda sin barra: junto a un pico de
-                                    $361k, los $321 de hoy medían menos de un píxel. Los días a cero
-                                    siguen sin ella. */}
-                                <Bar
-                                    dataKey="revenue"
-                                    fill="var(--color-chart-1)"
-                                    radius={[4, 4, 0, 0]}
-                                    minPointSize={(valor) => ((valor ?? 0) > 0 ? 3 : 0)}
-                                    name={t("dashboard.ventas.importe")}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <ul className="sr-only" aria-label={t("dashboard.ventas.porDia")}>
-                        {salesByDay.map((d) => (
-                            <li key={d.day}>
-                                {tn("dashboard.ventas.delDia", d.orders, { dia: formatearDia(idioma, d.day), importe: formatearImporte(d.revenue) })}
-                            </li>
-                        ))}
-                    </ul>
+                    {ventasDeLaSemana > 0 && (
+                        <>
+                            <div aria-hidden="true">
+                                <ResponsiveContainer width="100%" height={220}>
+                                    <BarChart data={salesByDay} margin={{ top: 0, right: 0, left: 0, bottom: 0 }} accessibilityLayer={false}>
+                                        {/* Solo líneas horizontales: en barras, las verticales son ruido. */}
+                                        <CartesianGrid strokeDasharray="3 3" stroke={COLOR_DE_REJILLA} vertical={false} />
+                                        <XAxis
+                                            dataKey="day"
+                                            interval={0}
+                                            height={40}
+                                            tickLine={false}
+                                            axisLine={{ stroke: COLOR_DE_REJILLA }}
+                                            tick={({ x, y, payload }) => {
+                                                // Día de la semana y número en dos líneas; hoy, nombrado y
+                                                // en el color del texto, no en el atenuado.
+                                                const dia = String(payload.value);
+                                                const { semana, numero } = partesDelDia(idioma, dia);
+                                                const esHoy = dia === hoy;
+                                                return (
+                                                    <text
+                                                        x={x}
+                                                        y={y}
+                                                        textAnchor="middle"
+                                                        fontSize={TEXTO_DE_EJE.fontSize}
+                                                        fontWeight={esHoy ? 600 : undefined}
+                                                        fill={esHoy ? "var(--color-foreground)" : TEXTO_DE_EJE.fill}
+                                                    >
+                                                        <tspan x={x} dy="0.9em">{esHoy ? t("dashboard.ventas.hoy") : semana}</tspan>
+                                                        <tspan x={x} dy="1.25em">{numero}</tspan>
+                                                    </text>
+                                                );
+                                            }}
+                                        />
+                                        <YAxis
+                                            tick={TEXTO_DE_EJE}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            width={56}
+                                            tickFormatter={(v: number) => conSimboloDeMoneda(abreviarImporte(v))}
+                                        />
+                                        <Tooltip
+                                            contentStyle={ESTILO_DE_TOOLTIP}
+                                            cursor={{ fill: "var(--color-surface-muted)" }}
+                                            separator=": "
+                                            labelFormatter={(dia) => formatearDia(idioma, String(dia))}
+                                            formatter={(value) => [formatearImporte(Number(value)), t("dashboard.ventas.importe")]}
+                                        />
+                                        {/* Un día con ventas nunca se queda sin barra: junto a un pico de
+                                            $361k, los $321 de hoy medían menos de un píxel. Los días a cero
+                                            siguen sin ella. */}
+                                        <Bar
+                                            dataKey="revenue"
+                                            fill="var(--color-chart-1)"
+                                            radius={[4, 4, 0, 0]}
+                                            minPointSize={(valor) => ((valor ?? 0) > 0 ? 3 : 0)}
+                                            name={t("dashboard.ventas.importe")}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <ul className="sr-only" aria-label={t("dashboard.ventas.porDia")}>
+                                {salesByDay.map((d) => (
+                                    <li key={d.day}>
+                                        {tn("dashboard.ventas.delDia", d.orders, { dia: formatearDia(idioma, d.day), importe: formatearImporte(d.revenue) })}
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
                 </section>
 
                 <section aria-labelledby="mas-vendidos" className="bg-surface rounded-xl border border-border p-5 sm:p-6">

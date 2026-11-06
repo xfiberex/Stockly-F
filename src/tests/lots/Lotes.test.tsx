@@ -443,7 +443,7 @@ describe("la pantalla de caducidades", () => {
     const INFORME = informeDeCaducidadesSchema.parse({
         today: "2026-10-10",
         days: 30,
-        summary: { expiredUnits: 6, expiredCostValue: 12, expiringUnits: 18, expiringCostValue: 36, unitsWithoutCost: 4 },
+        summary: { expiredCount: 1, expiredUnits: 6, expiredCostValue: 12, expiringUnits: 18, expiringCostValue: 36, unitsWithoutCost: 4 },
         data: [
             fila({ lotId: "l-viejo", code: "VIEJO", expiresAt: "2026-10-07", daysLeft: -3, expired: true, stock: 6, costValue: 12 }),
             fila({ lotId: "l-hoy", code: "HOY", expiresAt: "2026-10-10", daysLeft: 0, stock: 4, unitCost: null, costValue: null, productName: "Jamón", productId: "p-jamon" }),
@@ -552,7 +552,7 @@ describe("la pantalla de caducidades", () => {
     });
 
     it("sin nada que enseñar lo dice", async () => {
-        estado.informe = { ...INFORME, data: [], meta: { ...INFORME.meta, total: 0 }, summary: { expiredUnits: 0, expiredCostValue: 0, expiringUnits: 0, expiringCostValue: 0, unitsWithoutCost: 0 } };
+        estado.informe = { ...INFORME, data: [], meta: { ...INFORME.meta, total: 0 }, summary: { expiredCount: 0, expiredUnits: 0, expiredCostValue: 0, expiringUnits: 0, expiringCostValue: 0, unitsWithoutCost: 0 } };
         renderWithProviders(<CaducidadesPage />);
 
         expect(await screen.findByText("Nada caducado ni por caducar en ese plazo.")).toBeInTheDocument();

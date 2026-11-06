@@ -22,7 +22,7 @@ import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { usePuede } from "@/modules/auth/hooks/usePuede";
-import type { RutaConPermiso } from "@/shared/contratos";
+import type { Rol, RutaConPermiso } from "@/shared/contratos";
 import { useSincronizarIdioma } from "@/modules/auth/hooks/useSincronizarIdioma";
 import { CampanaDeAvisos } from "@/modules/notifications/components/CampanaDeAvisos";
 import { useT } from "@/shared/hooks/useIdioma";
@@ -61,6 +61,8 @@ type EnlaceDeNav = {
      * no sabe decir eso.
      */
     permiso?: RutaConPermiso;
+    /** AUD-008 — el rol para el que este destino no existe: SELLER no tiene panel (entra en el mostrador). */
+    ocultoPara?: Rol;
 };
 
 /**
@@ -82,7 +84,7 @@ type GrupoDeNav = {
 type ElementoDeNav = EnlaceDeNav | GrupoDeNav;
 
 const NAVEGACION: ElementoDeNav[] = [
-    { kind: "link", to: "/", label: "ruta.dashboard", end: true, Icon: HomeIcon },
+    { kind: "link", to: "/", label: "ruta.dashboard", end: true, Icon: HomeIcon, ocultoPara: "SELLER" },
     // T6-08 — lo primero después del panel: es lo que abre a todas horas quien vende.
     { kind: "link", to: "/counter", label: "ruta.mostrador", end: false, Icon: BanknotesIcon, permiso: "POST /sale-orders/counter" },
     {
@@ -137,8 +139,10 @@ const NAVEGACION: ElementoDeNav[] = [
 ];
 
 /** El grupo de administración solo existe para quien lo es, y un enlace con permiso, para quien lo tiene. */
-const visibleDeNav = (elemento: ElementoDeNav, isAdmin: boolean, puede: (ruta: RutaConPermiso) => boolean) =>
-    elemento.kind === "group" ? !elemento.soloAdmin || isAdmin : !elemento.permiso || puede(elemento.permiso);
+const visibleDeNav = (elemento: ElementoDeNav, isAdmin: boolean, puede: (ruta: RutaConPermiso) => boolean, rol: Rol | undefined) =>
+    elemento.kind === "group"
+        ? !elemento.soloAdmin || isAdmin
+        : (!elemento.permiso || puede(elemento.permiso)) && (!elemento.ocultoPara || elemento.ocultoPara !== rol);
 
 function UserMenu({ name, email }: { name: string; email?: string }) {
     // T2-16: el cierre al pulsar fuera estaba duplicado con `NavDropdown` y ninguno de
@@ -253,10 +257,11 @@ const claseDeEnlaceDeNav = ({ isActive }: { isActive: boolean }) =>
 function ListaDeSecciones({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?: () => void }) {
     const { t } = useT();
     const puede = usePuede();
+    const { user } = useAuth();
 
     return (
         <div className="space-y-4">
-            {NAVEGACION.filter((elemento) => visibleDeNav(elemento, isAdmin, puede)).map((elemento) =>
+            {NAVEGACION.filter((elemento) => visibleDeNav(elemento, isAdmin, puede, user?.role)).map((elemento) =>
                 elemento.kind === "link" ? (
                     <div key={elemento.to} className="space-y-1">
                         <NavLink to={elemento.to} end={elemento.end} onClick={onNavigate} className={claseDeEnlaceDeNav}>

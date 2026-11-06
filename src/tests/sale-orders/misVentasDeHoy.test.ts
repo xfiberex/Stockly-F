@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react";
-import { diaDeHoy, useMisVentasDeHoy } from "@/modules/dashboard/hooks/useMisVentasDeHoy";
+import { diaDeHoy, useMisVentasDeHoy } from "@/modules/sale-orders/hooks/useMisVentasDeHoy";
 
 // AUD-008, paso 8 — el servidor filtra por autor (`createdByEmail`); el hook ya no. Antes pedía
 // las cien primeras del día de todos y se quedaba con las suyas: un día de más de cien ventas

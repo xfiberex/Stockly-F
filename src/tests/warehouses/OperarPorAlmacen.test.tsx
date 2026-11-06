@@ -36,6 +36,10 @@ const estado = vi.hoisted(() => ({
     conteos: [] as unknown[],
 }));
 
+vi.mock("@/modules/sale-orders/hooks/useMisVentasDeHoy", () => ({
+    useMisVentasDeHoy: () => ({ hoy: "2026-11-06", ventas: [], cantidad: 0, importe: 0, incompleto: false, cargando: false, error: null, reintentando: false }),
+}));
+
 vi.mock("@/modules/warehouses/api/warehouses.api", () => ({ getWarehouses: () => Promise.resolve(ALMACENES) }));
 vi.mock("@/modules/auth/hooks/useMe", () => ({ useAuth: () => ({ user: { id: "u1", name: "Sofía", role: "ADMIN" } }) }));
 vi.mock("@/modules/settings/hooks/useNegocio", () => ({ useNegocio: () => ({ data: { taxName: "ITBIS", taxRate: 0 } }) }));

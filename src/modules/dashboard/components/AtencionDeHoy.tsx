@@ -9,6 +9,7 @@ import {
     TruckIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "@/modules/auth/hooks/useMe";
+import { useReintentarFallidas } from "@/shared/hooks/useFalloDeCarga";
 import type { ReportSummary } from "@/modules/reports/types/reports.types";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Barra } from "@/shared/components/Esqueleto";
@@ -36,8 +37,13 @@ interface Fila {
     detalles: string[];
     recuento: Recuento;
     Icon: React.ElementType;
-    /** `peligro`: algo ya está mal (lotes caducados); `aviso`: hay que hacer algo. */
-    gravedad: "aviso" | "peligro";
+    /**
+     * AUD-008, crítica del 2026-11-06 — el color dice cuánto urge, no que hay algo:
+     * `peligro`, algo ya está mal (caducado, agotado); `aviso`, va a estarlo (stock bajo, por
+     * caducar); `cola`, trabajo normal del día (compras por recibir, ventas por enviar, conteos
+     * abiertos). Antes todo lo pendiente salía en ámbar y la única fila roja se perdía.
+     */
+    gravedad: "cola" | "aviso" | "peligro";
     accion: { texto: Clave; to: string };
 }
 
@@ -62,15 +68,21 @@ export function AtencionDeHoy({
     /** `null` mientras `/reports` no ha llegado. */
     lowStockProducts: ReportSummary["lowStockProducts"] | null;
 }) {
-    const { t, tn, idioma } = useT();
+    const { t, idioma } = useT();
     const { user } = useAuth();
-    const { caducidades, diasDeCaducidad, unidadesCaducadas, primerLote, conteos, compras, ventas } = useAtencionDeHoy(visibles);
+    const { caducidades, diasDeCaducidad, lotesCaducados, primerLote, conteos, compras, ventas } = useAtencionDeHoy(visibles);
 
+    // AUD-008, crítica del 2026-11-06 — cuántos de cada, en lotes como la cifra: antes el
+    // detalle hablaba de unidades («30 uds. ya caducadas») bajo una cifra de lotes.
     const detallesDeCaducidad: string[] = [];
-    if (diasDeCaducidad !== undefined) {
+    if (diasDeCaducidad !== undefined && caducidades.valor !== null) {
         detallesDeCaducidad.push(
-            unidadesCaducadas > 0
-                ? tn("dashboard.atencion.caducadas", unidadesCaducadas)
+            lotesCaducados > 0
+                ? t("dashboard.atencion.caducadosYPronto", {
+                      caducados: lotesCaducados,
+                      dias: diasDeCaducidad,
+                      pronto: caducidades.valor - lotesCaducados,
+                  })
                 : t("dashboard.atencion.plazo", { dias: diasDeCaducidad }),
         );
     }
@@ -79,7 +91,8 @@ export function AtencionDeHoy({
             t(primerLote.expired ? "dashboard.atencion.primerLoteCaducado" : "dashboard.atencion.primerLote", {
                 lote: primerLote.code,
                 producto: primerLote.productName,
-                fecha: formatearDia(idioma, primerLote.expiresAt),
+                // Sin cortes dentro de la fecha: a 390 px el año se quedaba solo en otra línea.
+                fecha: formatearDia(idioma, primerLote.expiresAt).replace(/ /g, " "),
             }),
         );
     }
@@ -92,11 +105,11 @@ export function AtencionDeHoy({
             recuento: stock,
             Icon: CubeIcon,
             gravedad: lowStockProducts?.some((p) => p.stock === 0) ? "peligro" : "aviso",
-            // La reposición sugerida es de ADMIN (`routes/index.tsx`); el resto ve los productos.
-            accion:
-                user?.role === "ADMIN"
-                    ? { texto: "dashboard.atencion.reponer", to: "/purchase-orders/suggestions" }
-                    : { texto: "dashboard.atencion.verProductos", to: DESTINOS.stockBajo },
+            // AUD-008, crítica del 2026-11-06 — la cifra lleva a lo que cuenta, también para
+            // ADMIN. Llevaba a la reposición sugerida, que no es la misma lista (sale de las
+            // salidas y del plazo, no del mínimo): «4» abría seis líneas distintas, a un clic de
+            // generar órdenes. La sugerencia queda debajo de «Reponer primero», dicha como tal.
+            accion: { texto: "dashboard.atencion.verProductos", to: DESTINOS.stockBajo },
         },
         {
             clave: "caducidades",
@@ -104,7 +117,7 @@ export function AtencionDeHoy({
             detalles: detallesDeCaducidad,
             recuento: caducidades,
             Icon: ClockIcon,
-            gravedad: unidadesCaducadas > 0 ? "peligro" : "aviso",
+            gravedad: lotesCaducados > 0 ? "peligro" : "aviso",
             accion: { texto: "dashboard.atencion.verCaducidades", to: DESTINOS.caducidades },
         },
         {
@@ -113,7 +126,7 @@ export function AtencionDeHoy({
             detalles: [],
             recuento: conteos,
             Icon: ClipboardDocumentCheckIcon,
-            gravedad: "aviso",
+            gravedad: "cola",
             accion: { texto: "dashboard.atencion.verConteos", to: DESTINOS.conteos },
         },
         {
@@ -122,7 +135,7 @@ export function AtencionDeHoy({
             detalles: [],
             recuento: compras,
             Icon: InboxArrowDownIcon,
-            gravedad: "aviso",
+            gravedad: "cola",
             accion: { texto: "dashboard.atencion.verCompras", to: DESTINOS.compras },
         },
         {
@@ -131,7 +144,7 @@ export function AtencionDeHoy({
             detalles: [],
             recuento: ventas,
             Icon: TruckIcon,
-            gravedad: "aviso",
+            gravedad: "cola",
             accion: { texto: "dashboard.atencion.verVentas", to: DESTINOS.ventas },
         },
     ];
@@ -142,6 +155,7 @@ export function AtencionDeHoy({
     const alDia = todoCargado && filas.every((f) => f.recuento.valor === 0);
     // Mientras carga se reserva la columna: si al llegar hay productos, no aparece de golpe.
     const conReposicion = visibles.includes("stock") && (lowStockProducts === null ? stock.cargando : lowStockProducts.length > 0);
+    const sugerencias = user?.role === "ADMIN" && lowStockProducts !== null;
 
     return (
         // Sin `shadow-raised` (AUD-008, paso 5): era la única tarjeta del panel con sombra. Lo
@@ -193,18 +207,30 @@ export function AtencionDeHoy({
                                                     ? t("dashboard.unidadesMinimo", { stock: p.stock, minimo: p.minStock })
                                                     : t("dashboard.sinMinimo", { stock: p.stock })}
                                             </span>
-                                            <EstadoBadge estado={NIVEL_STOCK[nivelDeStock(p.stock, p.minStock)]} />
+                                            {/* Que está bajo ya lo dice «Reponer primero»: solo se marca lo agotado. */}
+                                            {p.stock === 0 && <EstadoBadge estado={NIVEL_STOCK[nivelDeStock(p.stock, p.minStock)]} />}
                                         </span>
                                     </li>
                                 ))}
                             </ul>
                         )}
-                        {(stock.valor ?? 0) > PRODUCTOS_A_LA_VISTA && (
-                            <Link to={DESTINOS.stockBajo} className={CLASES_DE_ACCION}>
-                                {t("dashboard.atencion.verMas", { cantidad: (stock.valor ?? 0) - PRODUCTOS_A_LA_VISTA })}
-                                <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
-                            </Link>
-                        )}
+                        <div className="flex flex-wrap items-center gap-x-6">
+                            {(stock.valor ?? 0) > PRODUCTOS_A_LA_VISTA && (
+                                <Link to={DESTINOS.stockBajo} className={CLASES_DE_ACCION}>
+                                    {t("dashboard.atencion.verMas", { cantidad: (stock.valor ?? 0) - PRODUCTOS_A_LA_VISTA })}
+                                    <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
+                                </Link>
+                            )}
+                            {/* La reposición sugerida es de ADMIN (`routes/index.tsx`). Va aparte y
+                                dice de dónde sale, porque no es la lista de arriba. */}
+                            {sugerencias && (
+                                <Link to="/purchase-orders/suggestions" className={CLASES_DE_ACCION}>
+                                    {t("dashboard.atencion.reponer")}
+                                    <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
+                                </Link>
+                            )}
+                        </div>
+                        {sugerencias && <p className="text-xs text-foreground-muted">{t("dashboard.atencion.reponer.ayuda")}</p>}
                     </div>
                 )}
             </div>
@@ -214,10 +240,20 @@ export function AtencionDeHoy({
 
 function FilaDeAtencion({ fila }: { fila: Fila }) {
     const { t } = useT();
+    const reintentar = useReintentarFallidas();
     const { valor, cargando, error } = fila.recuento;
     const pendiente = valor !== null && valor > 0;
+    const cola = pendiente && fila.gravedad === "cola";
     // AUD-008, paso 10 — «no disponible» en tono de aviso: en gris se leía como una fila a cero.
-    const color = error ? "text-warning" : !pendiente ? "text-foreground-muted" : fila.gravedad === "peligro" ? "text-danger" : "text-warning";
+    const color = error
+        ? "text-warning"
+        : !pendiente
+          ? "text-foreground-muted"
+          : fila.gravedad === "peligro"
+            ? "text-danger"
+            : fila.gravedad === "aviso"
+              ? "text-warning"
+              : "text-foreground";
     const Icon = valor === 0 ? CheckCircleIcon : fila.Icon;
     const detalles = error ? [t("dashboard.atencion.noDisponible")] : pendiente ? fila.detalles : [];
 
@@ -226,7 +262,8 @@ function FilaDeAtencion({ fila }: { fila: Fila }) {
         // frase («4 · Productos con stock bajo»). AUD-008, paso 9: la cifra es lo más grande
         // del panel —es lo que pide actuar—, por encima de los recuentos y los importes.
         <li className="relative flex min-h-11 items-center gap-3 py-2 first:pt-0 last:pb-0">
-            <Icon className={cn("h-5 w-5 shrink-0", color)} aria-hidden="true" />
+            {/* Una cola no es una alerta: su icono no se colorea. */}
+            <Icon className={cn("h-5 w-5 shrink-0", cola ? "text-foreground-muted" : color)} aria-hidden="true" />
             <span className={cn("w-10 shrink-0 text-right text-2xl font-semibold tabular-nums", color)}>
                 {cargando ? (
                     <Barra className="ml-auto h-5 w-7" />
@@ -237,11 +274,14 @@ function FilaDeAtencion({ fila }: { fila: Fila }) {
                 )}
             </span>
             <div className="min-w-0 flex-1">
-                <p className={cn("text-sm", pendiente ? "font-medium text-foreground" : "text-foreground-muted")}>
+                {/* Mientras carga, la etiqueta no se atenúa: atenuada se leía como «nada pendiente». */}
+                <p className={cn("text-sm", pendiente ? "font-medium text-foreground" : cargando ? "text-foreground" : "text-foreground-muted")}>
                     {t(fila.etiqueta)}
                 </p>
-                {detalles.map((detalle) => (
-                    <p key={detalle} className={cn("text-xs", color)}>
+                {/* 14 px, no 12: en el almacén se lee de pie y con el brazo extendido. */}
+                {/* La primera línea dice lo urgente y lleva el color; las demás, el detalle. */}
+                {detalles.map((detalle, i) => (
+                    <p key={detalle} className={cn("text-sm", cola || i > 0 ? "text-foreground-muted" : color)}>
                         {detalle}
                     </p>
                 ))}
@@ -251,7 +291,12 @@ function FilaDeAtencion({ fila }: { fila: Fila }) {
                 empieza por lo que se ve en la fila (WCAG 2.5.3), y desde `sm` se ve también la
                 acción. Sin acción, un hueco de la misma altura: la fila no crece al llegar la
                 cifra (AUD-008, paso 8). */}
-            {pendiente ? (
+            {error ? (
+                // La fila que no cargó se reintenta desde ella misma, no desde un aviso lejano.
+                <button type="button" onClick={reintentar} className={CLASES_DE_ACCION}>
+                    <span className="sr-only">{`${t(fila.etiqueta)}:`}</span> {t("errorDeCarga.reintentar")}
+                </button>
+            ) : pendiente ? (
                 <Link to={fila.accion.to} className={cn(CLASES_DE_ACCION, "after:absolute after:inset-0 sm:after:hidden")}>
                     <span className="sr-only">{`${valor} ${t(fila.etiqueta)}:`}</span>{" "}
                     <span className="sr-only sm:not-sr-only">{t(fila.accion.texto)}</span>

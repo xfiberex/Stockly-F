@@ -90,12 +90,12 @@ describe("Orden de la navegación (T3-04, T4-10)", () => {
         );
     });
 
-    it("un SELLER ve el mostrador y no el grupo de administración; el almacén, ninguno de los dos (T6-08)", () => {
+    it("un SELLER ve el mostrador, y ni el panel ni el grupo de administración; el almacén, ninguno de los dos (T6-08, AUD-008)", () => {
         rol = "SELLER";
         const { unmount } = renderWithProviders(layout());
 
         const delVendedor = recorrido(barraLateral());
-        expect(delVendedor).toEqual(RECORRIDO_ADMIN.filter((rotulo) => !["Admin", "Usuarios", "Auditoría", "Configuración"].includes(rotulo)));
+        expect(delVendedor).toEqual(RECORRIDO_ADMIN.filter((rotulo) => !["Panel", "Admin", "Usuarios", "Auditoría", "Configuración"].includes(rotulo)));
         expect(within(barraLateral()).getByRole("link", { name: "Mostrador" })).toHaveAttribute("href", "/counter");
         unmount();
 

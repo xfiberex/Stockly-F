@@ -33,6 +33,10 @@ const estado = vi.hoisted(() => ({
 let rol: Rol = "SELLER";
 let negocio = { taxName: "ITBIS", taxRate: 0 };
 
+vi.mock("@/modules/sale-orders/hooks/useMisVentasDeHoy", () => ({
+    useMisVentasDeHoy: () => ({ hoy: "2026-11-06", ventas: [], cantidad: 0, importe: 0, incompleto: false, cargando: false, error: null, reintentando: false }),
+}));
+
 vi.mock("@/shared/api/descargar", () => ({ descargarDeLaApi: estado.descargarDeLaApi }));
 
 vi.mock("@/modules/sale-orders/hooks/useSaleOrders", () => ({

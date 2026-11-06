@@ -2,6 +2,8 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/tests/utils";
 import DashboardPage from "@/modules/dashboard/components/DashboardPage";
+import { MisVentasDeHoy } from "@/modules/sale-orders/components/MisVentasDeHoy";
+import { Route, Routes } from "react-router-dom";
 import ReportsPage from "@/modules/reports/components/ReportsPage";
 import type { ReportSummary } from "@/modules/reports/types/reports.types";
 import { formatearDia } from "@/shared/lib/fechas";
@@ -126,7 +128,7 @@ const listo = (valor: number | null) => ({ valor, cargando: false, error: false 
 const ATENCION = {
     caducidades: listo(3),
     diasDeCaducidad: 30,
-    unidadesCaducadas: 0,
+    lotesCaducados: 0,
     primerLote: undefined as undefined | { code: string; productName: string; expiresAt: string; expired: boolean },
     conteos: listo(1),
     compras: listo(0),
@@ -152,7 +154,7 @@ vi.mock("@/modules/dashboard/hooks/useAtencionDeHoy", () => ({
 vi.mock("@/modules/auth/hooks/useMe", () => ({
     useAuth: () => ({ user: { role: rol, email: "vende@stockly.app" }, isLoading: false, isError: false }),
 }));
-vi.mock("@/modules/dashboard/hooks/useMisVentasDeHoy", () => ({
+vi.mock("@/modules/sale-orders/hooks/useMisVentasDeHoy", () => ({
     useMisVentasDeHoy: () => misVentas,
 }));
 
@@ -270,7 +272,7 @@ describe("DashboardPage (T2-21)", () => {
         expect(screen.getByText("Categorías").closest("a")).toHaveAttribute("href", "/catalog/categories");
     });
 
-    it("«Reponer primero» lista los productos afectados con su nivel de stock", () => {
+    it("«Reponer primero» lista los productos afectados y marca los agotados", () => {
         renderWithProviders(<DashboardPage />);
 
         expect(screen.getByRole("heading", { name: "Reponer primero" })).toBeInTheDocument();
@@ -278,7 +280,8 @@ describe("DashboardPage (T2-21)", () => {
         expect(teclado).toHaveAttribute("href", "/catalog/products/p3/movements");
         // El nivel va con el descriptor de `estados.ts`: agotado no es un «bajo» más.
         const fila = (nombre: RegExp) => screen.getByRole("link", { name: nombre }).closest("li")!;
-        expect(within(fila(/Teclado Logitech/)).getByText("Bajo")).toBeInTheDocument();
+        // Que está bajo ya lo dice el título: solo se marca lo agotado (crítica del 2026-11-06).
+        expect(within(fila(/Teclado Logitech/)).queryByText("Bajo")).not.toBeInTheDocument();
         expect(within(fila(/Monitor LG/)).getByText("Agotado")).toBeInTheDocument();
     });
 
@@ -431,8 +434,12 @@ describe("DashboardPage — necesita atención", () => {
     it("cada fila con algo pendiente lleva su cifra y su acción", () => {
         renderWithProviders(<DashboardPage />);
 
-        expect(within(fila("Productos con stock bajo o agotado")).getByRole("link", { name: /Generar reposición/ }))
-            .toHaveAttribute("href", "/purchase-orders/suggestions");
+        expect(within(fila("Productos con stock bajo o agotado")).getByRole("link", { name: /Ver productos/ }))
+            .toHaveAttribute("href", "/catalog/products?aviso=stockBajo");
+        // AUD-008, crítica del 2026-11-06 — la reposición sugerida no es la lista que cuenta la
+        // cifra: va aparte, bajo «Reponer primero», y dice de dónde sale.
+        expect(screen.getByRole("link", { name: /Ver reposición sugerida/ })).toHaveAttribute("href", "/purchase-orders/suggestions");
+        expect(screen.getByText(/puede incluir productos que aún no están bajo mínimo/)).toBeInTheDocument();
         expect(within(fila("Lotes caducados o por caducar")).getByText("3")).toBeInTheDocument();
         expect(within(fila("Lotes caducados o por caducar")).getByText("En los próximos 30 días")).toBeInTheDocument();
         expect(within(fila("Lotes caducados o por caducar")).getByRole("link", { name: /Ver caducidades/ }))
@@ -484,18 +491,21 @@ describe("DashboardPage — necesita atención", () => {
             .toHaveAttribute("href", "/catalog/products?aviso=stockBajo");
     });
 
-    it("con unidades ya caducadas lo dice en la fila", () => {
-        atencion = { ...atencion, unidadesCaducadas: 12 };
+    it("con lotes ya caducados dice cuántos de cada (AUD-008, crítica del 2026-11-06)", () => {
+        atencion = { ...atencion, lotesCaducados: 2 };
         renderWithProviders(<DashboardPage />);
 
-        expect(within(fila("Lotes caducados o por caducar")).getByText("12 uds. ya caducadas")).toBeInTheDocument();
+        expect(within(fila("Lotes caducados o por caducar")).getByText("Caducados: 2 · en los próximos 30 días: 1")).toBeInTheDocument();
     });
 
-    it("si una cifra no se pudo pedir, la fila lo dice en lugar de inventar un cero", () => {
+    it("si una cifra no se pudo pedir, la fila lo dice en lugar de inventar un cero", async () => {
         atencion = { ...atencion, ventas: { valor: null, cargando: false, error: true } };
         renderWithProviders(<DashboardPage />);
 
         expect(within(fila("Ventas por enviar")).getByText("No disponible")).toBeInTheDocument();
+        // Y se reintenta desde la propia fila (AUD-008, crítica del 2026-11-06).
+        await userEvent.click(within(fila("Ventas por enviar")).getByRole("button", { name: /Reintentar/ }));
+        expect(reintentar).toHaveBeenCalled();
         expect(within(fila("Ventas por enviar")).queryByText("0")).not.toBeInTheDocument();
         // En tono de aviso: en gris se leía como una fila a cero.
         expect(within(fila("Ventas por enviar")).getByText("No disponible")).toHaveClass("text-warning");
@@ -562,16 +572,18 @@ describe("DashboardPage — un panel por rol", () => {
         expect(screen.queryByText("Total de productos")).not.toBeInTheDocument();
     });
 
-    it("WAREHOUSE abre con sus acciones, la primera escanear (AUD-008)", () => {
+    it("WAREHOUSE tiene sus acciones, la primera escanear (AUD-008)", () => {
         rol = "WAREHOUSE";
         renderWithProviders(<DashboardPage />);
 
         const almacen = screen.getByRole("region", { name: "En el almacén" });
         expect(within(almacen).getByRole("link", { name: "Escanear un producto" })).toHaveAttribute("href", "/catalog/products?escanear=1");
-        expect(within(almacen).getByRole("link", { name: "Recibir compras" })).toHaveAttribute("href", "/purchase-orders?estado=porRecibir");
-        // Antes que «Necesita atención».
+        // Sin accesos que repiten una fila de «Necesita atención».
+        expect(within(almacen).queryByRole("link", { name: "Recibir compras" })).not.toBeInTheDocument();
+        expect(within(almacen).getByRole("link", { name: "Transferencias" })).toHaveAttribute("href", "/stock-transfers");
+        // Después de «Necesita atención»: lo pendiente primero (crítica del 2026-11-06).
         const atencionDeHoy = screen.getByRole("heading", { name: "Necesita atención" });
-        expect(almacen.compareDocumentPosition(atencionDeHoy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(almacen.compareDocumentPosition(atencionDeHoy) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     });
 
     it("el orden de las filas es fijo, sea cual sea el rol", () => {
@@ -593,18 +605,22 @@ describe("DashboardPage — un panel por rol", () => {
             misVentas = SIN_VENTAS;
         });
 
-        it("tiene su propio panel: el mostrador a un clic y ningún importe del negocio", () => {
-            renderWithProviders(<DashboardPage />);
+        it("no tiene panel: entra directamente en el mostrador (AUD-008, crítica del 2026-11-06)", () => {
+            renderWithProviders(
+                <Routes>
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/counter" element={<p>Pantalla del mostrador</p>} />
+                </Routes>,
+            );
 
-            expect(screen.getByRole("link", { name: "Ir al mostrador" })).toHaveAttribute("href", "/counter");
+            expect(screen.getByText("Pantalla del mostrador")).toBeInTheDocument();
             expect(screen.queryByText("Necesita atención")).not.toBeInTheDocument();
             expect(screen.queryByText("Margen potencial")).not.toBeInTheDocument();
-            expect(screen.queryByText("Total de productos")).not.toBeInTheDocument();
         });
 
         it("si sus ventas no se cargan, lo dice y deja reintentar", async () => {
             misVentas = { ...SIN_VENTAS, error: new Error("red") };
-            renderWithProviders(<DashboardPage />);
+            renderWithProviders(<MisVentasDeHoy email="vende@stockly.app" />);
 
             expect(screen.getByRole("alert")).toHaveTextContent("No se pudieron cargar tus ventas de hoy");
             await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
@@ -612,7 +628,7 @@ describe("DashboardPage — un panel por rol", () => {
         });
 
         it("sin ventas hoy lo dice", () => {
-            renderWithProviders(<DashboardPage />);
+            renderWithProviders(<MisVentasDeHoy email="vende@stockly.app" />);
 
             expect(screen.getByText("Todavía no has registrado ninguna venta hoy.")).toBeInTheDocument();
         });
@@ -627,7 +643,7 @@ describe("DashboardPage — un panel por rol", () => {
                 cantidad: 1,
                 importe: 349,
             };
-            renderWithProviders(<DashboardPage />);
+            renderWithProviders(<MisVentasDeHoy email="vende@stockly.app" />);
 
             expect(screen.getByText("1 venta · $349.00")).toBeInTheDocument();
             const fila = (n: RegExp) => screen.getByText(n).closest("li")!;
@@ -640,7 +656,7 @@ describe("DashboardPage — un panel por rol", () => {
         });
 
         it("«Verlas en Ventas» abre la lista con sus ventas de hoy (AUD-008)", () => {
-            renderWithProviders(<DashboardPage />);
+            renderWithProviders(<MisVentasDeHoy email="vende@stockly.app" />);
 
             expect(screen.getByRole("link", { name: /Verlas en Ventas/ })).toHaveAttribute(
                 "href",
@@ -656,7 +672,7 @@ describe("DashboardPage — un panel por rol", () => {
                 importe: 1,
                 incompleto: true,
             };
-            renderWithProviders(<DashboardPage />);
+            renderWithProviders(<MisVentasDeHoy email="vende@stockly.app" />);
 
             expect(screen.getByText(/El resumen cuenta tus primeras 1 ventas de hoy/)).toBeInTheDocument();
         });
@@ -799,7 +815,7 @@ describe("DashboardPage — ventas de la semana (T6-09)", () => {
         ]);
     });
 
-    it("sin ventas en la semana lo dice, y siguen saliendo sus siete días", () => {
+    it("sin ventas en la semana lo dice con una frase, sin un gráfico de barras a cero (AUD-008)", () => {
         resumen = {
             ...RESUMEN,
             salesByDay: RESUMEN.salesByDay.map((d) => ({ ...d, orders: 0, revenue: 0 })),
@@ -807,8 +823,9 @@ describe("DashboardPage — ventas de la semana (T6-09)", () => {
         };
         renderWithProviders(<DashboardPage />);
 
-        expect(screen.getByText("0 ventas enviadas · $0.00")).toBeInTheDocument();
-        expect(screen.getByText("Ninguna venta enviada en estos siete días.")).toBeInTheDocument();
-        expect(diasDeVentas()).toHaveLength(7);
+        expect(screen.queryByText("0 ventas enviadas · $0.00")).not.toBeInTheDocument();
+        // Una en el gráfico y otra en «Más vendidos».
+        expect(screen.getAllByText("Ninguna venta enviada en estos siete días.")).toHaveLength(2);
+        expect(screen.queryByRole("list", { name: "Ventas enviadas por día" })).not.toBeInTheDocument();
     });
 });

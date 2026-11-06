@@ -51,7 +51,7 @@ export function useAtencionDeHoy(filas: readonly FilaDeAtencion[]) {
     return {
         caducidades: recuento(caducidades.data?.meta.total, caducidades.isLoading, caducidades.isError),
         diasDeCaducidad: caducidades.data?.days,
-        unidadesCaducadas: caducidades.data?.summary.expiredUnits ?? 0,
+        lotesCaducados: caducidades.isError ? 0 : (caducidades.data?.summary.expiredCount ?? 0),
         // AUD-008 — el lote que antes caduca (el informe los ordena por fecha), con su nombre:
         // la campana decía «lote L-20261030 de Yogur natural» y el panel solo «8».
         primerLote: caducidades.isError ? undefined : caducidades.data?.data[0],

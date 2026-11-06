@@ -14,6 +14,8 @@ import { BuscadorDeProducto } from "@/modules/products/components/BuscadorDeProd
 import { useBuscarPorCodigo } from "@/modules/products/hooks/useBuscarPorCodigo";
 import type { ProductWithAvailability } from "@/modules/products/types/product.types";
 import { BotonDeComprobante } from "@/modules/sale-orders/components/BotonDeComprobante";
+import { MisVentasDeHoy } from "@/modules/sale-orders/components/MisVentasDeHoy";
+import { useAuth } from "@/modules/auth/hooks/useMe";
 import { useVentaDeMostrador } from "@/modules/sale-orders/hooks/useSaleOrders";
 import type { SaleOrder } from "@/modules/sale-orders/types/sale-orders.types";
 import { useNegocio } from "@/modules/settings/hooks/useNegocio";
@@ -67,6 +69,7 @@ export default function MostradorPage() {
     const { t } = useT();
     const { data: negocio } = useNegocio();
     const vender = useVentaDeMostrador();
+    const { user } = useAuth();
 
     const [lineas, setLineas] = useState<Linea[]>([]);
     const [cliente, setCliente] = useState<CustomerListItem | null>(null);
@@ -305,6 +308,9 @@ export default function MostradorPage() {
             <Button type="button" className="w-full" disabled={!sePuedeVender} isLoading={vender.isPending} onClick={registrar}>
                 {t("mostrador.registrar")}
             </Button>
+
+            {/* AUD-008 — SELLER entra aquí (ya no tiene panel): lo suyo del día, debajo de la venta. */}
+            <MisVentasDeHoy email={user?.email} />
 
             <EscanerModal isOpen={escaneando} onClose={() => setEscaneando(false)} onCodigo={alEscanear} />
         </div>

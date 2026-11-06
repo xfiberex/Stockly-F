@@ -1,9 +1,24 @@
+import axios from "axios";
 import { ExclamationTriangleIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/components/Button";
 import { Spinner } from "@/shared/components/Spinner";
 import { useT } from "@/shared/hooks/useIdioma";
+import type { Idioma } from "@/shared/i18n/idioma";
+import { traducir } from "@/shared/i18n/traducir";
 import { mensajeDeError } from "@/shared/lib/errorApi";
 import { cn } from "@/shared/lib/cn";
+
+/**
+ * AUD-008, crítica del 2026-11-06 — por qué no cargó, dicho para quien usa la pantalla. Un
+ * fallo del servidor (5xx) o una ruta que no existe (404) no es algo que el usuario pueda
+ * arreglar, y su texto era técnico: el aviso llegó a leer en voz alta «Ruta no encontrada:
+ * GET /api/v1/…». El resto —sin conexión, sin permiso— sí dice algo útil y se queda.
+ */
+function motivoDeFallo(idioma: Idioma, error: unknown): string {
+    const estado = axios.isAxiosError(error) ? error.response?.status : undefined;
+    if (estado !== undefined && (estado >= 500 || estado === 404)) return traducir(idioma, "errorDeCarga.servidor");
+    return mensajeDeError(idioma, error);
+}
 
 /**
  * Lo que se pinta cuando una consulta falla y no hay nada que enseñar. Dice qué no se cargó,
@@ -35,7 +50,7 @@ export function ErrorDeCarga({
             <ExclamationTriangleIcon className="h-6 w-6 shrink-0 text-danger" aria-hidden="true" />
             <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-foreground">{titulo}</p>
-                <p className="text-sm text-foreground-muted">{mensajeDeError(idioma, error)}</p>
+                <p className="text-sm text-foreground-muted">{motivoDeFallo(idioma, error)}</p>
             </div>
             {/* AUD-008, paso 8: mientras reintenta no se desactiva (`isLoading` lo haría): un
                 botón desactivado con el foco dentro lo suelta en `<body>`, y quien usa teclado o
