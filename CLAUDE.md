@@ -41,6 +41,11 @@ pnpm test:e2e:full    # Playwright, en chromium y Mobile Chrome
 
 ## Reglas
 
+- **Se trabaja en `main`, en los dos repositorios, sin ramas de tarea.** El agente deja los
+  cambios **sin commitear** y entrega solo el texto del commit (Conventional Commits, en español,
+  `Stockly-B/CONTRIBUTING.md`). El propietario hace el commit y el push y mira
+  terminar los workflows; si están en verde, se sigue con la siguiente tarea. Ni commit, ni push,
+  ni fusionar o borrar ramas salvo que lo pida de forma explícita.
 - **pnpm 12.4.1**, fijado en `packageManager` y en el `Dockerfile`. No usar npm ni yarn.
 - **Comentarios y documentación en español.**
 - **Nunca una contraseña real en `e2e/`**: está versionado. Sus credenciales salen del seed del
