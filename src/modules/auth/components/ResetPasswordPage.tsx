@@ -1,15 +1,16 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSearchParams } from "react-router-dom";
-import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
+import { codigoDeError, mensajeDeError } from "@/shared/lib/errorApi";
 import { resetPasswordSchema, type ResetPasswordForm } from "@/modules/auth/schemas/auth.schema";
 import { useResetPassword } from "@/modules/auth/hooks/useResetPassword";
-import { CLASES_MARCO_CENTRADO } from "@/shared/lib/clasesDeMarco";
+import { AvisoDeAcceso, CampoDeContrasena, MarcoDeAcceso } from "@/modules/auth/components/MarcoDeAcceso";
+import { EnlaceCaducado } from "@/modules/auth/components/EnlaceCaducado";
 
 export default function ResetPasswordPage() {
-    const { t, te } = useT();
+    const { t, te, idioma } = useT();
     const [params] = useSearchParams();
     const token = params.get("token") ?? "";
     // T6-10 — el enlace de una invitación llega aquí con `invitacion=1`. Quien lo abre no ha
@@ -21,46 +22,49 @@ export default function ResetPasswordPage() {
         resolver: zodResolver(resetPasswordSchema),
     });
 
-    if (!token) {
-        return (
-            <main className={CLASES_MARCO_CENTRADO}>
-                <p className="text-danger">{t("auth.restablecer.sinToken")}</p>
-            </main>
+    // AUD-014 — sin enlace, o con uno que el servidor ya no acepta, no hay formulario que valga:
+    // la tarjeta lo dice y lleva a pedir otro. Una invitación caducada no se pide desde aquí
+    // (la reenvía un administrador), así que su salida es otra.
+    if (!token || codigoDeError(reset.error) === "INVALID_OR_EXPIRED_TOKEN") {
+        return invitacion ? (
+            <EnlaceCaducado pedirOtro="/auth/login" textoPedirOtro={t("auth.volverAlLogin")} explicacion={t("auth.enlace.invitacion")} />
+        ) : (
+            <EnlaceCaducado pedirOtro="/auth/forgot-password" textoPedirOtro={t("auth.enlace.pedirRestablecer")} explicacion={t("auth.enlace.restablecer")} />
         );
     }
 
     return (
-        <main className={CLASES_MARCO_CENTRADO}>
-            <div className="w-full max-w-sm bg-surface rounded-xl border border-border shadow-raised p-8 space-y-6">
-                <div className="text-center">
-                    <h1 className="text-xl font-bold text-foreground">{t(invitacion ? "auth.invitacion.titulo" : "ruta.nuevaContrasena")}</h1>
-                    <p className="text-sm text-foreground-muted mt-1">{t(invitacion ? "auth.invitacion.subtitulo" : "auth.restablecer.subtitulo")}</p>
-                </div>
+        <MarcoDeAcceso
+            titulo={t(invitacion ? "auth.invitacion.titulo" : "ruta.nuevaContrasena")}
+            subtitulo={t(invitacion ? "auth.invitacion.subtitulo" : "auth.restablecer.subtitulo")}
+        >
+            {reset.isError && (
+                <AvisoDeAcceso>
+                    <p>{mensajeDeError(idioma, reset.error)}</p>
+                </AvisoDeAcceso>
+            )}
 
-                <form onSubmit={handleSubmit((data) => reset.mutate(data))} className="space-y-4">
-                    <Input
-                        id="password"
-                        label={t("auth.campo.nuevaContrasena")}
-                        type="password"
-                        autoComplete="new-password"
-                        placeholder={t("auth.ejemplo.minimo")}
-                        error={te(errors.password?.message)}
-                        {...register("password")}
-                    />
-                    <Input
-                        id="passwordConfirmation"
-                        label={t("auth.campo.confirmar")}
-                        type="password"
-                        autoComplete="new-password"
-                        placeholder={t("auth.ejemplo.repite")}
-                        error={te(errors.passwordConfirmation?.message)}
-                        {...register("passwordConfirmation")}
-                    />
-                    <Button type="submit" className="w-full" isLoading={reset.isPending}>
-                        {t(invitacion ? "auth.invitacion.boton" : "auth.restablecer.boton")}
-                    </Button>
-                </form>
-            </div>
-        </main>
+            <form noValidate onSubmit={handleSubmit((data) => reset.mutate(data))} className="space-y-4">
+                <CampoDeContrasena
+                    id="password"
+                    label={t("auth.campo.nuevaContrasena")}
+                    autoComplete="new-password"
+                    autoFocus
+                    ayuda={t("auth.ejemplo.minimo")}
+                    error={te(errors.password?.message)}
+                    {...register("password")}
+                />
+                <CampoDeContrasena
+                    id="passwordConfirmation"
+                    label={t("auth.campo.confirmar")}
+                    autoComplete="new-password"
+                    error={te(errors.passwordConfirmation?.message)}
+                    {...register("passwordConfirmation")}
+                />
+                <Button type="submit" className="w-full" isLoading={reset.isPending}>
+                    {t(invitacion ? "auth.invitacion.boton" : "auth.restablecer.boton")}
+                </Button>
+            </form>
+        </MarcoDeAcceso>
     );
 }

@@ -21,7 +21,8 @@ export const AuthAPI = {
     },
 
     verifyEmail: async (token: string) => {
-        const { data } = await api.post<{ message: string }>("/auth/verify-email", { token });
+        // AUD-014 — `data` dice si ya estaba confirmada y si falta la aprobación; opcional por si responde un backend anterior.
+        const { data } = await api.post<{ message: string; data?: { alreadyVerified: boolean; pendingApproval: boolean } }>("/auth/verify-email", { token });
         return data;
     },
 

@@ -24,7 +24,7 @@ export const API_URL = process.env.E2E_API_URL ?? "http://localhost:3000";
 export async function login(page: Page, cuenta: { email: string; password: string; inicio?: string } = { email: EMAIL, password: PASSWORD }): Promise<void> {
     await page.goto("/auth/login");
     await page.getByLabel("Correo electrónico").fill(cuenta.email);
-    await page.getByLabel("Contraseña").fill(cuenta.password);
+    await page.getByLabel("Contraseña", { exact: true }).fill(cuenta.password);
     await page.getByRole("button", { name: "Entrar" }).click();
     await expect(page.getByRole("heading", { name: cuenta.inicio ?? "Panel", level: 1 })).toBeVisible();
 }

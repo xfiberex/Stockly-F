@@ -40,3 +40,12 @@ export function mensajeDeError(idioma: Idioma, error: unknown, respaldo: Clave =
 
     return traducir(idioma, respaldo);
 }
+
+/**
+ * AUD-014 — el `code` de la respuesta de error, para las pantallas que tienen que cambiar de
+ * forma según lo que pasó (un enlace caducado no se pinta como un error más del formulario).
+ */
+export function codigoDeError(error: unknown): string | undefined {
+    if (!axios.isAxiosError(error)) return undefined;
+    return (error.response?.data as Partial<RespuestaDeError> | undefined)?.code;
+}

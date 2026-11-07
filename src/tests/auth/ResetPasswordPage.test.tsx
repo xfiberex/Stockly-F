@@ -50,7 +50,9 @@ describe("ResetPasswordPage", () => {
     it("sin token no hay formulario, venga de donde venga", () => {
         renderWithProviders(<ResetPasswordPage />, { initialRoute: "/auth/reset-password?invitacion=1" });
 
-        expect(screen.getByText("Token inválido. Solicita un nuevo enlace.")).toBeInTheDocument();
+        // AUD-014 — la tarjeta de enlace caducado; una invitación no se pide aquí, la reenvía un administrador.
+        expect(screen.getByRole("heading", { name: "Este enlace ya no sirve", level: 1 })).toBeInTheDocument();
+        expect(screen.getByText(/Pide a un administrador que te invite de nuevo/)).toBeInTheDocument();
         expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
 });

@@ -24,7 +24,9 @@ describe("RegisterPage", () => {
         expect(screen.getByRole("heading", { name: /crear cuenta/i })).toBeInTheDocument();
         expect(screen.getByLabelText(/nombre/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/correo/i)).toBeInTheDocument();
-        expect(screen.getAllByLabelText(/contraseña/i)).toHaveLength(2);
+        // AUD-014 — etiquetas exactas: «Mostrar la contraseña» también lleva la palabra.
+        expect(screen.getByLabelText("Contraseña")).toBeInTheDocument();
+        expect(screen.getByLabelText("Confirmar contraseña")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /crear cuenta/i })).toBeInTheDocument();
     });
 

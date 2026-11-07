@@ -23,7 +23,7 @@ describe("LoginPage", () => {
         renderWithProviders(<LoginPage />);
         expect(screen.getByRole("heading", { name: /iniciar sesión/i })).toBeInTheDocument();
         expect(screen.getByLabelText(/correo/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
+        expect(screen.getByLabelText("Contraseña")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /entrar/i })).toBeInTheDocument();
     });
 
@@ -58,7 +58,7 @@ describe("LoginPage", () => {
         const user = userEvent.setup();
         renderWithProviders(<LoginPage />);
         await user.type(screen.getByLabelText(/correo/i), "usuario@ejemplo.com");
-        await user.type(screen.getByLabelText(/contraseña/i), "miContraseña");
+        await user.type(screen.getByLabelText("Contraseña"), "miContraseña");
         await user.click(screen.getByRole("button", { name: /entrar/i }));
         await waitFor(() => {
             expect(mockMutate).toHaveBeenCalledWith({

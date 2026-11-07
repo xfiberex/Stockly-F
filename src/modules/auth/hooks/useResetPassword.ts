@@ -3,13 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
 import { useT } from "@/shared/hooks/useIdioma";
-import { mensajeDeError } from "@/shared/lib/errorApi";
 import type { ResetPasswordForm } from "@/modules/auth/schemas/auth.schema";
 
-/** `invitacion` (T6-10) solo cambia el aviso: la petición es la misma. */
+/**
+ * `invitacion` (T6-10) solo cambia el aviso: la petición es la misma. AUD-014 — el error lo pinta
+ * la pantalla: un enlace caducado cambia la tarjeta entera a «Este enlace ya no sirve».
+ */
 export function useResetPassword(token: string, invitacion = false) {
     const navigate = useNavigate();
-    const { t, idioma } = useT();
+    const { t } = useT();
 
     return useMutation({
         mutationFn: (form: ResetPasswordForm) => AuthAPI.resetPassword(token, form.password),
@@ -17,6 +19,5 @@ export function useResetPassword(token: string, invitacion = false) {
             toast.success(t(invitacion ? "auth.invitacion.hecho" : "auth.restablecer.hecho"));
             navigate("/auth/login");
         },
-        onError: (error) => toast.error(mensajeDeError(idioma, error)),
     });
 }

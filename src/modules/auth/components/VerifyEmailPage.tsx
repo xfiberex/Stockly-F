@@ -1,73 +1,101 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import { Spinner } from "@/shared/components/Spinner";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
 import { useT } from "@/shared/hooks/useIdioma";
-import { mensajeDeError } from "@/shared/lib/errorApi";
-import { CLASES_MARCO_CENTRADO_COLUMNA } from "@/shared/lib/clasesDeMarco";
+import { codigoDeError, mensajeDeError } from "@/shared/lib/errorApi";
+import { cn } from "@/shared/lib/cn";
+import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
+import { AvisoDeAcceso, MarcoDeAcceso } from "@/modules/auth/components/MarcoDeAcceso";
+import { EnlaceCaducado } from "@/modules/auth/components/EnlaceCaducado";
 
+type Estado =
+    | { tipo: "cargando" }
+    | { tipo: "hecho"; yaConfirmada: boolean; esperaAprobacion: boolean }
+    | { tipo: "caducado" }
+    | { tipo: "error"; error: unknown };
+
+/**
+ * Confirmar la cuenta desde el enlace del correo.
+ *
+ * AUD-014 — abrir el enlace por segunda vez ya no es un error: el servidor dice que la cuenta
+ * estaba confirmada y si falta la aprobación de un administrador, y la pantalla dice eso. Antes
+ * «ya verificada» se pintaba en rojo como un enlace inválido. Sin enlace, o caducado, la misma
+ * tarjeta que en restablecer, con un único siguiente paso.
+ */
 export default function VerifyEmailPage() {
     const { t, idioma } = useT();
     const [params] = useSearchParams();
     const token = params.get("token") ?? "";
-    const [status, setStatus] = useState<"loading" | "success" | "error">(
-        token ? "loading" : "error"
-    );
-    // Solo se guarda el motivo que **viene de la API**, ya resuelto por `mensajeDeError`.
-    // El caso de «no hay token» no se guarda: es una condición, no un mensaje, y se
-    // traduce al pintar para que siga al idioma si se cambia con la página delante.
-    const [motivo, setMotivo] = useState("");
+    const [estado, setEstado] = useState<Estado>(token ? { tipo: "cargando" } : { tipo: "caducado" });
 
     useEffect(() => {
         if (!token) return;
-
-        // Flag para evitar el doble efecto de React StrictMode en desarrollo:
-        // si el componente se desmonta antes de que la promesa resuelva, ignoramos el resultado.
-        let mounted = true;
+        // Para el doble efecto de StrictMode: si se desmonta antes de responder, se ignora.
+        let montado = true;
 
         AuthAPI.verifyEmail(token)
-            .then(() => {
-                if (mounted) setStatus("success");
+            .then((respuesta) => {
+                if (!montado) return;
+                // Un backend anterior no manda `data`: se asume lo más común, recién confirmada y pendiente.
+                setEstado({
+                    tipo: "hecho",
+                    yaConfirmada: respuesta?.data?.alreadyVerified ?? false,
+                    esperaAprobacion: respuesta?.data?.pendingApproval ?? true,
+                });
             })
             .catch((e) => {
-                if (!mounted) return;
-                setStatus("error");
-                // El `code` de la API traducido; si no lo trae, el respaldo de esta pantalla.
-                setMotivo(mensajeDeError(idioma, e, "auth.verificar.invalido"));
+                if (!montado) return;
+                setEstado(codigoDeError(e) === "INVALID_OR_EXPIRED_TOKEN" ? { tipo: "caducado" } : { tipo: "error", error: e });
             });
 
         return () => {
-            mounted = false;
+            montado = false;
         };
-    }, [token, idioma]);
+    }, [token]);
+
+    if (estado.tipo === "caducado") {
+        return (
+            <EnlaceCaducado
+                pedirOtro="/auth/resend-verification"
+                textoPedirOtro={t("auth.verificar.solicitarEnlace")}
+                explicacion={t("auth.enlace.verificar")}
+            />
+        );
+    }
+
+    if (estado.tipo === "cargando") {
+        return (
+            <MarcoDeAcceso titulo={t("ruta.confirmarCuenta")}>
+                <div className="flex justify-center py-4">
+                    <Spinner size="lg" />
+                </div>
+            </MarcoDeAcceso>
+        );
+    }
+
+    if (estado.tipo === "error") {
+        return (
+            <MarcoDeAcceso titulo={t("ruta.confirmarCuenta")}>
+                <AvisoDeAcceso>
+                    <p>{mensajeDeError(idioma, estado.error, "auth.verificar.invalido")}</p>
+                </AvisoDeAcceso>
+                <Link to="/auth/login" className={cn(clasesDeBoton("secondary"), "w-full")}>{t("auth.volverAlLogin")}</Link>
+            </MarcoDeAcceso>
+        );
+    }
 
     return (
-        <main className={CLASES_MARCO_CENTRADO_COLUMNA}>
-            {status === "loading" && <Spinner size="lg" />}
-            {status === "success" && (
-                <>
-                    <p className="text-success font-medium text-xl">{t("auth.verificar.confirmada")}</p>
-                    {/* AUD-001 — sin esto, entraría al login y se encontraría el 403 sin saber por qué. */}
-                    <p className="max-w-sm text-center text-sm text-foreground-muted">{t("auth.verificar.esperaAprobacion")}</p>
-                    <Link to="/auth/login" className="text-info hover:underline text-sm">
-                        {t("auth.registro.inicia")}
-                    </Link>
-                </>
-            )}
-            {status === "error" && (
-                <>
-                    <p className="text-danger font-medium">{motivo || t("auth.verificar.sinToken")}</p>
-                    <Link
-                        to="/auth/resend-verification"
-                        className="text-info hover:underline text-sm"
-                    >
-                        {t("auth.verificar.solicitarEnlace")}
-                    </Link>
-                    <Link to="/auth/login" className="text-foreground-muted hover:underline text-sm">
-                        {t("auth.volverAlLogin")}
-                    </Link>
-                </>
-            )}
-        </main>
+        <MarcoDeAcceso titulo={t(estado.yaConfirmada ? "auth.verificar.yaConfirmada" : "auth.verificar.confirmada")}>
+            <div role="status" className="space-y-3 text-center text-sm text-foreground">
+                <CheckCircleIcon aria-hidden="true" className="mx-auto h-10 w-10 text-success" />
+                {/* AUD-001 — sin esto, entraría al login y se encontraría el 403 sin saber por qué. */}
+                <p>{t(estado.esperaAprobacion ? "auth.verificar.esperaAprobacion" : "auth.verificar.puedesEntrar")}</p>
+            </div>
+            <Link to="/auth/login" className={cn(clasesDeBoton(estado.esperaAprobacion ? "secondary" : "primary"), "w-full")}>
+                {t(estado.esperaAprobacion ? "auth.volverAlLogin" : "auth.registro.inicia")}
+            </Link>
+        </MarcoDeAcceso>
     );
 }

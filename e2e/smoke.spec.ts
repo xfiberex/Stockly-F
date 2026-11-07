@@ -10,7 +10,7 @@ test.describe("Smoke: flujo principal autenticado", () => {
         // Login
         await page.goto("/auth/login");
         await page.getByLabel("Correo electrónico").fill(EMAIL);
-        await page.getByLabel("Contraseña").fill(PASSWORD);
+        await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
         await page.getByRole("button", { name: "Entrar" }).click();
 
         // Panel cargado

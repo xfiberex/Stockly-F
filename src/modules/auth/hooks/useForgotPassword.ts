@@ -1,19 +1,14 @@
 import { useMutation } from "@tanstack/react-query";
-import { toast } from "react-toastify";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
-import { useT } from "@/shared/hooks/useIdioma";
-import { mensajeDeError } from "@/shared/lib/errorApi";
 import type { ForgotPasswordForm } from "@/modules/auth/schemas/auth.schema";
 
+/**
+ * AUD-014 — el resultado lo pinta la pantalla. T4-04: el texto sale del catálogo, no del
+ * `message` del servidor, que viene siempre en español.
+ */
 export function useForgotPassword() {
-    const { t, idioma } = useT();
-
     return useMutation({
-        mutationFn: (form: ForgotPasswordForm) => AuthAPI.forgotPassword(form),
-        // T4-04: el aviso sale del catálogo, no del `message` del servidor. Ese mensaje
-        // viene siempre en español, así que en inglés se colaba una frase suelta en
-        // mitad de la pantalla — y quien pulsa el botón ya sabe qué pidió.
-        onSuccess: () => toast.success(t("auth.recuperar.enviado")),
-        onError: (error) => toast.error(mensajeDeError(idioma, error)),
+        // Recibe el correo, como el reenvío: las dos pantallas comparten `PedirEnlacePorCorreo`.
+        mutationFn: (email: string) => AuthAPI.forgotPassword({ email } satisfies ForgotPasswordForm),
     });
 }

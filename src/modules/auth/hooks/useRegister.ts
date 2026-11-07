@@ -1,22 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
-import { useT } from "@/shared/hooks/useIdioma";
-import { mensajeDeError } from "@/shared/lib/errorApi";
 import type { RegisterForm } from "@/modules/auth/schemas/auth.schema";
 
+/**
+ * AUD-014 — sin aviso ni redirección: la pantalla de registro enseña «Revisa tu correo» con los
+ * dos pasos que faltan, y el error dentro de la tarjeta. Antes un aviso de 3 s lo contaba
+ * mientras se saltaba al login, donde no había nada que hacer todavía.
+ */
 export function useRegister() {
-    const navigate = useNavigate();
-    const { t, idioma } = useT();
-
     return useMutation({
         mutationFn: (form: RegisterForm) =>
             AuthAPI.register({ name: form.name, email: form.email, password: form.password }),
-        onSuccess: () => {
-            toast.success(t("auth.registro.aviso"));
-            navigate("/auth/login");
-        },
-        onError: (error) => toast.error(mensajeDeError(idioma, error)),
     });
 }

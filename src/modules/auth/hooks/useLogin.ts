@@ -1,16 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
 import { queryKeys } from "@/shared/constants/queryKeys";
-import { useT } from "@/shared/hooks/useIdioma";
-import { mensajeDeError } from "@/shared/lib/errorApi";
 import type { LoginForm } from "@/modules/auth/schemas/auth.schema";
 
+/** AUD-014 — el error lo pinta la pantalla, dentro de la tarjeta (`AvisoDeAcceso`), no un aviso de 3 s. */
 export function useLogin() {
     const qc = useQueryClient();
     const navigate = useNavigate();
-    const { idioma } = useT();
 
     return useMutation({
         mutationFn: (form: LoginForm) => AuthAPI.login(form),
@@ -18,6 +15,5 @@ export function useLogin() {
             qc.invalidateQueries({ queryKey: queryKeys.user });
             navigate("/");
         },
-        onError: (error) => toast.error(mensajeDeError(idioma, error)),
     });
 }
