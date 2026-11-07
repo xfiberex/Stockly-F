@@ -9,17 +9,33 @@ export interface Recuento {
     valor: number | null;
     cargando: boolean;
     error: boolean;
+    /** Con error, si ya se está volviendo a pedir: el «Reintentar» de la fila lo dice. */
+    reintentando?: boolean;
 }
 
 /** Las filas que puede tener el bloque. `stock` sale de `/reports` y no se pide aquí. */
 export type FilaDeAtencion = "stock" | "caducidades" | "conteos" | "compras" | "ventas";
 
+/** Lo que `recuento` lee de una consulta de TanStack Query. */
+interface Consulta {
+    data?: { meta: { total: number } };
+    isLoading: boolean;
+    isError: boolean;
+    isFetching: boolean;
+    errorUpdateCount: number;
+}
+
 /**
  * Con error, `valor` es `null` aunque haya una cifra de antes (AUD-008, paso 10): una fila no
  * puede decir «No disponible» y a la vez enseñar el detalle y el enlace de la cifra vieja.
+ *
+ * Crítica del 2026-11-06 (2.ª) — una consulta sin datos que falló **sigue fallada mientras se
+ * reintenta** (la regla de `useFalloDeCarga`): TanStack v5 vuelve a `pending`, y la fila pasaba a
+ * «cargando» y se llevaba su «Reintentar» con el foco dentro. Ahora el botón se queda, ocupado.
  */
-function recuento(valor: number | undefined, cargando: boolean, error: boolean): Recuento {
-    return { valor: error ? null : (valor ?? null), cargando, error };
+function recuento(q: Consulta): Recuento {
+    const error = q.isError || (q.data === undefined && q.errorUpdateCount > 0);
+    return { valor: error ? null : (q.data?.meta.total ?? null), cargando: q.isLoading && !error, error, reintentando: error && q.isFetching };
 }
 
 /**
@@ -49,14 +65,14 @@ export function useAtencionDeHoy(filas: readonly FilaDeAtencion[]) {
     const ventas = useSaleOrders({ status: "PENDING", limit: 1 }, quiere("ventas"));
 
     return {
-        caducidades: recuento(caducidades.data?.meta.total, caducidades.isLoading, caducidades.isError),
+        caducidades: recuento(caducidades),
         diasDeCaducidad: caducidades.data?.days,
         lotesCaducados: caducidades.isError ? 0 : (caducidades.data?.summary.expiredCount ?? 0),
         // AUD-008 — el lote que antes caduca (el informe los ordena por fecha), con su nombre:
         // la campana decía «lote L-20261030 de Yogur natural» y el panel solo «8».
         primerLote: caducidades.isError ? undefined : caducidades.data?.data[0],
-        conteos: recuento(conteos.data?.meta.total, conteos.isLoading, conteos.isError),
-        compras: recuento(compras.data?.meta.total, compras.isLoading, compras.isError),
-        ventas: recuento(ventas.data?.meta.total, ventas.isLoading, ventas.isError),
+        conteos: recuento(conteos),
+        compras: recuento(compras),
+        ventas: recuento(ventas),
     };
 }

@@ -13,6 +13,7 @@ import { useReintentarFallidas } from "@/shared/hooks/useFalloDeCarga";
 import type { ReportSummary } from "@/modules/reports/types/reports.types";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Barra } from "@/shared/components/Esqueleto";
+import { Spinner } from "@/shared/components/Spinner";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { cn } from "@/shared/lib/cn";
@@ -241,7 +242,7 @@ export function AtencionDeHoy({
 function FilaDeAtencion({ fila }: { fila: Fila }) {
     const { t } = useT();
     const reintentar = useReintentarFallidas();
-    const { valor, cargando, error } = fila.recuento;
+    const { valor, cargando, error, reintentando = false } = fila.recuento;
     const pendiente = valor !== null && valor > 0;
     const cola = pendiente && fila.gravedad === "cola";
     // AUD-008, paso 10 — «no disponible» en tono de aviso: en gris se leía como una fila a cero.
@@ -293,7 +294,18 @@ function FilaDeAtencion({ fila }: { fila: Fila }) {
                 cifra (AUD-008, paso 8). */}
             {error ? (
                 // La fila que no cargó se reintenta desde ella misma, no desde un aviso lejano.
-                <button type="button" onClick={reintentar} className={CLASES_DE_ACCION}>
+                // Mientras trabaja se marca ocupada y no repite; no se desactiva, que soltaría el
+                // foco (el patrón de `ReintentoEnLinea`).
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (!reintentando) reintentar();
+                    }}
+                    aria-busy={reintentando || undefined}
+                    aria-disabled={reintentando || undefined}
+                    className={cn(CLASES_DE_ACCION, "gap-1.5")}
+                >
+                    {reintentando && <Spinner size="sm" decorativo className="border-current border-t-transparent" />}
                     <span className="sr-only">{`${t(fila.etiqueta)}:`}</span> {t("errorDeCarga.reintentar")}
                 </button>
             ) : pendiente ? (

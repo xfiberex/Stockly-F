@@ -359,6 +359,17 @@ describe("DashboardPage — errores y frescura", () => {
         expect(reintentar).toHaveBeenCalled();
     });
 
+    it("quien no tiene resumen no recibe un aviso sobre él: su fila de stock ya lo dice (crítica del 2026-11-06)", () => {
+        rol = "USER";
+        resumen = undefined;
+        fallo = new Error("Network Error");
+        renderWithProviders(<DashboardPage />);
+
+        expect(screen.queryByText("No se pudo cargar el resumen del inventario")).not.toBeInTheDocument();
+        expect(within(screen.getByText("Productos con stock bajo o agotado").closest("li")!).getByRole("button", { name: /Reintentar/ }))
+            .toBeInTheDocument();
+    });
+
     it("mientras reintenta, el aviso y su botón se quedan: el foco no se pierde (AUD-008)", () => {
         resumen = undefined;
         fallo = new Error("Network Error");

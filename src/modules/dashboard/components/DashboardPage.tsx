@@ -25,7 +25,7 @@ type Rol = "ADMIN" | "USER" | "WAREHOUSE";
 /**
  * Qué ve cada rol en el panel. Cada uno abre Stockly para un trabajo distinto: quien está en el
  * almacén necesita caducidades y conteos, no el margen; quien compra y vende, sus órdenes.
- * SELLER no está aquí: tiene su propio panel (`PanelDeVendedor`).
+ * SELLER no está aquí: no tiene panel, entra en el mostrador (`DashboardPage`).
  *
  * AUD-008, paso 9 — **un panel «de hoy» por rol.** Para USER y WAREHOUSE el panel es lo
  * pendiente: el resumen del negocio —recuentos del catálogo, importes, ventas de la semana— está
@@ -108,7 +108,7 @@ function PanelGeneral({ rol }: { rol: Rol }) {
             {/* Lo primero, lo que pide actuar hoy. Solo su fila de stock sale de `/reports`. */}
             <AtencionDeHoy
                 filas={panel.atencion}
-                stock={{ valor: data?.totals.lowStockCount ?? null, cargando, error: fallo }}
+                stock={{ valor: data?.totals.lowStockCount ?? null, cargando, error: fallo, reintentando: isFetching }}
                 lowStockProducts={data ? data.lowStockProducts : fallo ? [] : null}
             />
 
@@ -116,7 +116,9 @@ function PanelGeneral({ rol }: { rol: Rol }) {
                 en móvil «Escanear» ya está siempre a mano, fijo abajo. */}
             {panel.almacen && <AccionesDeAlmacen />}
 
-            {fallo ? (
+            {/* Crítica del 2026-11-06 (2.ª) — el aviso general habla del resumen, y solo ADMIN lo
+                tiene: USER y WAREHOUSE ya ven su fila de stock «No disponible», con su Reintentar. */}
+            {fallo && panel.resumen ? (
                 // El aviso se queda montado mientras se reintenta (`useFalloDeCarga`).
                 <div className="rounded-xl border border-border bg-surface p-5 sm:p-6">
                     <ErrorDeCarga titulo={t("dashboard.error.titulo")} error={error} onReintentar={reintentar} reintentando={isFetching} />
