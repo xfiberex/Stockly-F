@@ -5,7 +5,9 @@ import { useAbcSummary } from "@/modules/reports/hooks/useReports";
 import type { AbcClass } from "@/modules/reports/types/reports.types";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useEffect, useState } from "react";
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { FunnelIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { Button } from "@/shared/components/Button";
+import { cn } from "@/shared/lib/cn";
 import { useT } from "@/shared/hooks/useIdioma";
 import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
 
@@ -36,6 +38,11 @@ export function ProductFilters({ onFilterChange, conInactivos = false }: Product
     const [abcClass, setAbcClass] = useState<AbcClass | "">("");
     // T5-14 — los productos con existencias en un almacén.
     const [warehouseId, setWarehouseId] = useState("");
+    // AUD-013 — en el móvil los desplegables van plegados: seis controles a lo alto empujaban la
+    // primera fila de la tabla hasta el pliegue (y≈770 de 844). El buscador se queda a la vista.
+    const [desplegados, setDesplegados] = useState(false);
+    const activos = [categoryId, tagId, abcClass, warehouseId].filter(Boolean).length
+        + (activeFilter !== (conInactivos ? "" : "true") ? 1 : 0);
 
     const debouncedSearch = useDebounce(search, 400);
     const { data: categories = [] } = useCategories();
@@ -104,6 +111,24 @@ export function ProductFilters({ onFilterChange, conInactivos = false }: Product
                 />
             </div>
 
+            {/* Solo en el móvil. El número dice cuántos filtros hay puestos: plegados, no se
+                ven, y una lista filtrada sin saberlo parece una lista incompleta. */}
+            <Button
+                type="button"
+                variant="secondary"
+                className="md:hidden"
+                aria-expanded={desplegados}
+                aria-controls="filtros-de-productos"
+                onClick={() => setDesplegados((d) => !d)}
+            >
+                <FunnelIcon className="h-4 w-4" />
+                {activos > 0 ? t("productos.filtro.filtrosConCantidad", { cantidad: activos }) : t("productos.filtro.filtros")}
+            </Button>
+
+            {/* `contents`: los desplegables siguen siendo celdas de la rejilla de fuera. Se
+                ocultan con CSS y no se desmontan: su estado vive aquí, y plegar no los borra. */}
+            <div id="filtros-de-productos" className={cn("contents", !desplegados && "max-md:hidden")}>
+
             <div>
                 <Select
                     aria-label={t("productos.filtro.porCategoria")}
@@ -153,6 +178,7 @@ export function ProductFilters({ onFilterChange, conInactivos = false }: Product
             {/* Sin envoltorio propio: con un solo almacén no pinta nada, y una celda vacía
                 descuadraría la rejilla. */}
             <SelectorDeAlmacen comoFiltro etiquetaOculta label={t("productos.filtro.conExistenciasEn")} value={warehouseId} onChange={setWarehouseId} className="w-full" />
+            </div>
         </div>
     );
 }

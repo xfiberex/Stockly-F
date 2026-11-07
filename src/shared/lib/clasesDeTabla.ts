@@ -17,11 +17,12 @@
  * `contain-paint` no es decoración: en Chrome de Android un contenedor con desplazamiento
  * horizontal ensancha el *viewport de diseño* y los modales `position: fixed` acaban
  * midiendo más que la pantalla (T2-45). `sin-barra` oculta la barra sin quitar el
- * desplazamiento; el porqué, en `index.css`.
+ * desplazamiento; el porqué, en `index.css`. AUD-013 — y como sin barra nada decía que había
+ * más columnas, `pista-de-desplazamiento` desvanece el borde hacia el que sigue la tabla.
  *
  * Lo vigila `src/tests/desbordes.test.ts`.
  */
-export const CLASES_TABLA_DESPLAZABLE = "overflow-x-auto contain-paint sin-barra";
+export const CLASES_TABLA_DESPLAZABLE = "overflow-x-auto contain-paint sin-barra pista-de-desplazamiento";
 
 /** La tabla de dentro. El ancho mínimo es lo que provoca el desplazamiento en móvil. */
 export const CLASES_TABLA = "w-full min-w-160 text-sm";

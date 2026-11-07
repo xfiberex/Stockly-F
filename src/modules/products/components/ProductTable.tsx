@@ -83,7 +83,10 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
             pantalla de 393. Va en todos los scrollers horizontales; `desbordes.test.ts`
             lo vigila. */}
         <div className={cn(CLASES_TABLA_DESPLAZABLE, "rounded-xl border border-border")}>
-            <table className={CLASES_TABLA}>
+            {/* AUD-013 — por debajo de `md` se queda con lo que se viene a mirar —nombre, stock y
+                acciones— y sin el ancho mínimo de `CLASES_TABLA`: a 390 px medía 1099 y el stock
+                quedaba a 661 px, detrás de un desplazamiento sin barra. */}
+            <table className={cn(CLASES_TABLA, "max-md:min-w-0")}>
                 {/* `whitespace-nowrap` en la cabecera entera —`white-space` se hereda— y no
                     columna a columna: con reparto automático de anchos, un nombre de producto
                     largo le quita sitio a las demás y la primera en partirse es la única
@@ -94,7 +97,7 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
                 <thead className="whitespace-nowrap bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                     <tr>
                         {selectable && (
-                            <th className="px-3 py-3 w-8">
+                            <th className="px-1 py-3 w-8 md:px-3">
                                 <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center md:min-h-0 md:min-w-0">
                                     <input
                                         type="checkbox"
@@ -113,19 +116,19 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
                                 </label>
                             </th>
                         )}
-                        <th className="px-4 py-3 lg:py-1.5">{t("productos.tabla.imagen")}</th>
-                        <th className="px-4 py-3 lg:py-1.5">{t("productos.tabla.nombreSku")}</th>
+                        <th className="hidden md:table-cell px-4 py-3 lg:py-1.5">{t("productos.tabla.imagen")}</th>
+                        <th className="px-2 py-3 md:px-4 lg:py-1.5">{t("productos.tabla.nombreSku")}</th>
                         {/* T5-10 — el rótulo es la sigla y la explicación va en el `title`: una
                             columna de una letra no justifica una cabecera de cuatro palabras. */}
-                        <th className="px-4 py-3 lg:py-1.5" title={t("productos.tabla.claseAbcTitulo")}>
+                        <th className="hidden md:table-cell px-4 py-3 lg:py-1.5" title={t("productos.tabla.claseAbcTitulo")}>
                             {t("productos.tabla.claseAbc")}
                         </th>
-                        <th className="px-4 py-3 lg:py-1.5">{t("productos.campo.categoria")}</th>
-                        <th className="px-4 py-3 lg:py-1.5">{t("productos.campo.marca")}</th>
-                        <th className="px-4 py-3 lg:py-1.5 text-right">{t("productos.campo.precio")}</th>
-                        <th className="px-4 py-3 lg:py-1.5">{t("productos.tabla.stockMin")}</th>
-                        <th className="px-4 py-3 lg:py-1.5">{t("comun.estado")}</th>
-                        <th className="px-4 py-3 lg:py-1.5 text-right">{t("comun.acciones")}</th>
+                        <th className="hidden md:table-cell px-4 py-3 lg:py-1.5">{t("productos.campo.categoria")}</th>
+                        <th className="hidden md:table-cell px-4 py-3 lg:py-1.5">{t("productos.campo.marca")}</th>
+                        <th className="hidden md:table-cell px-4 py-3 lg:py-1.5 text-right">{t("productos.campo.precio")}</th>
+                        <th className="px-1 py-3 md:px-4 lg:py-1.5">{t("productos.tabla.stockMin")}</th>
+                        <th className="hidden md:table-cell px-4 py-3 lg:py-1.5">{t("comun.estado")}</th>
+                        <th className="px-1 py-3 md:px-4 lg:py-1.5 text-right">{t("comun.acciones")}</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-border bg-surface">
@@ -145,7 +148,7 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
                                 )}
                             >
                                 {selectable && (
-                                    <td className="px-3 py-3 lg:py-1.5">
+                                    <td className="px-1 py-3 md:px-3 lg:py-1.5">
                                         {/* La casilla mide 16 px y no puede crecer sin desentonar,
                                             así que quien recibe el toque es la etiqueta que la
                                             envuelve: 44×44 hasta `md` (T2-40). */}
@@ -164,7 +167,7 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
                                         </label>
                                     </td>
                                 )}
-                                <td className="px-4 py-3 lg:py-1.5">
+                                <td className="hidden md:table-cell px-4 py-3 lg:py-1.5">
                                     {product.imageUrl ? (
                                         <img
                                             src={product.imageUrl}
@@ -177,7 +180,7 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
                                         </div>
                                     )}
                                 </td>
-                                <td className="px-4 py-3 lg:py-1.5">
+                                <td className="px-2 py-3 md:px-4 lg:py-1.5">
                                     <Link
                                         to={`/catalog/products/${product.id}/movements`}
                                         className="font-medium text-foreground hover:text-info transition-colors"
@@ -195,30 +198,30 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
                                 </td>
                                 {/* T5-10 — la clase ABC tampoco es un estado: una A no está «bien» ni
                                     una C «mal», dicen cuánto factura. Neutra, como la categoría. */}
-                                <td className="px-4 py-3 lg:py-1.5">
+                                <td className="hidden md:table-cell px-4 py-3 lg:py-1.5">
                                     <span title={t("productos.abc.clase", { clase: product.abcClass })}>
                                         <Badge variant="neutral">{product.abcClass}</Badge>
                                     </span>
                                 </td>
                                 {/* La categoría clasifica, no informa de un estado: variante neutra. */}
-                                <td className="px-4 py-3 lg:py-1.5">
+                                <td className="hidden md:table-cell px-4 py-3 lg:py-1.5">
                                     {product.category ? (
                                         <Badge variant="neutral">{product.category.name}</Badge>
                                     ) : (
                                         <span className="text-xs text-foreground-muted">—</span>
                                     )}
                                 </td>
-                                <td className="px-4 py-3 lg:py-1.5">
+                                <td className="hidden md:table-cell px-4 py-3 lg:py-1.5">
                                     {product.brand ? (
                                         <span className="text-sm text-foreground">{product.brand.name}</span>
                                     ) : (
                                         <span className="text-xs text-foreground-muted">—</span>
                                     )}
                                 </td>
-                                <td className="px-4 py-3 lg:py-1.5 text-right text-foreground">
+                                <td className="hidden md:table-cell px-4 py-3 lg:py-1.5 text-right text-foreground">
                                     {formatearImporte(product.price)}
                                 </td>
-                                <td className="px-4 py-3 lg:py-1.5">
+                                <td className="px-1 py-3 md:px-4 lg:py-1.5">
                                     <div className="flex items-center gap-1.5 whitespace-nowrap">
                                         {/* El stock va en una caja de ancho fijo y alineado a la
                                             derecha: con las cifras tabulares de la tabla, eso hace
@@ -247,11 +250,12 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
                                         </div>
                                     )}
                                 </td>
-                                <td className="px-4 py-3 lg:py-1.5">
+                                <td className="hidden md:table-cell px-4 py-3 lg:py-1.5">
                                     <EstadoBadge estado={product.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />
                                 </td>
-                                <td className="px-4 py-3 lg:py-1.5">
-                                    <div className="flex justify-end gap-1">
+                                <td className="px-1 py-3 md:px-4 lg:py-1.5">
+                                    {/* En el móvil, de dos en dos: en una fila, sus cuatro botones medían 236 px de los 357 de la pantalla. */}
+                                    <div className="ml-auto grid w-max grid-cols-2 justify-items-end gap-1 md:flex md:w-auto md:justify-end">
                                         {/* T3-08: el `title` ya daba nombre accesible —es el
                                             último recurso que contempla la especificación—, pero
                                             el mismo para todas las filas: cincuenta botones

@@ -18,6 +18,7 @@ import { formatearImporte } from "@/shared/lib/moneda";
 import { ESTADO_CONTEO, buscarEstado } from "@/shared/lib/estados";
 import { CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA, CLASES_ENCABEZADO_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
+import { CLASES_BARRA_FIJA_HASTA_SM } from "@/shared/lib/clasesDeBarraFija";
 import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { useBuscarPorCodigo } from "@/modules/products/hooks/useBuscarPorCodigo";
 import {
@@ -125,8 +126,11 @@ function Captura({
 
     return (
         <section className="bg-surface rounded-xl border border-border">
+            {/* AUD-013 — en el móvil, buscador y «Escanear» comparten fila y «Guardar» baja a una
+                barra fija: apilados, empujaban el primer campo hasta el pliegue (y=825 de 844) y
+                dejaban el botón arriba, lejos de donde se escribe. */}
             <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:justify-between">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap sm:items-end">
                     {/* Con un producto escaneado la tabla enseña solo su línea: la búsqueda y el
                         filtro no se aplican, y enseñarlos —el filtro, marcado— diría lo contrario. */}
                     {!escaneado && (
@@ -136,7 +140,7 @@ function Captura({
                             onChange={(e) => { setBusqueda(e.target.value); setPage(1); }}
                             placeholder={t("conteos.buscar")}
                             aria-label={t("conteos.buscar")}
-                            className="w-full min-h-11 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 sm:w-64 md:pointer-fine:min-h-9"
+                            className="min-h-11 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 sm:w-64 sm:flex-none md:pointer-fine:min-h-9"
                         />
                     )}
                     <Button variant="secondary" onClick={() => setEscaneando(true)} isLoading={buscando}>
@@ -144,7 +148,7 @@ function Captura({
                         {t("escaner.escanear")}
                     </Button>
                     {!escaneado && (
-                        <label className="flex items-center gap-2 text-sm text-foreground">
+                        <label className="flex w-full items-center gap-2 text-sm text-foreground sm:w-auto">
                             <input
                                 type="checkbox"
                                 checked={soloPendientes}
@@ -155,10 +159,12 @@ function Captura({
                         </label>
                     )}
                 </div>
-                <Button onClick={onGuardar} disabled={pendientes === 0} isLoading={guardando}>
-                    <CheckIcon className="h-4 w-4" />
-                    {t("conteos.guardar", { cantidad: pendientes })}
-                </Button>
+                <div className={CLASES_BARRA_FIJA_HASTA_SM}>
+                    <Button onClick={onGuardar} disabled={pendientes === 0} isLoading={guardando} className="max-sm:w-full">
+                        <CheckIcon className="h-4 w-4" />
+                        {t("conteos.guardar", { cantidad: pendientes })}
+                    </Button>
+                </div>
             </div>
 
             {aviso && <p role="alert" className="px-4 pb-3 text-sm text-danger">{aviso}</p>}
@@ -367,7 +373,8 @@ export default function InventoryCountPage() {
     ];
 
     return (
-        <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, "space-y-6")}>
+        // La barra fija de «Guardar» no ocupa sitio: se le reserva el hueco al final.
+        <div className={cn(CLASES_CONTENEDOR_DE_PAGINA, "space-y-6", vistaActual === "contar" && "max-sm:pb-28")}>
             <Link to="/inventory-counts" className="inline-flex items-center gap-1 text-sm text-foreground-muted hover:text-foreground">
                 <ArrowLeftIcon className="h-4 w-4" />
                 {t("ruta.conteos")}

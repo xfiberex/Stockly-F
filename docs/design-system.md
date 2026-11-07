@@ -343,7 +343,7 @@ constantes en [`shared/lib/clasesDeTabla.ts`](../src/shared/lib/clasesDeTabla.ts
 falta las dos:
 
 ```
-CLASES_TABLA_DESPLAZABLE   el contenedor:  overflow-x-auto contain-paint sin-barra
+CLASES_TABLA_DESPLAZABLE   el contenedor:  overflow-x-auto contain-paint sin-barra pista-de-desplazamiento
 CLASES_TABLA               la tabla:       w-full min-w-160 text-sm
 ```
 
@@ -358,15 +358,24 @@ conserva su `overflow-hidden` y el desplazador es un `div` interior.
 
 **`sin-barra`** (utilidad propia, en `index.css`) oculta la barra sin quitar el
 desplazamiento: sigue funcionando con el dedo, con `Shift`+rueda, con el teclado y para un
-lector de pantalla. Lo que se pierde es la **señal visual** de que hay más a la derecha; es
-una contrapartida aceptada a cambio de que la barra no se lea como parte de una tabla de
-filas bajas.
+lector de pantalla. La **señal visual** de que hay más la pone `pista-de-desplazamiento`
+(`AUD-013`): el borde hacia el que sigue la tabla se desvanece, y al llegar al final se apaga.
+Es una animación ligada al propio desplazamiento, sin JavaScript; si la tabla cabe, no hay nada
+que desvanecer. Antes la señal se daba por perdida, y en Usuarios o la Bitácora, a 390 px, las
+columnas de la derecha se escondían sin que nada lo dijera.
 
-**Ninguna columna se esconde en móvil.** Desde que las tablas se desplazan, un
-`hidden md:table-cell` es una pérdida de información sin contrapartida: la fecha de un
-registro de auditoría no es un adorno, y quien mira desde el teléfono la necesita igual.
-Se quitaron los tres que quedaban —«Detalles» y «Fecha» en auditoría, «Registrado» en
-usuarios—.
+**En una tabla de consulta, ninguna columna se esconde en móvil.** Desde que las tablas se
+desplazan, un `hidden md:table-cell` es una pérdida de información sin contrapartida: la fecha
+de un registro de auditoría no es un adorno, y quien mira desde el teléfono la necesita igual.
+
+**En una pantalla de trabajo de pie, sí** (`AUD-013`, principio 2 de `PRODUCT.md`: el
+dispositivo manda). Productos, la recepción de una compra y la captura de un conteo se usan con el
+móvil en una mano, y lo que se viene a mirar —el stock, el campo donde se escribe— no puede quedar
+a 600 px a la derecha detrás de un desplazamiento. Ahí, por debajo de `md` (o `sm`), la tabla
+pierde el ancho mínimo (`max-md:min-w-0`) y se queda con lo que se viene a hacer. Lo que se
+oculta **no se pierde**: va debajo del nombre («Pedido 5 · recibido 0», el SKU) o está a un toque,
+en la ficha. Y la acción principal baja a una barra fija (`clasesDeBarraFija.ts`): «Guardar» en un
+conteo, el cobro en el mostrador, «Escanear» en el panel del almacén.
 
 ### Fechas
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { CLASES_BARRA_FIJA_HASTA_SM } from "@/shared/lib/clasesDeBarraFija";
 import { Link, Navigate } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ArrowsRightLeftIcon, ChevronRightIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
@@ -172,7 +173,7 @@ function AccionesDeAlmacen() {
             <h2 id="en-el-almacen" className="text-base font-semibold text-foreground">{t("dashboard.almacen.titulo")}</h2>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start">
                 <div className="sm:w-80">
-                    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0">
+                    <div className={CLASES_BARRA_FIJA_HASTA_SM}>
                         <Link to="/catalog/products?escanear=1" className={clasesDeBoton("primary", "w-full min-h-12 text-base")}>
                             <ViewfinderCircleIcon className="h-5 w-5" aria-hidden="true" />
                             {t("dashboard.almacen.escanear")}

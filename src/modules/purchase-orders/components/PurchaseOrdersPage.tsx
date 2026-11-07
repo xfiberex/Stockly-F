@@ -36,6 +36,7 @@ import { formatearFecha } from "@/shared/lib/fechas";
 import { CLASES_BOTON_ICONO, clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
+import { cn } from "@/shared/lib/cn";
 import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
 import { useAlmacenDeOperacion, useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
 
@@ -222,13 +223,16 @@ function RecepcionModal({ orden, isPending, onConfirm, onClose }: RecepcionModal
                     {t("compras.recepcion.explicacion", { numero: numeroDeOrden(orden.id) })}
                 </p>
 
+                {/* AUD-013 — en el móvil, producto y «Llega ahora», sin el ancho mínimo de la tabla:
+                    a 390 px el campo empezaba en x=576, fuera del diálogo y sin barra que lo dijera.
+                    Lo pedido y lo recibido van debajo del nombre. */}
                 <div className={CLASES_TABLA_DESPLAZABLE}>
-                    <table className={CLASES_TABLA}>
+                    <table className={cn(CLASES_TABLA, "max-sm:min-w-0")}>
                         <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
                             <tr>
                                 <th className="pb-2">{t("ordenes.producto")}</th>
-                                <th className="pb-2 pl-3 text-right whitespace-nowrap">{t("compras.recepcion.pedido")}</th>
-                                <th className="pb-2 pl-3 text-right whitespace-nowrap">{t("compras.recepcion.yaRecibido")}</th>
+                                <th className="hidden pb-2 pl-3 text-right whitespace-nowrap sm:table-cell">{t("compras.recepcion.pedido")}</th>
+                                <th className="hidden pb-2 pl-3 text-right whitespace-nowrap sm:table-cell">{t("compras.recepcion.yaRecibido")}</th>
                                 <th className="pb-2 pl-3 text-right whitespace-nowrap">{t("compras.recepcion.llegaAhora")}</th>
                             </tr>
                         </thead>
@@ -237,6 +241,9 @@ function RecepcionModal({ orden, isPending, onConfirm, onClose }: RecepcionModal
                                 <tr key={item.id}>
                                     <td className="py-2 text-foreground">
                                         {item.productName}
+                                        <span className="block text-xs tabular-nums text-foreground-muted sm:hidden">
+                                            {t("compras.recepcion.pedidoYRecibido", { pedido: item.quantity, recibido: item.receivedQuantity })}
+                                        </span>
                                         {item.productId === null && (
                                             <span className="block text-xs text-foreground-muted">{t("compras.recepcion.sinInventario")}</span>
                                         )}
@@ -263,8 +270,8 @@ function RecepcionModal({ orden, isPending, onConfirm, onClose }: RecepcionModal
                                             </div>
                                         )}
                                     </td>
-                                    <td className="py-2 text-right tabular-nums text-foreground-muted">{item.quantity}</td>
-                                    <td className="py-2 text-right tabular-nums text-foreground-muted">{item.receivedQuantity}</td>
+                                    <td className="hidden py-2 text-right tabular-nums text-foreground-muted sm:table-cell">{item.quantity}</td>
+                                    <td className="hidden py-2 text-right tabular-nums text-foreground-muted sm:table-cell">{item.receivedQuantity}</td>
                                     <td className="py-2 pl-3 text-right">
                                         {pendiente === 0 ? (
                                             <span className="text-xs text-success">{t("compras.recepcion.completa")}</span>

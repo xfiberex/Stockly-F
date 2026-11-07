@@ -160,3 +160,29 @@ describe("ProductFilters", () => {
         );
     });
 });
+
+/**
+ * AUD-013 — en el móvil, los desplegables van plegados tras «Filtros (n)»: seis controles a lo
+ * alto empujaban la primera fila de la tabla hasta el pliegue. Se ocultan con CSS (`max-md:hidden`)
+ * y no se desmontan, así que lo elegido sobrevive a plegarlos.
+ */
+describe("ProductFilters — plegados en el móvil (AUD-013)", () => {
+    it("el botón despliega y pliega los desplegables, y dice cuántos filtros hay puestos", async () => {
+        const user = userEvent.setup();
+        render(<ProductFilters onFilterChange={vi.fn()} />);
+        const boton = screen.getByRole("button", { name: "Filtros" });
+        const panel = document.getElementById("filtros-de-productos")!;
+
+        expect(boton).toHaveAttribute("aria-expanded", "false");
+        expect(panel).toHaveClass("max-md:hidden");
+        await user.click(boton);
+        expect(boton).toHaveAttribute("aria-expanded", "true");
+        expect(panel).not.toHaveClass("max-md:hidden");
+
+        await user.selectOptions(screen.getByRole("combobox", { name: "Filtrar por categoría" }), "cat-electronica");
+        await user.click(boton);
+        expect(screen.getByRole("button", { name: "Filtros (1)" })).toBeInTheDocument();
+        // Plegado, lo elegido sigue ahí.
+        expect(screen.getByRole("combobox", { name: "Filtrar por categoría" })).toHaveValue("cat-electronica");
+    });
+});

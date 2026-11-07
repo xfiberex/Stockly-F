@@ -330,7 +330,8 @@ export default function ProductsPage() {
                 abajo, y con el esqueleto de 10 filas eso era un CLS de 0.37 medido. La propia
                 frase mide lo mismo en cualquier ancho; una altura mínima fija, no. */}
             {(resumenAbc || cargandoAbc) && (
-                <p className={cn("text-xs text-foreground-muted", !resumenAbc && "invisible")} aria-hidden={!resumenAbc || undefined}>
+                // AUD-013 — en el móvil la columna ABC no se pinta, y la leyenda tampoco.
+                <p className={cn("text-xs text-foreground-muted max-md:hidden", !resumenAbc && "invisible")} aria-hidden={!resumenAbc || undefined}>
                     {t("productos.abc.leyenda", {
                         desde: formatearDia(idioma, resumenAbc?.from ?? DIA_DE_RELLENO),
                         hasta: formatearDia(idioma, resumenAbc?.to ?? DIA_DE_RELLENO),

@@ -255,6 +255,58 @@
   }
 }
 
+/*
+ * AUD-013 — la señal de que una tabla sigue a lo ancho. Sin barra (`sin-barra`), nada decía que
+ * a la derecha había más columnas: en Usuarios, Clientes o la Bitácora, a 390 px, se escondían
+ * sin aviso. El borde hacia el que queda tabla se desvanece; al llegar al final, se apaga.
+ *
+ * Va con una animación ligada al propio desplazamiento: si la tabla cabe, no hay línea de tiempo
+ * y las dos variables se quedan en 0 —sin desvanecido—, sin JavaScript que mida nada. Donde no
+ * hay `animation-timeline` (Firefox, de momento) se queda como estaba.
+ */
+@property --pista-izquierda {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --pista-derecha {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes pista-de-desplazamiento {
+  from {
+    --pista-izquierda: 0px;
+    --pista-derecha: 2.5rem;
+  }
+  15% {
+    --pista-izquierda: 2.5rem;
+  }
+  85% {
+    --pista-derecha: 2.5rem;
+  }
+  to {
+    --pista-izquierda: 2.5rem;
+    --pista-derecha: 0px;
+  }
+}
+
+@utility pista-de-desplazamiento {
+  @supports (animation-timeline: scroll()) {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--pista-izquierda),
+      #000 calc(100% - var(--pista-derecha)),
+      transparent
+    );
+    animation: pista-de-desplazamiento linear both;
+    animation-timeline: scroll(self inline);
+  }
+}
+
 :root[data-tema="claro"] {
   color-scheme: light;
 }
