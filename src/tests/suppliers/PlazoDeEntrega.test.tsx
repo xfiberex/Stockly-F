@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/tests/utils";
 import SuppliersPage from "@/modules/suppliers/components/SuppliersPage";
@@ -27,6 +27,7 @@ const proveedor = (over: Partial<Supplier>): Supplier => ({
 let proveedores: Supplier[] = [];
 const creados: unknown[] = [];
 const actualizados: unknown[] = [];
+const borrados: string[] = [];
 
 vi.mock("@/modules/suppliers/hooks/useSuppliers", () => ({
     useSuppliers: () => ({ data: proveedores, isLoading: false }),
@@ -41,7 +42,10 @@ vi.mock("@/modules/suppliers/hooks/useSupplierMutations", () => ({
         mutate: (v: unknown, opciones?: { onSuccess?: () => void }) => { actualizados.push(v); opciones?.onSuccess?.(); },
         isPending: false,
     }),
-    useDeleteSupplier: () => ({ mutate: vi.fn(), isPending: false }),
+    useDeleteSupplier: () => ({
+        mutate: (id: string, opciones?: { onSuccess?: () => void }) => { borrados.push(id); opciones?.onSuccess?.(); },
+        isPending: false,
+    }),
 }));
 
 vi.mock("@/modules/auth/hooks/useMe", () => ({
@@ -123,5 +127,26 @@ describe("Plazo de entrega del proveedor (T5-05)", () => {
 
         expect(await screen.findByText("Un número entero de días entre 0 y 365")).toBeInTheDocument();
         expect(creados).toEqual([]);
+    });
+});
+
+describe("Proveedores — borrar confirma (AUD-012)", () => {
+    beforeEach(() => {
+        proveedores = [proveedor({})];
+        borrados.length = 0;
+    });
+
+    it("un toque abre la confirmación, que dice qué les pasa a sus productos; y solo confirmar borra", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<SuppliersPage />);
+
+        await user.click(screen.getByTitle("Eliminar"));
+        expect(borrados).toEqual([]);
+        const dialogo = screen.getByRole("dialog", { name: "Eliminar el proveedor «Norte»" });
+        expect(within(dialogo).getByText(/se quedan sin proveedor/)).toBeInTheDocument();
+
+        await user.click(within(dialogo).getByRole("button", { name: "Eliminar" }));
+        expect(borrados).toEqual(["s1"]);
+        expect(screen.queryByRole("dialog")).toBeNull();
     });
 });

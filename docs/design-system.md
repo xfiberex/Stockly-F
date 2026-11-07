@@ -637,6 +637,26 @@ pantallas que lo tiraban sin avisar: al cambiar de vista, al paginar, al recarga
 `renderWithProviders` también, desde `AUD-011`: un test con su propio `MemoryRouter` no puede
 montar estas pantallas.
 
+### Lo que no se deshace, se confirma
+
+**Ninguna acción irreversible ocurre con un solo toque** (`AUD-012`). Borrar, cancelar, enviar una
+venta, cambiar un rol, desactivar a alguien o un almacén y cambiar el predeterminado pasan por
+[`ConfirmarAccion`](../src/shared/components/ConfirmarAccion.tsx):
+
+- **El título nombra la acción y la cosa** («Eliminar la categoría «Bebidas»», «Cambiar el rol de
+  Carlos»); **el cuerpo dice la consecuencia que no se ve desde la fila**: qué stock se mueve y de
+  dónde, de qué rol a cuál, qué les pasa a los productos que dependían de lo borrado.
+- **El botón lleva el verbo** («Eliminar», «Marcar como enviada»), nunca «Aceptar». Rojo para lo
+  que quita; el primario para lo que avanza (enviar, aprobar, hacer predeterminado).
+- **«Volver» va antes en el teclado.** El diálogo se cierra en el `onSuccess`: si el servidor
+  rechaza, queda abierto con su aviso.
+- **Un desplegable no ejecuta en su `onChange`.** Con las flechas sobre uno cerrado cambia el valor
+  sin abrirlo; elegir solo prepara, y se aplica al confirmar.
+- **Lo que el servidor va a rechazar no se ofrece**: desactivado, con el motivo al lado y atado con
+  `aria-describedby` (desactivar un almacén con existencias).
+- **Lo que devuelve sin quitar nada no confirma**: reactivar a alguien, activar un almacén,
+  restaurar un producto. Confirmarlo todo enseña a confirmar sin leer.
+
 ---
 
 ## Cómo añadir una página nueva

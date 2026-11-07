@@ -69,6 +69,7 @@ const ORDEN_PENDIENTE: SaleOrder = {
 
 const mutaciones: Array<{ id: string; dto: UpdateSaleOrderDto }> = [];
 const envios: string[] = [];
+const borradas: string[] = [];
 let ordenes: SaleOrder[] = [];
 let rol: Rol = "ADMIN";
 
@@ -92,8 +93,20 @@ vi.mock("@/modules/sale-orders/hooks/useSaleOrders", () => ({
         isPending: false,
     }),
     // T5-13 — enviar va por su propia ruta.
-    useShipSaleOrder: () => ({ mutate: (id: string) => envios.push(id), isPending: false }),
-    useDeleteSaleOrder: () => ({ mutate: vi.fn(), isPending: false }),
+    useShipSaleOrder: () => ({
+        mutate: (id: string, opciones?: { onSuccess?: () => void }) => {
+            envios.push(id);
+            opciones?.onSuccess?.();
+        },
+        isPending: false,
+    }),
+    useDeleteSaleOrder: () => ({
+        mutate: (id: string, opciones?: { onSuccess?: () => void }) => {
+            borradas.push(id);
+            opciones?.onSuccess?.();
+        },
+        isPending: false,
+    }),
 }));
 
 vi.mock("@/modules/auth/hooks/useMe", () => ({
@@ -186,7 +199,7 @@ describe("SaleOrdersPage — cancelar una orden ya enviada (T2-42)", () => {
         expect(botonCancelarEnvio()).not.toBeInTheDocument();
     });
 
-    it("una orden pendiente se sigue cancelando sin diálogo", async () => {
+    it("AUD-012 — cancelar una pendiente también confirma, y dice que el stock no cambia", async () => {
         ordenes = [ORDEN_PENDIENTE];
         const user = userEvent.setup();
         renderWithProviders(<SaleOrdersPage />);
@@ -195,10 +208,15 @@ describe("SaleOrdersPage — cancelar una orden ya enviada (T2-42)", () => {
         // anunciaban todos igual, y el E2E llegó a operar sobre la orden equivocada.
         await user.click(screen.getByRole("button", { name: /^Cancelar la Venta #/ }));
 
-        // Cancelar una orden pendiente no mueve inventario, así que no hay nada que
-        // confirmar: la diferencia de trato entre los dos estados es deliberada.
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        // Antes se cancelaba de un toque, porque no mueve inventario. Pero tampoco se deshace:
+        // ahora confirma, con un diálogo distinto del de la enviada, que sí repone stock.
+        expect(mutaciones).toEqual([]);
+        const dialogo = screen.getByRole("dialog", { name: "Cancelar la Venta #000042" });
+        expect(within(dialogo).getByText(/el stock no cambia/)).toBeInTheDocument();
+        await user.click(within(dialogo).getByRole("button", { name: "Cancelar la venta" }));
+
         expect(mutaciones).toEqual([{ id: ORDEN_PENDIENTE.id, dto: { status: "CANCELLED" } }]);
+        expect(screen.queryByRole("dialog")).toBeNull();
     });
 
     it("una orden cancelada no ofrece ninguna acción", () => {
@@ -223,6 +241,12 @@ describe("SaleOrdersPage — el rol de almacén (T5-13)", () => {
         renderWithProviders(<SaleOrdersPage />);
 
         await user.click(screen.getByRole("button", { name: /^Marcar como enviada la Venta #/ }));
+        // AUD-012 — enviar descuenta stock: un toque abre la confirmación, que dice cuánto y de dónde.
+        expect(envios).toEqual([]);
+        const dialogo = screen.getByRole("dialog", { name: "Marcar como enviada la Venta #000042" });
+        expect(within(dialogo).getByText("Salen 5 unidades de Principal:")).toBeInTheDocument();
+        expect(within(dialogo).getByText("−3")).toBeInTheDocument();
+        await user.click(within(dialogo).getByRole("button", { name: "Marcar como enviada" }));
 
         expect(envios).toEqual([ORDEN_PENDIENTE.id]);
         // Nada por el `PATCH`, que es de ADMIN: la API se lo rechazaría.
@@ -295,6 +319,7 @@ describe("SaleOrdersPage — el rol de almacén (T5-13)", () => {
         renderWithProviders(<SaleOrdersPage />);
 
         await user.click(screen.getByRole("button", { name: /^Marcar como enviada la Venta #/ }));
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Marcar como enviada" }));
 
         expect(envios).toEqual([ORDEN_PENDIENTE.id]);
         expect(mutaciones).toEqual([]);
@@ -337,5 +362,24 @@ describe("SaleOrdersPage — de qué lotes salió cada línea (T5-15)", () => {
         await user.click(screen.getByText("Venta #000041"));
 
         expect(screen.getByText("Lote UNICO · caduca el 15 oct 2026")).toBeInTheDocument();
+    });
+});
+
+describe("SaleOrdersPage — eliminar una pendiente confirma (AUD-012)", () => {
+    it("un toque abre la confirmación; solo confirmar la borra", async () => {
+        rol = "ADMIN";
+        ordenes = [ORDEN_PENDIENTE];
+        borradas.length = 0;
+        const user = userEvent.setup();
+        renderWithProviders(<SaleOrdersPage />);
+
+        await user.click(screen.getByRole("button", { name: /^Eliminar la Venta #/ }));
+        expect(borradas).toEqual([]);
+        const dialogo = screen.getByRole("dialog", { name: "Eliminar la Venta #000042" });
+        expect(within(dialogo).getByText(/se borra para siempre/)).toBeInTheDocument();
+        await user.click(within(dialogo).getByRole("button", { name: "Eliminar" }));
+
+        expect(borradas).toEqual([ORDEN_PENDIENTE.id]);
+        expect(screen.queryByRole("dialog")).toBeNull();
     });
 });

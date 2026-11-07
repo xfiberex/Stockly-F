@@ -9,7 +9,7 @@ import CategoriesPage from "@/modules/catalog/components/CategoriesPage";
  * repetido, sin conexión—, lo escrito se perdía con él.
  */
 
-const estado = vi.hoisted(() => ({ falla: false, creadas: [] as unknown[], editadas: [] as unknown[] }));
+const estado = vi.hoisted(() => ({ falla: false, creadas: [] as unknown[], editadas: [] as unknown[], borradas: [] as unknown[] }));
 
 /** Una mutación que llama a `onSuccess` solo si no falla, como TanStack Query. */
 const mutacion = (registro: unknown[]) => ({
@@ -27,13 +27,14 @@ vi.mock("@/modules/catalog/hooks/useCategories", () => ({
 vi.mock("@/modules/catalog/hooks/useCategoryMutations", () => ({
     useCreateCategory: () => mutacion(estado.creadas),
     useUpdateCategory: () => mutacion(estado.editadas),
-    useDeleteCategory: () => ({ mutate: vi.fn(), isPending: false }),
+    useDeleteCategory: () => mutacion(estado.borradas),
 }));
 
 beforeEach(() => {
     estado.falla = false;
     estado.creadas.length = 0;
     estado.editadas.length = 0;
+    estado.borradas.length = 0;
 });
 
 async function crear(nombre: string) {
@@ -75,5 +76,31 @@ describe("Categorías y Marcas — el modal espera a la API (AUD-011)", () => {
 
         expect(estado.editadas).toHaveLength(1);
         expect(within(screen.getByRole("dialog")).getByLabelText(/Nombre/)).toHaveValue("Periféricos USB");
+    });
+});
+
+describe("Categorías y Marcas — borrar confirma (AUD-012)", () => {
+    it("un toque abre la confirmación, que dice que los productos se quedan sin categoría; solo confirmar borra", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<CategoriesPage />);
+
+        await user.click(screen.getByRole("button", { name: "Eliminar" }));
+        expect(estado.borradas).toEqual([]);
+        const dialogo = screen.getByRole("dialog", { name: "Eliminar la categoría «Periféricos»" });
+        expect(within(dialogo).getByText(/se quedan sin categoría/)).toBeInTheDocument();
+
+        await user.click(within(dialogo).getByRole("button", { name: "Eliminar" }));
+        expect(estado.borradas).toEqual(["c1"]);
+        expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("si borrar falla, la confirmación sigue abierta", async () => {
+        estado.falla = true;
+        const user = userEvent.setup();
+        renderWithProviders(<CategoriesPage />);
+
+        await user.click(screen.getByRole("button", { name: "Eliminar" }));
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Eliminar" }));
+        expect(screen.getByRole("dialog", { name: "Eliminar la categoría «Periféricos»" })).toBeInTheDocument();
     });
 });

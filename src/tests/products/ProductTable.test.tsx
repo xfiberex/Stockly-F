@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "../utils";
 import { ProductTable } from "@/modules/products/components/ProductTable";
@@ -24,6 +24,7 @@ const mockDeleteMutate = vi.fn();
 const mockRestoreMutate = vi.fn();
 
 beforeEach(() => {
+    mockDeleteMutate.mockClear();
     vi.mocked(useDeleteProduct).mockReturnValue({
         mutate: mockDeleteMutate,
         isPending: false,
@@ -171,12 +172,28 @@ describe("ProductTable", () => {
         expect(onEdit).toHaveBeenCalledWith(product);
     });
 
-    it("llama a deleteMutation.mutate al hacer clic en Eliminar", async () => {
+    it("AUD-012 — Eliminar pide confirmación, dice que la imagen se conserva, y solo entonces llama a la API", async () => {
         const user = userEvent.setup();
         const product = makeProduct({ id: "prod-abc" });
         renderWithProviders(<ProductTable products={[product]} isLoading={false} onEdit={vi.fn()} />);
         await user.click(screen.getByTitle("Eliminar"));
-        expect(mockDeleteMutate).toHaveBeenCalledWith("prod-abc");
+
+        expect(mockDeleteMutate).not.toHaveBeenCalled();
+        const dialogo = screen.getByRole("dialog", { name: "Eliminar «Monitor LG»" });
+        expect(within(dialogo).getByText(/Su historial y su imagen se conservan/)).toBeInTheDocument();
+
+        await user.click(within(dialogo).getByRole("button", { name: "Eliminar" }));
+        expect(mockDeleteMutate).toHaveBeenCalledWith("prod-abc", expect.objectContaining({ onSuccess: expect.any(Function) }));
+    });
+
+    it("AUD-012 — «Volver» cierra la confirmación sin eliminar nada", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<ProductTable products={[makeProduct()]} isLoading={false} onEdit={vi.fn()} />);
+        await user.click(screen.getByTitle("Eliminar"));
+        await user.click(screen.getByRole("button", { name: "Volver" }));
+
+        expect(screen.queryByRole("dialog")).toBeNull();
+        expect(mockDeleteMutate).not.toHaveBeenCalled();
     });
 
     it("llama a restoreMutation.mutate al hacer clic en Restaurar", async () => {

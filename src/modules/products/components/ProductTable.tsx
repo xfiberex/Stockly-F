@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
+import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { ProductDetailModal } from "@/modules/products/components/ProductDetailModal";
@@ -43,6 +44,8 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
     const [detailProduct, setDetailProduct] = useState<ProductWithAvailability | null>(null);
+    // AUD-012 — el producto que se va a eliminar, a la espera de confirmación.
+    const [aEliminar, setAEliminar] = useState<ProductWithAvailability | null>(null);
 
     if (isLoading) {
         return <EsqueletoTabla filas={10} columnas={6} esperando={esperandoFiltros} />;
@@ -290,8 +293,7 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
-                                                    isLoading={deleteMutation.isPending}
-                                                    onClick={() => deleteMutation.mutate(product.id)}
+                                                    onClick={() => setAEliminar(product)}
                                                     title={t("comun.eliminar")}
                                                     aria-label={t("productos.tabla.eliminarNombre", { nombre: product.name })}
                                                 >
@@ -325,6 +327,17 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
             onEdit={(p) => { setDetailProduct(null); onEdit(p); }}
             onPrintLabels={onPrintLabels}
         />
+
+        <ConfirmarAccion
+            abierto={aEliminar !== null}
+            titulo={t("productos.eliminar.titulo", { nombre: aEliminar?.name ?? "" })}
+            confirmar={t("comun.eliminar")}
+            pendiente={deleteMutation.isPending}
+            onConfirmar={() => aEliminar && deleteMutation.mutate(aEliminar.id, { onSuccess: () => setAEliminar(null) })}
+            onCerrar={() => setAEliminar(null)}
+        >
+            <p>{t("productos.eliminar.explicacion")}</p>
+        </ConfirmarAccion>
         </>
     );
 }

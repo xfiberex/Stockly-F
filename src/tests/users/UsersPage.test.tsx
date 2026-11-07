@@ -86,13 +86,33 @@ describe("UsersPage (T2-20)", () => {
         expect(within(propia).getByRole("button", { name: "Desactivar" })).toBeDisabled();
     });
 
-    it("cambiar el rol de otra persona llama a la API con el rol nuevo", async () => {
+    it("AUD-012 — cambiar el rol pide confirmación, dice de cuál a cuál, y solo entonces llama a la API", async () => {
         const user = userEvent.setup();
         renderWithProviders(<UsersPage />);
 
         await user.selectOptions(within(fila("Laura Gómez")).getByRole("combobox"), "ADMIN");
+        expect(cambiarRol).not.toHaveBeenCalled();
+        const dialogo = screen.getByRole("dialog", { name: "Cambiar el rol de Laura Gómez" });
+        expect(within(dialogo).getByText(/Laura Gómez pasará de Consulta a Admin/)).toBeInTheDocument();
 
-        expect(cambiarRol).toHaveBeenCalledWith({ id: "u-1", role: "ADMIN" });
+        await user.click(within(dialogo).getByRole("button", { name: "Cambiar rol" }));
+        expect(cambiarRol).toHaveBeenCalledWith({ id: "u-1", role: "ADMIN" }, expect.anything());
+    });
+
+    it("AUD-012 — con el teclado, recorrer la tabla y mover las flechas no cambia ningún rol", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<UsersPage />);
+
+        // Recorrer con Tab toda la página no toca nada.
+        for (let i = 0; i < 15; i++) await user.tab();
+        expect(cambiarRol).not.toHaveBeenCalled();
+
+        // Las flechas sobre el desplegable cerrado eligen otro valor, pero eso solo pregunta.
+        within(fila("Laura Gómez")).getByRole("combobox").focus();
+        await user.keyboard("{ArrowDown}");
+        await user.keyboard("{Escape}");
+        expect(cambiarRol).not.toHaveBeenCalled();
+        expect(within(fila("Laura Gómez")).getByRole("combobox")).toHaveValue("USER");
     });
 
     it("T5-13 — ofrece el rol de almacén, lo asigna y lo pinta con su rótulo", async () => {
@@ -103,7 +123,8 @@ describe("UsersPage (T2-20)", () => {
         expect(within(fila("Mateo Rivas")).getByText("Almacén", { selector: ":not(option)" })).toBeInTheDocument();
 
         await user.selectOptions(within(fila("Laura Gómez")).getByRole("combobox"), "WAREHOUSE");
-        expect(cambiarRol).toHaveBeenCalledWith({ id: "u-1", role: "WAREHOUSE" });
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cambiar rol" }));
+        expect(cambiarRol).toHaveBeenCalledWith({ id: "u-1", role: "WAREHOUSE" }, expect.anything());
 
         await user.selectOptions(screen.getAllByRole("combobox")[0]!, "WAREHOUSE");
         expect(consultas.at(-1)).toMatchObject({ role: "WAREHOUSE" });
@@ -117,7 +138,8 @@ describe("UsersPage (T2-20)", () => {
         expect(within(fila("Sofía Peña")).getByText("Vendedor", { selector: ":not(option)" })).toBeInTheDocument();
 
         await user.selectOptions(within(fila("Laura Gómez")).getByRole("combobox"), "SELLER");
-        expect(cambiarRol).toHaveBeenCalledWith({ id: "u-1", role: "SELLER" });
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cambiar rol" }));
+        expect(cambiarRol).toHaveBeenCalledWith({ id: "u-1", role: "SELLER" }, expect.anything());
 
         await user.selectOptions(screen.getAllByRole("combobox")[0]!, "SELLER");
         expect(consultas.at(-1)).toMatchObject({ role: "SELLER" });
@@ -128,7 +150,12 @@ describe("UsersPage (T2-20)", () => {
         renderWithProviders(<UsersPage />);
 
         await user.click(within(fila("Laura Gómez")).getByRole("button", { name: "Desactivar" }));
-        expect(cambiarActivo).toHaveBeenCalledWith({ id: "u-1", active: false });
+        // AUD-012 — desactivar confirma; activar, abajo, no: devuelve el acceso y no quita nada.
+        expect(cambiarActivo).not.toHaveBeenCalled();
+        const dialogo = screen.getByRole("dialog", { name: "Desactivar a Laura Gómez" });
+        expect(within(dialogo).getByText(/no podrá iniciar sesión hasta que se reactive su cuenta/)).toBeInTheDocument();
+        await user.click(within(dialogo).getByRole("button", { name: "Desactivar" }));
+        expect(cambiarActivo).toHaveBeenCalledWith({ id: "u-1", active: false }, expect.anything());
 
         usuarios = [usuario({ isActive: false })];
         renderWithProviders(<UsersPage />);
@@ -303,8 +330,13 @@ describe("UsersPage (T2-20)", () => {
             renderWithProviders(<UsersPage />);
 
             await user.selectOptions(within(fila("Diego Castro")).getByRole("combobox"), "WAREHOUSE");
+            // AUD-012 — aprobar también confirma: dice con qué rol entrará.
+            expect(cambiarRol).not.toHaveBeenCalled();
+            const dialogo = screen.getByRole("dialog", { name: "Aprobar a Diego Castro" });
+            expect(within(dialogo).getByText("Diego Castro podrá entrar en Stockly con el rol Almacén.")).toBeInTheDocument();
+            await user.click(within(dialogo).getByRole("button", { name: "Aprobar" }));
 
-            expect(cambiarRol).toHaveBeenCalledWith({ id: "u-p", role: "WAREHOUSE", aprobando: "Diego Castro" });
+            expect(cambiarRol).toHaveBeenCalledWith({ id: "u-p", role: "WAREHOUSE", aprobando: "Diego Castro" }, expect.anything());
         });
 
         it("ningún selector de la tabla ofrece «Pendiente»: no se le quita el rol a nadie", () => {

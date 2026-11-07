@@ -183,6 +183,8 @@ test.describe("Flujos que cruzan frontend y backend", () => {
 
         // Enviar descuenta el stock.
         await page.getByRole("button", { name: `Marcar como enviada la Venta #${numero}` }).click();
+        // AUD-012 — enviar descuenta stock: se confirma en el diálogo.
+        await page.getByRole("dialog").getByRole("button", { name: "Marcar como enviada" }).click();
         await expect.poll(() => stockDe(page, productId)).toBe(STOCK_INICIAL - CANTIDAD);
 
         // Cancelar la orden ya enviada, por la interfaz. Hasta T2-42 este paso iba por API
@@ -681,6 +683,8 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         expect(orden, "la venta debería llevar el `productId` del producto elegido").toBeTruthy();
         const numero = String(orden!.number).padStart(6, "0");
         await page.getByRole("button", { name: `Marcar como enviada la Venta #${numero}` }).click();
+        // AUD-012 — enviar descuenta stock: se confirma en el diálogo.
+        await page.getByRole("dialog").getByRole("button", { name: "Marcar como enviada" }).click();
         await expect.poll(() => stockDe(page, creado.id)).toBe(STOCK_INICIAL - CANTIDAD);
 
         // 2. Venta, con el escáner: la línea llega con su precio y su disponible, que ya es
@@ -840,6 +844,8 @@ test.describe("Flujos que cruzan frontend y backend", () => {
 
         // Enviada por la interfaz: el botón aparece en el detalle, que sigue desplegado.
         await page.getByRole("button", { name: `Marcar como enviada la Venta #${numero}` }).click();
+        // AUD-012 — enviar descuenta stock: se confirma en el diálogo.
+        await page.getByRole("dialog").getByRole("button", { name: "Marcar como enviada" }).click();
         const boton = page.getByRole("button", { name: "Descargar comprobante" });
         await expect(boton).toBeVisible();
         expect(await page.evaluate(() => window.innerWidth)).toBe(page.viewportSize()!.width);
@@ -1084,13 +1090,17 @@ test.describe("Flujos que cruzan frontend y backend", () => {
             await page.goto("/warehouses");
             const tarjeta = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: sucursal }) });
             await expect(tarjeta.getByText("6", { exact: true })).toBeVisible();
-            await tarjeta.getByRole("button", { name: `Desactivar ${sucursal}` }).click();
-            await expect(page.getByText(`«${sucursal}» todavía guarda 6 unidades: transfiérelas antes de desactivarlo.`)).toBeVisible();
+            // AUD-012 — con existencias el botón no se ofrece, y dice por qué (antes lo rechazaba el servidor).
+            await expect(tarjeta.getByRole("button", { name: `Desactivar ${sucursal}` })).toBeDisabled();
+            await expect(tarjeta.getByText("Guarda 6 unidades: transfiérelas antes de desactivarlo.")).toBeVisible();
 
             await api(page, "post", "/stock-transfers", { fromWarehouseId: nueva.id, toWarehouseId: central.id, items: [{ productId: creado.id, quantity: 6 }] });
             await expect.poll(niveles).toEqual({ total: 21, central: 21, sucursal: 0 });
+            // La transferencia fue por la API: la tarjeta se entera al recargar.
+            await page.reload();
             const desactivado = page.waitForResponse((r) => r.url().includes(`/warehouses/${nueva.id}/deactivate`));
             await tarjeta.getByRole("button", { name: `Desactivar ${sucursal}` }).click();
+            await page.getByRole("dialog").getByRole("button", { name: "Desactivar" }).click();
             expect((await desactivado).status()).toBe(200);
             await expect(tarjeta.getByText("Inactivo")).toBeVisible();
 

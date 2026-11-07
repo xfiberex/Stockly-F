@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
+import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { useT } from "@/shared/hooks/useIdioma";
@@ -94,6 +95,10 @@ export interface TextosDeCatalogo {
     nueva: Clave;
     editar: Clave;
     vacio: Clave;
+    /** AUD-012 — el título de la confirmación de borrado, con `{nombre}`. */
+    eliminarTitulo: Clave;
+    /** AUD-012 — lo que les pasa a los productos que la usaban. */
+    eliminarExplicacion: Clave;
 }
 
 interface CatalogItemSectionProps {
@@ -103,7 +108,7 @@ interface CatalogItemSectionProps {
     /** AUD-011 — `alGuardar` cierra el modal: solo cuando la API confirma, para que un fallo no tire lo escrito. */
     onCreate: (data: CatalogItemForm, alGuardar: () => void) => void;
     onUpdate: (id: string, data: CatalogItemForm, alGuardar: () => void) => void;
-    onDelete: (id: string) => void;
+    onDelete: (id: string, alBorrar: () => void) => void;
     isSubmitting: boolean;
     isDeleting: boolean;
 }
@@ -121,6 +126,8 @@ export function CatalogItemSection({
     const { t } = useT();
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<CatalogItem | undefined>();
+    // AUD-012 — borrar pide confirmación: dice qué les pasa a los productos que la usaban.
+    const [aEliminar, setAEliminar] = useState<CatalogItem | null>(null);
 
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
@@ -186,8 +193,7 @@ export function CatalogItemSection({
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
-                                                    isLoading={isDeleting}
-                                                    onClick={() => onDelete(item.id)}
+                                                    onClick={() => setAEliminar(item)}
                                                     title={t("comun.eliminar")}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
@@ -211,6 +217,17 @@ export function CatalogItemSection({
                 onSubmit={handleSubmit}
                 isPending={isSubmitting}
             />
+
+            <ConfirmarAccion
+                abierto={aEliminar !== null}
+                titulo={t(textos.eliminarTitulo, { nombre: aEliminar?.name ?? "" })}
+                confirmar={t("comun.eliminar")}
+                pendiente={isDeleting}
+                onConfirmar={() => aEliminar && onDelete(aEliminar.id, () => setAEliminar(null))}
+                onCerrar={() => setAEliminar(null)}
+            >
+                <p>{t(textos.eliminarExplicacion)}</p>
+            </ConfirmarAccion>
         </div>
     );
 }

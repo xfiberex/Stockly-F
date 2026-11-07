@@ -8,6 +8,7 @@ import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { Button } from "@/shared/components/Button";
+import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ESTADO_ORDEN_COMPRA, buscarEstado } from "@/shared/lib/estados";
 import { EsqueletoLista } from "@/shared/components/Esqueleto";
@@ -550,8 +551,17 @@ export default function PurchaseOrdersPage() {
         );
     };
 
-    const handleCancel = (id: string) => {
-        updateMutation.mutate({ id, dto: { status: "CANCELLED" } });
+    // AUD-012 — cancelar y eliminar una pendiente se confirman: ninguna de las dos se deshace, y
+    // antes bastaba un toque en el icono de la fila.
+    const [accion, setAccion] = useState<{ tipo: "cancelar" | "eliminar"; orden: PurchaseOrder } | null>(null);
+    const cerrarAccion = () => setAccion(null);
+    const confirmarAccion = () => {
+        if (!accion) return;
+        if (accion.tipo === "cancelar") {
+            updateMutation.mutate({ id: accion.orden.id, dto: { status: "CANCELLED" } }, { onSuccess: cerrarAccion });
+        } else {
+            handleDelete(accion.orden.id, cerrarAccion);
+        }
     };
 
     // La orden recibida se cancela desde el diálogo, no desde la fila. Si el backend la
@@ -566,10 +576,11 @@ export default function PurchaseOrdersPage() {
 
     // Si se borra la última orden de la última página, esa página deja de existir:
     // se retrocede en el propio evento, sin efecto que reaccione al cambio de datos.
-    const handleDelete = (id: string) => {
+    const handleDelete = (id: string, alBorrar?: () => void) => {
         const eraLaUnica = orders.length === 1 && page > 1;
         deleteMutation.mutate(id, {
             onSuccess: () => {
+                alBorrar?.();
                 if (eraLaUnica) setPage((p) => p - 1);
             },
         });
@@ -683,8 +694,8 @@ export default function PurchaseOrdersPage() {
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("compras.cancelarOrden")}
-                                                    isLoading={updateMutation.isPending}
-                                                    onClick={() => handleCancel(order.id)}
+                                                    aria-label={t("compras.cancelarDe", { numero: numeroDeOrden(order.id) })}
+                                                    onClick={() => setAccion({ tipo: "cancelar", orden: order })}
                                                 >
                                                     <XMarkIcon className="h-4 w-4 text-warning" />
                                                 </Button>
@@ -694,8 +705,8 @@ export default function PurchaseOrdersPage() {
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("comun.eliminar")}
-                                                    isLoading={deleteMutation.isPending}
-                                                    onClick={() => handleDelete(order.id)}
+                                                    aria-label={t("compras.eliminarDe", { numero: numeroDeOrden(order.id) })}
+                                                    onClick={() => setAccion({ tipo: "eliminar", orden: order })}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>
@@ -817,6 +828,17 @@ export default function PurchaseOrdersPage() {
                     onClose={() => setOrdenARecibir(null)}
                 />
             )}
+
+            <ConfirmarAccion
+                abierto={accion !== null}
+                titulo={accion ? t(accion.tipo === "cancelar" ? "compras.confirmar.cancelar.titulo" : "compras.confirmar.eliminar.titulo", { numero: numeroDeOrden(accion.orden.id) }) : ""}
+                confirmar={t(accion?.tipo === "eliminar" ? "comun.eliminar" : "compras.cancelarOrden")}
+                pendiente={updateMutation.isPending || deleteMutation.isPending}
+                onConfirmar={confirmarAccion}
+                onCerrar={cerrarAccion}
+            >
+                <p>{t(accion?.tipo === "eliminar" ? "compras.confirmar.eliminar.explicacion" : "compras.confirmar.cancelar.explicacion")}</p>
+            </ConfirmarAccion>
         </div>
     );
 }

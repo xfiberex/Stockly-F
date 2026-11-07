@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
+import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { useSuppliers } from "@/modules/suppliers/hooks/useSuppliers";
 import { useCreateSupplier, useUpdateSupplier, useDeleteSupplier } from "@/modules/suppliers/hooks/useSupplierMutations";
@@ -146,6 +147,8 @@ export default function SuppliersPage() {
     const { t, tn } = useT();
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<Supplier | undefined>();
+    // AUD-012 — borrar un proveedor deja sin proveedor a sus productos y a sus compras.
+    const [aEliminar, setAEliminar] = useState<Supplier | null>(null);
 
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
@@ -221,8 +224,7 @@ export default function SuppliersPage() {
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
-                                                    isLoading={deleteMutation.isPending}
-                                                    onClick={() => deleteMutation.mutate(supplier.id)}
+                                                    onClick={() => setAEliminar(supplier)}
                                                     title={t("comun.eliminar")}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
@@ -245,6 +247,17 @@ export default function SuppliersPage() {
                 onSubmit={handleSubmit}
                 isPending={createMutation.isPending || updateMutation.isPending}
             />
+
+            <ConfirmarAccion
+                abierto={aEliminar !== null}
+                titulo={t("proveedores.eliminar.titulo", { nombre: aEliminar?.name ?? "" })}
+                confirmar={t("comun.eliminar")}
+                pendiente={deleteMutation.isPending}
+                onConfirmar={() => aEliminar && deleteMutation.mutate(aEliminar.id, { onSuccess: () => setAEliminar(null) })}
+                onCerrar={() => setAEliminar(null)}
+            >
+                <p>{t("proveedores.eliminar.explicacion")}</p>
+            </ConfirmarAccion>
         </div>
     );
 }

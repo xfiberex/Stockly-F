@@ -3,6 +3,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
+import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { EsqueletoRejilla } from "@/shared/components/Esqueleto";
 import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from "@/modules/tags/hooks/useTags";
 import type { Tag } from "@/modules/tags/types/tags.types";
@@ -120,6 +121,8 @@ export default function TagsPage() {
     const [editingTag, setEditingTag] = useState<Tag | undefined>();
     const { data: tags = [], isLoading } = useTags();
     const deleteMutation = useDeleteTag();
+    // AUD-012 — borrar una etiqueta la quita de todos los productos que la llevan.
+    const [aEliminar, setAEliminar] = useState<Tag | null>(null);
 
     const handleEdit = (tag: Tag) => {
         setEditingTag(tag);
@@ -169,8 +172,7 @@ export default function TagsPage() {
                                 <Button
                                     variant="ghost"
                                     aria-label={t("etiquetas.eliminarNombre", { nombre: tag.name })}
-                                    isLoading={deleteMutation.isPending}
-                                    onClick={() => deleteMutation.mutate(tag.id)}
+                                    onClick={() => setAEliminar(tag)}
                                 >
                                     <TrashIcon className="h-3.5 w-3.5 text-foreground-muted hover:text-danger" />
                                 </Button>
@@ -184,6 +186,17 @@ export default function TagsPage() {
                 `defaultValues` en el primer montaje, así que sin ella editar abría el
                 formulario vacío. Mismo patrón que `ProductsPage:255`. */}
             <TagFormModal key={editingTag?.id ?? "new"} isOpen={formOpen} onClose={handleClose} tag={editingTag} />
+
+            <ConfirmarAccion
+                abierto={aEliminar !== null}
+                titulo={t("etiquetas.eliminar.titulo", { nombre: aEliminar?.name ?? "" })}
+                confirmar={t("comun.eliminar")}
+                pendiente={deleteMutation.isPending}
+                onConfirmar={() => aEliminar && deleteMutation.mutate(aEliminar.id, { onSuccess: () => setAEliminar(null) })}
+                onCerrar={() => setAEliminar(null)}
+            >
+                <p>{t("etiquetas.eliminar.explicacion")}</p>
+            </ConfirmarAccion>
         </div>
     );
 }

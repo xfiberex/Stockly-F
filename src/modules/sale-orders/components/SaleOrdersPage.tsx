@@ -8,6 +8,7 @@ import { Modal } from "@/shared/components/Modal";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
+import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ESTADO_ORDEN_VENTA, buscarEstado } from "@/shared/lib/estados";
 import { EsqueletoLista } from "@/shared/components/Esqueleto";
@@ -66,6 +67,15 @@ const SOLO_CIFRAS = /^\d{0,9}$/;
 function itemsQueReponen(order: SaleOrder) {
     return order.items.filter((item) => item.productId !== null);
 }
+
+// ── AUD-012: confirmación de las acciones de una orden pendiente ──────────────
+
+/** Un mapa y no una clave compuesta: así cada clave aparece escrita y el guardián del catálogo la encuentra. */
+const TEXTOS_DE_ACCION = {
+    enviar: { titulo: "ventas.confirmar.enviar.titulo", boton: "ventas.confirmar.enviar.boton" },
+    cancelar: { titulo: "ventas.confirmar.cancelar.titulo", boton: "ventas.confirmar.cancelar.boton" },
+    eliminar: { titulo: "ventas.confirmar.eliminar.titulo", boton: "ventas.confirmar.eliminar.boton" },
+} as const satisfies Record<string, { titulo: Clave; boton: Clave }>;
 
 // ── Confirmación de cancelación de una orden enviada ──────────────────────────
 
@@ -491,17 +501,28 @@ export default function SaleOrdersPage() {
 
     // Si se borra la última orden de la última página, esa página deja de existir: se
     // retrocede en el propio evento, como en las órdenes de compra.
-    const handleDelete = (id: string) => {
+    const handleDelete = (id: string, alBorrar?: () => void) => {
         const eraLaUnica = orders.length === 1 && page > 1;
         deleteMutation.mutate(id, {
             onSuccess: () => {
+                alBorrar?.();
                 if (eraLaUnica) setPage((p) => p - 1);
             },
         });
     };
 
-    const handleShip = (id: string) => shipMutation.mutate(id);
-    const handleCancel = (id: string) => updateMutation.mutate({ id, dto: { status: "CANCELLED" } });
+    // AUD-012 — enviar, cancelar y eliminar una pendiente se confirman: enviar descuenta stock, y
+    // ninguna de las tres se deshace. Antes bastaba un toque en el icono de la fila.
+    const [accion, setAccion] = useState<{ tipo: "enviar" | "cancelar" | "eliminar"; orden: SaleOrder } | null>(null);
+    const cerrarAccion = () => setAccion(null);
+    const confirmarAccion = () => {
+        if (!accion) return;
+        const { tipo, orden } = accion;
+        if (tipo === "enviar") shipMutation.mutate(orden.id, { onSuccess: cerrarAccion });
+        else if (tipo === "cancelar") updateMutation.mutate({ id: orden.id, dto: { status: "CANCELLED" } }, { onSuccess: cerrarAccion });
+        else handleDelete(orden.id, cerrarAccion);
+    };
+    const unidadesDe = (orden: SaleOrder) => orden.items.reduce((suma, item) => suma + item.quantity, 0);
 
     // La orden enviada se cancela desde el diálogo, no desde la fila: es la única de las
     // acciones de esta página que mueve inventario.
@@ -654,8 +675,7 @@ export default function SaleOrdersPage() {
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("ventas.marcarEnviada")}
                                                     aria-label={t("ventas.marcarEnviadaDe", { numero: numeroDeOrden(order) })}
-                                                    isLoading={shipMutation.isPending}
-                                                    onClick={() => handleShip(order.id)}
+                                                    onClick={() => setAccion({ tipo: "enviar", orden: order })}
                                                 >
                                                     <TruckIcon className="h-4 w-4 text-success" />
                                                 </Button>
@@ -666,8 +686,7 @@ export default function SaleOrdersPage() {
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("compras.cancelarOrden")}
                                                     aria-label={t("ventas.cancelarDe", { numero: numeroDeOrden(order) })}
-                                                    isLoading={updateMutation.isPending}
-                                                    onClick={() => handleCancel(order.id)}
+                                                    onClick={() => setAccion({ tipo: "cancelar", orden: order })}
                                                 >
                                                     <XMarkIcon className="h-4 w-4 text-warning" />
                                                 </Button>
@@ -678,8 +697,7 @@ export default function SaleOrdersPage() {
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("comun.eliminar")}
                                                     aria-label={t("ventas.eliminarDe", { numero: numeroDeOrden(order) })}
-                                                    isLoading={deleteMutation.isPending}
-                                                    onClick={() => handleDelete(order.id)}
+                                                    onClick={() => setAccion({ tipo: "eliminar", orden: order })}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>
@@ -784,6 +802,33 @@ export default function SaleOrdersPage() {
                 onConfirm={confirmarCancelacionDeEnvio}
                 onClose={() => setOrdenACancelar(null)}
             />
+
+            <ConfirmarAccion
+                abierto={accion !== null}
+                titulo={accion ? t(TEXTOS_DE_ACCION[accion.tipo].titulo, { numero: numeroDeOrden(accion.orden) }) : ""}
+                confirmar={accion ? t(TEXTOS_DE_ACCION[accion.tipo].boton) : ""}
+                // Enviar avanza la venta: es la acción normal del almacén, no una que destruye.
+                peligro={accion?.tipo !== "enviar"}
+                pendiente={shipMutation.isPending || updateMutation.isPending || deleteMutation.isPending}
+                onConfirmar={confirmarAccion}
+                onCerrar={cerrarAccion}
+            >
+                {accion?.tipo === "enviar" && (
+                    <>
+                        <p>{tn("ventas.confirmar.enviar.explicacion", unidadesDe(accion.orden), { almacen: accion.orden.warehouse.name })}</p>
+                        <ul className="space-y-1 rounded-lg border border-border bg-surface-muted p-3">
+                            {accion.orden.items.map((item) => (
+                                <li key={item.id} className="flex items-baseline justify-between gap-4">
+                                    <span>{item.productName}</span>
+                                    <span className="tabular-nums text-foreground-muted">−{item.quantity}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </>
+                )}
+                {accion?.tipo === "cancelar" && <p>{t("ventas.confirmar.cancelar.explicacion")}</p>}
+                {accion?.tipo === "eliminar" && <p>{t("ventas.confirmar.eliminar.explicacion")}</p>}
+            </ConfirmarAccion>
         </div>
     );
 }

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { BuildingStorefrontIcon, PlusIcon, StarIcon } from "@heroicons/react/24/outline";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
+import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Input } from "@/shared/components/Input";
 import { Modal } from "@/shared/components/Modal";
@@ -74,6 +75,17 @@ export default function WarehousesPage() {
     const puedeDesactivar = puede("PATCH /warehouses/:id/deactivate");
     const ocupado = hacerPredeterminado.isPending || cambiarEstado.isPending;
 
+    // AUD-012 — hacer predeterminado y desactivar se confirman. Reactivar no: devuelve el
+    // almacén a los selectores y no quita nada.
+    const [accion, setAccion] = useState<{ tipo: "predeterminado" | "desactivar"; almacen: WarehouseWithFigures } | null>(null);
+    const cerrarAccion = () => setAccion(null);
+    const confirmarAccion = () => {
+        if (!accion) return;
+        if (accion.tipo === "predeterminado") hacerPredeterminado.mutate(accion.almacen.id, { onSuccess: cerrarAccion });
+        else cambiarEstado.mutate({ id: accion.almacen.id, active: false }, { onSuccess: cerrarAccion });
+    };
+    const predeterminadoActual = almacenes.find((a) => a.isDefault);
+
     return (
         <div className={CLASES_CONTENEDOR_DE_PAGINA}>
             <div className={CLASES_ENCABEZADO_DE_PAGINA}>
@@ -144,7 +156,7 @@ export default function WarehousesPage() {
                                             variant="secondary"
                                             disabled={ocupado}
                                             aria-label={t("almacenes.hacerPredeterminadoEste", { nombre: almacen.name })}
-                                            onClick={() => hacerPredeterminado.mutate(almacen.id)}
+                                            onClick={() => setAccion({ tipo: "predeterminado", almacen })}
                                         >
                                             {t("almacenes.hacerPredeterminado")}
                                         </Button>
@@ -152,12 +164,23 @@ export default function WarehousesPage() {
                                     {puedeDesactivar && !almacen.isDefault && (
                                         <Button
                                             variant={almacen.isActive ? "danger" : "secondary"}
-                                            disabled={ocupado}
+                                            // Con existencias el servidor lo rechaza: el botón no se ofrece, y dice por qué.
+                                            disabled={ocupado || (almacen.isActive && almacen.units !== 0)}
                                             aria-label={t(almacen.isActive ? "almacenes.desactivarEste" : "almacenes.activarEste", { nombre: almacen.name })}
-                                            onClick={() => cambiarEstado.mutate({ id: almacen.id, active: !almacen.isActive })}
+                                            aria-describedby={almacen.isActive && almacen.units !== 0 ? `almacen-${almacen.id}-motivo` : undefined}
+                                            onClick={() =>
+                                                almacen.isActive
+                                                    ? setAccion({ tipo: "desactivar", almacen })
+                                                    : cambiarEstado.mutate({ id: almacen.id, active: true })
+                                            }
                                         >
                                             {t(almacen.isActive ? "almacenes.desactivar" : "almacenes.activar")}
                                         </Button>
+                                    )}
+                                    {puedeDesactivar && !almacen.isDefault && almacen.isActive && almacen.units !== 0 && (
+                                        <p id={`almacen-${almacen.id}-motivo`} className="w-full text-xs text-foreground-muted">
+                                            {tn("almacenes.noSePuedeDesactivar", almacen.units)}
+                                        </p>
                                     )}
                                 </div>
                             )}
@@ -170,6 +193,22 @@ export default function WarehousesPage() {
 
             {/* Se monta al abrir: cada vez empieza con los datos de ese almacén, o limpio. */}
             {enFormulario !== undefined && <FormularioDeAlmacen almacen={enFormulario} onClose={() => setEnFormulario(undefined)} />}
+
+            <ConfirmarAccion
+                abierto={accion !== null}
+                titulo={t(accion?.tipo === "predeterminado" ? "almacenes.confirmar.predeterminado.titulo" : "almacenes.confirmar.desactivar.titulo", { nombre: accion?.almacen.name ?? "" })}
+                confirmar={t(accion?.tipo === "predeterminado" ? "almacenes.hacerPredeterminado" : "almacenes.desactivar")}
+                peligro={accion?.tipo === "desactivar"}
+                pendiente={ocupado}
+                onConfirmar={confirmarAccion}
+                onCerrar={cerrarAccion}
+            >
+                {accion?.tipo === "predeterminado" ? (
+                    <p>{t("almacenes.confirmar.predeterminado.explicacion", { nombre: accion.almacen.name, anterior: predeterminadoActual?.name ?? "—" })}</p>
+                ) : (
+                    <p>{t("almacenes.confirmar.desactivar.explicacion", { nombre: accion?.almacen.name ?? "" })}</p>
+                )}
+            </ConfirmarAccion>
         </div>
     );
 }

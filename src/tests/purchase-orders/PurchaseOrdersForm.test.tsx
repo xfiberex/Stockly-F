@@ -221,15 +221,23 @@ describe("PurchaseOrdersPage — estados y acciones (T2-19)", () => {
         renderWithProviders(<PurchaseOrdersPage />);
 
         await user.click(screen.getByTitle("Cancelar orden"));
+        // AUD-012 — un toque solo abre la confirmación.
+        expect(actualizadas).toEqual([]);
+        const dialogo = screen.getByRole("dialog", { name: /^Cancelar la orden #/ });
+        expect(within(dialogo).getByText(/el stock no cambia/)).toBeInTheDocument();
+        await user.click(within(dialogo).getByRole("button", { name: "Cancelar orden" }));
 
         expect(actualizadas).toEqual([{ id: orden().id, dto: { status: "CANCELLED" } }]);
+        expect(screen.queryByRole("dialog")).toBeNull();
     });
 
-    it("eliminar una orden la borra por su id", async () => {
+    it("eliminar una orden pide confirmación y la borra por su id", async () => {
         const user = userEvent.setup();
         renderWithProviders(<PurchaseOrdersPage />);
 
         await user.click(screen.getByTitle("Eliminar"));
+        expect(borradas).toEqual([]);
+        await user.click(within(screen.getByRole("dialog", { name: /^Eliminar la orden #/ })).getByRole("button", { name: "Eliminar" }));
 
         expect(borradas).toEqual([orden().id]);
     });

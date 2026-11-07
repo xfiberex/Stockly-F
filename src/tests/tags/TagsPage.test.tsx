@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/tests/utils";
 import TagsPage from "@/modules/tags/components/TagsPage";
 
+const borrarEtiqueta = vi.fn();
+
 const etiquetas = [
     { id: "tag-1", name: "Oferta", color: "#ef4444" },
     { id: "tag-2", name: "Novedad", color: "#22c55e" },
@@ -12,7 +14,7 @@ vi.mock("@/modules/tags/hooks/useTags", () => ({
     useTags: () => ({ data: etiquetas, isLoading: false }),
     useCreateTag: () => ({ mutate: vi.fn(), isPending: false }),
     useUpdateTag: () => ({ mutate: vi.fn(), isPending: false }),
-    useDeleteTag: () => ({ mutate: vi.fn(), isPending: false }),
+    useDeleteTag: () => ({ mutate: borrarEtiqueta, isPending: false }),
 }));
 
 // `TagFormModal` está montado de forma permanente y `useForm` solo aplica
@@ -101,5 +103,24 @@ describe("TagsPage — selectores de color accesibles (T2-13)", () => {
 
         const grupo = screen.getByRole("group", { name: "Color" });
         expect(within(grupo).getByRole("button", { name: "Rojo" })).toHaveAttribute("aria-pressed", "true");
+    });
+});
+
+describe("TagsPage — borrar confirma (AUD-012)", () => {
+    beforeEach(() => borrarEtiqueta.mockClear());
+
+    it("un toque abre la confirmación; «Volver» no borra y confirmar sí", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<TagsPage />);
+
+        await user.click(screen.getByRole("button", { name: "Eliminar Oferta" }));
+        const dialogo = screen.getByRole("dialog", { name: "Eliminar la etiqueta «Oferta»" });
+        expect(within(dialogo).getByText(/Se quita de todos los productos que la llevan/)).toBeInTheDocument();
+        await user.click(within(dialogo).getByRole("button", { name: "Volver" }));
+        expect(borrarEtiqueta).not.toHaveBeenCalled();
+
+        await user.click(screen.getByRole("button", { name: "Eliminar Oferta" }));
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Eliminar" }));
+        expect(borrarEtiqueta).toHaveBeenCalledWith("tag-1", expect.anything());
     });
 });

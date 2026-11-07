@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
+import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { Select } from "@/shared/components/Select";
 import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { useDebounce } from "@/shared/hooks/useDebounce";
@@ -90,6 +91,26 @@ export default function UsersPage() {
     const inviteMutation = useInviteUser();
     const [invitando, setInvitando] = useState(false);
     const activeMutation = useSetUserActive();
+
+    // AUD-012 — el rol se elige en el desplegable pero no se aplica hasta confirmarlo: antes
+    // cambiaba en el `onChange`, y las flechas del teclado sobre el desplegable cerrado bastaban
+    // para quitarle a alguien sus permisos. Desactivar también confirma; reactivar no, porque
+    // devuelve el acceso y no quita nada.
+    const [cambio, setCambio] = useState<
+        { tipo: "rol"; usuario: AppUser; rol: RolAsignable } | { tipo: "desactivar"; usuario: AppUser } | null
+    >(null);
+    const cerrarCambio = () => setCambio(null);
+    const confirmarCambio = () => {
+        if (!cambio) return;
+        const { usuario } = cambio;
+        if (cambio.tipo === "rol") {
+            const aprobando = usuario.role === "PENDING" ? usuario.name : undefined;
+            roleMutation.mutate({ id: usuario.id, role: cambio.rol, aprobando }, { onSuccess: cerrarCambio });
+        } else {
+            activeMutation.mutate({ id: usuario.id, active: false }, { onSuccess: cerrarCambio });
+        }
+    };
+    const nombreDeRol = (rol: UserRole) => t(ROL[rol].clave);
 
     const users = data?.data ?? [];
     const meta = data?.meta;
@@ -198,7 +219,7 @@ export default function UsersPage() {
                                                             value=""
                                                             disabled={roleMutation.isPending}
                                                             onChange={(e) => {
-                                                                if (e.target.value) roleMutation.mutate({ id: u.id, role: e.target.value as RolAsignable, aprobando: u.name });
+                                                                if (e.target.value) setCambio({ tipo: "rol", usuario: u, rol: e.target.value as RolAsignable });
                                                             }}
                                                             className="text-xs py-1 h-auto"
                                                         />
@@ -211,14 +232,14 @@ export default function UsersPage() {
                                                             options={ROLES}
                                                             value={u.role}
                                                             disabled={isSelf || roleMutation.isPending}
-                                                            onChange={(e) => roleMutation.mutate({ id: u.id, role: e.target.value as RolAsignable })}
+                                                            onChange={(e) => setCambio({ tipo: "rol", usuario: u, rol: e.target.value as RolAsignable })}
                                                             className="text-xs py-1 h-auto"
                                                         />
                                                     )}
                                                     <Button
                                                         variant={u.isActive ? "danger" : "secondary"}
                                                         disabled={isSelf || activeMutation.isPending}
-                                                        onClick={() => activeMutation.mutate({ id: u.id, active: !u.isActive })}
+                                                        onClick={() => (u.isActive ? setCambio({ tipo: "desactivar", usuario: u }) : activeMutation.mutate({ id: u.id, active: true }))}
                                                         className="text-xs px-2.5 py-1 h-auto"
                                                     >
                                                         {t(u.isActive ? "usuarios.desactivar" : "usuarios.activar")}
@@ -254,6 +275,31 @@ export default function UsersPage() {
                     onSubmit={(form) => inviteMutation.mutate(form, { onSuccess: () => setInvitando(false) })}
                 />
             )}
+
+            <ConfirmarAccion
+                abierto={cambio !== null}
+                titulo={
+                    cambio?.tipo === "rol"
+                        ? t(cambio.usuario.role === "PENDING" ? "usuarios.confirmar.aprobar.titulo" : "usuarios.confirmar.rol.titulo", { nombre: cambio.usuario.name })
+                        : t("usuarios.confirmar.desactivar.titulo", { nombre: cambio?.usuario.name ?? "" })
+                }
+                confirmar={t(cambio?.tipo === "rol" ? (cambio.usuario.role === "PENDING" ? "usuarios.confirmar.aprobar.boton" : "usuarios.confirmar.rol.boton") : "usuarios.desactivar")}
+                // Aprobar abre la puerta; cambiar un rol o desactivar pueden cerrarla.
+                peligro={!(cambio?.tipo === "rol" && cambio.usuario.role === "PENDING")}
+                pendiente={roleMutation.isPending || activeMutation.isPending}
+                onConfirmar={confirmarCambio}
+                onCerrar={cerrarCambio}
+            >
+                {cambio?.tipo === "rol" && cambio.usuario.role === "PENDING" && (
+                    <p>{t("usuarios.confirmar.aprobar.explicacion", { nombre: cambio.usuario.name, rol: nombreDeRol(cambio.rol) })}</p>
+                )}
+                {cambio?.tipo === "rol" && cambio.usuario.role !== "PENDING" && (
+                    <p>{t("usuarios.confirmar.rol.explicacion", { nombre: cambio.usuario.name, antes: nombreDeRol(cambio.usuario.role), despues: nombreDeRol(cambio.rol) })}</p>
+                )}
+                {cambio?.tipo === "desactivar" && (
+                    <p>{t("usuarios.confirmar.desactivar.explicacion", { nombre: cambio.usuario.name })}</p>
+                )}
+            </ConfirmarAccion>
         </div>
     );
 }

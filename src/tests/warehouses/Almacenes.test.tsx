@@ -104,14 +104,35 @@ describe("WarehousesPage (T5-14)", () => {
         renderWithProviders(<WarehousesPage />);
         await screen.findByRole("heading", { name: "Sucursal Norte" });
 
+        // AUD-012 — hacer predeterminado confirma, y dice adónde irá lo que no diga almacén.
         await user.click(screen.getByRole("button", { name: "Hacer predeterminado Sucursal Norte" }));
+        expect(api.setDefaultWarehouse).not.toHaveBeenCalled();
+        const dialogo = screen.getByRole("dialog", { name: "Hacer predeterminado «Sucursal Norte»" });
+        expect(within(dialogo).getByText(/irá a «Sucursal Norte» en vez de a «Tienda Central»/)).toBeInTheDocument();
+        await user.click(within(dialogo).getByRole("button", { name: "Hacer predeterminado" }));
         await waitFor(() => expect(api.setDefaultWarehouse).toHaveBeenCalledWith("w-norte"));
 
-        await user.click(screen.getByRole("button", { name: "Desactivar Sucursal Norte" }));
-        await waitFor(() => expect(api.setWarehouseActive).toHaveBeenCalledWith("w-norte", false));
-
+        // Reactivar no quita nada: va directo.
         await user.click(screen.getByRole("button", { name: "Activar Bodega Vieja" }));
         await waitFor(() => expect(api.setWarehouseActive).toHaveBeenLastCalledWith("w-vieja", true));
+    });
+
+    it("AUD-012 — desactivar uno vacío confirma; con existencias no se ofrece, y dice por qué", async () => {
+        const VACIO = almacen({ id: "w-vacio", name: "Depósito Sur" });
+        api.almacenes = [CENTRAL, NORTE, VACIO];
+        const user = userEvent.setup();
+        renderWithProviders(<WarehousesPage />);
+        await screen.findByRole("heading", { name: "Depósito Sur" });
+
+        const conStock = screen.getByRole("button", { name: "Desactivar Sucursal Norte" });
+        expect(conStock).toBeDisabled();
+        expect(conStock).toHaveAccessibleDescription("Guarda 85 unidades: transfiérelas antes de desactivarlo.");
+
+        await user.click(screen.getByRole("button", { name: "Desactivar Depósito Sur" }));
+        expect(api.setWarehouseActive).not.toHaveBeenCalled();
+        const dialogo = screen.getByRole("dialog", { name: "Desactivar «Depósito Sur»" });
+        await user.click(within(dialogo).getByRole("button", { name: "Desactivar" }));
+        await waitFor(() => expect(api.setWarehouseActive).toHaveBeenCalledWith("w-vacio", false));
     });
 
     it("el alta manda el nombre sin espacios alrededor, y no deja guardar uno vacío", async () => {

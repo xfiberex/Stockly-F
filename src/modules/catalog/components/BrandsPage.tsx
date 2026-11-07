@@ -16,12 +16,14 @@ export default function BrandsPage() {
                 nueva: "catalogo.marcas.nueva",
                 editar: "catalogo.marcas.editar",
                 vacio: "catalogo.marcas.vacio",
+                eliminarTitulo: "catalogo.marcas.eliminarTitulo",
+                eliminarExplicacion: "catalogo.marcas.eliminarExplicacion",
             }}
             items={brands}
             isLoading={isLoading}
             onCreate={(data, alGuardar) => createMutation.mutate(data, { onSuccess: alGuardar })}
             onUpdate={(id, data, alGuardar) => updateMutation.mutate({ id, form: data }, { onSuccess: alGuardar })}
-            onDelete={(id) => deleteMutation.mutate(id)}
+            onDelete={(id, alBorrar) => deleteMutation.mutate(id, { onSuccess: alBorrar })}
             isSubmitting={createMutation.isPending || updateMutation.isPending}
             isDeleting={deleteMutation.isPending}
         />
