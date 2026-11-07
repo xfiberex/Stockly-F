@@ -102,7 +102,10 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         const creado = listado.data[0];
         expect(creado.tags.map((t) => t.name)).toContain(etiqueta);
 
-        // 4. El filtro por etiqueta de la interfaz lo encuentra
+        // 4. El filtro por etiqueta de la interfaz lo encuentra. AUD-013 — en el móvil los
+        //    desplegables van plegados tras «Filtros»: hay que abrirlos antes.
+        const plegados = page.getByRole("button", { name: /^Filtros/ });
+        if (await plegados.isVisible()) await plegados.click();
         const selectorEtiquetas = page
             .locator("select")
             .filter({ has: page.getByRole("option", { name: "Todas las etiquetas" }) });
@@ -989,9 +992,10 @@ test.describe("Flujos que cruzan frontend y backend", () => {
             await expect(vendedor.getByText(lapiz)).toBeVisible();
             await expect(vendedor.getByRole("button", { name: `Editar ${lapiz}` })).toHaveCount(0);
             await expect(vendedor.getByRole("button", { name: /Nuevo producto/ })).toHaveCount(0);
-            // Una pantalla de administración lo devuelve al panel.
+            // Una pantalla de administración lo devuelve al inicio, que para SELLER es el
+            // mostrador desde AUD-008: no tiene panel.
             await vendedor.goto("/settings");
-            await expect(vendedor.getByRole("heading", { name: "Panel", level: 1 })).toBeVisible();
+            await expect(vendedor.getByRole("heading", { name: "Mostrador", level: 1 })).toBeVisible();
         } finally {
             await contexto.close();
         }
