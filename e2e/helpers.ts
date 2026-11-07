@@ -11,20 +11,22 @@ export const ALMACEN = {
     password: process.env.E2E_ALMACEN_PASSWORD ?? "Almacen1234!",
 };
 
-// T6-08 — la cuenta de vendedor del seed.
+// T6-08 — la cuenta de vendedor del seed. AUD-008: SELLER no tiene panel, entra en el mostrador.
 export const VENDEDOR = {
     email: process.env.E2E_VENDEDOR_EMAIL ?? "vendedor@stockly.app",
     password: process.env.E2E_VENDEDOR_PASSWORD ?? "Vendedor1234!",
+    inicio: "Mostrador",
 };
 
 export const API_URL = process.env.E2E_API_URL ?? "http://localhost:3000";
 
-export async function login(page: Page, cuenta = { email: EMAIL, password: PASSWORD }): Promise<void> {
+/** `inicio`: el título de la pantalla en la que entra la cuenta («Panel» si no se dice). */
+export async function login(page: Page, cuenta: { email: string; password: string; inicio?: string } = { email: EMAIL, password: PASSWORD }): Promise<void> {
     await page.goto("/auth/login");
     await page.getByLabel("Correo electrónico").fill(cuenta.email);
     await page.getByLabel("Contraseña").fill(cuenta.password);
     await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page.getByRole("heading", { name: "Panel", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: cuenta.inicio ?? "Panel", level: 1 })).toBeVisible();
 }
 
 /** Sufijo único para que los datos de una ejecución no choquen con los de otra. */
