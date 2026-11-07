@@ -10,9 +10,11 @@ const mutate = vi.fn();
 const llamadas: Array<[string, boolean | undefined]> = [];
 
 vi.mock("@/modules/auth/hooks/useResetPassword", () => ({
+    // AUD-014 — el enlace se comprueba al abrir; aquí, siempre bueno.
+    useEnlaceDeRestablecer: () => ({ isPending: false, data: { email: "ana@stockly.app" }, error: null }),
     useResetPassword: (token: string, invitacion?: boolean) => {
         llamadas.push([token, invitacion]);
-        return { mutate, isPending: false };
+        return { mutate, isPending: false, error: null };
     },
 }));
 
@@ -50,9 +52,10 @@ describe("ResetPasswordPage", () => {
     it("sin token no hay formulario, venga de donde venga", () => {
         renderWithProviders(<ResetPasswordPage />, { initialRoute: "/auth/reset-password?invitacion=1" });
 
-        // AUD-014 — la tarjeta de enlace caducado; una invitación no se pide aquí, la reenvía un administrador.
+        // AUD-014 — la tarjeta de enlace caducado. La invitación sale por «Restablecer
+        // contraseña»: la cuenta ya existe y el enlace nuevo no depende de un administrador.
         expect(screen.getByRole("heading", { name: "Este enlace ya no sirve", level: 1 })).toBeInTheDocument();
-        expect(screen.getByText(/Pide a un administrador que te invite de nuevo/)).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Restablecer contraseña" })).toHaveAttribute("href", "/auth/forgot-password");
         expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
 });

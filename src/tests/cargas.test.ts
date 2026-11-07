@@ -59,6 +59,8 @@ describe("Quién usa el spinner grande", () => {
         "routes/index.tsx",
         "shared/components/ProtectedRoute.tsx",
         "modules/auth/components/VerifyEmailPage.tsx",
+        // AUD-014 — el enlace de restablecer se comprueba antes de enseñar el formulario.
+        "modules/auth/components/ResetPasswordPage.tsx",
         "shared/components/EscanerModal.tsx",
     ];
 

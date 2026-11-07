@@ -38,7 +38,7 @@ describe("LoginPage", () => {
         renderWithProviders(<LoginPage />);
         await user.click(screen.getByRole("button", { name: /entrar/i }));
         await waitFor(() => {
-            expect(screen.getByText(/email es obligatorio/i)).toBeInTheDocument();
+            expect(screen.getByText(/correo es obligatorio/i)).toBeInTheDocument();
         });
     });
 
@@ -50,7 +50,7 @@ describe("LoginPage", () => {
         const form = screen.getByRole("button", { name: /entrar/i }).closest("form")!;
         fireEvent.submit(form);
         await waitFor(() => {
-            expect(screen.getByText("Email no válido")).toBeInTheDocument();
+            expect(screen.getByText("Correo no válido")).toBeInTheDocument();
         });
     });
 

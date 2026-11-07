@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useLocation, useNavigationType } from "react-router-dom";
 import { useT } from "@/shared/hooks/useIdioma";
 import { tituloDeRuta } from "@/shared/lib/titulos";
+import { useTituloForzado } from "@/shared/hooks/useTituloDePantalla";
 
 /**
  * T2-18 — foco y anuncio al cambiar de ruta.
@@ -43,12 +44,18 @@ export function AnuncioDeRuta() {
     // T4-04: la lista guarda la clave y aquí se traduce, así que cambiar de idioma
     // reescribe el `document.title` y lo que anuncia la región viva sin tocar nada más.
     const { t } = useT();
-    const titulo = t(tituloDeRuta(pathname));
+    // AUD-014 — salvo que la pantalla diga otro: un enlace caducado no es «Nueva contraseña».
+    const forzado = useTituloForzado();
+    const titulo = t(forzado ?? tituloDeRuta(pathname));
     const yaNavegado = useRef(false);
 
     useEffect(() => {
         document.title = `${titulo} · Stockly`;
+    }, [titulo]);
 
+    // Separado del título (AUD-014): que el título cambie sin cambiar de ruta —otro idioma, o
+    // una pantalla que dice el suyo— no es navegar, y no debe subir la página ni mover el foco.
+    useEffect(() => {
         // En la primera carga el navegador ya anuncia la página, y mover el foco aquí
         // se lo quitaría a quien acaba de llegar. Solo se mueve al *cambiar* de ruta.
         if (!yaNavegado.current) {
@@ -63,7 +70,7 @@ export function AnuncioDeRuta() {
         }
 
         document.getElementById("contenido")?.focus({ preventScroll: true });
-    }, [pathname, titulo, tipoDeNavegacion]);
+    }, [pathname, tipoDeNavegacion]);
 
     return (
         <p aria-live="polite" className="sr-only">

@@ -21,7 +21,7 @@ describe("Auth Schemas — validación con Zod", () => {
             const result = loginFormSchema.safeParse({ email: "no-es-email", password: "secret" });
             expect(result.success).toBe(false);
             expect(result.error?.issues[0].message).toBe("validacion.correoInvalido");
-            expect(traducir("es", "validacion.correoInvalido")).toBe("Email no válido");
+            expect(traducir("es", "validacion.correoInvalido")).toBe("Correo no válido");
         });
         it("rechaza email vacío", () => {
             expect(loginFormSchema.safeParse({ email: "", password: "secret" }).success).toBe(false);

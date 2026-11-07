@@ -1,16 +1,17 @@
 import { useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
-import { mensajeDeError } from "@/shared/lib/errorApi";
+import { codigoDeError, mensajeDeError } from "@/shared/lib/errorApi";
 import { registerFormSchema, type RegisterForm } from "@/modules/auth/schemas/auth.schema";
 import { useRegister } from "@/modules/auth/hooks/useRegister";
 import { AvisoDeAcceso, CampoDeContrasena, MarcoDeAcceso } from "@/modules/auth/components/MarcoDeAcceso";
 import { cn } from "@/shared/lib/cn";
-import { CLASES_ENLACE_EN_TEXTO } from "@/shared/lib/clasesDeMarco";
+import { CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO } from "@/shared/lib/clasesDeMarco";
+import type { EstadoDeAcceso } from "@/modules/auth/lib/estadoDeAcceso";
 
 /**
  * AUD-014 — registrarse en Stockly no da acceso: hay que confirmar el correo y que un
@@ -20,10 +21,12 @@ import { CLASES_ENLACE_EN_TEXTO } from "@/shared/lib/clasesDeMarco";
 export default function RegisterPage() {
     const { t, te, idioma } = useT();
     const registro = useRegister();
-    const { register, handleSubmit, getValues, formState: { errors } } = useForm<RegisterForm>({
+    const { register, control, handleSubmit, getValues, formState: { errors } } = useForm<RegisterForm>({
         resolver: zodResolver(registerFormSchema),
     });
     const titulo = useRef<HTMLParagraphElement>(null);
+    const escrito = useWatch({ control, name: "email" });
+    const conCorreo = (): EstadoDeAcceso => ({ correo: escrito || undefined });
 
     // Hecho, el foco va al mensaje: el formulario desaparece, y con él el botón que lo tenía.
     useEffect(() => {
@@ -40,8 +43,8 @@ export default function RegisterPage() {
                     <p className="text-foreground-muted">{t("auth.registro.revisaDespues")}</p>
                 </div>
                 <div className="flex flex-col items-center gap-2 text-sm">
-                    <Link to="/auth/login" className={cn(CLASES_ENLACE_EN_TEXTO, "font-medium")}>{t("auth.volverAlLogin")}</Link>
-                    <Link to="/auth/resend-verification" className="text-foreground-muted underline underline-offset-2 hover:no-underline">
+                    <Link to="/auth/login" state={conCorreo()} className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO, "font-medium")}>{t("auth.volverAlLogin")}</Link>
+                    <Link to="/auth/resend-verification" state={conCorreo()} className={cn(CLASES_ENLACE_SUELTO, "text-foreground-muted underline underline-offset-2 hover:no-underline")}>
                         {t("auth.login.sinCorreo")}
                     </Link>
                 </div>
@@ -50,7 +53,7 @@ export default function RegisterPage() {
     }
 
     return (
-        <MarcoDeAcceso titulo={t("ruta.registro")} subtitulo={t("auth.registro.subtitulo")}>
+        <MarcoDeAcceso titulo={t("ruta.registro")}>
             <div className="rounded-lg bg-surface-muted p-3 text-sm text-foreground">
                 <p className="font-medium">{t("auth.registro.pasosTitulo")}</p>
                 <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-foreground-muted">
@@ -62,6 +65,13 @@ export default function RegisterPage() {
             {registro.isError && (
                 <AvisoDeAcceso>
                     <p>{mensajeDeError(idioma, registro.error)}</p>
+                    {/* AUD-014 — si el correo ya tiene cuenta, lo siguiente es entrar o recuperarla. */}
+                    {codigoDeError(registro.error) === "EMAIL_ALREADY_REGISTERED" && (
+                        <p className="mt-1 flex flex-wrap gap-x-4">
+                            <Link to="/auth/login" state={conCorreo()} className={CLASES_ENLACE_EN_TEXTO}>{t("auth.registro.inicia")}</Link>
+                            <Link to="/auth/forgot-password" state={conCorreo()} className={CLASES_ENLACE_EN_TEXTO}>{t("auth.login.olvidaste")}</Link>
+                        </p>
+                    )}
                 </AvisoDeAcceso>
             )}
 
@@ -70,6 +80,7 @@ export default function RegisterPage() {
                     id="name"
                     label={t("comun.nombre")}
                     autoComplete="name"
+                    autoFocus
                     placeholder={t("auth.ejemplo.nombre")}
                     error={te(errors.name?.message)}
                     {...register("name")}

@@ -2,10 +2,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/shared/components/Button";
+import { Spinner } from "@/shared/components/Spinner";
 import { useT } from "@/shared/hooks/useIdioma";
 import { codigoDeError, mensajeDeError } from "@/shared/lib/errorApi";
 import { resetPasswordSchema, type ResetPasswordForm } from "@/modules/auth/schemas/auth.schema";
-import { useResetPassword } from "@/modules/auth/hooks/useResetPassword";
+import { useEnlaceDeRestablecer, useResetPassword } from "@/modules/auth/hooks/useResetPassword";
 import { AvisoDeAcceso, CampoDeContrasena, MarcoDeAcceso } from "@/modules/auth/components/MarcoDeAcceso";
 import { EnlaceCaducado } from "@/modules/auth/components/EnlaceCaducado";
 
@@ -16,26 +17,44 @@ export default function ResetPasswordPage() {
     // T6-10 — el enlace de una invitación llega aquí con `invitacion=1`. Quien lo abre no ha
     // olvidado nada: los textos dicen «elige», no «restablece». El servidor no lo mira.
     const invitacion = params.get("invitacion") === "1";
-    const reset = useResetPassword(token, invitacion);
+    const enlace = useEnlaceDeRestablecer(token);
+    const correo = enlace.data?.email;
+    const reset = useResetPassword(token, invitacion, correo);
 
     const { register, handleSubmit, formState: { errors } } = useForm<ResetPasswordForm>({
         resolver: zodResolver(resetPasswordSchema),
     });
 
-    // AUD-014 — sin enlace, o con uno que el servidor ya no acepta, no hay formulario que valga:
-    // la tarjeta lo dice y lleva a pedir otro. Una invitación caducada no se pide desde aquí
-    // (la reenvía un administrador), así que su salida es otra.
-    if (!token || codigoDeError(reset.error) === "INVALID_OR_EXPIRED_TOKEN") {
+    const titulo = t(invitacion ? "auth.invitacion.titulo" : "ruta.nuevaContrasena");
+
+    // AUD-014 — sin enlace, o con uno que el servidor ya no acepta (al abrir o, si caducó
+    // mientras se escribía, al enviar), no hay formulario que valga: la tarjeta lo dice y lleva a
+    // pedir otro. Una invitación caducada sale por el mismo sitio: la cuenta ya existe, así que
+    // «restablecer» le manda un enlace nuevo sin depender de un administrador.
+    const caducado = [enlace.error, reset.error].some((e) => codigoDeError(e) === "INVALID_OR_EXPIRED_TOKEN");
+    if (!token || caducado) {
         return invitacion ? (
-            <EnlaceCaducado pedirOtro="/auth/login" textoPedirOtro={t("auth.volverAlLogin")} explicacion={t("auth.enlace.invitacion")} />
+            <EnlaceCaducado pedirOtro="/auth/forgot-password" textoPedirOtro={t("auth.restablecer.boton")} explicacion={t("auth.enlace.invitacion")} />
         ) : (
             <EnlaceCaducado pedirOtro="/auth/forgot-password" textoPedirOtro={t("auth.enlace.pedirRestablecer")} explicacion={t("auth.enlace.restablecer")} />
         );
     }
 
+    if (enlace.isPending) {
+        return (
+            <MarcoDeAcceso titulo={titulo}>
+                <div className="flex justify-center py-4">
+                    <Spinner size="lg" />
+                </div>
+            </MarcoDeAcceso>
+        );
+    }
+
+    // Si la comprobación falla por otra cosa (sin conexión, un 500), se deja escribir: al enviar,
+    // el servidor dirá lo que pase, dentro de la tarjeta.
     return (
         <MarcoDeAcceso
-            titulo={t(invitacion ? "auth.invitacion.titulo" : "ruta.nuevaContrasena")}
+            titulo={titulo}
             subtitulo={t(invitacion ? "auth.invitacion.subtitulo" : "auth.restablecer.subtitulo")}
         >
             {reset.isError && (
@@ -45,6 +64,8 @@ export default function ResetPasswordPage() {
             )}
 
             <form noValidate onSubmit={handleSubmit((data) => reset.mutate(data))} className="space-y-4">
+                {/* Para el gestor de contraseñas: guarda la nueva con su usuario, no suelta. */}
+                {correo && <input type="email" name="username" autoComplete="username" value={correo} readOnly hidden />}
                 <CampoDeContrasena
                     id="password"
                     label={t("auth.campo.nuevaContrasena")}

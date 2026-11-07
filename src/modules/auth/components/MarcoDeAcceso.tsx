@@ -1,5 +1,5 @@
-import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { CubeIcon, ExclamationTriangleIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { forwardRef, useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { CheckCircleIcon, CubeIcon, ExclamationTriangleIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import { cn } from "@/shared/lib/cn";
 import { CLASES_MARCO_CENTRADO } from "@/shared/lib/clasesDeMarco";
@@ -9,7 +9,23 @@ import { CLASES_MARCO_CENTRADO } from "@/shared/lib/clasesDeMarco";
  * marca solo estaba en el login, y dos estados (restablecer y confirmar sin enlace válido) se
  * pintaban como una línea roja suelta, sin `h1` ni salida.
  */
-export function MarcoDeAcceso({ titulo, subtitulo, children }: { titulo: string; subtitulo?: string; children: ReactNode }) {
+export function MarcoDeAcceso({
+    titulo,
+    subtitulo,
+    enfocarTitulo = false,
+    children,
+}: {
+    titulo: string;
+    subtitulo?: string;
+    /** Lleva el foco al `h1` al montarse: la pantalla cambió de golpe a un estado que hay que leer. */
+    enfocarTitulo?: boolean;
+    children: ReactNode;
+}) {
+    const h1 = useRef<HTMLHeadingElement>(null);
+    useEffect(() => {
+        if (enfocarTitulo) h1.current?.focus();
+    }, [enfocarTitulo]);
+
     return (
         <main className={CLASES_MARCO_CENTRADO}>
             <div className="w-full max-w-sm space-y-6 rounded-xl border border-border bg-surface p-8 shadow-raised">
@@ -21,7 +37,7 @@ export function MarcoDeAcceso({ titulo, subtitulo, children }: { titulo: string;
                         {/* El nombre del producto no se traduce. */}
                         <span className="text-2xl font-bold text-foreground">Stockly</span>
                     </div>
-                    <h1 className="text-xl font-bold text-foreground">{titulo}</h1>
+                    <h1 ref={h1} tabIndex={enfocarTitulo ? -1 : undefined} className="text-xl font-bold text-foreground outline-none">{titulo}</h1>
                     {subtitulo && <p className="mt-1 text-sm text-foreground-muted">{subtitulo}</p>}
                 </div>
                 {children}
@@ -35,8 +51,14 @@ export function MarcoDeAcceso({ titulo, subtitulo, children }: { titulo: string;
  * Antes salía solo en un aviso de 3 s en una esquina: «credenciales inválidas» o «pendiente de
  * aprobación» desaparecían antes de leerlos (WCAG 2.2.1), lejos del formulario.
  */
-export function AvisoDeAcceso({ children }: { children: ReactNode }) {
-    return (
+export function AvisoDeAcceso({ children, tono = "error" }: { children: ReactNode; tono?: "error" | "exito" }) {
+    // El de éxito (la contraseña nueva, ya guardada) es `status`: se anuncia sin interrumpir.
+    return tono === "exito" ? (
+        <div role="status" className="flex gap-2 rounded-lg border border-success/30 bg-success-surface p-3 text-sm text-foreground">
+            <CheckCircleIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+            <div>{children}</div>
+        </div>
+    ) : (
         <div role="alert" className="flex gap-2 rounded-lg border border-danger/30 bg-danger-surface p-3 text-sm text-foreground">
             <ExclamationTriangleIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
             <div>{children}</div>
@@ -61,7 +83,9 @@ export const CampoDeContrasena = forwardRef<HTMLInputElement, CampoDeContrasenaP
         const [visible, setVisible] = useState(false);
         const generado = useId();
         const campoId = id ?? generado;
-        const ayudaId = ayuda ? `${campoId}-ayuda` : undefined;
+        // Cuando el error repite la ayuda («Mínimo 8 caracteres»), un solo texto: salía dos veces.
+        // Si dice otra cosa («La contraseña es obligatoria»), el requisito sigue a la vista.
+        const ayudaId = ayuda && ayuda !== error ? `${campoId}-ayuda` : undefined;
         const errorId = error ? `${campoId}-error` : undefined;
 
         return (
@@ -93,7 +117,7 @@ export const CampoDeContrasena = forwardRef<HTMLInputElement, CampoDeContrasenaP
                         {visible ? <EyeSlashIcon aria-hidden="true" className="h-5 w-5" /> : <EyeIcon aria-hidden="true" className="h-5 w-5" />}
                     </button>
                 </div>
-                {ayuda && <p id={ayudaId} className="text-xs text-foreground-muted">{ayuda}</p>}
+                {ayudaId && <p id={ayudaId} className="text-xs text-foreground-muted">{ayuda}</p>}
                 {error && <p id={errorId} role="alert" className="text-xs text-danger">{error}</p>}
             </div>
         );

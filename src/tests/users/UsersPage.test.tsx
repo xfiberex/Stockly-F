@@ -261,7 +261,7 @@ describe("UsersPage (T2-20)", () => {
             await user.click(formulario.getByRole("button", { name: "Enviar invitación" }));
 
             expect(await formulario.findByText("El nombre es obligatorio")).toBeInTheDocument();
-            expect(formulario.getByText("Email no válido")).toBeInTheDocument();
+            expect(formulario.getByText("Correo no válido")).toBeInTheDocument();
             expect(invitar).not.toHaveBeenCalled();
         });
 

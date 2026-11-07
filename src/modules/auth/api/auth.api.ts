@@ -12,7 +12,7 @@ import type {
     UpdateProfileResponse,
     UpdatePasswordResponse,
 } from "@/modules/auth/types/auth.types";
-import type { IdiomaDeCorreo, IdiomaGuardado } from "@/shared/contratos/api.generated";
+import type { EnlaceDeRestablecer, IdiomaDeCorreo, IdiomaGuardado } from "@/shared/contratos/api.generated";
 
 export const AuthAPI = {
     register: async (form: Omit<RegisterForm, "passwordConfirmation">) => {
@@ -50,6 +50,15 @@ export const AuthAPI = {
     forgotPassword: async (form: ForgotPasswordForm) => {
         const { data } = await api.post<{ message: string }>("/auth/forgot-password", form);
         return data;
+    },
+
+    /**
+     * AUD-014 — si el enlace de restablecer (o de una invitación) aún sirve, sin consumirlo. Se
+     * pregunta al abrir la pantalla: antes se descubría al enviar, con lo escrito perdido.
+     */
+    checkResetToken: async (token: string, signal?: AbortSignal) => {
+        const { data } = await api.post<{ data: EnlaceDeRestablecer }>("/auth/reset-password/check", { token }, { signal });
+        return data.data;
     },
 
     // token viene del query param ?token= del URL, no del formulario

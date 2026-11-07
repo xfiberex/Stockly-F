@@ -10,7 +10,8 @@
  * La cadena estaba copiada en las siete pantallas. Ahora es una, y el elemento correcto lo
  * pone quien la usa: `<main>`, no `<div>`.
  */
-export const CLASES_MARCO_CENTRADO = "min-h-screen bg-background flex items-center justify-center px-4";
+// AUD-014 — `py-6`: en un móvil apaisado la tarjeta es más alta que la pantalla y tocaba los bordes.
+export const CLASES_MARCO_CENTRADO = "min-h-screen bg-background flex items-center justify-center px-4 py-6";
 
 /** Variante en columna, para las pantallas que apilan mensaje y botón (404, verificación). */
 export const CLASES_MARCO_CENTRADO_COLUMNA =
@@ -29,3 +30,10 @@ export const CLASES_MARCO_CENTRADO_COLUMNA =
  * regla habla de enlaces embebidos en texto corrido, donde no hay nada más que los separe.
  */
 export const CLASES_ENLACE_EN_TEXTO = "text-info underline underline-offset-2 hover:no-underline";
+
+/**
+ * AUD-014 — un enlace **suelto** («Volver al inicio de sesión», «¿Olvidaste tu contraseña?»)
+ * con 44 px de alto en táctil, como los botones (`docs/design-system.md` §4). Con ratón vuelve a
+ * su altura de texto. No va en un enlace dentro de una frase: estiraría la línea.
+ */
+export const CLASES_ENLACE_SUELTO = "inline-flex min-h-11 items-center md:pointer-fine:min-h-0";

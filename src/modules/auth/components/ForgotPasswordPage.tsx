@@ -11,7 +11,7 @@ export default function ForgotPasswordPage() {
             titulo={t("ruta.recuperar")}
             subtitulo={t("auth.recuperar.subtitulo")}
             boton={t("auth.recuperar.enviar")}
-            enviado={t("auth.recuperar.enviado")}
+            enviado={(correo) => t("auth.recuperar.enviado", { correo })}
             pedir={forgot}
         />
     );
