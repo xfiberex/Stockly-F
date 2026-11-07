@@ -100,8 +100,9 @@ interface CatalogItemSectionProps {
     textos: TextosDeCatalogo;
     items: CatalogItem[];
     isLoading: boolean;
-    onCreate: (data: CatalogItemForm) => void;
-    onUpdate: (id: string, data: CatalogItemForm) => void;
+    /** AUD-011 — `alGuardar` cierra el modal: solo cuando la API confirma, para que un fallo no tire lo escrito. */
+    onCreate: (data: CatalogItemForm, alGuardar: () => void) => void;
+    onUpdate: (id: string, data: CatalogItemForm, alGuardar: () => void) => void;
     onDelete: (id: string) => void;
     isSubmitting: boolean;
     isDeleting: boolean;
@@ -128,13 +129,15 @@ export function CatalogItemSection({
     const handleOpenEdit = (item: CatalogItem) => { setEditing(item); setFormOpen(true); };
     const handleClose = () => { setFormOpen(false); setEditing(undefined); };
 
+    // AUD-011 — el modal se cierra cuando la API confirma, no al pulsar: si el guardado falla
+    // (un nombre repetido, sin conexión), el aviso sale con lo escrito todavía delante para
+    // corregirlo. Antes se cerraba al instante y había que volver a escribirlo todo.
     const handleSubmit = (data: CatalogItemForm) => {
         if (editing) {
-            onUpdate(editing.id, data);
+            onUpdate(editing.id, data, handleClose);
         } else {
-            onCreate(data);
+            onCreate(data, handleClose);
         }
-        handleClose();
     };
 
     return (

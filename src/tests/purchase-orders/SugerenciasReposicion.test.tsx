@@ -1,5 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Link, Route, Routes } from "react-router-dom";
 import { renderWithProviders } from "@/tests/utils";
 import SugerenciasReposicionPage from "@/modules/purchase-orders/components/SugerenciasReposicionPage";
 import type { SugerenciaReposicion } from "@/shared/contratos";
@@ -41,11 +42,12 @@ const FILAS = [
 ];
 
 let filas: SugerenciaReposicion[] = [];
+let paginas = 1;
 const generadas: unknown[] = [];
 
 vi.mock("@/modules/purchase-orders/hooks/usePurchaseOrders", () => ({
     useReorderSuggestions: () => ({
-        data: { data: filas, meta: { total: filas.length, page: 1, limit: 50, totalPages: 1 }, days: 30, defaultLeadTimeDays: 7 },
+        data: { data: filas, meta: { total: filas.length, page: 1, limit: 50, totalPages: paginas }, days: 30, defaultLeadTimeDays: 7 },
         isLoading: false,
     }),
     useGenerateFromSuggestions: () => ({
@@ -66,6 +68,7 @@ function pintar() {
 describe("Sugerencias de reposición (T5-05)", () => {
     beforeEach(() => {
         filas = FILAS;
+        paginas = 1;
         generadas.length = 0;
     });
 
@@ -157,5 +160,70 @@ describe("Sugerencias de reposición (T5-05)", () => {
 
         expect(screen.getByText(/No hay nada que reponer/)).toBeInTheDocument();
         expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    });
+});
+
+/**
+ * AUD-011 — lo editado en las sugerencias no se pierde por moverse. Antes, cambiar de página
+ * borraba todas las ediciones, y salir de la pantalla también, sin preguntar.
+ */
+describe("Sugerencias de reposición — lo editado no se pierde (AUD-011)", () => {
+    beforeEach(() => {
+        filas = FILAS;
+        paginas = 2;
+        generadas.length = 0;
+    });
+
+    const cantidad = () => screen.getByLabelText("Cantidad a pedir de Tornillo");
+
+    it("cambiar de página y volver conserva la cantidad editada", async () => {
+        const { user } = pintar();
+        await user.clear(cantidad());
+        await user.type(cantidad(), "30");
+
+        await user.click(screen.getByRole("button", { name: "Siguiente" }));
+        await user.click(screen.getByRole("button", { name: "Anterior" }));
+
+        expect(cantidad()).toHaveValue(30);
+    });
+
+    it("irse con algo editado pregunta, y sin editar no", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(
+            <>
+                <Link to="/fuera">Ir a otra pantalla</Link>
+                <Routes>
+                    <Route path="/" element={<SugerenciasReposicionPage />} />
+                    <Route path="/fuera" element={<p>Otra pantalla</p>} />
+                </Routes>
+            </>,
+        );
+        await user.click(screen.getByRole("checkbox", { name: "Incluir Tornillo" }));
+
+        await user.click(screen.getByRole("link", { name: "Ir a otra pantalla" }));
+        const dialogo = screen.getByRole("dialog", { name: "¿Salir sin guardar?" });
+        await user.click(within(dialogo).getByRole("button", { name: "Salir sin guardar" }));
+        expect(await screen.findByText("Otra pantalla")).toBeInTheDocument();
+    });
+
+    it("generar quita las ediciones de lo generado: irse después ya no pregunta", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(
+            <>
+                <Link to="/fuera">Ir a otra pantalla</Link>
+                <Routes>
+                    <Route path="/" element={<SugerenciasReposicionPage />} />
+                    <Route path="/fuera" element={<p>Otra pantalla</p>} />
+                </Routes>
+            </>,
+        );
+        await user.clear(cantidad());
+        await user.type(cantidad(), "30");
+        await user.click(screen.getByRole("button", { name: "Generar órdenes" }));
+
+        expect(generadas).toHaveLength(1);
+        await user.click(screen.getByRole("link", { name: "Ir a otra pantalla" }));
+        expect(await screen.findByText("Otra pantalla")).toBeInTheDocument();
+        expect(screen.queryByRole("dialog")).toBeNull();
     });
 });

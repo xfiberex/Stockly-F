@@ -52,3 +52,12 @@ vi.mock("@/modules/tags/api/tags.api", async (original) => ({
     ...(await original<typeof import("@/modules/tags/api/tags.api")>()),
     getTags: vi.fn().mockResolvedValue([]),
 }));
+
+/**
+ * AUD-011 — cada test empieza con la pestaña limpia. El conteo y el mostrador guardan lo escrito
+ * en `sessionStorage` (`useEstadoDeSesion`), y jsdom lo comparte entre los tests de un archivo:
+ * sin esto, la venta que deja armada un test aparecería en el siguiente.
+ */
+beforeEach(() => {
+    sessionStorage.clear();
+});

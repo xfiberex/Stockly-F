@@ -607,6 +607,36 @@ de que la pantalla se anunció.
 **Con datos ya en pantalla, un fallo no los borra.** Se quedan y se avisa de que son los de antes
 —«No se pudo actualizar: son los datos de las 14:32»—, con el mismo «Reintentar».
 
+### No perder lo escrito
+
+**Lo que alguien escribe solo se pierde si lo decide.** La crítica del 2026-11-07 encontró cinco
+pantallas que lo tiraban sin avisar: al cambiar de vista, al paginar, al recargar o al irse
+(`AUD-011`). La causa era siempre la misma, un estado local que se desmonta. El patrón:
+
+| Qué se escribe | Cómo se protege | Dónde |
+|---|---|---|
+| Un trabajo largo, que se hace en varias idas y vueltas | Vive en la pestaña con [`useEstadoDeSesion`](../src/shared/hooks/useEstadoDeSesion.ts): sobrevive a recargar y a navegar. La clave lleva de quién es (el id del conteo, el del usuario) | Las cifras de un conteo, la venta del mostrador |
+| Cambios que se confirman con un botón | [`AvisoDeCambiosSinGuardar`](../src/shared/components/AvisoDeCambiosSinGuardar.tsx): irse dentro de la aplicación pregunta («Seguir aquí» / «Salir sin guardar»), y recargar o cerrar saca el aviso del navegador | Configuración, Sugerencias de reposición |
+| Un formulario en un modal | El modal se cierra en el `onSuccess` de la mutación, nunca al pulsar: si falla, el aviso sale con lo escrito delante | Categorías, Marcas, Proveedores |
+
+- **El estado sube hasta lo que no se desmonta.** Si una vista se puede cambiar por otra («Contar»
+  y «Revisar»), lo escrito pertenece a la página, no a la vista.
+- **Guardar envía todo lo pendiente**, no solo lo que se ve: lo escrito en otra página o antes de
+  escanear también cuenta.
+- **Cuando algo espera, se dice dónde está el botón que lo guarda**: el recuento en el botón, un
+  aviso en la vista que no lo tiene, y en una confirmación que lo dejaría fuera (cerrar un conteo).
+- **Lo largo no frena al navegar.** Un borrador que ya está en la pestaña no necesita preguntar
+  al recargar (`avisarAlRecargar={false}`). El mostrador no pregunta nada: el vendedor sale a mirar
+  un producto y, al volver, la venta sigue ahí.
+- **El botón de guardar se ve mientras se edita.** Una lista larga lo pega abajo (`sticky
+  bottom-0`) con el recuento y «Descartar», como Configuración.
+- **«Salir sin guardar» también borra lo guardado en la pestaña**: volver no puede resucitar lo que
+  se acaba de tirar.
+
+`useBlocker` necesita un router de datos. La aplicación lo tiene (`createBrowserRouter`), y
+`renderWithProviders` también, desde `AUD-011`: un test con su propio `MemoryRouter` no puede
+montar estas pantallas.
+
 ---
 
 ## Cómo añadir una página nueva

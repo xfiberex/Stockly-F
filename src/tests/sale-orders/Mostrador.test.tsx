@@ -327,3 +327,58 @@ describe("MostradorPage (T6-08)", () => {
         expect(screen.getByRole("heading", { name: "Mostrador", level: 1 })).toBeInTheDocument();
     });
 });
+
+/**
+ * AUD-011 — la venta que se está armando sobrevive a recargar y a irse a otra pantalla. Antes
+ * vivía en un `useState`: recargar en mitad de una venta la tiraba entera (visto en el navegador).
+ */
+describe("MostradorPage — la venta armada no se pierde (AUD-011)", () => {
+    beforeEach(() => {
+        rol = "SELLER";
+        negocio = { taxName: "ITBIS", taxRate: 0 };
+        estado.vendidas.length = 0;
+        estado.respuesta = ORDEN;
+        estado.falla = false;
+    });
+
+    it("recargar conserva las líneas y sus cantidades", async () => {
+        const user = userEvent.setup();
+        const { unmount } = renderWithProviders(<MostradorPage />);
+        await anadir(user, /Teclado/);
+        await user.click(screen.getByRole("button", { name: "Una unidad más de Teclado" }));
+        unmount();
+
+        renderWithProviders(<MostradorPage />);
+        expect(lineas()).toHaveLength(1);
+        expect(screen.getByLabelText("Cantidad de Teclado")).toHaveValue(2);
+        expect(cobro()).toBe("Total$100.00");
+        expect(registrar()).toBeEnabled();
+    });
+
+    it("una cantidad a medio escribir vuelve vacía, no como un cero que se pudiera vender", async () => {
+        const user = userEvent.setup();
+        const { unmount } = renderWithProviders(<MostradorPage />);
+        await anadir(user, /Teclado/);
+        await user.clear(screen.getByLabelText("Cantidad de Teclado"));
+        unmount();
+
+        renderWithProviders(<MostradorPage />);
+        expect(screen.getByLabelText("Cantidad de Teclado")).toHaveValue(null);
+        expect(registrar()).toBeDisabled();
+    });
+
+    it("vender vacía el borrador", async () => {
+        const user = abrir();
+        await anadir(user, /Teclado/);
+        await user.click(registrar());
+
+        expect(sessionStorage.getItem("stockly.mostrador.u1.lineas")).toBeNull();
+    });
+
+    it("el borrador es de quien lo armó: otra sesión en la pestaña no lo ve", () => {
+        sessionStorage.setItem("stockly.mostrador.otro.lineas", JSON.stringify([{ producto: PRODUCTOS[0], cantidad: 1 }]));
+        abrir();
+
+        expect(screen.getByText("Todavía no hay productos en esta venta.")).toBeInTheDocument();
+    });
+});

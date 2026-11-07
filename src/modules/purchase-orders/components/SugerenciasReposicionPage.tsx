@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeftIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { AvisoDeCambiosSinGuardar } from "@/shared/components/AvisoDeCambiosSinGuardar";
 import { Button } from "@/shared/components/Button";
 import { Input } from "@/shared/components/Input";
 import { EsqueletoTabla } from "@/shared/components/Esqueleto";
@@ -84,10 +85,10 @@ export default function SugerenciasReposicionPage() {
     const editar = (productId: string, cambio: Edicion) =>
         setEdiciones((prev) => ({ ...prev, [productId]: { ...prev[productId], ...cambio } }));
 
-    const cambiarDePagina = (nueva: number) => {
-        setEdiciones({});
-        setPage(nueva);
-    };
+    // AUD-011 — cambiar de página ya no borra lo editado: las ediciones van por producto, así que
+    // volver a una página la enseña como se dejó. «Generar» sigue siendo de la página que se ve.
+    const cambiarDePagina = setPage;
+    const hayEdiciones = Object.keys(ediciones).length > 0;
 
     const lineas = filas.map((s) => {
         const valores = { ...valoresIniciales(s), ...ediciones[s.productId] };
@@ -109,9 +110,16 @@ export default function SugerenciasReposicionPage() {
         if (incluidas.length === 0 || hayErrores) return;
         generar.mutate(
             { warehouseId: almacen.paraEnviar, items: incluidas.map((l) => ({ productId: l.s.productId, quantity: l.cantidad, unitPrice: l.precio })) },
-            // Lo generado deja de sugerirse (ya es «pendiente de recibir»); lo escrito en las
-            // líneas que quedan correspondía a la lista anterior.
-            { onSuccess: () => setEdiciones({}) },
+            // Lo generado deja de sugerirse (ya es «pendiente de recibir») y sus ediciones sobran;
+            // las de otras páginas siguen siendo de alguien y se quedan.
+            {
+                onSuccess: () =>
+                    setEdiciones((prev) => {
+                        const quedan = { ...prev };
+                        for (const l of incluidas) delete quedan[l.s.productId];
+                        return quedan;
+                    }),
+            },
         );
     };
 
@@ -288,6 +296,8 @@ export default function SugerenciasReposicionPage() {
                     </div>
                 </div>
             )}
+
+            <AvisoDeCambiosSinGuardar activo={hayEdiciones} mensaje={t("reposicion.sinGuardar.aviso")} />
         </div>
     );
 }

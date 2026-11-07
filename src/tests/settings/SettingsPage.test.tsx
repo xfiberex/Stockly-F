@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import { Link, Route, Routes } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { toast } from "react-toastify";
 import { renderWithProviders } from "@/tests/utils";
@@ -436,5 +437,92 @@ describe("SettingsPage", () => {
                 expect(screen.queryByRole("button", { name: /logo/i })).not.toBeInTheDocument();
             });
         });
+    });
+});
+
+/**
+ * AUD-011 — un cambio sin guardar no se pierde sin preguntar. Antes, cambiar un ajuste del final
+ * de la lista e irse lo descartaba en silencio, con «Guardar» fuera de la vista, arriba.
+ */
+describe("SettingsPage — los cambios sin guardar (AUD-011)", () => {
+    beforeEach(() => {
+        mockMutate.mockClear();
+        settingsData = [booleanEntry];
+        isLoading = false;
+        rol = "ADMIN";
+    });
+
+    /** Configuración y otra pantalla, con un enlace para irse. */
+    function conOtraPantalla() {
+        const user = userEvent.setup();
+        renderWithProviders(
+            <>
+                <Link to="/fuera">Ir a otra pantalla</Link>
+                <Routes>
+                    <Route path="/" element={<SettingsPage />} />
+                    <Route path="/fuera" element={<p>Otra pantalla</p>} />
+                </Routes>
+            </>,
+        );
+        return user;
+    }
+
+    it("el botón dice cuántos cambios esperan, y «Descartar» vuelve a lo guardado", async () => {
+        const user = conOtraPantalla();
+        const interruptor = screen.getByRole("switch");
+        const antes = interruptor.getAttribute("aria-checked");
+
+        await user.click(interruptor);
+        expect(screen.getByText("1 cambio sin guardar")).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Descartar" }));
+        expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", antes);
+        expect(screen.getByRole("button", { name: /guardar/i })).toBeDisabled();
+        expect(screen.queryByText("1 cambio sin guardar")).toBeNull();
+    });
+
+    it("irse con un cambio pregunta; quedarse lo conserva", async () => {
+        const user = conOtraPantalla();
+        await user.click(screen.getByRole("switch"));
+
+        await user.click(screen.getByRole("link", { name: "Ir a otra pantalla" }));
+        const dialogo = screen.getByRole("dialog", { name: "¿Salir sin guardar?" });
+        expect(within(dialogo).getByText("Has cambiado 1 ajuste y no lo has guardado. Si sales, se descartará.")).toBeInTheDocument();
+
+        await user.click(within(dialogo).getByRole("button", { name: "Seguir aquí" }));
+        expect(screen.queryByText("Otra pantalla")).toBeNull();
+        expect(screen.getByRole("button", { name: /guardar/i })).toBeEnabled();
+    });
+
+    it("«Salir sin guardar» se va sin enviar nada", async () => {
+        const user = conOtraPantalla();
+        await user.click(screen.getByRole("switch"));
+
+        await user.click(screen.getByRole("link", { name: "Ir a otra pantalla" }));
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Salir sin guardar" }));
+
+        expect(await screen.findByText("Otra pantalla")).toBeInTheDocument();
+        expect(mockMutate).not.toHaveBeenCalled();
+    });
+
+    it("recargar o cerrar la pestaña con un cambio saca el aviso del navegador, y sin cambios no", async () => {
+        const user = conOtraPantalla();
+        const recargar = () => {
+            const evento = new Event("beforeunload", { cancelable: true });
+            window.dispatchEvent(evento);
+            return evento.defaultPrevented;
+        };
+
+        expect(recargar()).toBe(false);
+        await user.click(screen.getByRole("switch"));
+        expect(recargar()).toBe(true);
+    });
+
+    it("sin cambios, irse no pregunta", async () => {
+        const user = conOtraPantalla();
+
+        await user.click(screen.getByRole("link", { name: "Ir a otra pantalla" }));
+        expect(await screen.findByText("Otra pantalla")).toBeInTheDocument();
+        expect(screen.queryByRole("dialog")).toBeNull();
     });
 });

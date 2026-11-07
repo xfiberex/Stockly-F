@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CheckCircleIcon, MinusIcon, PlusIcon, TrashIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/components/Button";
 import { EscanerModal } from "@/shared/components/EscanerModal";
+import { useEstadoDeSesion } from "@/shared/hooks/useEstadoDeSesion";
 import { useT } from "@/shared/hooks/useIdioma";
 import { CLASES_BOTON_ICONO } from "@/shared/lib/clasesDeBoton";
 import { CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
@@ -71,9 +72,17 @@ export default function MostradorPage() {
     const vender = useVentaDeMostrador();
     const { user } = useAuth();
 
-    const [lineas, setLineas] = useState<Linea[]>([]);
-    const [cliente, setCliente] = useState<CustomerListItem | null>(null);
+    // AUD-011 — la venta que se está armando vive en la pestaña: recargar, irse a mirar un
+    // producto o que el móvil descargue la página no la tira. Es de quien la arma —con otra
+    // sesión en la misma pestaña no aparece— y se vacía al venderla o al quitar sus líneas.
+    // El disponible de un producto recuperado es el de cuando se añadió; el servidor vuelve a
+    // comprobarlo al vender, y escanearlo otra vez lo refresca.
+    const borrador = user ? `stockly.mostrador.${user.id}` : null;
+    const [guardadas, setLineas] = useEstadoDeSesion<Linea[]>(borrador && `${borrador}.lineas`, []);
+    const [cliente, setCliente] = useEstadoDeSesion<CustomerListItem | null>(borrador && `${borrador}.cliente`, null);
     const [hecha, setHecha] = useState<SaleOrder | null>(null);
+    // Una cantidad a medio escribir (`NaN`) vuelve de JSON como `null`.
+    const lineas = guardadas.map((l) => (typeof l.cantidad === "number" ? l : { ...l, cantidad: Number.NaN }));
 
     const [escaneando, setEscaneando] = useState(false);
     const [aviso, setAviso] = useState<string | null>(null);

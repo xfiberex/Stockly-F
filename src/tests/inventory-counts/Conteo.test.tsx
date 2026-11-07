@@ -253,3 +253,107 @@ describe("Conteo físico — la lista (T5-07)", () => {
         expect(screen.queryByRole("button", { name: "Nuevo conteo" })).not.toBeInTheDocument();
     });
 });
+
+/**
+ * AUD-011 — lo escrito en la captura no se pierde sin que la persona lo decida. Antes, pasar a
+ * «Revisar» desmontaba la captura y dejaba «Guardar (0)» con el campo vacío (visto en el
+ * navegador), y «Guardar» solo enviaba lo de la página que se veía y borraba el resto.
+ */
+describe("Conteo físico — lo escrito no se pierde (AUD-011)", () => {
+    const monitor = () => screen.getByLabelText("Cantidad contada de Monitor");
+    const escribir = (valor: string) => fireEvent.change(monitor(), { target: { value: valor } });
+
+    /** La sesión y la lista, para poder irse de una a otra. */
+    const conLaLista = () =>
+        renderWithProviders(
+            <Routes>
+                <Route path="/inventory-counts/:id" element={<InventoryCountPage />} />
+                <Route path="/inventory-counts" element={<p>Lista de conteos</p>} />
+            </Routes>,
+            { initialRoute: `/inventory-counts/${ID}` },
+        );
+
+    it("pasar a «Revisar» y volver conserva la cifra, y «Revisar» dice que espera", async () => {
+        const user = userEvent.setup();
+        pantallaDeSesion();
+        escribir("3");
+
+        await user.click(screen.getByRole("button", { name: "Revisar" }));
+        expect(screen.getByText("1 cifra sin guardar en «Contar»")).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Contar" }));
+        expect(monitor()).toHaveValue(3);
+        expect(screen.getByRole("button", { name: "Guardar (1)" })).toBeEnabled();
+    });
+
+    it("recargar la pestaña no la pierde", () => {
+        const { unmount } = pantallaDeSesion();
+        escribir("3");
+        unmount();
+
+        pantallaDeSesion();
+        expect(monitor()).toHaveValue(3);
+        expect(screen.getByRole("button", { name: "Guardar (1)" })).toBeEnabled();
+    });
+
+    it("guardar envía también lo escrito en una línea que ya no se ve, y después no queda nada", async () => {
+        const user = userEvent.setup();
+        pantallaDeSesion();
+        escribir("12");
+
+        // Escanear deja en la tabla solo el Teclado: el Monitor ya no se ve.
+        await user.click(screen.getByRole("button", { name: "Escanear" }));
+        await user.type(screen.getByLabelText("O escríbelo"), "4006381333931{Enter}");
+        await user.keyboard("9");
+        expect(screen.queryByLabelText("Cantidad contada de Monitor")).toBeNull();
+
+        await user.click(screen.getByRole("button", { name: "Guardar (2)" }));
+
+        expect(anotadas).toEqual([[{ productId: "p3", countedQuantity: 12 }, { productId: "p1", countedQuantity: 9 }]]);
+        expect(screen.getByRole("button", { name: "Guardar (0)" })).toBeDisabled();
+        expect(sessionStorage.getItem(`stockly.conteo.${ID}`)).toBeNull();
+    });
+
+    it("irse con cifras sin guardar pregunta: quedarse las conserva, y salir las tira", async () => {
+        const user = userEvent.setup();
+        conLaLista();
+        escribir("3");
+
+        await user.click(screen.getByRole("link", { name: "Conteos físicos" }));
+        const dialogo = screen.getByRole("dialog", { name: "¿Salir sin guardar?" });
+        expect(within(dialogo).getByText("Tienes 1 cifra sin guardar. Si sales, se perderá.")).toBeInTheDocument();
+        await user.click(within(dialogo).getByRole("button", { name: "Seguir aquí" }));
+        expect(monitor()).toHaveValue(3);
+
+        await user.click(screen.getByRole("link", { name: "Conteos físicos" }));
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Salir sin guardar" }));
+        expect(await screen.findByText("Lista de conteos")).toBeInTheDocument();
+        expect(sessionStorage.getItem(`stockly.conteo.${ID}`)).toBeNull();
+    });
+
+    it("sin nada escrito, irse no pregunta", async () => {
+        const user = userEvent.setup();
+        conLaLista();
+
+        await user.click(screen.getByRole("link", { name: "Conteos físicos" }));
+        expect(await screen.findByText("Lista de conteos")).toBeInTheDocument();
+        expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("cerrar avisa de que lo no guardado no entra en el cierre", async () => {
+        const user = userEvent.setup();
+        pantallaDeSesion();
+        escribir("3");
+
+        await user.click(screen.getByRole("button", { name: "Cerrar conteo" }));
+        expect(within(screen.getByRole("dialog")).getByText(/Tienes 1 cifra sin guardar: no entrará en el cierre/)).toBeInTheDocument();
+    });
+
+    it("un conteo cerrado no arrastra cifras que quedaran en la pestaña", () => {
+        sessionStorage.setItem(`stockly.conteo.${ID}`, JSON.stringify({ p3: { valor: "3", anterior: null } }));
+        conteo = { ...CONTEO, status: "CLOSED", closedAt: "2026-09-29T12:00:00.000Z", closedByEmail: "almacen@stockly.app" };
+        pantallaDeSesion();
+
+        expect(sessionStorage.getItem(`stockly.conteo.${ID}`)).toBeNull();
+    });
+});

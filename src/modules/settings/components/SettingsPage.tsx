@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { z } from "zod";
+import { AvisoDeCambiosSinGuardar } from "@/shared/components/AvisoDeCambiosSinGuardar";
 import { Button } from "@/shared/components/Button";
 import { Input } from "@/shared/components/Input";
 import { Select } from "@/shared/components/Select";
@@ -115,7 +116,7 @@ function BooleanToggle({ value, onChange, ...rotulos }: {
 }
 
 export default function SettingsPage() {
-    const { t } = useT();
+    const { t, tn } = useT();
     const { data: settings = [], isLoading } = useSettings();
     const updateMutation = useUpdateSettings();
 
@@ -268,16 +269,9 @@ export default function SettingsPage() {
                 </div>
             </section>
 
-            {/* En móvil el título se apila sobre el botón: en una fila, «Ajustes de la
-                aplicación» parte en dos líneas y queda apretado contra «Guardar cambios». */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h2 className="text-base font-semibold text-foreground">{t("configuracion.ajustes")}</h2>
-                    <p className="text-xs text-foreground-muted mt-0.5">{t("configuracion.ajustesAyuda")}</p>
-                </div>
-                <Button onClick={handleSave} disabled={!isDirty || hayErrores} isLoading={updateMutation.isPending}>
-                    {t("comun.guardarCambios")}
-                </Button>
+            <div>
+                <h2 className="text-base font-semibold text-foreground">{t("configuracion.ajustes")}</h2>
+                <p className="text-xs text-foreground-muted mt-0.5">{t("configuracion.ajustesAyuda")}</p>
             </div>
 
             {isLoading ? (
@@ -308,6 +302,31 @@ export default function SettingsPage() {
                     </section>
                 </>
             )}
+
+            {/*
+              * AUD-011 — guardar, pegado abajo. Arriba, junto al título, quedaba fuera de la
+              * vista en cuanto se bajaba a un ajuste del final, y salir sin verlo tiraba el
+              * cambio. Aquí acompaña a la lista mientras se recorre y dice cuánto espera.
+              */}
+            <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-x-4 gap-y-2 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
+                {/* Vacío y no ausente: la región viva tiene que existir antes de que cambie. */}
+                <p aria-live="polite" className="mr-auto text-sm font-medium text-foreground">
+                    {isDirty ? tn("configuracion.pendientes", pendientes.length) : ""}
+                </p>
+                {isDirty && (
+                    <Button variant="secondary" onClick={() => setCambios({})} disabled={updateMutation.isPending}>
+                        {t("configuracion.descartar")}
+                    </Button>
+                )}
+                <Button onClick={handleSave} disabled={!isDirty || hayErrores} isLoading={updateMutation.isPending}>
+                    {t("comun.guardarCambios")}
+                </Button>
+            </div>
+
+            <AvisoDeCambiosSinGuardar
+                activo={isDirty}
+                mensaje={tn("configuracion.sinGuardar.aviso", pendientes.length)}
+            />
         </div>
     );
 }

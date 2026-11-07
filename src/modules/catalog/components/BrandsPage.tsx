@@ -19,8 +19,8 @@ export default function BrandsPage() {
             }}
             items={brands}
             isLoading={isLoading}
-            onCreate={(data) => createMutation.mutate(data)}
-            onUpdate={(id, data) => updateMutation.mutate({ id, form: data })}
+            onCreate={(data, alGuardar) => createMutation.mutate(data, { onSuccess: alGuardar })}
+            onUpdate={(id, data, alGuardar) => updateMutation.mutate({ id, form: data }, { onSuccess: alGuardar })}
             onDelete={(id) => deleteMutation.mutate(id)}
             isSubmitting={createMutation.isPending || updateMutation.isPending}
             isDeleting={deleteMutation.isPending}

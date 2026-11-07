@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeftIcon, CheckIcon, ViewfinderCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { AvisoDeCambiosSinGuardar } from "@/shared/components/AvisoDeCambiosSinGuardar";
 import { Button } from "@/shared/components/Button";
 import { EscanerModal } from "@/shared/components/EscanerModal";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
@@ -8,6 +9,7 @@ import { Modal } from "@/shared/components/Modal";
 import { Paginacion } from "@/shared/components/Paginacion";
 import { EsqueletoTabla, EsqueletoPagina } from "@/shared/components/Esqueleto";
 import { useDebounce } from "@/shared/hooks/useDebounce";
+import { useEstadoDeSesion } from "@/shared/hooks/useEstadoDeSesion";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { cn } from "@/shared/lib/cn";
@@ -50,16 +52,54 @@ const ROTULO_DE_FILTRO: Record<InventoryCountLineFilter, Clave> = {
 };
 
 /**
+ * AUD-011 — una cifra escrita y todavía sin guardar, con la que la línea tenía cuando se empezó a
+ * escribir: así se sabe si cambia algo aunque la línea ya no esté en la página que se ve.
+ */
+interface Cifra {
+    valor: string;
+    anterior: number | null;
+}
+
+/** El tope de `PATCH /inventory-counts/:id/lines`. Lo que pase de ahí queda para el siguiente envío. */
+const MAXIMO_POR_ENVIO = 500;
+
+/** Las cifras que se pueden enviar: enteros no negativos que cambian lo que ya había. */
+function cifrasParaGuardar(cifras: Record<string, Cifra>) {
+    return Object.entries(cifras).flatMap(([productId, { valor, anterior }]) => {
+        if (valor.trim() === "") return [];
+        const n = Number(valor);
+        return Number.isInteger(n) && n >= 0 && n !== anterior ? [{ productId, countedQuantity: n }] : [];
+    });
+}
+
+/**
  * Anotar lo contado, **a ciegas**: no hay columna con el stock del sistema. Poner ese número
  * delante de quien cuenta hace que el conteo tienda a darle la razón aunque no la tenga. La
  * diferencia aparece en «Revisar», después.
+ *
+ * AUD-011 — las cifras no son suyas, son de la página: antes vivían aquí, y pasar a «Revisar»
+ * desmontaba la captura y las tiraba. Y «Guardar» envía **todas** las pendientes, no solo las de
+ * la página que se ve: antes enviaba esas y borraba el resto.
  */
-function Captura({ id }: { id: string }) {
+function Captura({
+    id,
+    cifras,
+    onCifra,
+    pendientes,
+    onGuardar,
+    guardando,
+}: {
+    id: string;
+    cifras: Record<string, Cifra>;
+    onCifra: (productId: string, cifra: Cifra) => void;
+    pendientes: number;
+    onGuardar: () => void;
+    guardando: boolean;
+}) {
     const { t } = useT();
     const [busqueda, setBusqueda] = useState("");
     const [soloPendientes, setSoloPendientes] = useState(true);
     const [page, setPage] = useState(1);
-    const [cifras, setCifras] = useState<Record<string, string>>({});
     const search = useDebounce(busqueda.trim(), 400);
     // T5-08 — el producto del último escaneo. Mientras lo hay, la tabla enseña solo su línea,
     // esté contada o no: volver a escanear algo ya contado es recontarlo.
@@ -71,19 +111,7 @@ function Captura({ id }: { id: string }) {
     const { data, isLoading } = useInventoryCountLines(id, escaneado
         ? { page: 1, limit: PAGE_SIZE, productId: escaneado.id }
         : { page, limit: PAGE_SIZE, filter: soloPendientes ? "pending" : undefined, search: search || undefined });
-    const anotar = useRecordInventoryCountLines(id);
     const lineas = data?.data ?? [];
-
-    // Solo lo que se ha escrito en esta página y es un entero válido; lo demás no se envía.
-    const anotadas = lineas.flatMap((l) => {
-        const valor = cifras[l.productId];
-        if (valor === undefined || valor.trim() === "") return [];
-        const n = Number(valor);
-        return Number.isInteger(n) && n >= 0 && n !== l.countedQuantity ? [{ productId: l.productId, countedQuantity: n }] : [];
-    });
-
-    const guardar = () =>
-        anotar.mutate(anotadas, { onSuccess: () => setCifras({}) });
 
     const handleCodigo = async (codigo: string) => {
         setEscaneando(false);
@@ -127,9 +155,9 @@ function Captura({ id }: { id: string }) {
                         </label>
                     )}
                 </div>
-                <Button onClick={guardar} disabled={anotadas.length === 0} isLoading={anotar.isPending}>
+                <Button onClick={onGuardar} disabled={pendientes === 0} isLoading={guardando}>
                     <CheckIcon className="h-4 w-4" />
-                    {t("conteos.guardar", { cantidad: anotadas.length })}
+                    {t("conteos.guardar", { cantidad: pendientes })}
                 </Button>
             </div>
 
@@ -177,8 +205,11 @@ function Captura({ id }: { id: string }) {
                                             inputMode="numeric"
                                             min={0}
                                             step={1}
-                                            value={cifras[l.productId] ?? (l.countedQuantity ?? "")}
-                                            onChange={(e) => setCifras((c) => ({ ...c, [l.productId]: e.target.value }))}
+                                            value={cifras[l.productId]?.valor ?? (l.countedQuantity ?? "")}
+                                            onChange={(e) => onCifra(l.productId, {
+                                                valor: e.target.value,
+                                                anterior: cifras[l.productId]?.anterior ?? l.countedQuantity,
+                                            })}
                                             aria-label={t("conteos.contadoDe", { nombre: l.name })}
                                             // T5-08 — el escaneado recibe el cursor, con la cifra que
                                             // tuviera seleccionada: se escribe encima sin borrar.
@@ -290,6 +321,35 @@ export default function InventoryCountPage() {
     const cerrar = useCloseInventoryCount(id);
     const cancelar = useCancelInventoryCount(id);
 
+    // AUD-011 — lo escrito y sin guardar, en la pestaña: sobrevive a «Revisar», a escanear, a
+    // paginar y a recargar. Por conteo, para que abrir otro no enseñe las cifras de este.
+    const [cifras, setCifras] = useEstadoDeSesion<Record<string, Cifra>>(id ? `stockly.conteo.${id}` : null, {});
+    const anotar = useRecordInventoryCountLines(id);
+    const pendientes = cifrasParaGuardar(cifras);
+
+    // Cerrado o cancelado —aquí o por otra persona—, lo que quedara sin guardar ya no tiene dónde ir.
+    const estado = conteo?.status;
+    useEffect(() => {
+        if (estado && estado !== "OPEN") setCifras({});
+    }, [estado, setCifras]);
+
+    const anotarCifra = (productId: string, cifra: Cifra) => setCifras((c) => ({ ...c, [productId]: cifra }));
+
+    const guardar = () => {
+        const enviadas = pendientes.slice(0, MAXIMO_POR_ENVIO);
+        anotar.mutate(enviadas, {
+            // Se quitan las enviadas, y solo si nadie las ha vuelto a cambiar mientras viajaban.
+            onSuccess: () =>
+                setCifras((actuales) => {
+                    const quedan = { ...actuales };
+                    for (const { productId, countedQuantity } of enviadas) {
+                        if (Number(quedan[productId]?.valor) === countedQuantity) delete quedan[productId];
+                    }
+                    return quedan;
+                }),
+        });
+    };
+
     if (isLoading || !conteo) {
         return <EsqueletoPagina cifras={4} cuerpo="tabla" />;
     }
@@ -368,16 +428,42 @@ export default function InventoryCountPage() {
             )}
 
             {puedeContar && (
-                <div role="group" aria-label={t("conteos.vista")} className="flex gap-2">
-                    {(["contar", "revisar"] as const).map((v) => (
-                        <Button key={v} variant={vista === v ? "primary" : "secondary"} aria-pressed={vista === v} onClick={() => setVista(v)}>
-                            {t(v === "contar" ? "conteos.vistaContar" : "conteos.vistaRevisar")}
-                        </Button>
-                    ))}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <div role="group" aria-label={t("conteos.vista")} className="flex gap-2">
+                        {(["contar", "revisar"] as const).map((v) => (
+                            <Button key={v} variant={vista === v ? "primary" : "secondary"} aria-pressed={vista === v} onClick={() => setVista(v)}>
+                                {t(v === "contar" ? "conteos.vistaContar" : "conteos.vistaRevisar")}
+                            </Button>
+                        ))}
+                    </div>
+                    {/* En «Revisar» no está el botón de guardar: que se sepa que algo espera allí. */}
+                    {vistaActual === "revisar" && pendientes.length > 0 && (
+                        <p className="text-sm font-medium text-warning">{tn("conteos.sinGuardar.pendientes", pendientes.length)}</p>
+                    )}
                 </div>
             )}
 
-            {vistaActual === "contar" ? <Captura id={conteo.id} /> : <Revision conteo={conteo} />}
+            {vistaActual === "contar" ? (
+                <Captura
+                    id={conteo.id}
+                    cifras={cifras}
+                    onCifra={anotarCifra}
+                    pendientes={pendientes.length}
+                    onGuardar={guardar}
+                    guardando={anotar.isPending}
+                />
+            ) : (
+                <Revision conteo={conteo} />
+            )}
+
+            {/* Recargar no pierde nada (las cifras están en la pestaña); irse a otra pantalla
+                sí las deja atrás, y eso se pregunta. */}
+            <AvisoDeCambiosSinGuardar
+                activo={puedeContar && pendientes.length > 0}
+                avisarAlRecargar={false}
+                mensaje={tn("conteos.sinGuardar.aviso", pendientes.length)}
+                onDescartar={() => setCifras({})}
+            />
 
             <Modal
                 isOpen={confirmar === "cerrar"}
@@ -387,6 +473,12 @@ export default function InventoryCountPage() {
                 <div className="space-y-3 text-sm text-foreground">
                     <p>{tn("conteos.confirmarCierreAjustes", summary.withDifference)}</p>
                     {summary.uncounted > 0 && <p className="text-foreground-muted">{tn("conteos.confirmarCierreSinContar", summary.uncounted)}</p>}
+                    {/* AUD-011 — el cierre ajusta con lo guardado; lo escrito y no guardado se quedaría fuera sin que nadie lo notara. */}
+                    {pendientes.length > 0 && (
+                        <p className="rounded-lg bg-warning-surface p-3 font-medium text-warning">
+                            {tn("conteos.confirmarCierreSinGuardar", pendientes.length)}
+                        </p>
+                    )}
                     <div className="flex justify-end gap-2 pt-2">
                         <Button variant="secondary" onClick={() => setConfirmar(null)}>{t("comun.volver")}</Button>
                         <Button isLoading={cerrar.isPending} onClick={() => cerrar.mutate(undefined, { onSuccess: () => setConfirmar(null) })}>
