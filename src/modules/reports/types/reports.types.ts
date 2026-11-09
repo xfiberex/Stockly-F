@@ -11,6 +11,8 @@ import type {
 } from "@/shared/contratos";
 
 export type ReportSummary = ResumenReporte;
+/** AUD-010 — `GET /reports/attention`. */
+export type { AtencionDeHoy } from "@/shared/contratos/api.generated";
 /** T5-02 — margen de las ventas enviadas en la ventana del informe. */
 export type ProfitMargin = MargenRealizado;
 /** T5-09 — ventas enviadas y compras recibidas de un periodo. */

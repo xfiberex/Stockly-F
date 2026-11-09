@@ -1,10 +1,16 @@
 import api from "@/shared/api/axios";
 import { descargarDeLaApi } from "@/shared/api/descargar";
 import type { ApiResponse } from "@/shared/types";
-import type { AbcSummary, ExpiryReport, PeriodPreset, PeriodReport, ReportSummary } from "../types/reports.types";
+import type { AbcSummary, AtencionDeHoy, ExpiryReport, PeriodPreset, PeriodReport, ReportSummary } from "../types/reports.types";
 
 export const getReportSummary = async (): Promise<ReportSummary> => {
     const { data } = await api.get<ApiResponse<ReportSummary>>("/reports");
+    return data.data!;
+};
+
+/** AUD-010 — lo de «Necesita atención» del panel, en una sola petición. */
+export const getAttention = async (): Promise<AtencionDeHoy> => {
+    const { data } = await api.get<ApiResponse<AtencionDeHoy>>("/reports/attention");
     return data.data!;
 };
 

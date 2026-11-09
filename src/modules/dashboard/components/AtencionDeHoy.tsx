@@ -10,7 +10,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import { useReintentarFallidas } from "@/shared/hooks/useFalloDeCarga";
-import type { ReportSummary } from "@/modules/reports/types/reports.types";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Barra } from "@/shared/components/Esqueleto";
 import { Spinner } from "@/shared/components/Spinner";
@@ -54,24 +53,14 @@ interface Fila {
  * que viene debajo. Una fila a cero se atenúa y pierde su acción; una con algo pendiente lleva
  * el color de su estado y su enlace.
  *
- * AUD-008, paso 8 — se monta **antes** de que llegue `/reports`. Solo la fila de stock sale de
- * ahí; las demás tienen sus consultas, que antes esperaban a que el panel dejara de enseñar el
- * esqueleto (con Slow 4G empezaban a los 11 s).
+ * AUD-008, paso 8 — se monta **antes** de que llegue el resumen. AUD-010 — y ya no depende de
+ * él: todas sus filas, también la de stock, salen de `GET /reports/attention`, una petición.
  */
-export function AtencionDeHoy({
-    filas: visibles,
-    stock,
-    lowStockProducts,
-}: {
-    filas: readonly FilaDeAtencion[];
-    /** Sale de `/reports`, que pide el panel: si falla, la fila dice «no disponible» y el resto sigue. */
-    stock: Recuento;
-    /** `null` mientras `/reports` no ha llegado. */
-    lowStockProducts: ReportSummary["lowStockProducts"] | null;
-}) {
+export function AtencionDeHoy({ filas: visibles }: { filas: readonly FilaDeAtencion[] }) {
     const { t, idioma } = useT();
     const { user } = useAuth();
-    const { caducidades, diasDeCaducidad, lotesCaducados, primerLote, conteos, compras, ventas } = useAtencionDeHoy(visibles);
+    const { stock, lowStockProducts, caducidades, diasDeCaducidad, lotesCaducados, primerLote, conteos, compras, ventas } =
+        useAtencionDeHoy(visibles);
 
     // AUD-008, crítica del 2026-11-06 — cuántos de cada, en lotes como la cifra: antes el
     // detalle hablaba de unidades («30 uds. ya caducadas») bajo una cifra de lotes.

@@ -1,5 +1,7 @@
 export const queryKeys = {
     user: ["user"] as const,
+    /** AUD-010 — «Necesita atención» del panel. La invalida cualquier mutación (`queryClient.ts`). */
+    atencion: ["atencion"] as const,
     /** AUD-014 — comprobar un enlace de restablecer; no cuelga de `user` para no invalidarse con él. */
     enlaceDeRestablecer: ["enlace-de-restablecer"] as const,
     product: ["products"] as const,

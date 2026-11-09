@@ -1,8 +1,4 @@
-import { useExpiryReport } from "@/modules/reports/hooks/useExpiryReport";
-import { usePurchaseOrders } from "@/modules/purchase-orders/hooks/usePurchaseOrders";
-import { useSaleOrders } from "@/modules/sale-orders/hooks/useSaleOrders";
-import { useInventoryCounts } from "@/modules/inventory-counts/hooks/useInventoryCounts";
-import { POR_RECIBIR } from "@/modules/purchase-orders/types/purchase-orders.types";
+import { useAtencion } from "@/modules/reports/hooks/useReports";
 
 /** Una cifra del bloque «Necesita atención»: `null` mientras carga o si la petición falló. */
 export interface Recuento {
@@ -13,66 +9,48 @@ export interface Recuento {
     reintentando?: boolean;
 }
 
-/** Las filas que puede tener el bloque. `stock` sale de `/reports` y no se pide aquí. */
+/** Las filas que puede tener el bloque. */
 export type FilaDeAtencion = "stock" | "caducidades" | "conteos" | "compras" | "ventas";
 
-/** Lo que `recuento` lee de una consulta de TanStack Query. */
-interface Consulta {
-    data?: { meta: { total: number } };
-    isLoading: boolean;
-    isError: boolean;
-    isFetching: boolean;
-    errorUpdateCount: number;
-}
-
 /**
- * Con error, `valor` es `null` aunque haya una cifra de antes (AUD-008, paso 10): una fila no
- * puede decir «No disponible» y a la vez enseñar el detalle y el enlace de la cifra vieja.
+ * Lo pendiente del panel: stock bajo, caducidades, conteos abiertos, compras por recibir y ventas
+ * por enviar.
  *
- * Crítica del 2026-11-06 (2.ª) — una consulta sin datos que falló **sigue fallada mientras se
- * reintenta** (la regla de `useFalloDeCarga`): TanStack v5 vuelve a `pending`, y la fila pasaba a
- * «cargando» y se llevaba su «Reintentar» con el foco dentro. Ahora el botón se queda, ocupado.
- */
-function recuento(q: Consulta): Recuento {
-    const error = q.isError || (q.data === undefined && q.errorUpdateCount > 0);
-    return { valor: error ? null : (q.data?.meta.total ?? null), cargando: q.isLoading && !error, error, reintentando: error && q.isFetching };
-}
-
-/**
- * Lo mismo que `/reports` (`useReports`): volver al panel dentro de este plazo no repite las
- * peticiones. Sin él, cada visita lanzaba cinco más contra el límite global de la API (100 por
- * IP cada 15 minutos), y una mutación sigue invalidándolas al momento.
- */
-const FRESCURA = 30_000;
-
-/**
- * Lo pendiente que no trae `/reports`: caducidades, conteos abiertos, compras por recibir y
- * ventas por enviar. **Solo se pide lo que el rol va a ver** (`filas`): una consulta
- * deshabilitada no sale a la red.
+ * AUD-010 — **de una sola petición**, `GET /reports/attention`. Antes cada cifra se leía de un
+ * listado con `limit: 1` (`meta.total`) y la de stock de `/reports`: seis peticiones para ADMIN
+ * en cada carga en frío, contra el límite global de la API (100 por IP cada 15 minutos). Ahora
+ * es una, y ADMIN pide además su resumen. Las cifras siguen siendo las de cada lista filtrada:
+ * el servidor cuenta con la misma condición (está fijado en `reports.test.ts`).
  *
- * Solo hacen falta los totales, así que cada lista se pide con `limit: 1` y se lee su
- * `meta.total`. Se reutilizan los hooks de cada módulo —y con ellos sus claves de caché— para
- * que recibir una compra o enviar una venta invalide también estas cifras, sin cablearlo aparte.
- * Todas las rutas son de lectura para cualquier rol (`PERMISOS`).
+ * Todas las filas comparten la consulta, así que caen y vuelven juntas. Con error, `valor` es
+ * `null` aunque hubiera una cifra de antes (AUD-008, paso 10), y una consulta sin datos que
+ * falló **sigue fallada mientras se reintenta** (la regla de `useFalloDeCarga`: TanStack v5
+ * vuelve a `pending` y la fila se llevaba su «Reintentar» con el foco dentro).
  */
 export function useAtencionDeHoy(filas: readonly FilaDeAtencion[]) {
-    const quiere = (fila: FilaDeAtencion) => ({ enabled: filas.includes(fila), staleTime: FRESCURA });
-
-    const caducidades = useExpiryReport({ limit: 1 }, quiere("caducidades"));
-    const conteos = useInventoryCounts({ status: "OPEN", limit: 1 }, quiere("conteos"));
-    // AUD-008 — «por recibir» en una sola petición: la API acepta varios estados. Eran dos.
-    const compras = usePurchaseOrders({ status: POR_RECIBIR, limit: 1 }, quiere("compras"));
-    const ventas = useSaleOrders({ status: "PENDING", limit: 1 }, quiere("ventas"));
+    const consulta = useAtencion({ enabled: filas.length > 0 });
+    const { data } = consulta;
+    const error = consulta.isError || (data === undefined && consulta.errorUpdateCount > 0);
+    const recuento = (valor: number | undefined): Recuento => ({
+        valor: error ? null : (valor ?? null),
+        cargando: consulta.isLoading && !error,
+        error,
+        reintentando: error && consulta.isFetching,
+    });
+    const caducidades = error ? undefined : data?.expiring;
 
     return {
-        caducidades: recuento(caducidades),
-        diasDeCaducidad: caducidades.data?.days,
-        lotesCaducados: caducidades.isError ? 0 : (caducidades.data?.summary.expiredCount ?? 0),
-        // AUD-008 — el lote que antes caduca (el informe los ordena por fecha), con su nombre:
-        // la campana decía «lote L-20261030 de Yogur natural» y el panel solo «8».
-        primerLote: caducidades.isError ? undefined : caducidades.data?.data[0],
-        conteos: recuento(conteos),
-        compras: recuento(compras),
-        ventas: recuento(ventas),
+        stock: recuento(data?.lowStock.total),
+        /** `null` mientras no ha llegado; vacía si falló. */
+        lowStockProducts: error ? [] : (data?.lowStock.products ?? null),
+        caducidades: recuento(data?.expiring.total),
+        diasDeCaducidad: caducidades?.days,
+        lotesCaducados: caducidades?.expiredCount ?? 0,
+        // AUD-008 — el lote que antes caduca, con su nombre: la campana decía «lote L-20261030
+        // de Yogur natural» y el panel solo «8».
+        primerLote: caducidades?.first ?? undefined,
+        conteos: recuento(data?.openCounts),
+        compras: recuento(data?.purchasesToReceive),
+        ventas: recuento(data?.pendingSales),
     };
 }

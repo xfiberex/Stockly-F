@@ -15,6 +15,7 @@ import { COLORES_DE_SERIE, COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/
 import {
     CubeIcon,
     CurrencyDollarIcon,
+    TagIcon,
     ExclamationTriangleIcon,
     CheckCircleIcon,
     ArrowDownTrayIcon,
@@ -39,6 +40,12 @@ export default function ReportsPage() {
     if (!data) return null;
 
     const { totals, stockByCategory, topByValue, movementsByMonth, lowStockProducts, stockMetrics, margin } = data;
+    // AUD-009 — los importes solo le llegan a ADMIN. Para los demás roles no vienen (no a cero:
+    // no vienen), y la pantalla enseña lo que sí: recuentos, unidades, movimientos y rotación.
+    const importes =
+        totals.inventoryValue !== undefined && totals.inventoryCostValue !== undefined && totals.potentialMargin !== undefined && margin
+            ? { inventoryValue: totals.inventoryValue, inventoryCostValue: totals.inventoryCostValue, potentialMargin: totals.potentialMargin, margin }
+            : null;
 
     // Consolidar movimientos por mes para el chart
     const fmtMonth = (m: string) => {
@@ -82,13 +89,15 @@ export default function ReportsPage() {
                     { label: t("dashboard.totalProductos"), value: totals.totalProducts, Icon: CubeIcon, bg: "bg-info-surface", text: "text-info" },
                     { label: t("dashboard.productosActivos"), value: totals.activeProducts, Icon: CheckCircleIcon, bg: "bg-success-surface", text: "text-success" },
                     { label: t("reportes.bajoStock"), value: lowStockProducts.length, Icon: ExclamationTriangleIcon, bg: "bg-warning-surface", text: "text-warning" },
-                    {
-                        label: t("reportes.valorInventario"),
-                        value: formatearImporte(totals.inventoryValue, { decimales: 0 }),
-                        Icon: CurrencyDollarIcon,
-                        bg: "bg-success-surface",
-                        text: "text-success",
-                    },
+                    importes
+                        ? {
+                              label: t("reportes.valorInventario"),
+                              value: formatearImporte(importes.inventoryValue, { decimales: 0 }),
+                              Icon: CurrencyDollarIcon,
+                              bg: "bg-success-surface",
+                              text: "text-success",
+                          }
+                        : { label: t("ruta.categorias"), value: totals.categoryCount, Icon: TagIcon, bg: "bg-info-surface", text: "text-info" },
                 ].map(({ label, value, Icon, bg, text }) => (
                     <div key={label} className="bg-surface rounded-xl border border-border p-3 sm:p-5 flex items-center gap-3 sm:gap-4">
                         <div className={`rounded-lg p-2 sm:p-2.5 shrink-0 ${bg}`}>
@@ -108,30 +117,37 @@ export default function ReportsPage() {
                 ))}
             </div>
 
-            {/* T5-02 — segunda fila: lo invertido y lo ganado. Mismas tarjetas que la primera. */}
-            <div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {[
-                        { label: t("reportes.valorACoste"), value: formatearImporte(totals.inventoryCostValue, { decimales: 0 }) },
-                        { label: t("reportes.margenPotencial"), value: formatearImporte(totals.potentialMargin, { decimales: 0 }) },
-                        { label: t("reportes.margenPeriodo", { dias: margin.days }), value: formatearImporte(margin.margin, { decimales: 0 }) },
-                        { label: t("reportes.porcentajeMargen"), value: margin.marginPercent === null ? "—" : `${margin.marginPercent.toFixed(1)} %` },
-                    ].map(({ label, value }) => (
-                        <div key={label} className="bg-surface rounded-xl border border-border p-3 sm:p-5">
-                            <p className="text-base sm:text-xl font-bold text-foreground tabular-nums">{value}</p>
-                            <p className="text-xs text-foreground-muted leading-tight">{label}</p>
-                        </div>
-                    ))}
+            {/* T5-02 — segunda fila: lo invertido y lo ganado. Mismas tarjetas que la primera.
+                AUD-009 — solo para ADMIN, como el margen realizado de debajo. */}
+            {importes && (
+                <div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                        {[
+                            { label: t("reportes.valorACoste"), value: formatearImporte(importes.inventoryCostValue, { decimales: 0 }) },
+                            { label: t("reportes.margenPotencial"), value: formatearImporte(importes.potentialMargin, { decimales: 0 }) },
+                            { label: t("reportes.margenPeriodo", { dias: importes.margin.days }), value: formatearImporte(importes.margin.margin, { decimales: 0 }) },
+                            {
+                                label: t("reportes.porcentajeMargen"),
+                                value: importes.margin.marginPercent === null ? "—" : `${importes.margin.marginPercent.toFixed(1)} %`,
+                            },
+                        ].map(({ label, value }) => (
+                            <div key={label} className="bg-surface rounded-xl border border-border p-3 sm:p-5">
+                                <p className="text-base sm:text-xl font-bold text-foreground tabular-nums">{value}</p>
+                                <p className="text-xs text-foreground-muted leading-tight">{label}</p>
+                            </div>
+                        ))}
+                    </div>
+                    {totals.productsWithoutCost > 0 && (
+                        <p className="mt-2 text-xs text-warning">{tn("dashboard.sinCoste", totals.productsWithoutCost)}</p>
+                    )}
                 </div>
-                {totals.productsWithoutCost > 0 && (
-                    <p className="mt-2 text-xs text-warning">{tn("dashboard.sinCoste", totals.productsWithoutCost)}</p>
-                )}
-            </div>
+            )}
 
-            <MargenRealizado margen={margin} />
+            {importes && <MargenRealizado margen={importes.margin} />}
 
-            {/* Valor por categoría + distribución */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Valor por categoría + distribución. Sin importes, solo la distribución, a lo ancho. */}
+            <div className={cn("grid grid-cols-1 gap-6", importes && "lg:grid-cols-2")}>
+                {importes && (
                 <div className="bg-surface rounded-xl border border-border p-6">
                     <h2 className="text-base font-semibold text-foreground mb-6">{t("reportes.valorPorCategoria")}</h2>
                     <ResponsiveContainer width="100%" height={260}>
@@ -147,6 +163,7 @@ export default function ReportsPage() {
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
+                )}
 
                 <div className="bg-surface rounded-xl border border-border p-6">
                     <h2 className="text-base font-semibold text-foreground mb-6">{t("reportes.distribucion")}</h2>
@@ -203,7 +220,7 @@ export default function ReportsPage() {
             )}
 
             {/* Top 10 por valor */}
-            {topByValue.length > 0 && (
+            {topByValue && topByValue.length > 0 && (
                 <div className="bg-surface rounded-xl border border-border overflow-hidden">
                     <div className="px-6 py-4 border-b border-border">
                         <h2 className="text-base font-semibold text-foreground">{t("reportes.topPorValor")}</h2>
@@ -220,7 +237,7 @@ export default function ReportsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {topByValue.map((p, i) => (
+                                {topByValue!.map((p, i) => (
                                     <tr key={p.id} className="hover:bg-surface-muted">
                                         <td className="px-6 py-3 text-foreground-muted font-medium">{i + 1}</td>
                                         <td className="px-6 py-3">

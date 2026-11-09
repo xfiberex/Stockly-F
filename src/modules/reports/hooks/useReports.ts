@@ -1,11 +1,31 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getAbcSummary, getPeriodReport, getReportSummary, type ConsultaDePeriodo } from "../api/reports.api";
+import { getAbcSummary, getAttention, getPeriodReport, getReportSummary, type ConsultaDePeriodo } from "../api/reports.api";
+import { queryKeys } from "@/shared/constants/queryKeys";
 
-export function useReports() {
+/**
+ * AUD-009 — los importes solo le llegan a ADMIN. `enabled`: el panel solo pide el resumen a
+ * quien lo enseña; los demás roles tienen todo lo suyo en `useAtencion`.
+ */
+export function useReports({ enabled = true }: { enabled?: boolean } = {}) {
     return useQuery({
         queryKey: ["reports"],
         queryFn: getReportSummary,
         staleTime: 30_000,
+        enabled,
+    });
+}
+
+/**
+ * AUD-010 — «Necesita atención», en una petición. La refresca cualquier mutación que salga bien
+ * (`queryClient.ts`): recibir una compra, enviar una venta o cerrar un conteo cambia sus cifras, y
+ * antes lo garantizaba reutilizar las claves de cada lista.
+ */
+export function useAtencion({ enabled = true }: { enabled?: boolean } = {}) {
+    return useQuery({
+        queryKey: queryKeys.atencion,
+        queryFn: getAttention,
+        staleTime: 30_000,
+        enabled,
     });
 }
 

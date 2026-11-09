@@ -4,7 +4,7 @@ import { Link, Navigate } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ArrowsRightLeftIcon, ChevronRightIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { conSimboloDeMoneda, formatearImporte } from "@/shared/lib/moneda";
-import { useReports } from "@/modules/reports/hooks/useReports";
+import { useAtencion, useReports } from "@/modules/reports/hooks/useReports";
 import type { ReportSummary } from "@/modules/reports/types/reports.types";
 import { Barra, ZonaCargando } from "@/shared/components/Esqueleto";
 import { Spinner } from "@/shared/components/Spinner";
@@ -54,9 +54,13 @@ export default function DashboardPage() {
 
 function PanelGeneral({ rol }: { rol: Rol }) {
     const { t, idioma } = useT();
-    const informe = useReports();
-    const { data, isError, isFetching, dataUpdatedAt } = informe;
     const panel = PANEL[rol];
+    // AUD-009 / AUD-010 — el resumen (con los importes) solo se le pide a quien lo enseña, ADMIN;
+    // «Necesita atención» tiene su propia petición. USER y WAREHOUSE: una sola; ADMIN, dos.
+    const informe = useReports({ enabled: panel.resumen });
+    const { data, isFetching } = informe;
+    // La línea de «actualizado a las…» habla de lo que ven todos: lo pendiente.
+    const atencion = useAtencion();
 
     // AUD-008, paso 8 — la página ya no se cambia entera por un esqueleto mientras `/reports`
     // carga o se reintenta. Antes, sin sus datos, `EsqueletoPagina` sustituía todo: al pulsar
@@ -65,18 +69,19 @@ function PanelGeneral({ rol }: { rol: Rol }) {
     // pedirse. Ahora la estructura está desde el principio y solo espera lo que sale de él.
     const { fallo, error } = useFalloDeCarga(informe);
     const reintentar = useReintentarFallidas();
-    const cargando = !data && !fallo;
+    const falloDeAtencion = useFalloDeCarga(atencion).fallo;
 
     // Si el aviso se va porque el reintento salió bien, el botón que tenía el foco desaparece con
     // él: el foco vuelve al título en vez de perderse en `<body>`.
     const titulo = useRef<HTMLHeadingElement>(null);
-    const falloAntes = useRef(fallo);
+    const algunFallo = fallo || falloDeAtencion;
+    const falloAntes = useRef(algunFallo);
     useEffect(() => {
-        if (falloAntes.current && !fallo && (document.activeElement === document.body || document.activeElement === null)) {
+        if (falloAntes.current && !algunFallo && (document.activeElement === document.body || document.activeElement === null)) {
             titulo.current?.focus();
         }
-        falloAntes.current = fallo;
-    }, [fallo]);
+        falloAntes.current = algunFallo;
+    }, [algunFallo]);
 
     // En móvil, «Escanear» va fijo abajo (`AccionesDeAlmacen`): lo último no queda debajo.
     return (
@@ -93,25 +98,21 @@ function PanelGeneral({ rol }: { rol: Rol }) {
                         `status` está siempre montada —una que nace ya con texto no se anuncia— y
                         solo lleva el aviso: la hora de cada actualización buena no se lee en voz alta. */}
                     <span role="status">
-                        {data && isError && (
+                        {atencion.data && atencion.isError && (
                             <span className="text-warning">
-                                {t("dashboard.noActualizado", { hora: formatearHora(idioma, dataUpdatedAt) })}{" "}
-                                <ReintentoEnLinea onReintentar={reintentar} reintentando={isFetching} />
+                                {t("dashboard.noActualizado", { hora: formatearHora(idioma, atencion.dataUpdatedAt) })}{" "}
+                                <ReintentoEnLinea onReintentar={reintentar} reintentando={atencion.isFetching} />
                             </span>
                         )}
                     </span>
-                    {data && !isError && (
-                        <span className="tabular-nums">{t("dashboard.actualizado", { hora: formatearHora(idioma, dataUpdatedAt) })}</span>
+                    {atencion.data && !atencion.isError && (
+                        <span className="tabular-nums">{t("dashboard.actualizado", { hora: formatearHora(idioma, atencion.dataUpdatedAt) })}</span>
                     )}
                 </p>
             </div>
 
-            {/* Lo primero, lo que pide actuar hoy. Solo su fila de stock sale de `/reports`. */}
-            <AtencionDeHoy
-                filas={panel.atencion}
-                stock={{ valor: data?.totals.lowStockCount ?? null, cargando, error: fallo, reintentando: isFetching }}
-                lowStockProducts={data ? data.lowStockProducts : fallo ? [] : null}
-            />
+            {/* Lo primero, lo que pide actuar hoy (AUD-010: su propia petición). */}
+            <AtencionDeHoy filas={panel.atencion} />
 
             {/* Crítica del 2026-11-06 — después de lo pendiente, también en el orden del teclado:
                 en móvil «Escanear» ya está siempre a mano, fijo abajo. */}
@@ -225,7 +226,11 @@ const TEXTO_DE_EJE = { fontSize: 12, fill: "var(--color-foreground-muted)" } as 
 /** El resumen del negocio: solo ADMIN (`PANEL`). */
 function ResumenDeNegocio({ data }: { data: ReportSummary }) {
     const { t, tn, idioma } = useT();
-    const { totals, salesByDay, topSold } = data;
+    // AUD-009 — los importes solo le llegan a ADMIN, que es quien ve este bloque: el `?? ` es para
+    // que una respuesta sin ellos no rompa la pantalla, no un caso que se espere.
+    const { totals } = data;
+    const salesByDay = data.salesByDay ?? [];
+    const topSold = data.topSold ?? [];
     const ventasDeLaSemana = salesByDay.reduce((suma, d) => suma + d.orders, 0);
     const importeDeLaSemana = salesByDay.reduce((suma, d) => suma + d.revenue, 0);
     // Los días llegan del más antiguo a hoy, en el calendario del negocio (T6-09).
@@ -241,11 +246,11 @@ function ResumenDeNegocio({ data }: { data: ReportSummary }) {
         { label: "ruta.categorias", value: totals.categoryCount, to: "/catalog/categories" },
     ];
     const importes: { clave: Clave; valor: number; ayuda?: Clave }[] = [
-        { clave: "dashboard.valorACoste", valor: totals.inventoryCostValue },
-        { clave: "dashboard.valorInventario", valor: totals.inventoryValue },
+        { clave: "dashboard.valorACoste", valor: totals.inventoryCostValue ?? 0 },
+        { clave: "dashboard.valorInventario", valor: totals.inventoryValue ?? 0 },
         // Paso 6: el margen no es «venta menos coste» de las otras dos cifras —la de venta
         // incluye los productos sin coste—, así que dice qué cuenta.
-        { clave: "dashboard.margenPotencial", valor: totals.potentialMargin, ayuda: "dashboard.margenPotencial.ayuda" },
+        { clave: "dashboard.margenPotencial", valor: totals.potentialMargin ?? 0, ayuda: "dashboard.margenPotencial.ayuda" },
     ];
 
     return (

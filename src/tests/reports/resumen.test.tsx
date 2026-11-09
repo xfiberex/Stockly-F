@@ -102,7 +102,21 @@ const reintentar = vi.fn();
 // 14:32 del 3 de noviembre de 2026, en la hora local de quien corre los tests.
 const ACTUALIZADO = new Date(2026, 10, 3, 14, 32).getTime();
 
+// AUD-010 — «Necesita atención» tiene su propia petición; de ella sale la hora de «Actualizado a
+// las…». `falloDeAtencion` la tumba (con o sin datos de antes).
+let falloDeAtencion: unknown = null;
+let atencionSinDatos = false;
+
 vi.mock("@/modules/reports/hooks/useReports", () => ({
+    useAtencion: () => ({
+        data: atencionSinDatos ? undefined : {},
+        isLoading: false,
+        isError: falloDeAtencion !== null,
+        error: falloDeAtencion,
+        errorUpdateCount: falloDeAtencion !== null ? 1 : 0,
+        isFetching: false,
+        dataUpdatedAt: ACTUALIZADO,
+    }),
     useReports: () => ({
         data: resumen,
         isLoading: cargando || reintentandoInforme,
@@ -148,9 +162,19 @@ const SIN_VENTAS = {
 };
 let misVentas = SIN_VENTAS;
 
+// La fila de stock (AUD-010) sale de la misma petición que las demás; en estos tests toma sus
+// cifras del resumen de prueba, que es lo que muchos casos ajustan.
 vi.mock("@/modules/dashboard/hooks/useAtencionDeHoy", () => ({
-    useAtencionDeHoy: () => atencion,
+    useAtencionDeHoy: () => ({
+        stock: listo(RESUMEN_DE_STOCK().total),
+        lowStockProducts: RESUMEN_DE_STOCK().productos,
+        ...atencion,
+    }),
 }));
+const RESUMEN_DE_STOCK = () => ({
+    total: (resumen ?? RESUMEN).totals.lowStockCount,
+    productos: (resumen ?? RESUMEN).lowStockProducts,
+});
 vi.mock("@/modules/auth/hooks/useMe", () => ({
     useAuth: () => ({ user: { role: rol, email: "vende@stockly.app" }, isLoading: false, isError: false }),
 }));
@@ -326,8 +350,8 @@ describe("DashboardPage (T2-21)", () => {
         expect(screen.queryByText("Total de productos")).not.toBeInTheDocument();
         expect(screen.getByRole("heading", { name: "Necesita atención" })).toBeInTheDocument();
         expect(within(screen.getByText("Ventas por enviar").closest("li")!).getByText("2")).toBeInTheDocument();
-        // La fila de stock sí sale del informe: todavía no tiene cifra.
-        expect(within(screen.getByText("Productos con stock bajo o agotado").closest("li")!).queryByText(/\d/)).not.toBeInTheDocument();
+        // AUD-010 — tampoco la de stock: sale de «Necesita atención», no del informe.
+        expect(within(screen.getByText("Productos con stock bajo o agotado").closest("li")!).getByText("2")).toBeInTheDocument();
     });
 });
 
@@ -338,6 +362,11 @@ describe("DashboardPage — errores y frescura", () => {
         fallo = null;
         rol = "ADMIN";
         refetch.mockClear();
+    });
+    afterEach(() => {
+        falloDeAtencion = null;
+        atencionSinDatos = false;
+        atencion = ATENCION;
     });
     afterAll(() => {
         fallo = null;
@@ -359,10 +388,12 @@ describe("DashboardPage — errores y frescura", () => {
         expect(reintentar).toHaveBeenCalled();
     });
 
-    it("quien no tiene resumen no recibe un aviso sobre él: su fila de stock ya lo dice (crítica del 2026-11-06)", () => {
+    it("quien no tiene resumen no recibe un aviso sobre él: si cae lo pendiente, sus filas lo dicen (crítica del 2026-11-06)", () => {
         rol = "USER";
-        resumen = undefined;
-        fallo = new Error("Network Error");
+        falloDeAtencion = new Error("Network Error");
+        atencionSinDatos = true;
+        const noDisponible = { valor: null, cargando: false, error: true };
+        atencion = { ...ATENCION, stock: noDisponible, compras: noDisponible, ventas: noDisponible } as typeof ATENCION;
         renderWithProviders(<DashboardPage />);
 
         expect(screen.queryByText("No se pudo cargar el resumen del inventario")).not.toBeInTheDocument();
@@ -385,25 +416,22 @@ describe("DashboardPage — errores y frescura", () => {
         expect(screen.getByRole("heading", { name: "Necesita atención" })).toBeInTheDocument();
     });
 
-    it("si la primera carga falla, «Necesita atención» se queda y solo la fila de stock no está disponible", () => {
+    it("si el resumen falla, «Necesita atención» sigue entera: ya no depende de él (AUD-010)", () => {
         resumen = undefined;
         fallo = new Error("Network Error");
         renderWithProviders(<DashboardPage />);
 
         expect(screen.getByRole("heading", { name: "Necesita atención" })).toBeInTheDocument();
         const fila = (etiqueta: string) => screen.getByText(etiqueta).closest("li")!;
-        expect(within(fila("Productos con stock bajo o agotado")).getByText("No disponible")).toBeInTheDocument();
-        expect(within(fila("Productos con stock bajo o agotado")).queryByRole("link")).not.toBeInTheDocument();
-        // Las cifras que no salen de `/reports` siguen ahí, con su acción.
-        expect(within(fila("Ventas por enviar")).getByText("2")).toBeInTheDocument();
+        expect(within(fila("Productos con stock bajo o agotado")).getByText("2")).toBeInTheDocument();
         expect(within(fila("Ventas por enviar")).getByRole("link")).toHaveAttribute("href", "/sale-orders?estado=PENDING");
-        // Lo que sí depende de `/reports` no se pinta a medias.
+        // Lo que sí depende del resumen no se pinta a medias.
         expect(screen.queryByText("Total de productos")).not.toBeInTheDocument();
-        expect(screen.queryByText(/Todo al día/)).not.toBeInTheDocument();
+        expect(screen.getByRole("alert")).toHaveTextContent("No se pudo cargar el resumen del inventario");
     });
 
     it("si falla una actualización, los datos se quedan y se avisa de que son los de antes", async () => {
-        fallo = new Error("Network Error");
+        falloDeAtencion = new Error("Network Error");
         renderWithProviders(<DashboardPage />);
 
         expect(screen.getByText("Total de productos")).toBeInTheDocument();
@@ -767,13 +795,35 @@ describe("ReportsPage (T2-21)", () => {
         it("sin ventas con coste lo dice, y el porcentaje no es un 0 %", () => {
             resumen = {
                 ...RESUMEN,
-                margin: { ...RESUMEN.margin, revenue: 0, cost: 0, margin: 0, marginPercent: null, revenueWithoutCost: 0, byCategory: [], topProducts: [] },
+                margin: { ...RESUMEN.margin!, revenue: 0, cost: 0, margin: 0, marginPercent: null, revenueWithoutCost: 0, byCategory: [], topProducts: [] },
             };
             renderWithProviders(<ReportsPage />);
 
             expect(screen.getByText("No hay ventas enviadas con coste conocido en los últimos 30 días.")).toBeInTheDocument();
             expect(screen.getByText("% margen realizado").previousElementSibling).toHaveTextContent("—");
         });
+    });
+
+    it("sin importes (quien no es ADMIN, AUD-009): ni tarjetas de dinero, ni margen, ni valor por categoría", () => {
+        const { inventoryValue, inventoryCostValue, potentialMargin, ...totals } = RESUMEN.totals;
+        void inventoryValue; void inventoryCostValue; void potentialMargin;
+        resumen = {
+            ...RESUMEN,
+            totals,
+            stockByCategory: RESUMEN.stockByCategory.map(({ name, stock }) => ({ name, stock })),
+            topByValue: undefined,
+            salesByDay: undefined,
+            topSold: undefined,
+            margin: undefined,
+        };
+        renderWithProviders(<ReportsPage />);
+
+        expect(screen.queryByText("Valor a coste")).not.toBeInTheDocument();
+        expect(screen.queryByText("% margen realizado")).not.toBeInTheDocument();
+        expect(screen.queryByText(/\$/)).not.toBeInTheDocument();
+        // En el sitio del valor, las categorías; y lo que no es dinero sigue.
+        expect(screen.getByText("Categorías")).toBeInTheDocument();
+        expect(screen.getByText("Total de productos")).toBeInTheDocument();
     });
 
     it("mientras carga no se pinta el informe", () => {
@@ -829,7 +879,7 @@ describe("DashboardPage — ventas de la semana (T6-09)", () => {
     it("sin ventas en la semana lo dice con una frase, sin un gráfico de barras a cero (AUD-008)", () => {
         resumen = {
             ...RESUMEN,
-            salesByDay: RESUMEN.salesByDay.map((d) => ({ ...d, orders: 0, revenue: 0 })),
+            salesByDay: RESUMEN.salesByDay!.map((d) => ({ ...d, orders: 0, revenue: 0 })),
             topSold: [],
         };
         renderWithProviders(<DashboardPage />);
