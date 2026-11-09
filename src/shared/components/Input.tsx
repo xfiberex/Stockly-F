@@ -4,10 +4,15 @@ import { forwardRef, useId, type InputHTMLAttributes } from "react";
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
     error?: string;
+    /**
+     * AUD-014 — `false` cuando el formulario ya lleva el foco al primer campo con error, que lee
+     * su mensaje: así enviar un formulario vacío no dispara una alerta por campo a la vez.
+     */
+    anunciarError?: boolean;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-    ({ label, error, className, id, ...props }, ref) => {
+    ({ label, error, anunciarError = true, className, id, ...props }, ref) => {
         // Sin `id` explícito, `htmlFor` quedaba vacío y la etiqueta no se asociaba a
         // nada: el campo se veía rotulado pero no tenía nombre accesible. El id
         // generado cubre a quien no lo pasa (los ítems de las órdenes, por ejemplo).
@@ -42,7 +47,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                     )}
                     {...props}
                 />
-                {error && <p id={errorId} role="alert" className="text-xs text-danger">{error}</p>}
+                {error && <p id={errorId} role={anunciarError ? "alert" : undefined} className="text-xs text-danger">{error}</p>}
             </div>
         );
     },

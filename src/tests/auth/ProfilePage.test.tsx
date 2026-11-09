@@ -145,7 +145,7 @@ describe("ProfilePage", () => {
             isPending: true,
         } as unknown as ReturnType<typeof useUpdateProfile>);
         renderWithProviders(<ProfilePage />);
-        expect(screen.getByRole("button", { name: /guardar cambios/i })).toBeDisabled();
+        expect(screen.getByRole("button", { name: /guardar cambios/i })).toHaveAttribute("aria-disabled", "true");
     });
 
     it("deshabilita el botón de contraseña cuando isPending=true", () => {
@@ -154,7 +154,7 @@ describe("ProfilePage", () => {
             isPending: true,
         } as unknown as ReturnType<typeof useUpdatePassword>);
         renderWithProviders(<ProfilePage />);
-        expect(screen.getByRole("button", { name: /cambiar contraseña/i })).toBeDisabled();
+        expect(screen.getByRole("button", { name: /cambiar contraseña/i })).toHaveAttribute("aria-disabled", "true");
     });
 });
 

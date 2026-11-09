@@ -141,12 +141,12 @@ describe("SaleOrdersPage — comprobante de venta (T6-07)", () => {
         const user = await abrir(ENVIADA);
 
         await user.click(boton()!);
-        expect(boton()).toBeDisabled();
+        expect(boton()).toHaveAttribute("aria-disabled", "true");
         await user.click(boton()!);
         expect(descargas.descargarDeLaApi).toHaveBeenCalledTimes(1);
 
         terminar(true);
-        await waitFor(() => expect(boton()).toBeEnabled());
+        await waitFor(() => expect(boton()).not.toHaveAttribute("aria-disabled"));
     });
 });
 

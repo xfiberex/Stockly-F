@@ -29,9 +29,10 @@ export function useTituloForzado(): Clave | null {
     return useSyncExternalStore(suscribir, () => forzado, () => null);
 }
 
-/** Lo llama la pantalla mientras su `h1` no es el de la ruta. */
-export function useTituloDePantalla(titulo: Clave) {
+/** Lo llama la pantalla mientras su `h1` no es el de la ruta; con `null`, manda la ruta. */
+export function useTituloDePantalla(titulo: Clave | null) {
     useEffect(() => {
+        if (titulo === null) return;
         forzado = titulo;
         avisar();
         return () => {

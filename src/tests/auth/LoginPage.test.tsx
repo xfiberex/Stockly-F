@@ -74,6 +74,6 @@ describe("LoginPage", () => {
             isPending: true,
         } as unknown as ReturnType<typeof useLogin>);
         renderWithProviders(<LoginPage />);
-        expect(screen.getByRole("button", { name: /entrar/i })).toBeDisabled();
+        expect(screen.getByRole("button", { name: /entrar/i })).toHaveAttribute("aria-disabled", "true");
     });
 });

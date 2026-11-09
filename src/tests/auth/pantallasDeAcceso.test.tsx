@@ -8,6 +8,7 @@ import RegisterPage from "@/modules/auth/components/RegisterPage";
 import ResetPasswordPage from "@/modules/auth/components/ResetPasswordPage";
 import ResendVerificationPage from "@/modules/auth/components/ResendVerificationPage";
 import ForgotPasswordPage from "@/modules/auth/components/ForgotPasswordPage";
+import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
 
 /**
@@ -71,6 +72,8 @@ describe("Iniciar sesión (AUD-014)", () => {
         const aviso = await screen.findByRole("alert");
         expect(aviso).toHaveTextContent("El correo o la contraseña no son correctos");
         expect(within(aviso).getByRole("link", { name: "¿Olvidaste tu contraseña?" })).toHaveAttribute("href", "/auth/forgot-password");
+        // Uno solo: el de debajo del campo se aparta mientras el aviso lo ofrece.
+        expect(screen.getAllByRole("link", { name: "¿Olvidaste tu contraseña?" })).toHaveLength(1);
     });
 
     it("el correo escrito viaja a «¿Olvidaste…?» y vuelve al login", async () => {
@@ -108,11 +111,11 @@ describe("Iniciar sesión (AUD-014)", () => {
         expect(screen.getByLabelText("Contraseña")).not.toHaveAttribute("placeholder", "••••••••");
     });
 
-    it("«Mostrar la contraseña» la enseña y la vuelve a ocultar", async () => {
+    it("«Mostrar» la enseña y la vuelve a ocultar, y su nombre dice qué campo", async () => {
         const user = userEvent.setup();
         renderWithProviders(<LoginPage />);
         const campo = screen.getByLabelText("Contraseña");
-        const mostrar = screen.getByRole("button", { name: "Mostrar la contraseña" });
+        const mostrar = screen.getByRole("button", { name: "Mostrar «Contraseña»" });
 
         expect(campo).toHaveAttribute("type", "password");
         await user.click(mostrar);
@@ -141,26 +144,36 @@ describe("Registro (AUD-014)", () => {
         await user.click(screen.getByRole("button", { name: "Crear cuenta" }));
 
         expect(await screen.findByRole("heading", { name: "Revisa tu correo", level: 1 })).toBeInTheDocument();
-        const mensaje = screen.getByText("Te hemos enviado un enlace a ana@stockly.app para confirmar la cuenta.");
+        const mensaje = screen.getByText(/^Te hemos enviado un correo a ana@stockly.app/);
         await waitFor(() => expect(mensaje).toHaveFocus());
     });
 
-    it("un correo ya registrado se dice en la tarjeta, con lo escrito delante", async () => {
-        vi.mocked(AuthAPI.register).mockRejectedValue(errorDeApi(409, "EMAIL_ALREADY_REGISTERED"));
+    it("un fallo del servidor se queda en la tarjeta, con lo escrito delante", async () => {
+        vi.mocked(AuthAPI.register).mockRejectedValue(errorDeApi(429, "TOO_MANY_REQUESTS"));
         const user = userEvent.setup();
         renderWithProviders(<RegisterPage />);
 
         await user.type(screen.getByLabelText("Nombre"), "Ana");
         await user.type(screen.getByLabelText("Correo electrónico"), "ana@stockly.app");
-        await user.type(screen.getByLabelText("Contraseña"), "secreta123");
+        await user.type(screen.getByLabelText("Contraseña", { exact: true }), "secreta123");
         await user.type(screen.getByLabelText("Confirmar contraseña"), "secreta123");
         await user.click(screen.getByRole("button", { name: "Crear cuenta" }));
 
-        const aviso = await screen.findByRole("alert");
+        expect(await screen.findByRole("alert")).toBeInTheDocument();
         expect(screen.getByLabelText("Correo electrónico")).toHaveValue("ana@stockly.app");
-        // Y lo siguiente: entrar o recuperar la cuenta.
-        expect(within(aviso).getByRole("link", { name: "Inicia sesión" })).toHaveAttribute("href", "/auth/login");
-        expect(within(aviso).getByRole("link", { name: "¿Olvidaste tu contraseña?" })).toHaveAttribute("href", "/auth/forgot-password");
+    });
+
+    it("enviar vacío no dispara una alerta por campo: el foco va al primero, que lee su error", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<RegisterPage />);
+
+        await user.click(screen.getByRole("button", { name: "Crear cuenta" }));
+
+        await waitFor(() => expect(screen.getByLabelText("Nombre")).toHaveFocus());
+        expect(screen.getByLabelText("Nombre")).toHaveAccessibleDescription("El nombre es obligatorio");
+        expect(screen.queryAllByRole("alert")).toHaveLength(0);
+        // Vacía dice «obligatoria»; corta, «Mínimo 8 caracteres».
+        expect(screen.getByText("La contraseña es obligatoria")).toBeInTheDocument();
     });
 
     it("el nombre recibe el foco al abrir", () => {
@@ -191,24 +204,49 @@ describe("Restablecer la contraseña (AUD-014)", () => {
 
     it("un enlace caducado se dice al abrir, antes de escribir nada, con el foco en el título", async () => {
         vi.mocked(AuthAPI.checkResetToken).mockRejectedValue(errorDeApi(400, "INVALID_OR_EXPIRED_TOKEN"));
-        renderWithProviders(<ResetPasswordPage />, { initialRoute: "/auth/reset-password?token=viejo" });
+        renderWithProviders(<><AnuncioDeRuta /><ResetPasswordPage /></>, { initialRoute: "/auth/reset-password?token=viejo" });
 
         const h1 = await screen.findByRole("heading", { name: "Este enlace ya no sirve", level: 1 });
         await waitFor(() => expect(h1).toHaveFocus());
         expect(screen.queryByLabelText("Nueva contraseña")).not.toBeInTheDocument();
         expect(AuthAPI.checkResetToken).toHaveBeenCalledWith("viejo", expect.anything());
         // La pestaña dice lo mismo que el título, no «Nueva contraseña».
-        await waitFor(() => expect(document.title).not.toMatch(/Nueva contraseña/));
+        await waitFor(() => expect(document.title).toBe("Este enlace ya no sirve · Stockly"));
     });
 
-    it("una invitación caducada lleva a restablecer: la cuenta ya existe", async () => {
+    it("una invitación caducada pide un enlace nuevo, y «Olvidé» habla de elegirla, no de recuperarla", async () => {
         vi.mocked(AuthAPI.checkResetToken).mockRejectedValue(errorDeApi(400, "INVALID_OR_EXPIRED_TOKEN"));
-        renderWithProviders(<ResetPasswordPage />, { initialRoute: "/auth/reset-password?token=viejo&invitacion=1" });
+        const user = userEvent.setup();
+        // Con `AnuncioDeRuta`, que es quien escribe la pestaña.
+        renderWithProviders(
+            <>
+                <AnuncioDeRuta />
+                <Routes>
+                    <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+                </Routes>
+            </>,
+            { initialRoute: "/auth/reset-password?token=viejo&invitacion=1" },
+        );
 
-        expect(await screen.findByText(/Tu cuenta ya existe/)).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "Restablecer contraseña" })).toHaveAttribute("href", "/auth/forgot-password");
+        expect(await screen.findByText(/La invitación ha caducado/)).toBeInTheDocument();
+        expect(screen.queryByText(/restablecer/i)).not.toBeInTheDocument();
         // Ya no son dos «Volver al inicio de sesión» iguales.
         expect(screen.getAllByRole("link", { name: "Volver al inicio de sesión" })).toHaveLength(1);
+
+        await user.click(screen.getByRole("link", { name: "Pedir un enlace nuevo" }));
+        expect(await screen.findByRole("heading", { name: "Elegir tu contraseña", level: 1 })).toBeInTheDocument();
+        await waitFor(() => expect(document.title).toBe("Elegir tu contraseña · Stockly"));
+    });
+
+    it("la invitación con enlace bueno dice para qué cuenta es, y tiene salida", async () => {
+        vi.mocked(AuthAPI.checkResetToken).mockResolvedValue({ email: "laura@stockly.app" });
+        renderWithProviders(<><AnuncioDeRuta /><ResetPasswordPage /></>, { initialRoute: "/auth/reset-password?token=bueno&invitacion=1" });
+
+        expect(await screen.findByText(/^Para laura@stockly.app/)).toBeInTheDocument();
+        expect(screen.getByLabelText("Contraseña", { exact: true })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Volver al inicio de sesión" })).toHaveAttribute("href", "/auth/login");
+        await waitFor(() => expect(document.title).toBe("Elige tu contraseña · Stockly"));
     });
 
     it("con el enlace bueno, el formulario lleva el correo oculto para el gestor de contraseñas", async () => {
@@ -277,7 +315,7 @@ describe("Pedir un enlace por correo (AUD-014)", () => {
     });
 
     it.each([
-        ["Reenviar verificación", <ResendVerificationPage key="r" />, "Reenviar correo", AuthAPI.resendVerification],
+        ["Reenviar la confirmación", <ResendVerificationPage key="r" />, "Reenviar el enlace", AuthAPI.resendVerification],
         ["Olvidé la contraseña", <ForgotPasswordPage key="f" />, "Enviar instrucciones", AuthAPI.forgotPassword],
     ])("%s: hecho, el foco va a la confirmación, que no revela si la cuenta existe", async (_nombre, pantalla, boton, api) => {
         vi.mocked(api).mockResolvedValue(undefined as never);

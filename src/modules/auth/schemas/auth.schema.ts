@@ -23,7 +23,8 @@ export const loginFormSchema = z.object({
 export const registerFormSchema = z.object({
     name: z.string().min(1, mensaje("validacion.nombreRequerido")),
     email: z.string().min(1, mensaje("validacion.correoRequerido")).email(mensaje("validacion.correoInvalido")),
-    password: z.string().min(8, mensaje("validacion.contrasenaMinima")),
+    // AUD-014 — vacía dice «obligatoria», como en el login; corta, «Mínimo 8 caracteres».
+    password: z.string().min(1, mensaje("validacion.contrasenaRequerida")).min(8, mensaje("validacion.contrasenaMinima")),
     passwordConfirmation: z.string().min(1, mensaje("validacion.confirmaContrasena")),
 }).refine((d) => d.password === d.passwordConfirmation, {
     message: mensaje("validacion.contrasenasNoCoinciden"),
@@ -35,7 +36,7 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-    password: z.string().min(8, mensaje("validacion.contrasenaMinima")),
+    password: z.string().min(1, mensaje("validacion.contrasenaRequerida")).min(8, mensaje("validacion.contrasenaMinima")),
     passwordConfirmation: z.string().min(1, mensaje("validacion.confirmaContrasena")),
 }).refine((d) => d.password === d.passwordConfirmation, {
     message: mensaje("validacion.contrasenasNoCoinciden"),

@@ -4,6 +4,7 @@ import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import { Spinner } from "@/shared/components/Spinner";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
 import { useT } from "@/shared/hooks/useIdioma";
+import { useTituloDePantalla } from "@/shared/hooks/useTituloDePantalla";
 import { codigoDeError, mensajeDeError } from "@/shared/lib/errorApi";
 import { cn } from "@/shared/lib/cn";
 import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
@@ -55,6 +56,12 @@ export default function VerifyEmailPage() {
         };
     }, [token]);
 
+    // AUD-014 — el resultado llega solo, sin que nadie pulse nada: el foco va a su `h1` y la
+    // pestaña dice lo mismo. Antes el título cambiaba en silencio y la pestaña seguía en
+    // «Confirmar cuenta». (El caducado lo hace `EnlaceCaducado`.)
+    const tituloHecho = estado.tipo === "hecho" ? (estado.yaConfirmada ? "auth.verificar.yaConfirmada" : "auth.verificar.confirmada") : null;
+    useTituloDePantalla(tituloHecho);
+
     if (estado.tipo === "caducado") {
         return (
             <EnlaceCaducado
@@ -77,7 +84,7 @@ export default function VerifyEmailPage() {
 
     if (estado.tipo === "error") {
         return (
-            <MarcoDeAcceso titulo={t("ruta.confirmarCuenta")}>
+            <MarcoDeAcceso titulo={t("ruta.confirmarCuenta")} enfocarTitulo>
                 <AvisoDeAcceso>
                     <p>{mensajeDeError(idioma, estado.error, "auth.verificar.invalido")}</p>
                 </AvisoDeAcceso>
@@ -87,7 +94,7 @@ export default function VerifyEmailPage() {
     }
 
     return (
-        <MarcoDeAcceso titulo={t(estado.yaConfirmada ? "auth.verificar.yaConfirmada" : "auth.verificar.confirmada")}>
+        <MarcoDeAcceso titulo={t(estado.yaConfirmada ? "auth.verificar.yaConfirmada" : "auth.verificar.confirmada")} enfocarTitulo>
             <div role="status" className="space-y-3 text-center text-sm text-foreground">
                 <CheckCircleIcon aria-hidden="true" className="mx-auto h-10 w-10 text-success" />
                 {/* AUD-001 — sin esto, entraría al login y se encontraría el 403 sin saber por qué. */}

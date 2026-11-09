@@ -5,6 +5,7 @@ import NotFoundPage from "@/shared/components/NotFoundPage";
 import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
 import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { Spinner } from "@/shared/components/Spinner";
+import { CLASES_MARCO_CENTRADO } from "@/shared/lib/clasesDeMarco";
 
 const LoginPage = lazy(() => import("@/modules/auth/components/LoginPage"));
 const RegisterPage = lazy(() => import("@/modules/auth/components/RegisterPage"));
@@ -48,6 +49,20 @@ function PageLoader() {
     );
 }
 
+/**
+ * AUD-014 — la carga de una pantalla de acceso, en el sitio de su tarjeta: el spinner salía
+ * arriba (`h-64`) y medio segundo después la tarjeta aparecía más abajo, de un salto.
+ */
+function CargaDeAcceso() {
+    return (
+        <main className={CLASES_MARCO_CENTRADO}>
+            <div className="flex w-full max-w-sm justify-center py-16">
+                <Spinner size="lg" />
+            </div>
+        </main>
+    );
+}
+
 function S({ children }: { children: ReactNode }) {
     return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
 }
@@ -61,7 +76,7 @@ function Acceso({ children }: { children: ReactNode }) {
     return (
         <>
             <AnuncioDeRuta />
-            <S>{children}</S>
+            <Suspense fallback={<CargaDeAcceso />}>{children}</Suspense>
         </>
     );
 }

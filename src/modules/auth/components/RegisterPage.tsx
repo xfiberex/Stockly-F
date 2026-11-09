@@ -5,7 +5,8 @@ import { Link } from "react-router-dom";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
-import { codigoDeError, mensajeDeError } from "@/shared/lib/errorApi";
+import { mensajeDeError } from "@/shared/lib/errorApi";
+import { hayPunteroFino } from "@/shared/lib/punteroFino";
 import { registerFormSchema, type RegisterForm } from "@/modules/auth/schemas/auth.schema";
 import { useRegister } from "@/modules/auth/hooks/useRegister";
 import { AvisoDeAcceso, CampoDeContrasena, MarcoDeAcceso } from "@/modules/auth/components/MarcoDeAcceso";
@@ -17,6 +18,9 @@ import type { EstadoDeAcceso } from "@/modules/auth/lib/estadoDeAcceso";
  * AUD-014 — registrarse en Stockly no da acceso: hay que confirmar el correo y que un
  * administrador apruebe la cuenta (AUD-001). La pantalla lo dice **antes** de enviar, y después
  * se queda en «Revisa tu correo» con lo que falta, en vez de saltar al login con un aviso de 3 s.
+ *
+ * El servidor responde lo mismo aunque el correo ya tenga cuenta (no revela quién está
+ * registrado, como «olvidé la contraseña»); a su dueño le llega un correo que se lo dice.
  */
 export default function RegisterPage() {
     const { t, te, idioma } = useT();
@@ -65,13 +69,6 @@ export default function RegisterPage() {
             {registro.isError && (
                 <AvisoDeAcceso>
                     <p>{mensajeDeError(idioma, registro.error)}</p>
-                    {/* AUD-014 — si el correo ya tiene cuenta, lo siguiente es entrar o recuperarla. */}
-                    {codigoDeError(registro.error) === "EMAIL_ALREADY_REGISTERED" && (
-                        <p className="mt-1 flex flex-wrap gap-x-4">
-                            <Link to="/auth/login" state={conCorreo()} className={CLASES_ENLACE_EN_TEXTO}>{t("auth.registro.inicia")}</Link>
-                            <Link to="/auth/forgot-password" state={conCorreo()} className={CLASES_ENLACE_EN_TEXTO}>{t("auth.login.olvidaste")}</Link>
-                        </p>
-                    )}
                 </AvisoDeAcceso>
             )}
 
@@ -80,8 +77,9 @@ export default function RegisterPage() {
                     id="name"
                     label={t("comun.nombre")}
                     autoComplete="name"
-                    autoFocus
-                    placeholder={t("auth.ejemplo.nombre")}
+                    // Solo con ratón: en el móvil, el teclado tapaba los dos pasos de arriba.
+                    autoFocus={hayPunteroFino()}
+                    anunciarError={false}
                     error={te(errors.name?.message)}
                     {...register("name")}
                 />
@@ -90,7 +88,7 @@ export default function RegisterPage() {
                     label={t("auth.campo.correo")}
                     type="email"
                     autoComplete="email"
-                    placeholder={t("auth.ejemplo.correo")}
+                    anunciarError={false}
                     error={te(errors.email?.message)}
                     {...register("email")}
                 />
@@ -117,7 +115,7 @@ export default function RegisterPage() {
 
             <p className="text-center text-sm text-foreground-muted">
                 {t("auth.registro.yaTienes")}{" "}
-                <Link to="/auth/login" className={cn(CLASES_ENLACE_EN_TEXTO, "font-medium")}>
+                <Link to="/auth/login" state={conCorreo()} className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO, "font-medium")}>
                     {t("auth.registro.inicia")}
                 </Link>
             </p>

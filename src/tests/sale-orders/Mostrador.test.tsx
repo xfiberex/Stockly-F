@@ -267,7 +267,7 @@ describe("MostradorPage (T6-08)", () => {
         const user = abrir();
         await anadir(user, /Teclado/);
 
-        expect(registrar()).toBeDisabled();
+        expect(registrar()).toHaveAttribute("aria-disabled", "true");
     });
 
     describe("el escáner", () => {

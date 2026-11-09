@@ -38,11 +38,33 @@ describe("Button", () => {
         }
     });
 
-    it("muestra spinner y deshabilita cuando isLoading=true", () => {
-        render(<Button isLoading>Enviando</Button>);
+    it("cargando: spinner, `aria-disabled` y el clic no hace nada, pero conserva el foco (AUD-014)", async () => {
+        const alPulsar = vi.fn();
+        render(<Button isLoading onClick={alPulsar}>Enviando</Button>);
         const button = screen.getByRole("button");
-        expect(button).toBeDisabled();
+        expect(button).toHaveAttribute("aria-disabled", "true");
+        expect(button).toHaveAttribute("aria-busy", "true");
         expect(button.querySelector("span.animate-spin")).toBeInTheDocument();
+        // Sin `disabled`: el foco puede seguir en él (antes caía en <body>).
+        expect(button).not.toBeDisabled();
+        button.focus();
+        expect(button).toHaveFocus();
+
+        await userEvent.click(button);
+        expect(alPulsar).not.toHaveBeenCalled();
+    });
+
+    it("cargando, no envía el formulario: ni con un clic ni con Intro (envío implícito)", async () => {
+        const enviar = vi.fn((e: { preventDefault: () => void }) => e.preventDefault());
+        render(
+            <form onSubmit={enviar}>
+                <input aria-label="campo" />
+                <Button type="submit" isLoading>Enviar</Button>
+            </form>,
+        );
+        await userEvent.click(screen.getByRole("button"));
+        await userEvent.type(screen.getByLabelText("campo"), "x{Enter}");
+        expect(enviar).not.toHaveBeenCalled();
     });
 
     it("deshabilita cuando disabled=true", () => {

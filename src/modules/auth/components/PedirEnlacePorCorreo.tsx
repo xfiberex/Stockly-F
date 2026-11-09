@@ -9,6 +9,8 @@ import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
 import { cn } from "@/shared/lib/cn";
 import { mensajeDeError } from "@/shared/lib/errorApi";
+import { hayPunteroFino } from "@/shared/lib/punteroFino";
+import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 import { CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO } from "@/shared/lib/clasesDeMarco";
 import { forgotPasswordSchema, type ForgotPasswordForm } from "@/modules/auth/schemas/auth.schema";
 import { AvisoDeAcceso, MarcoDeAcceso } from "@/modules/auth/components/MarcoDeAcceso";
@@ -65,7 +67,8 @@ export function PedirEnlacePorCorreo({
     const alLogin = (): EstadoDeAcceso => ({ correo: escrito || undefined });
 
     return (
-        <MarcoDeAcceso titulo={titulo} subtitulo={subtitulo}>
+        // Hecho, sin subtítulo: «Te enviaremos…» ya no es verdad, y la frase de abajo dice lo que pasó.
+        <MarcoDeAcceso titulo={titulo} subtitulo={pedir.isSuccess ? undefined : subtitulo}>
             {pedir.isSuccess ? (
                 <div className="space-y-3 text-center">
                     <div role="status" className="space-y-2">
@@ -92,8 +95,9 @@ export function PedirEnlacePorCorreo({
                             label={t("auth.campo.correo")}
                             type="email"
                             autoComplete="email"
-                            autoFocus
-                            placeholder={t("auth.ejemplo.correo")}
+                            // Solo con ratón: en el móvil, el teclado tapaba lo que la pantalla explica.
+                            autoFocus={hayPunteroFino()}
+                            anunciarError={false}
                             error={te(errors.email?.message)}
                             {...register("email")}
                         />
@@ -104,11 +108,19 @@ export function PedirEnlacePorCorreo({
                 </>
             )}
 
-            <p className="text-center text-sm">
-                <Link to="/auth/login" state={alLogin()} className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO)}>
+            {/* Hecho, volver es lo siguiente: botón, por encima de «Usar otro correo». Antes eran dos
+                enlaces iguales y ninguno parecía el camino. */}
+            {pedir.isSuccess ? (
+                <Link to="/auth/login" state={alLogin()} className={cn(clasesDeBoton("secondary"), "w-full")}>
                     {t("auth.volverAlLogin")}
                 </Link>
-            </p>
+            ) : (
+                <p className="text-center text-sm">
+                    <Link to="/auth/login" state={alLogin()} className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO)}>
+                        {t("auth.volverAlLogin")}
+                    </Link>
+                </p>
+            )}
         </MarcoDeAcceso>
     );
 }

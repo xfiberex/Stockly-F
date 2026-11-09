@@ -28,7 +28,8 @@ export function MarcoDeAcceso({
 
     return (
         <main className={CLASES_MARCO_CENTRADO}>
-            <div className="w-full max-w-sm space-y-6 rounded-xl border border-border bg-surface p-8 shadow-raised">
+            {/* `p-6` en el móvil: con `p-8` dentro de `px-4`, los campos se quedaban en 292 de 390 px. */}
+            <div className="w-full max-w-sm space-y-6 rounded-xl border border-border bg-surface p-6 shadow-raised sm:p-8">
                 <div className="text-center">
                     <div className="mb-4 flex items-center justify-center gap-2">
                         <div className="rounded-xl bg-primary p-2">
@@ -56,12 +57,13 @@ export function AvisoDeAcceso({ children, tono = "error" }: { children: ReactNod
     return tono === "exito" ? (
         <div role="status" className="flex gap-2 rounded-lg border border-success/30 bg-success-surface p-3 text-sm text-foreground">
             <CheckCircleIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-            <div>{children}</div>
+            <div className="text-pretty">{children}</div>
         </div>
     ) : (
         <div role="alert" className="flex gap-2 rounded-lg border border-danger/30 bg-danger-surface p-3 text-sm text-foreground">
             <ExclamationTriangleIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
-            <div>{children}</div>
+            {/* `text-pretty`: «correctos» se quedaba sola en la segunda línea. */}
+            <div className="text-pretty">{children}</div>
         </div>
     );
 }
@@ -110,7 +112,8 @@ export const CampoDeContrasena = forwardRef<HTMLInputElement, CampoDeContrasenaP
                         type="button"
                         aria-pressed={visible}
                         aria-controls={campoId}
-                        aria-label={t("auth.mostrarContrasena")}
+                        // Con el nombre del campo: en el registro hay dos, y los dos se llamaban igual.
+                        aria-label={t("auth.mostrarContrasena", { campo: label })}
                         onClick={() => setVisible((v) => !v)}
                         className="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center rounded-lg text-foreground-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent"
                     >
@@ -118,7 +121,9 @@ export const CampoDeContrasena = forwardRef<HTMLInputElement, CampoDeContrasenaP
                     </button>
                 </div>
                 {ayudaId && <p id={ayudaId} className="text-xs text-foreground-muted">{ayuda}</p>}
-                {error && <p id={errorId} role="alert" className="text-xs text-danger">{error}</p>}
+                {/* Sin `role="alert"`: el formulario lleva el foco al primer campo con error, que lo lee
+                    por `aria-describedby`. Con él, enviar vacío disparaba una alerta por campo. */}
+                {error && <p id={errorId} className="text-xs text-danger">{error}</p>}
             </div>
         );
     },

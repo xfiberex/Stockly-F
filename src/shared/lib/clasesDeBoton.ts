@@ -16,8 +16,12 @@ const VARIANTES: Record<VarianteBoton, string> = {
 // manda el mínimo táctil de 44 px —este botón es el de las acciones por fila y el de la
 // paginación, que se pulsan con el pulgar—; de `md` en adelante vuelve a los 36 px del
 // perfil denso, donde se apunta con ratón y la altura solo gasta espacio.
+//
+// AUD-014 — el anillo de foco es el del sistema (acento, 3,8:1 sobre blanco: basta para un
+// indicador, que pide 3:1), no el del navegador: sobre el botón primario, oscuro en claro, el
+// `outline: auto` apenas se veía. Y un botón ocupado (`aria-disabled`) enseña que espera.
 const BASE =
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed md:pointer-fine:min-h-9";
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:pointer-fine:min-h-9";
 
 /**
  * Botón de solo icono: cuadrado, no una cápsula con `px-4`.

@@ -84,6 +84,6 @@ describe("RegisterPage", () => {
             isPending: true,
         } as unknown as ReturnType<typeof useRegister>);
         renderWithProviders(<RegisterPage />);
-        expect(screen.getByRole("button", { name: /crear cuenta/i })).toBeDisabled();
+        expect(screen.getByRole("button", { name: /crear cuenta/i })).toHaveAttribute("aria-disabled", "true");
     });
 });

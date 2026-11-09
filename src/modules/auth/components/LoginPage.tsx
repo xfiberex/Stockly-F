@@ -63,7 +63,8 @@ export default function LoginPage() {
                     type="email"
                     autoComplete="email"
                     autoFocus={!correo}
-                    placeholder={t("auth.ejemplo.correo")}
+                    // Sin ejemplo: con tanto contraste, «usuario@email.com» parecía ya escrito.
+                    anunciarError={false}
                     error={te(errors.email?.message)}
                     {...register("email")}
                 />
@@ -77,11 +78,14 @@ export default function LoginPage() {
                     {...register("password")}
                 />
 
-                <div className="text-right">
-                    <Link to="/auth/forgot-password" state={conCorreo()} className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO, "text-sm")}>
-                        {t("auth.login.olvidaste")}
-                    </Link>
-                </div>
+                {/* Con el aviso de credenciales, el enlace ya está dentro de él: no dos iguales. */}
+                {codigo !== "INVALID_CREDENTIALS" && (
+                    <div className="text-right">
+                        <Link to="/auth/forgot-password" state={conCorreo()} className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO, "text-sm")}>
+                            {t("auth.login.olvidaste")}
+                        </Link>
+                    </div>
+                )}
 
                 <Button type="submit" className="w-full" isLoading={login.isPending}>
                     {t("auth.login.entrar")}
@@ -92,7 +96,8 @@ export default function LoginPage() {
                 el aviso cuando el servidor dice que falta confirmar, y tras registrarse. */}
             <p className="text-center text-sm text-foreground-muted">
                 {t("auth.login.sinCuenta")}{" "}
-                <Link to="/auth/register" className={cn(CLASES_ENLACE_EN_TEXTO, "font-medium")}>
+                {/* La acción de la línea: 44 px en táctil aunque vaya en la frase. */}
+                <Link to="/auth/register" className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO, "font-medium")}>
                     {t("auth.login.registrate")}
                 </Link>
             </p>

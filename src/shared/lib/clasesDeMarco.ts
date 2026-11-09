@@ -10,8 +10,11 @@
  * La cadena estaba copiada en las siete pantallas. Ahora es una, y el elemento correcto lo
  * pone quien la usa: `<main>`, no `<div>`.
  */
-// AUD-014 — `py-6`: en un móvil apaisado la tarjeta es más alta que la pantalla y tocaba los bordes.
-export const CLASES_MARCO_CENTRADO = "min-h-screen bg-background flex items-center justify-center px-4 py-6";
+// AUD-014 — `py-6`: en un móvil apaisado la tarjeta es más alta que la pantalla y tocaba los
+// bordes. Y centrada **solo en horizontal**, arriba a un sexto de la pantalla: centrada también en
+// vertical, al aparecer un aviso la tarjeta crecía por los dos lados y el botón que se acababa de
+// pulsar se movía debajo del dedo.
+export const CLASES_MARCO_CENTRADO = "min-h-screen bg-background flex items-start justify-center px-4 py-6 sm:pt-[16vh]";
 
 /** Variante en columna, para las pantallas que apilan mensaje y botón (404, verificación). */
 export const CLASES_MARCO_CENTRADO_COLUMNA =

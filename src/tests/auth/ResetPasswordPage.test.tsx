@@ -37,11 +37,13 @@ describe("ResetPasswordPage", () => {
         renderWithProviders(<ResetPasswordPage />, { initialRoute: "/auth/reset-password?token=abc&invitacion=1" });
 
         expect(screen.getByRole("heading", { name: "Elige tu contraseña" })).toBeInTheDocument();
-        expect(screen.getByText(/Te han invitado a Stockly/)).toBeInTheDocument();
+        // AUD-014 — dice para qué cuenta es.
+        expect(screen.getByText(/^Para ana@stockly.app/)).toBeInTheDocument();
         expect(screen.queryByText(/restablecer/i)).not.toBeInTheDocument();
         expect(llamadas.at(-1)).toEqual(["abc", true]);
 
-        await user.type(screen.getByLabelText("Nueva contraseña"), "Almacen2026");
+        // AUD-014 — quien llega por una invitación no tenía ninguna: «Contraseña», no «Nueva».
+        await user.type(screen.getByLabelText("Contraseña", { exact: true }), "Almacen2026");
         await user.type(screen.getByLabelText("Confirmar contraseña"), "Almacen2026");
         await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
 
@@ -52,10 +54,10 @@ describe("ResetPasswordPage", () => {
     it("sin token no hay formulario, venga de donde venga", () => {
         renderWithProviders(<ResetPasswordPage />, { initialRoute: "/auth/reset-password?invitacion=1" });
 
-        // AUD-014 — la tarjeta de enlace caducado. La invitación sale por «Restablecer
-        // contraseña»: la cuenta ya existe y el enlace nuevo no depende de un administrador.
+        // AUD-014 — la tarjeta de enlace caducado. La invitación pide un enlace nuevo: la cuenta
+        // ya existe y no depende de un administrador.
         expect(screen.getByRole("heading", { name: "Este enlace ya no sirve", level: 1 })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "Restablecer contraseña" })).toHaveAttribute("href", "/auth/forgot-password");
+        expect(screen.getByRole("link", { name: "Pedir un enlace nuevo" })).toHaveAttribute("href", "/auth/forgot-password");
         expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
 });

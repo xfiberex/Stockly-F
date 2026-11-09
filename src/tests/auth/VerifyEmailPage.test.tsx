@@ -1,4 +1,5 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
+import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { renderWithProviders } from "@/tests/utils";
 import VerifyEmailPage from "@/modules/auth/components/VerifyEmailPage";
 import { AuthAPI } from "@/modules/auth/api/auth.api";
@@ -36,6 +37,15 @@ describe("VerifyEmailPage — lo que viene después (AUD-014)", () => {
         expect(screen.queryByRole("alert")).toBeNull();
     });
 
+    it("el resultado se anuncia: foco en el título y la pestaña dice lo mismo", async () => {
+        responde({ alreadyVerified: true, pendingApproval: true });
+        renderWithProviders(<><AnuncioDeRuta /><VerifyEmailPage /></>, { initialRoute: "/auth/confirm-account?token=abc" });
+
+        const h1 = await screen.findByRole("heading", { name: "Tu cuenta ya estaba confirmada", level: 1 });
+        await waitFor(() => expect(h1).toHaveFocus());
+        await waitFor(() => expect(document.title).toBe("Tu cuenta ya estaba confirmada · Stockly"));
+    });
+
     it("ya aprobada: dice que puede entrar y lleva al login", async () => {
         responde({ alreadyVerified: false, pendingApproval: false });
         renderWithProviders(<VerifyEmailPage />, { initialRoute: "/auth/confirm-account?token=abc" });
@@ -48,7 +58,7 @@ describe("VerifyEmailPage — lo que viene después (AUD-014)", () => {
         renderWithProviders(<VerifyEmailPage />, { initialRoute: "/auth/confirm-account" });
 
         expect(screen.getByRole("heading", { name: "Este enlace ya no sirve", level: 1 })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "Solicitar nuevo enlace de verificación" })).toHaveAttribute("href", "/auth/resend-verification");
+        expect(screen.getByRole("link", { name: "Pedir un enlace nuevo" })).toHaveAttribute("href", "/auth/resend-verification");
     });
 
     it("enlace caducado: la misma tarjeta, no un mensaje rojo suelto", async () => {

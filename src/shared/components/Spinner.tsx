@@ -30,7 +30,7 @@ export function Spinner({ size = "md", className, decorativo = false }: SpinnerP
         <span
             aria-hidden="true"
             className={cn(
-                "block animate-spin rounded-full border-2 border-border border-t-blue-600",
+                "block animate-spin rounded-full border-2 border-border border-t-accent",
                 sizes[size],
                 className,
             )}
