@@ -1,17 +1,10 @@
-import { useState, useEffect, type ComponentType, type SVGProps } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, NavLink, Link, useLocation } from "react-router-dom";
 import {
     CubeIcon,
     UserCircleIcon,
     ChevronDownIcon,
     ArrowRightOnRectangleIcon,
-    ShieldCheckIcon,
-    ClipboardDocumentListIcon,
-    ClipboardDocumentCheckIcon,
-    Squares2X2Icon,
-    HomeIcon,
-    BanknotesIcon,
-    ChartBarIcon,
     Bars3Icon,
     XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -21,130 +14,14 @@ import { clasesDeItemDeMenu, CLASES_PANEL_DE_MENU } from "@/shared/lib/clasesDeI
 import { AnuncioDeRuta } from "@/shared/components/AnuncioDeRuta";
 import { useLogout } from "@/modules/auth/hooks/useLogout";
 import { useAuth } from "@/modules/auth/hooks/useMe";
-import { usePuede } from "@/modules/auth/hooks/usePuede";
-import type { Rol, RutaConPermiso } from "@/shared/contratos";
+import type { Rol } from "@/shared/contratos";
+import { navegacionDe } from "@/shared/navegacion";
+import { InsigniaDeRol } from "@/modules/users/components/InsigniaDeRol";
 import { useSincronizarIdioma } from "@/modules/auth/hooks/useSincronizarIdioma";
 import { CampanaDeAvisos } from "@/modules/notifications/components/CampanaDeAvisos";
 import { useT } from "@/shared/hooks/useIdioma";
-import type { Clave } from "@/shared/i18n/traducir";
 
-/**
- * T3-04 — la navegación, en un solo array y en su orden real.
- *
- * Antes eran cuatro arrays y el orden de la barra no estaba en ninguno: los dos enlaces
- * sueltos vivían juntos en `navLinks` y se separaban al pintarlos con `navLinks.slice(0, 1)`
- * y `navLinks.slice(1)` para colar los desplegables en medio. Añadir «Reportes» al final
- * exigía darse cuenta de que el índice 1 significaba «después de Órdenes».
- *
- * Ahora el array **es** el orden. Cada elemento dice de qué tipo es, y quien pinta decide
- * cómo, no cuándo.
- *
- * T4-10 — y el orden es **uno solo**. Hasta ahora el móvil agrupaba por tipo —los enlaces
- * sueltos arriba y las secciones debajo— y el escritorio los intercalaba, así que había dos
- * recorridos que mantener sincronizados a mano. Con la barra lateral los dos envoltorios
- * pintan la misma lista, en el orden del array, y un destino nuevo aparece en los dos sitios
- * sin tocar nada más.
- */
-// T4-04: `label` es la **clave** del catálogo, no el rótulo. Este array se construye al
-// cargar el módulo y el idioma se decide al pintar, así que un texto ya traducido se
-// quedaría congelado en el que hubiera al arrancar. Los destinos reutilizan las claves
-// `ruta.*`: el rótulo del enlace y el título de la sección son el mismo texto.
-type EnlaceDeNav = {
-    kind: "link";
-    to: string;
-    label: Clave;
-    end: boolean;
-    Icon: ComponentType<SVGProps<SVGSVGElement>>;
-    /**
-     * T6-08 — la ruta de la API sin la que este destino no sirve de nada. El enlace se enseña a
-     * quien puede llamarla, sea del rol que sea: el mostrador lo abren dos roles, y «solo ADMIN»
-     * no sabe decir eso.
-     */
-    permiso?: RutaConPermiso;
-    /** AUD-008 — el rol para el que este destino no existe: SELLER no tiene panel (entra en el mostrador). */
-    ocultoPara?: Rol;
-};
-
-/**
- * T4-10: antes esto era un `dropdown` —un botón que abría un panel—. Ahora es un
- * **grupo**: un subtítulo con sus destinos debajo, siempre desplegado. Se cayeron con él
- * dos campos que solo tenían sentido en un panel flotante: `width`, que fijaba el ancho
- * al rótulo más largo, y `activoEn`, que existía para resaltar el disparador cuando la
- * ruta activa pertenecía al menú. Sin disparador que resaltar, la marca la pone cada
- * `NavLink` en su propio enlace, que además es donde el usuario la busca.
- */
-type GrupoDeNav = {
-    kind: "group";
-    label: Clave;
-    Icon: ComponentType<SVGProps<SVGSVGElement>>;
-    items: { to: string; label: Clave }[];
-    soloAdmin?: boolean;
-};
-
-type ElementoDeNav = EnlaceDeNav | GrupoDeNav;
-
-const NAVEGACION: ElementoDeNav[] = [
-    { kind: "link", to: "/", label: "ruta.dashboard", end: true, Icon: HomeIcon, ocultoPara: "SELLER" },
-    // T6-08 — lo primero después del panel: es lo que abre a todas horas quien vende.
-    { kind: "link", to: "/counter", label: "ruta.mostrador", end: false, Icon: BanknotesIcon, permiso: "POST /sale-orders/counter" },
-    {
-        kind: "group",
-        label: "ruta.catalogo",
-        Icon: Squares2X2Icon,
-        items: [
-            { to: "/catalog/products", label: "ruta.productos" },
-            { to: "/catalog/categories", label: "ruta.categorias" },
-            { to: "/catalog/brands", label: "ruta.marcas" },
-            { to: "/catalog/suppliers", label: "ruta.proveedores" },
-            { to: "/catalog/tags", label: "ruta.etiquetas" },
-        ],
-    },
-    {
-        kind: "group",
-        label: "nav.ordenes",
-        Icon: ClipboardDocumentListIcon,
-        items: [
-            { to: "/purchase-orders", label: "nav.compra" },
-            { to: "/sale-orders", label: "nav.venta" },
-            // T5-06 — a quién se vende, junto a las ventas.
-            { to: "/customers", label: "ruta.clientes" },
-        ],
-    },
-    // T5-07 — el trabajo del almacén que no es una orden. T5-14 — con las transferencias y los
-    // almacenes pasa a ser un grupo: los tres destinos hablan de dónde está el stock.
-    {
-        kind: "group",
-        label: "nav.inventario",
-        Icon: ClipboardDocumentCheckIcon,
-        items: [
-            { to: "/inventory-counts", label: "ruta.conteos" },
-            { to: "/stock-transfers", label: "ruta.transferencias" },
-            // T5-15 — lo que caduca: es trabajo de almacén, ir a retirarlo.
-            { to: "/expiry", label: "ruta.caducidades" },
-            { to: "/warehouses", label: "ruta.almacenes" },
-        ],
-    },
-    { kind: "link", to: "/reports", label: "ruta.reportes", end: false, Icon: ChartBarIcon },
-    {
-        kind: "group",
-        label: "nav.admin",
-        Icon: ShieldCheckIcon,
-        soloAdmin: true,
-        items: [
-            { to: "/admin/users", label: "ruta.usuarios" },
-            { to: "/audit-logs", label: "nav.auditoria" },
-            { to: "/settings", label: "ruta.configuracion" },
-        ],
-    },
-];
-
-/** El grupo de administración solo existe para quien lo es, y un enlace con permiso, para quien lo tiene. */
-const visibleDeNav = (elemento: ElementoDeNav, isAdmin: boolean, puede: (ruta: RutaConPermiso) => boolean, rol: Rol | undefined) =>
-    elemento.kind === "group"
-        ? !elemento.soloAdmin || isAdmin
-        : (!elemento.permiso || puede(elemento.permiso)) && (!elemento.ocultoPara || elemento.ocultoPara !== rol);
-
-function UserMenu({ name, email }: { name: string; email?: string }) {
+function UserMenu({ name, email, rol }: { name: string; email?: string; rol: Rol }) {
     // T2-16: el cierre al pulsar fuera estaba duplicado con `NavDropdown` y ninguno de
     // los dos cerraba con Escape. Los dos usan ahora el mismo hook.
     const { abierto: open, contenedor, disparador, alternar, cerrar } = useMenuDesplegable();
@@ -199,6 +76,8 @@ function UserMenu({ name, email }: { name: string; email?: string }) {
                     <div role="none" className="px-3 pt-2 pb-2.5">
                         <p className="truncate text-sm font-semibold text-foreground">{name}</p>
                         {email && <p className="truncate text-xs text-foreground-muted">{email}</p>}
+                        {/* AUD-016 — con qué rol se ha entrado: explica por qué el menú es el que es. */}
+                        <InsigniaDeRol rol={rol} className="mt-1.5" />
                     </div>
                     <div className="border-t border-border" />
                     <Link
@@ -254,14 +133,14 @@ const claseDeEnlaceDeNav = ({ isActive }: { isActive: boolean }) =>
  * de que ahora haya un solo orden: mientras cada uno tenía el suyo, cada destino nuevo
  * había que darlo de alta dos veces y nada avisaba si se olvidaba uno.
  */
-function ListaDeSecciones({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?: () => void }) {
+function ListaDeSecciones({ onNavigate }: { onNavigate?: () => void }) {
     const { t } = useT();
-    const puede = usePuede();
     const { user } = useAuth();
 
     return (
         <div className="space-y-4">
-            {NAVEGACION.filter((elemento) => visibleDeNav(elemento, isAdmin, puede, user?.role)).map((elemento) =>
+            {/* AUD-016 — el menú de cada rol está escrito entero en `shared/navegacion.ts`. */}
+            {navegacionDe(user?.role).map((elemento) =>
                 elemento.kind === "link" ? (
                     <div key={elemento.to} className="space-y-1">
                         <NavLink to={elemento.to} end={elemento.end} onClick={onNavigate} className={claseDeEnlaceDeNav}>
@@ -270,7 +149,7 @@ function ListaDeSecciones({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigat
                         </NavLink>
                     </div>
                 ) : (
-                    <div key={elemento.label}>
+                    <div key={elemento.grupo}>
                         {/* El subtítulo **no es un encabezado**. Rotula un grupo de enlaces
                             dentro de una navegación, no abre una sección de contenido:
                             colarlo como `<h2>` lo mete en el esquema del documento y en el
@@ -310,7 +189,6 @@ function ListaDeSecciones({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigat
 
 function App() {
     const { user } = useAuth();
-    const isAdmin = user?.role === "ADMIN";
     const { pathname } = useLocation();
     const { t } = useT();
 
@@ -418,7 +296,7 @@ function App() {
                     <div className="flex items-center gap-1 ml-auto">
                         {/* T5-12 — solo con sesión: sin ella no hay de quién pedir los avisos. */}
                         {user && <CampanaDeAvisos />}
-                        {user && <UserMenu name={user.name} email={user.email} />}
+                        {user && <UserMenu name={user.name} email={user.email} rol={user.role} />}
                         {/* Botón hamburguesa — solo móvil/tablet */}
                         <button
                             onClick={toggleMobile}
@@ -459,7 +337,7 @@ function App() {
                         aria-label={t("nav.secciones")}
                         className="lg:hidden max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain sin-barra border-t border-border bg-surface px-4 py-3"
                     >
-                        <ListaDeSecciones isAdmin={isAdmin} onNavigate={closeMobile} />
+                        <ListaDeSecciones onNavigate={closeMobile} />
                     </nav>
                 )}
             </header>
@@ -485,7 +363,7 @@ function App() {
                     aria-label={t("nav.secciones")}
                     className="hidden lg:block sticky top-14 h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto overscroll-contain sin-barra border-r border-border bg-surface px-3 py-4"
                 >
-                    <ListaDeSecciones isAdmin={isAdmin} />
+                    <ListaDeSecciones />
                 </nav>
 
                 {/*

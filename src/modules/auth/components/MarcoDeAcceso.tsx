@@ -1,8 +1,9 @@
 import { forwardRef, useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { CheckCircleIcon, CubeIcon, ExclamationTriangleIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import { useT } from "@/shared/hooks/useIdioma";
+import { useIdioma, useT } from "@/shared/hooks/useIdioma";
+import type { Idioma } from "@/shared/i18n/idioma";
 import { cn } from "@/shared/lib/cn";
-import { CLASES_MARCO_CENTRADO } from "@/shared/lib/clasesDeMarco";
+import { CLASES_ENLACE_SUELTO, CLASES_MARCO_CENTRADO } from "@/shared/lib/clasesDeMarco";
 
 /**
  * AUD-014 — el marco de las seis pantallas sin sesión: la marca, el `h1` y la tarjeta. Antes la
@@ -28,22 +29,62 @@ export function MarcoDeAcceso({
 
     return (
         <main className={CLASES_MARCO_CENTRADO}>
-            {/* `p-6` en el móvil: con `p-8` dentro de `px-4`, los campos se quedaban en 292 de 390 px. */}
-            <div className="w-full max-w-sm space-y-6 rounded-xl border border-border bg-surface p-6 shadow-raised sm:p-8">
-                <div className="text-center">
-                    <div className="mb-4 flex items-center justify-center gap-2">
-                        <div className="rounded-xl bg-primary p-2">
-                            <CubeIcon aria-hidden="true" className="h-6 w-6 text-surface" />
+            <div className="w-full max-w-sm space-y-3">
+                {/* `p-6` en el móvil: con `p-8` dentro de `px-4`, los campos se quedaban en 292 de 390 px. */}
+                <div className="space-y-6 rounded-xl border border-border bg-surface p-6 shadow-raised sm:p-8">
+                    <div className="text-center">
+                        <div className="mb-4 flex items-center justify-center gap-2">
+                            <div className="rounded-xl bg-primary p-2">
+                                <CubeIcon aria-hidden="true" className="h-6 w-6 text-surface" />
+                            </div>
+                            {/* El nombre del producto no se traduce. */}
+                            <span className="text-2xl font-bold text-foreground">Stockly</span>
                         </div>
-                        {/* El nombre del producto no se traduce. */}
-                        <span className="text-2xl font-bold text-foreground">Stockly</span>
+                        <h1 ref={h1} tabIndex={enfocarTitulo ? -1 : undefined} className="text-xl font-bold text-foreground outline-none">{titulo}</h1>
+                        {subtitulo && <p className="mt-1 text-sm text-foreground-muted">{subtitulo}</p>}
                     </div>
-                    <h1 ref={h1} tabIndex={enfocarTitulo ? -1 : undefined} className="text-xl font-bold text-foreground outline-none">{titulo}</h1>
-                    {subtitulo && <p className="mt-1 text-sm text-foreground-muted">{subtitulo}</p>}
+                    {children}
                 </div>
-                {children}
+                <IdiomaSinSesion />
             </div>
         </main>
+    );
+}
+
+/** Los dos idiomas, cada uno escrito en el suyo: quien no entiende el de la pantalla reconoce el propio. */
+const IDIOMAS: { valor: Idioma; nombre: string }[] = [
+    { valor: "es", nombre: "Español" },
+    { valor: "en", nombre: "English" },
+];
+
+/**
+ * AUD-016 (pendiente de `AUD-014`) — el idioma, antes de entrar. Sin sesión no había dónde
+ * elegirlo: valía el del navegador, y quien lo tuviera en otro idioma tenía que entrar sin
+ * entender el formulario para cambiarlo en el Perfil. Fuera de la tarjeta y discreto: no es
+ * parte del formulario. Se guarda en este navegador, como el del Perfil.
+ */
+function IdiomaSinSesion() {
+    const { idioma, cambiarIdioma } = useIdioma();
+    const { t } = useT();
+    return (
+        <div role="group" aria-label={t("apariencia.idioma.titulo")} className="flex justify-center gap-4 text-sm">
+            {IDIOMAS.map(({ valor, nombre }) => (
+                <button
+                    key={valor}
+                    type="button"
+                    lang={valor}
+                    aria-pressed={idioma === valor}
+                    onClick={() => cambiarIdioma(valor)}
+                    className={cn(
+                        CLASES_ENLACE_SUELTO,
+                        "rounded px-1 focus-visible:outline-2 focus-visible:outline-info",
+                        idioma === valor ? "font-semibold text-foreground" : "text-foreground-muted hover:text-foreground hover:underline",
+                    )}
+                >
+                    {nombre}
+                </button>
+            ))}
+        </div>
     );
 }
 

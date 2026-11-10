@@ -9,6 +9,7 @@ import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from "@/modules/tag
 import type { Tag } from "@/modules/tags/types/tags.types";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
+import { usePuede } from "@/modules/auth/hooks/usePuede";
 import type { Clave } from "@/shared/i18n/traducir";
 import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 
@@ -117,6 +118,7 @@ function TagFormModal({ isOpen, onClose, tag }: TagFormModalProps) {
 
 export default function TagsPage() {
     const { t, tn } = useT();
+    const puede = usePuede();
     const [formOpen, setFormOpen] = useState(false);
     const [editingTag, setEditingTag] = useState<Tag | undefined>();
     const { data: tags = [], isLoading } = useTags();
@@ -141,10 +143,14 @@ export default function TagsPage() {
                     <h1 className="text-2xl font-bold text-foreground">{t("ruta.etiquetas")}</h1>
                     <p className="text-sm text-foreground-muted mt-1">{tn("etiquetas.cantidad", tags.length)}</p>
                 </div>
-                <Button onClick={() => setFormOpen(true)}>
-                    <PlusIcon className="h-4 w-4" />
-                    {t("etiquetas.nueva")}
-                </Button>
+                {/* AUD-016 — crear, editar y borrar son de ADMIN en la API: a los demás roles
+                    estos botones solo les llevaban a un 403. */}
+                {puede("POST /tags") && (
+                    <Button onClick={() => setFormOpen(true)}>
+                        <PlusIcon className="h-4 w-4" />
+                        {t("etiquetas.nueva")}
+                    </Button>
+                )}
             </div>
 
             {isLoading ? (
@@ -162,6 +168,7 @@ export default function TagsPage() {
                                 style={{ backgroundColor: tag.color ?? "var(--color-foreground-muted)" }}
                             />
                             <span className="text-sm font-medium text-foreground flex-1 truncate">{tag.name}</span>
+                            {(puede("PUT /tags/:id") || puede("DELETE /tags/:id")) && (
                             <div className="flex gap-1 shrink-0">
                                 {/* Botones solo de icono: sin `aria-label` un lector de
                                     pantalla los anuncia como «botón», sin decir sobre
@@ -177,6 +184,7 @@ export default function TagsPage() {
                                     <TrashIcon className="h-3.5 w-3.5 text-foreground-muted hover:text-danger" />
                                 </Button>
                             </div>
+                            )}
                         </div>
                     ))}
                 </div>

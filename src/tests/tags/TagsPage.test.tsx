@@ -5,6 +5,15 @@ import TagsPage from "@/modules/tags/components/TagsPage";
 
 const borrarEtiqueta = vi.fn();
 
+// AUD-016 — los botones dependen del rol (`usePuede`): por defecto, ADMIN.
+let rol = "ADMIN";
+vi.mock("@/modules/auth/hooks/useMe", () => ({
+    useAuth: () => ({ user: { role: rol }, isLoading: false, isError: false }),
+}));
+beforeEach(() => {
+    rol = "ADMIN";
+});
+
 const etiquetas = [
     { id: "tag-1", name: "Oferta", color: "#ef4444" },
     { id: "tag-2", name: "Novedad", color: "#22c55e" },
@@ -20,6 +29,24 @@ vi.mock("@/modules/tags/hooks/useTags", () => ({
 // `TagFormModal` está montado de forma permanente y `useForm` solo aplica
 // `defaultValues` en el primer montaje. Sin la `key` de T1-17, editar abría el
 // formulario vacío y, peor, conservaba lo de la etiqueta anterior.
+describe("TagsPage — solo ofrece lo que la API admite (AUD-016)", () => {
+    it.each(["USER", "WAREHOUSE", "SELLER"])("%s ve las etiquetas, sin crear, editar ni eliminar", (r) => {
+        rol = r;
+        renderWithProviders(<TagsPage />);
+
+        expect(screen.getByText("Oferta")).toBeInTheDocument();
+        expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    });
+
+    it("ADMIN tiene las tres acciones", () => {
+        renderWithProviders(<TagsPage />);
+
+        expect(screen.getByRole("button", { name: /Nueva etiqueta/ })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Editar Oferta" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Eliminar Oferta" })).toBeInTheDocument();
+    });
+});
+
 describe("TagsPage — precarga del formulario (T1-17)", () => {
     it("editar una etiqueta abre el modal con su nombre precargado", async () => {
         const user = userEvent.setup();

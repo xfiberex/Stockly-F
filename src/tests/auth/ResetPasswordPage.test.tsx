@@ -58,6 +58,8 @@ describe("ResetPasswordPage", () => {
         // ya existe y no depende de un administrador.
         expect(screen.getByRole("heading", { name: "Este enlace ya no sirve", level: 1 })).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "Pedir un enlace nuevo" })).toHaveAttribute("href", "/auth/forgot-password");
-        expect(screen.queryByRole("button")).not.toBeInTheDocument();
+        // Ni formulario ni campos (los únicos botones son los del idioma, fuera de la tarjeta, AUD-016).
+        expect(document.querySelector("form")).toBeNull();
+        expect(screen.queryByLabelText(/contraseña/i)).not.toBeInTheDocument();
     });
 });

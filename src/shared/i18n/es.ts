@@ -403,6 +403,7 @@ export const es = {
     "acerca.textoLicencia": "Texto de la licencia",
     "acerca.avisos": "Avisos de terceros",
     "auth.perfil.datos": "Datos personales",
+    "auth.perfil.rol": "Tu rol:",
     "auth.perfil.avisoCorreo": "Al cambiar tu correo cerrarás sesión en todos los dispositivos y deberás verificar el nuevo correo antes de poder iniciar sesión.",
     "auth.perfil.actualizado": "Perfil actualizado",
     "auth.perfil.correoCambiado": "Correo actualizado. Verifica tu nuevo correo para volver a iniciar sesión.",

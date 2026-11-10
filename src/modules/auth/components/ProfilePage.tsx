@@ -1,6 +1,9 @@
 import { useForm, useWatch } from "react-hook-form";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import { CODIGO_FUENTE } from "@/shared/lib/codigoFuente";
+import { SelectorDeTema } from "@/modules/settings/components/SelectorDeTema";
+import { SelectorDeIdioma } from "@/modules/settings/components/SelectorDeIdioma";
+import { InsigniaDeRol } from "@/modules/users/components/InsigniaDeRol";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
@@ -43,7 +46,16 @@ export default function ProfilePage() {
 
             {/* Datos personales */}
             <div className="bg-surface rounded-xl border border-border p-6 space-y-5">
-                <h2 className="text-base font-semibold text-foreground">{t("auth.perfil.datos")}</h2>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-base font-semibold text-foreground">{t("auth.perfil.datos")}</h2>
+                    {/* AUD-016 — el rol no se edita aquí (lo cambia un administrador), pero se ve. */}
+                    {user && (
+                        <p className="flex items-center gap-2 text-sm text-foreground-muted">
+                            {t("auth.perfil.rol")}
+                            <InsigniaDeRol rol={user.role} />
+                        </p>
+                    )}
+                </div>
                 <form
                     onSubmit={profileForm.handleSubmit((data) => updateProfile.mutate(data))}
                     className="space-y-4"
@@ -120,6 +132,16 @@ export default function ProfilePage() {
                     </div>
                 </form>
             </div>
+
+            {/* AUD-016 — tema e idioma para todos los roles. Solo se elegían en Configuración, que
+                es de ADMIN; son preferencias de quien usa este navegador, no del negocio. */}
+            <section aria-labelledby="apariencia" className="bg-surface rounded-xl border border-border p-6">
+                <h2 id="apariencia" className="text-base font-semibold text-foreground">{t("configuracion.apariencia")}</h2>
+                <div className="mt-4 space-y-5">
+                    <SelectorDeTema />
+                    <SelectorDeIdioma />
+                </div>
+            </section>
 
             {/* ADR 0009 — la AGPL pide ofrecer el código a quien usa la aplicación por la red.
                 Está aquí porque el perfil lo abre cualquier rol. */}

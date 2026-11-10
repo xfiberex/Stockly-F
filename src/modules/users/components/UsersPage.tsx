@@ -12,29 +12,15 @@ import { usePuede } from "@/modules/auth/hooks/usePuede";
 import { InvitarUsuarioModal } from "@/modules/users/components/InvitarUsuarioModal";
 import type { AppUser, UserRole } from "@/modules/users/types/users.types";
 import type { RolAsignable } from "@/shared/contratos";
-import { MagnifyingGlassIcon, ShieldCheckIcon, UserIcon, EnvelopeIcon, ArchiveBoxIcon, BanknotesIcon, UserPlusIcon, ClockIcon } from "@heroicons/react/24/outline";
-import type { Clave } from "@/shared/i18n/traducir";
+import { MagnifyingGlassIcon, EnvelopeIcon, UserPlusIcon } from "@heroicons/react/24/outline";
+import { InsigniaDeRol } from "@/modules/users/components/InsigniaDeRol";
+import { ROL } from "@/modules/users/rol";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { ACTIVIDAD } from "@/shared/lib/estados";
 import { useT } from "@/shared/hooks/useIdioma";
 import { formatearFecha } from "@/shared/lib/fechas";
 import { CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
-
-/**
- * T5-13 — un rótulo y un icono por rol, en un mapa literal: el compilador exige una entrada por
- * cada valor del enum, así que un cuarto rol no se pinta con el rótulo de otro. Solo ADMIN va
- * destacado: es el que puede cambiar precios, usuarios y configuración.
- */
-const ROL: Record<UserRole, { clave: Clave; Icono: typeof UserIcon; variante: "info" | "neutral" | "warning" }> = {
-    ADMIN: { clave: "usuarios.rol.ADMIN", Icono: ShieldCheckIcon, variante: "info" },
-    USER: { clave: "usuarios.rol.USER", Icono: UserIcon, variante: "neutral" },
-    WAREHOUSE: { clave: "usuarios.rol.WAREHOUSE", Icono: ArchiveBoxIcon, variante: "neutral" },
-    // T6-08 — quien atiende el mostrador.
-    SELLER: { clave: "usuarios.rol.SELLER", Icono: BanknotesIcon, variante: "neutral" },
-    // AUD-001 — se registró por su cuenta y espera rol: es lo que hay que atender.
-    PENDING: { clave: "usuarios.rol.PENDING", Icono: ClockIcon, variante: "warning" },
-};
 
 const esRol = (valor: string | null): valor is UserRole => valor !== null && valor in ROL;
 
@@ -196,9 +182,7 @@ export default function UsersPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-3">
-                                                <Badge variant={ROL[u.role].variante} Icon={ROL[u.role].Icono}>
-                                                    {t(ROL[u.role].clave)}
-                                                </Badge>
+                                                <InsigniaDeRol rol={u.role} />
                                             </td>
                                             <td className="px-6 py-3">
                                                 <EstadoBadge estado={u.isActive ? ACTIVIDAD.activo : ACTIVIDAD.inactivo} />

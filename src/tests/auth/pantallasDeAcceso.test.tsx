@@ -330,3 +330,23 @@ describe("Pedir un enlace por correo (AUD-014)", () => {
         await waitFor(() => expect(within(confirmacion).getByText(/^Si /)).toHaveFocus());
     });
 });
+
+describe("El idioma antes de entrar (AUD-016)", () => {
+    it("se elige bajo la tarjeta, cada idioma escrito en el suyo, y cambia la pantalla al momento", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<LoginPage />);
+
+        const idiomas = screen.getByRole("group", { name: "Idioma" });
+        const ingles = within(idiomas).getByRole("button", { name: "English" });
+        expect(ingles).toHaveAttribute("lang", "en");
+        expect(within(idiomas).getByRole("button", { name: "Español" })).toHaveAttribute("aria-pressed", "true");
+
+        await user.click(ingles);
+        expect(screen.getByRole("group", { name: "Language" })).toBeInTheDocument();
+        expect(ingles).toHaveAttribute("aria-pressed", "true");
+
+        // El idioma se guarda en `localStorage`, que jsdom comparte entre tests: se deja como estaba.
+        await user.click(screen.getByRole("button", { name: "Español" }));
+        expect(screen.getByRole("group", { name: "Idioma" })).toBeInTheDocument();
+    });
+});

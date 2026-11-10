@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { Routes, Route } from "react-router-dom";
 import { renderWithProviders } from "@/tests/utils";
 import App from "@/App";
+import { DESTINOS, NAVEGACION_POR_ROL, navegacionDe, type RutaDeNav } from "@/shared/navegacion";
+import { puede, type Rol } from "@/shared/contratos";
 
 /**
  * T3-04 — el orden de la navegación, fijado.
@@ -19,7 +21,7 @@ import App from "@/App";
  * intercalaba; mantener dos órdenes obligaba a dar de alta cada destino nuevo dos veces.
  */
 
-let rol = "ADMIN";
+let rol: Rol = "ADMIN";
 
 vi.mock("@/modules/auth/hooks/useMe", () => ({
     useAuth: () => ({ user: { name: "Ana", email: "ana@stockly.app", role: rol }, isLoading: false, isError: false }),
@@ -27,6 +29,8 @@ vi.mock("@/modules/auth/hooks/useMe", () => ({
 vi.mock("@/modules/auth/hooks/useLogout", () => ({
     useLogout: () => ({ mutate: vi.fn(), isPending: false }),
 }));
+// La campana pide sus avisos a la API; aquí solo interesa el menú.
+vi.mock("@/modules/notifications/components/CampanaDeAvisos", () => ({ CampanaDeAvisos: () => null }));
 
 function layout() {
     return (
@@ -88,20 +92,6 @@ describe("Orden de la navegación (T3-04, T4-10)", () => {
         expect(recorrido(barraLateral())).toEqual(
             RECORRIDO_ADMIN.filter((rotulo) => !["Mostrador", "Admin", "Usuarios", "Auditoría", "Configuración"].includes(rotulo)),
         );
-    });
-
-    it("un SELLER ve el mostrador, y ni el panel ni el grupo de administración; el almacén, ninguno de los dos (T6-08, AUD-008)", () => {
-        rol = "SELLER";
-        const { unmount } = renderWithProviders(layout());
-
-        const delVendedor = recorrido(barraLateral());
-        expect(delVendedor).toEqual(RECORRIDO_ADMIN.filter((rotulo) => !["Panel", "Admin", "Usuarios", "Auditoría", "Configuración"].includes(rotulo)));
-        expect(within(barraLateral()).getByRole("link", { name: "Mostrador" })).toHaveAttribute("href", "/counter");
-        unmount();
-
-        rol = "WAREHOUSE";
-        renderWithProviders(layout());
-        expect(recorrido(barraLateral())).not.toContain("Mostrador");
     });
 
     it("el panel de móvil pinta exactamente el mismo recorrido", async () => {
@@ -171,5 +161,70 @@ describe("Barra lateral (T4-10)", () => {
         expect(document.querySelector("header")).not.toBeNull();
         // Con el panel cerrado, el único recorrido montado es el lateral.
         expect(document.querySelectorAll("nav")).toHaveLength(1);
+    });
+});
+
+/**
+ * AUD-016 — el menú de cada rol, con la lista exacta (`shared/navegacion.ts`).
+ *
+ * La crítica del 2026-11-07 vio a SELLER con 16 destinos para usar cuatro, y los de WAREHOUSE
+ * empezando a ~600 px en el móvil, debajo de un catálogo que solo consulta. Un destino nuevo en
+ * el menú de alguien tiene que pasar por aquí.
+ */
+describe("Navegación por rol (AUD-016)", () => {
+    it("WAREHOUSE empieza por lo suyo: el inventario, después las órdenes; sin mostrador", () => {
+        rol = "WAREHOUSE";
+        renderWithProviders(layout());
+
+        expect(recorrido(barraLateral())).toEqual([
+            "Panel",
+            "Inventario", "Conteos físicos", "Transferencias", "Caducidades", "Almacenes",
+            "Órdenes", "Compra", "Venta",
+            "Catálogo", "Productos",
+            "Reportes",
+        ]);
+    });
+
+    it("SELLER: el mostrador, sus ventas, sus clientes y los productos; ni panel ni administración", () => {
+        rol = "SELLER";
+        renderWithProviders(layout());
+
+        expect(recorrido(barraLateral())).toEqual(["Mostrador", "Órdenes", "Venta", "Clientes", "Catálogo", "Productos"]);
+        expect(within(barraLateral()).getByRole("link", { name: "Mostrador" })).toHaveAttribute("href", "/counter");
+    });
+
+    it("sin rol no hay menú", () => {
+        expect(navegacionDe("PENDING")).toEqual([]);
+        expect(navegacionDe(undefined)).toEqual([]);
+    });
+
+    it("ningún rol tiene en el menú un destino que su ruta no le abre", () => {
+        // Las rutas guardadas de `routes/index.tsx`: el mostrador por permiso; las de
+        // administración, solo ADMIN.
+        const guardadas: Partial<Record<RutaDeNav, (r: Rol) => boolean>> = {
+            "/counter": (r) => puede(r, "POST /sale-orders/counter"),
+            "/admin/users": (r) => r === "ADMIN",
+            "/audit-logs": (r) => r === "ADMIN",
+            "/settings": (r) => r === "ADMIN",
+        };
+        for (const [r, lista] of Object.entries(NAVEGACION_POR_ROL) as [Rol, readonly RutaDeNav[]][]) {
+            for (const destino of lista) expect([r, destino, guardadas[destino]?.(r) ?? true]).toEqual([r, destino, true]);
+        }
+    });
+
+    it("todo destino está en el menú de algún rol, y ninguno sale dos veces en el mismo", () => {
+        const usados = new Set(Object.values(NAVEGACION_POR_ROL).flat());
+        expect([...usados].sort()).toEqual(Object.keys(DESTINOS).sort());
+        for (const lista of Object.values(NAVEGACION_POR_ROL)) expect(new Set(lista).size).toBe(lista.length);
+    });
+
+    it("el menú de usuario dice con qué rol se ha entrado", async () => {
+        rol = "WAREHOUSE";
+        const user = userEvent.setup();
+        renderWithProviders(layout());
+
+        await user.click(screen.getByRole("button", { name: /Ana/ }));
+
+        expect(within(screen.getByRole("menu")).getByText("Almacén")).toBeInTheDocument();
     });
 });

@@ -384,6 +384,7 @@ export const en: Record<keyof typeof es, string> = {
     "acerca.textoLicencia": "License text",
     "acerca.avisos": "Third-party notices",
     "auth.perfil.datos": "Personal details",
+    "auth.perfil.rol": "Your role:",
     "auth.perfil.avisoCorreo": "Changing your email address signs you out everywhere, and you'll have to verify the new address before signing in again.",
     "auth.perfil.actualizado": "Profile updated",
     "auth.perfil.correoCambiado": "Email address updated. Verify the new address to sign in again.",

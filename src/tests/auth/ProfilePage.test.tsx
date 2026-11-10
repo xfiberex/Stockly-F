@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "../utils";
 import ProfilePage from "@/modules/auth/components/ProfilePage";
@@ -32,6 +32,31 @@ beforeEach(() => {
         mutate: mockPasswordMutate,
         isPending: false,
     } as unknown as ReturnType<typeof useUpdatePassword>);
+});
+
+describe("ProfilePage — apariencia y rol para todos (AUD-016)", () => {
+    it("un WAREHOUSE cambia el tema desde su perfil, y ve su rol", async () => {
+        vi.mocked(useAuth).mockReturnValue({ user: { ...mockUser, role: "WAREHOUSE" }, isLoading: false, isError: false });
+        const user = userEvent.setup();
+        renderWithProviders(<ProfilePage />);
+
+        expect(screen.getByText("Almacén")).toBeInTheDocument();
+        await user.click(screen.getByRole("radio", { name: /Oscuro/ }));
+
+        expect(screen.getByRole("radio", { name: /Oscuro/ })).toBeChecked();
+        expect(document.documentElement).toHaveAttribute("data-tema", "oscuro");
+
+        // El tema vive en `localStorage` y en `<html>`, que jsdom comparte entre tests: se deja como estaba.
+        await user.click(within(screen.getByRole("group", { name: /Tema/ })).getByRole("radio", { name: /Automático/ }));
+        expect(document.documentElement).not.toHaveAttribute("data-tema");
+    });
+
+    it("el idioma también se elige aquí", () => {
+        renderWithProviders(<ProfilePage />);
+
+        expect(screen.getByRole("heading", { name: "Apariencia" })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: /Idioma/ })).toBeInTheDocument();
+    });
 });
 
 describe("ProfilePage", () => {
