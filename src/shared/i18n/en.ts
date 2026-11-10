@@ -1192,6 +1192,9 @@ export const en: Record<keyof typeof es, string> = {
     "reportes.valorInventario": "Value at selling price",
     "reportes.valorACoste": "Value at cost",
     "reportes.margenPotencial": "Potential margin",
+    "reportes.margenPotencial.resta": "{venta} at sale price − {coste} at cost",
+    "reportes.soloConCoste": "Only products with a cost",
+    "reportes.porcentajeDelStock": "% of stock",
     "reportes.margenPeriodo": "Margin, last {dias} days",
     "reportes.porcentajeMargen": "Realised margin %",
     "reportes.valorPorCategoria": "Value by category (at selling price)",
@@ -1254,6 +1257,7 @@ export const en: Record<keyof typeof es, string> = {
     "periodo.udsCompradas": "Units bought",
     "periodo.productosMostrados": "Top {mostrados} by sales. The CSV has all of them.",
     "periodo.vacio": "No shipped sales or received purchases in this period.",
+    "periodo.vacio.probar": "Try:",
 
     // ── API errors ───────────────────────────────────────────────────────────
     "error.generico": "Something went wrong. Please try again.",

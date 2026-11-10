@@ -8,7 +8,7 @@ import { useAtencion, useReports } from "@/modules/reports/hooks/useReports";
 import type { ReportSummary } from "@/modules/reports/types/reports.types";
 import { Barra, ZonaCargando } from "@/shared/components/Esqueleto";
 import { Spinner } from "@/shared/components/Spinner";
-import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
+import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP, TEXTO_DE_EJE } from "@/shared/lib/grafico";
 import { useT } from "@/shared/hooks/useIdioma";
 import { useFalloDeCarga, useReintentarFallidas } from "@/shared/hooks/useFalloDeCarga";
 import type { Clave } from "@/shared/i18n/traducir";
@@ -221,7 +221,6 @@ function abreviarImporte(valor: number): string {
 }
 
 /** El texto de los ejes, con los tokens del sistema: el `#666` de Recharts daba 2,94:1 en oscuro. */
-const TEXTO_DE_EJE = { fontSize: 12, fill: "var(--color-foreground-muted)" } as const;
 
 /** El resumen del negocio: solo ADMIN (`PANEL`). */
 function ResumenDeNegocio({ data }: { data: ReportSummary }) {

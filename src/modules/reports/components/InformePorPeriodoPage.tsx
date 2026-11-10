@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowDownTrayIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Button } from "@/shared/components/Button";
@@ -30,6 +30,27 @@ const ROTULO_DE_ATAJO: Record<PeriodPreset, Clave> = {
 };
 const ATAJOS = Object.keys(ROTULO_DE_ATAJO) as PeriodPreset[];
 
+/**
+ * AUD-015 — cuando el periodo sale vacío, los que se ofrecen en su lugar: el mes anterior (el
+ * caso típico es «este mes» en sus primeros días) y el año, que casi nunca lo está.
+ */
+const ALTERNATIVAS_SI_VACIO: PeriodPreset[] = ["last-month", "this-year"];
+
+const DIA = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * AUD-015 — el periodo vive en la URL (`?preset=last-month` o `?from=…&to=…`): recargar,
+ * volver atrás o pasar el enlace enseña el mismo informe. Lo que no se entiende se ignora y
+ * queda el de siempre, este mes.
+ */
+function consultaDeLaUrl(params: URLSearchParams): ConsultaDePeriodo {
+    const from = params.get("from") ?? "";
+    const to = params.get("to") ?? "";
+    if (DIA.test(from) && DIA.test(to) && from <= to) return { from, to };
+    const preset = params.get("preset");
+    return { preset: ATAJOS.includes(preset as PeriodPreset) ? (preset as PeriodPreset) : "this-month" };
+}
+
 type Cifras = { salesUnits: number; salesRevenue: number; purchaseUnits: number; purchaseAmount: number };
 
 /** Las cuatro columnas de cifras, iguales en las tres tablas. */
@@ -54,9 +75,13 @@ function CeldasDeCifras({ fila, fuerte = false }: { fila: Cifras; fuerte?: boole
  */
 export default function InformePorPeriodoPage() {
     const { t, idioma } = useT();
-    const [consulta, setConsulta] = useState<ConsultaDePeriodo>({ preset: "this-month" });
-    const [desde, setDesde] = useState("");
-    const [hasta, setHasta] = useState("");
+    const [params, setParams] = useSearchParams();
+    const consulta = consultaDeLaUrl(params);
+    const setConsulta = (nueva: ConsultaDePeriodo) =>
+        // `replace`: cambiar de periodo no llena el historial; «Atrás» sigue llevando a Reportes.
+        setParams("preset" in nueva ? { preset: nueva.preset } : { from: nueva.from, to: nueva.to }, { replace: true });
+    const [desde, setDesde] = useState("from" in consulta ? consulta.from : "");
+    const [hasta, setHasta] = useState("to" in consulta ? consulta.to : "");
     const [errorDeRango, setErrorDeRango] = useState<string>();
 
     const { data, isLoading } = usePeriodReport(consulta);
@@ -88,6 +113,9 @@ export default function InformePorPeriodoPage() {
 
     const totales = data?.totals;
     const vacio = totales !== undefined && totales.salesUnits === 0 && totales.purchaseUnits === 0;
+    // AUD-015 — un archivo de ceros no le sirve a nadie: sin datos, no se exporta.
+    const sinExportar = !data || vacio;
+    const alternativas = ALTERNATIVAS_SI_VACIO.filter((a) => a !== atajoActivo);
 
     return (
         <div className={CLASES_CONTENEDOR_DE_PAGINA}>
@@ -106,11 +134,11 @@ export default function InformePorPeriodoPage() {
                     </p>
                 </div>
                 <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
-                    <Button variant="secondary" disabled={!data} onClick={() => data && downloadPeriodReport(data, "csv")}>
+                    <Button variant="secondary" disabled={sinExportar} onClick={() => data && downloadPeriodReport(data, "csv")}>
                         <ArrowDownTrayIcon className="h-4 w-4" />
                         {t("periodo.exportarCsv")}
                     </Button>
-                    <Button variant="secondary" disabled={!data} onClick={() => data && downloadPeriodReport(data, "pdf")}>
+                    <Button variant="secondary" disabled={sinExportar} onClick={() => data && downloadPeriodReport(data, "pdf")}>
                         <ArrowDownTrayIcon className="h-4 w-4" />
                         {t("reportes.descargarPdf")}
                     </Button>
@@ -161,7 +189,21 @@ export default function InformePorPeriodoPage() {
                     </div>
 
                     {vacio ? (
-                        <div className="py-12 text-center text-sm text-foreground-muted">{t("periodo.vacio")}</div>
+                        // AUD-015 — vacío, con adónde ir: antes abría en «Este mes» y, en sus primeros
+                        // días, todo lo que enseñaba eran ceros y una frase.
+                        <div role="status" className="py-12 text-center text-sm text-foreground-muted space-y-3">
+                            <p>{t("periodo.vacio")}</p>
+                            {alternativas.length > 0 && (
+                                <div className="flex flex-wrap items-center justify-center gap-2">
+                                    <span>{t("periodo.vacio.probar")}</span>
+                                    {alternativas.map((atajo) => (
+                                        <Button key={atajo} variant="secondary" onClick={() => elegirAtajo(atajo)}>
+                                            {t(ROTULO_DE_ATAJO[atajo])}
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <>
                             <section className="bg-surface rounded-xl border border-border">

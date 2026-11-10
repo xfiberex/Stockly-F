@@ -19,6 +19,9 @@ const RESUMEN: ReportSummary = {
         inactiveProducts: 3,
         inventoryValue: 2211974.5,
         inventoryCostValue: 1400000,
+        // AUD-015 — la venta de los productos con coste: menos que `inventoryValue`, que cuenta
+        // también los 3 sin coste. Con esta sí cuadra la resta: 2 050 000,25 − 1 400 000.
+        costedSaleValue: 2050000.25,
         potentialMargin: 650000.25,
         productsWithoutCost: 3,
         lowStockCount: 2,
@@ -38,6 +41,8 @@ const RESUMEN: ReportSummary = {
         { month: "2026-07", type: "OUT", total: 15 },
         { month: "2026-08", type: "OUT", total: 22 },
     ],
+    // AUD-015 — los seis meses de la ventana; cuatro sin movimientos.
+    movementMonths: ["2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08"],
     lowStockProducts: [
         { id: "p3", name: "Teclado Logitech", sku: "OFI-LOG-K1", stock: 1, minStock: 5, category: "Oficina" },
         { id: "p4", name: "Monitor LG", sku: null, stock: 0, minStock: 3, category: null },
@@ -805,8 +810,8 @@ describe("ReportsPage (T2-21)", () => {
     });
 
     it("sin importes (quien no es ADMIN, AUD-009): ni tarjetas de dinero, ni margen, ni valor por categoría", () => {
-        const { inventoryValue, inventoryCostValue, potentialMargin, ...totals } = RESUMEN.totals;
-        void inventoryValue; void inventoryCostValue; void potentialMargin;
+        const { inventoryValue, inventoryCostValue, costedSaleValue, potentialMargin, ...totals } = RESUMEN.totals;
+        void inventoryValue; void inventoryCostValue; void costedSaleValue; void potentialMargin;
         resumen = {
             ...RESUMEN,
             totals,
@@ -824,6 +829,58 @@ describe("ReportsPage (T2-21)", () => {
         // En el sitio del valor, las categorías; y lo que no es dinero sigue.
         expect(screen.getByText("Categorías")).toBeInTheDocument();
         expect(screen.getByText("Total de productos")).toBeInTheDocument();
+    });
+
+    describe("AUD-015", () => {
+        it("las tarjetas cuadran: el margen dice de qué resta sale, y el coste, que solo cuenta los que lo tienen", () => {
+            renderWithProviders(<ReportsPage />);
+
+            const margen = screen.getByText("Margen potencial").parentElement!;
+            expect(within(margen).getByText("$650,000")).toBeInTheDocument();
+            expect(within(margen).getByText("$2,050,000 a venta − $1,400,000 a coste")).toBeInTheDocument();
+            const coste = screen.getByText("Valor a coste").parentElement!;
+            expect(within(coste).getByText("Solo los productos con coste")).toBeInTheDocument();
+        });
+
+        it("el aviso de los productos sin coste lleva a la lista de esos productos", () => {
+            renderWithProviders(<ReportsPage />);
+
+            expect(screen.getByRole("link", { name: "Ver cuáles" })).toHaveAttribute("href", "/catalog/products?aviso=sinCoste");
+        });
+
+        it("sin productos sin coste, la tarjeta de coste no dice nada de más", () => {
+            resumen = { ...RESUMEN, totals: { ...RESUMEN.totals, productsWithoutCost: 0 } };
+            renderWithProviders(<ReportsPage />);
+
+            expect(screen.queryByText("Solo los productos con coste")).not.toBeInTheDocument();
+            expect(screen.queryByRole("link", { name: "Ver cuáles" })).not.toBeInTheDocument();
+        });
+
+        it("cada gráfico va oculto al lector y con una tabla equivalente; ya no hay tarta", () => {
+            const { container } = renderWithProviders(<ReportsPage />);
+
+            const graficos = container.querySelectorAll('[data-grafico="BarChart"]');
+            expect(graficos).toHaveLength(3);
+            for (const g of graficos) expect(g.closest('[aria-hidden="true"]')).not.toBeNull();
+            expect(container.querySelector('[data-grafico="PieChart"]')).toBeNull();
+
+            const distribucion = screen.getByRole("table", { name: "Distribución de stock" });
+            const filas = within(distribucion).getAllByRole("row").slice(1);
+            // De más a menos, con su parte del total.
+            expect(filas.map((f) => f.textContent)).toEqual(["Electrónica12067 %", "Oficina6033 %"]);
+            expect(screen.getByRole("table", { name: "Valor por categoría (a precio de venta)" })).toBeInTheDocument();
+        });
+
+        it("los seis meses salen en la tabla de movimientos, también los que no tuvieron ninguno", () => {
+            renderWithProviders(<ReportsPage />);
+
+            const tabla = screen.getByRole("table", { name: /Movimientos por mes/ });
+            const filas = within(tabla).getAllByRole("row").slice(1);
+            expect(filas).toHaveLength(6);
+            expect(within(filas[0]!).getByRole("rowheader")).toHaveTextContent("Marzo de 2026");
+            expect(filas[0]!.textContent).toBe("Marzo de 2026000");
+            expect(filas[4]!.textContent).toBe("Julio de 202640150");
+        });
     });
 
     it("mientras carga no se pinta el informe", () => {

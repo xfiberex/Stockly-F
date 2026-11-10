@@ -19,6 +19,12 @@
  *  una tarta por categoría. Lo que sí es un estado usa su token de estado. */
 export const COLORES_DE_SERIE = Array.from({ length: 8 }, (_, i) => `var(--color-chart-${i + 1})`);
 
+/**
+ * Texto de los ejes. AUD-015 — antes solo lo tenía el panel; los de Reportes se quedaban con el
+ * gris por defecto de Recharts, sin token, que en oscuro no contrasta.
+ */
+export const TEXTO_DE_EJE = { fontSize: 12, fill: "var(--color-foreground-muted)" } as const;
+
 /** Rejilla de fondo de los ejes. */
 export const COLOR_DE_REJILLA = "var(--color-chart-grid)";
 

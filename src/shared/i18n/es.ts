@@ -1244,6 +1244,9 @@ export const es = {
     "reportes.valorInventario": "Valor a precio de venta",
     "reportes.valorACoste": "Valor a coste",
     "reportes.margenPotencial": "Margen potencial",
+    "reportes.margenPotencial.resta": "{venta} a venta − {coste} a coste",
+    "reportes.soloConCoste": "Solo los productos con coste",
+    "reportes.porcentajeDelStock": "% del stock",
     "reportes.margenPeriodo": "Margen últimos {dias} días",
     "reportes.porcentajeMargen": "% margen realizado",
     "reportes.valorPorCategoria": "Valor por categoría (a precio de venta)",
@@ -1306,6 +1309,7 @@ export const es = {
     "periodo.udsCompradas": "Uds. compradas",
     "periodo.productosMostrados": "Los {mostrados} primeros por ventas. El CSV los trae todos.",
     "periodo.vacio": "No hay ventas enviadas ni compras recibidas en este periodo.",
+    "periodo.vacio.probar": "Prueba con:",
 
     // ── Errores que llegan de la API ─────────────────────────────────────────
     // La clave es el `code` del sobre de error; el `message` del backend solo se usa

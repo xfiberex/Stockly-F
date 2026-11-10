@@ -146,6 +146,53 @@ describe("Ventas y compras por periodo (T5-09)", () => {
         expect(screen.queryByRole("heading", { name: "Por mes" })).not.toBeInTheDocument();
     });
 
+    describe("AUD-015", () => {
+        const VACIO: InformePorPeriodo = {
+            ...INFORME,
+            totals: { salesOrders: 0, purchaseOrders: 0, ...cero },
+            byMonth: [{ month: "2026-03", ...cero }],
+            byCategory: [],
+            byProduct: [],
+        };
+
+        it("el periodo sale de la URL: un enlace o una recarga enseñan el mismo informe", () => {
+            renderWithProviders(<InformePorPeriodoPage />, { initialRoute: "/reports/period?preset=this-year" });
+
+            expect(ultimaConsulta()).toEqual({ preset: "this-year" });
+            expect(screen.getByRole("button", { name: "Este año" })).toHaveAttribute("aria-pressed", "true");
+        });
+
+        it("un rango en la URL se pide y rellena las fechas", () => {
+            renderWithProviders(<InformePorPeriodoPage />, { initialRoute: "/reports/period?from=2026-01-05&to=2026-02-10" });
+
+            expect(ultimaConsulta()).toEqual({ from: "2026-01-05", to: "2026-02-10" });
+            expect(screen.getByLabelText("Desde")).toHaveValue("2026-01-05");
+            expect(screen.getByLabelText("Hasta")).toHaveValue("2026-02-10");
+        });
+
+        it("lo que la URL trae mal se ignora y queda este mes", () => {
+            renderWithProviders(<InformePorPeriodoPage />, { initialRoute: "/reports/period?preset=siempre&from=2026-05-01&to=2026-04-01" });
+
+            expect(ultimaConsulta()).toEqual({ preset: "this-month" });
+        });
+
+        it("vacío, ofrece el mes anterior y el año, y no deja exportar ceros", async () => {
+            informe = VACIO;
+            const user = userEvent.setup();
+            renderWithProviders(<InformePorPeriodoPage />);
+
+            expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeDisabled();
+            expect(screen.getByRole("button", { name: "Descargar PDF" })).toBeDisabled();
+
+            const aviso = screen.getByRole("status");
+            await user.click(within(aviso).getByRole("button", { name: "Mes anterior" }));
+            expect(ultimaConsulta()).toEqual({ preset: "last-month" });
+            // Ya en el mes anterior, no se ofrece otra vez: solo el año.
+            expect(within(screen.getByRole("status")).queryByRole("button", { name: "Mes anterior" })).not.toBeInTheDocument();
+            expect(within(screen.getByRole("status")).getByRole("button", { name: "Este año" })).toBeInTheDocument();
+        });
+    });
+
     it("exporta el periodo resuelto, no el atajo", async () => {
         const user = userEvent.setup();
         renderWithProviders(<InformePorPeriodoPage />);
