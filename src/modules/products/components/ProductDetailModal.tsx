@@ -24,6 +24,8 @@ import {
     CalendarDaysIcon,
     PrinterIcon,
     QrCodeIcon,
+    ArrowsRightLeftIcon,
+    ViewfinderCircleIcon,
 } from "@heroicons/react/24/outline";
 import { nivelEn } from "@/shared/contratos";
 import { useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
@@ -35,6 +37,14 @@ interface ProductDetailModalProps {
     onEdit: (product: Product) => void;
     /** T5-08 — sin él no hay botón de etiquetas. */
     onPrintLabels?: (product: Product) => void;
+    /**
+     * AUD-019 — lo que se hace después de escanear. La ficha que abre el escáner obligaba a
+     * cerrarla, buscar el producto en la tabla, seleccionarlo y pulsar «Movimiento manual»:
+     * cuatro pasos para lo que se venía a hacer. Sin estas dos props la ficha queda como
+     * estaba; las pasa quien la abre desde un escaneo, y solo si se puede mover stock.
+     */
+    onRegisterMovement?: (product: Product) => void;
+    onScanAnother?: () => void;
 }
 
 function Field({ icon: Icon, label, children }: {
@@ -58,7 +68,7 @@ function Field({ icon: Icon, label, children }: {
     );
 }
 
-export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: ProductDetailModalProps) {
+export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels, onRegisterMovement, onScanAnother }: ProductDetailModalProps) {
     const { t, tn, idioma } = useT();
     const { user } = useAuth();
     const isAdmin = user?.role === "ADMIN";
@@ -257,6 +267,22 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: 
                     de alturas distintas. La rejilla sí reparte igual, y el último botón ocupa la
                     fila entera cuando queda solo en ella —con uno o con tres—. */}
                 <div className="grid gap-2 pt-3 border-t border-border sm:grid-cols-2 sm:*:last:odd:col-span-2">
+                    {/* AUD-019 — tras escanear, lo que se venía a hacer va primero y es la
+                        acción principal; «Editar producto» pasa entonces a secundaria, para
+                        que no haya dos botones rellenos compitiendo. */}
+                    {onRegisterMovement && product.isActive && (
+                        <Button type="button" onClick={() => { onClose(); onRegisterMovement(product); }}>
+                            <ArrowsRightLeftIcon className="h-4 w-4" />
+                            {t("movimientos.registrar")}
+                        </Button>
+                    )}
+                    {onScanAnother && (
+                        <Button type="button" variant="secondary" onClick={() => { onClose(); onScanAnother(); }}>
+                            <ViewfinderCircleIcon className="h-4 w-4" />
+                            {t("escaner.otraVez")}
+                        </Button>
+                    )}
+
                     {/* T2-14, otra vez: esto era un `<button>` dentro de un `<a>`, que es HTML
                         inválido y deja dos paradas de tabulación para una sola acción. Como
                         navega, se queda el enlace y toma prestadas las clases del botón. */}
@@ -284,6 +310,7 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels }: 
                     {isAdmin && product.isActive && (
                         <Button
                             type="button"
+                            variant={onRegisterMovement ? "secondary" : undefined}
                             onClick={() => { onClose(); onEdit(product); }}
                         >
                             <PencilIcon className="h-4 w-4" />

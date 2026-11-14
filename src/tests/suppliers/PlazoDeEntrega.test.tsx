@@ -59,6 +59,16 @@ describe("Plazo de entrega del proveedor (T5-05)", () => {
         actualizados.length = 0;
     });
 
+    it("AUD-019 — las notas se leen enteras, no cortadas con puntos suspensivos", () => {
+        const nota = "Entregan solo martes y jueves; pedir antes de las 12 y confirmar con Marta por teléfono";
+        proveedores = [proveedor({ id: "a", name: "Con nota", notes: nota })];
+        renderWithProviders(<SuppliersPage />);
+
+        const celda = screen.getByRole("cell", { name: nota });
+        expect(celda).not.toHaveClass("truncate");
+        expect(celda).toHaveClass("wrap-break-word");
+    });
+
     it("la tabla enseña el plazo, o un guion si no lo hay", () => {
         renderWithProviders(<SuppliersPage />);
 

@@ -112,13 +112,21 @@ export default function CaducidadesPage() {
                     <div className="rounded-xl border border-border bg-surface px-4 py-3">
                         <p className="text-xs font-medium uppercase tracking-wide text-foreground-muted">{t("caducidades.yaCaducado")}</p>
                         <p className={data.summary.expiredUnits > 0 ? "text-sm font-semibold text-danger tabular-nums" : "text-sm text-foreground tabular-nums"}>
-                            {t("caducidades.unidadesYValor", { unidades: data.summary.expiredUnits, valor: formatearImporte(data.summary.expiredCostValue) })}
+                            {tn("caducidades.lotesUnidadesYValor", data.summary.expiredCount, {
+                                unidades: data.summary.expiredUnits,
+                                valor: formatearImporte(data.summary.expiredCostValue),
+                            })}
                         </p>
                     </div>
                     <div className="rounded-xl border border-border bg-surface px-4 py-3">
                         <p className="text-xs font-medium uppercase tracking-wide text-foreground-muted">{t("caducidades.porCaducar")}</p>
                         <p className="text-sm text-foreground tabular-nums">
-                            {t("caducidades.unidadesYValor", { unidades: data.summary.expiringUnits, valor: formatearImporte(data.summary.expiringCostValue) })}
+                            {/* AUD-019 — los que caducan en el plazo son el resto de las filas: el
+                                resumen cuenta los caducados y `meta.total`, todos. */}
+                            {tn("caducidades.lotesUnidadesYValor", data.meta.total - data.summary.expiredCount, {
+                                unidades: data.summary.expiringUnits,
+                                valor: formatearImporte(data.summary.expiringCostValue),
+                            })}
                         </p>
                     </div>
                     {data.summary.unitsWithoutCost > 0 && (

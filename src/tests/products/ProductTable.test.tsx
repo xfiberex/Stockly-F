@@ -163,6 +163,27 @@ describe("ProductTable", () => {
         expect(screen.queryByTitle("Eliminar")).toBeNull();
     });
 
+    it("AUD-019 — mientras se restaura un producto, solo su fila dice que está trabajando", () => {
+        vi.mocked(useRestoreProduct).mockReturnValue({
+            mutate: mockRestoreMutate,
+            isPending: true,
+            variables: "prod-2",
+        } as unknown as ReturnType<typeof useRestoreProduct>);
+        renderWithProviders(
+            <ProductTable
+                products={[
+                    makeProduct({ id: "prod-1", name: "Monitor LG", isActive: false }),
+                    makeProduct({ id: "prod-2", name: "Teclado", isActive: false }),
+                ]}
+                isLoading={false}
+                onEdit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole("button", { name: "Restaurar Teclado" })).toHaveAttribute("aria-busy", "true");
+        expect(screen.getByRole("button", { name: "Restaurar Monitor LG" })).not.toHaveAttribute("aria-busy");
+    });
+
     it("llama a onEdit con el producto al hacer clic en Editar", async () => {
         const user = userEvent.setup();
         const onEdit = vi.fn();

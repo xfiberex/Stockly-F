@@ -182,7 +182,8 @@ export function CatalogItemSection({
                             {items.map((item) => (
                                 <tr key={item.id} className="hover:bg-surface-muted transition-colors">
                                     <td className="px-4 py-3 font-medium text-foreground">{item.name}</td>
-                                    <td className="px-4 py-3 text-foreground-muted max-w-xs truncate">
+                                    {/* AUD-019 — entera, como las notas de proveedor: cortada no se leía en ningún sitio. */}
+                                    <td className="px-4 py-3 text-foreground-muted min-w-48 max-w-xs wrap-break-word">
                                         {item.description ?? "—"}
                                     </td>
                                     {isAdmin && (

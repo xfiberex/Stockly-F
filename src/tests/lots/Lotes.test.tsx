@@ -329,8 +329,9 @@ describe("el formulario de producto", () => {
         const user = userEvent.setup();
         renderWithProviders(<ProductForm isOpen onClose={vi.fn()} product={producto()} />);
 
-        expect(screen.getByLabelText("Stock inicial")).toBeDisabled();
-        expect(screen.getByText(/El stock de un producto con lotes no se edita aquí/)).toBeInTheDocument();
+        // AUD-019 — desde entonces, ningún producto edita su stock aquí, lleve lotes o no.
+        expect(screen.queryByLabelText("Stock inicial")).not.toBeInTheDocument();
+        expect(screen.getByText(/No se cambia aquí: regístralo como movimiento/)).toBeInTheDocument();
         expect(casilla()).toBeChecked();
         // Tiene stock y lleva lotes, pero aquí no entra nada: no hay fecha que pedir.
         expect(screen.queryByLabelText("Fecha de caducidad *")).not.toBeInTheDocument();
@@ -352,15 +353,17 @@ describe("el formulario de producto", () => {
         expect(estado.actualizados[0]!.dto.tracksLots).toBe(false);
     });
 
-    it("un producto sin lotes sigue editando su stock como siempre", async () => {
+    it("AUD-019 — un producto sin lotes tampoco edita su stock aquí: va por un movimiento", async () => {
+        // Hasta AUD-019 sí lo editaba, y la diferencia entraba o salía del almacén
+        // predeterminado como un ajuste sin motivo.
         const user = userEvent.setup();
         renderWithProviders(<ProductForm isOpen onClose={vi.fn()} product={producto({ tracksLots: false })} />);
 
-        expect(screen.getByLabelText("Stock inicial")).toBeEnabled();
+        expect(screen.queryByLabelText("Stock inicial")).not.toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
         await waitFor(() => expect(estado.actualizados).toHaveLength(1));
-        expect(estado.actualizados[0]!.dto).toMatchObject({ tracksLots: false, stock: 14 });
+        expect(estado.actualizados[0]!.dto).toMatchObject({ tracksLots: false, stock: undefined });
     });
 });
 
@@ -458,10 +461,10 @@ describe("la pantalla de caducidades", () => {
         renderWithProviders(<CaducidadesPage />);
 
         const caducado = (await screen.findByText("Ya caducado")).parentElement!;
-        expect(within(caducado).getByText("6 uds. · $12.00 a coste")).toBeInTheDocument();
+        expect(within(caducado).getByText("1 lote · 6 uds. · $12.00 a coste")).toBeInTheDocument();
         // Hay algo que retirar: se destaca.
-        expect(within(caducado).getByText("6 uds. · $12.00 a coste")).toHaveClass("text-danger");
-        expect(within(screen.getByText("Caduca en el plazo").parentElement!).getByText("18 uds. · $36.00 a coste")).toBeInTheDocument();
+        expect(within(caducado).getByText("1 lote · 6 uds. · $12.00 a coste")).toHaveClass("text-danger");
+        expect(within(screen.getByText("Caduca en el plazo").parentElement!).getByText("2 lotes · 18 uds. · $36.00 a coste")).toBeInTheDocument();
         expect(screen.getByText("4 unidades son de productos sin coste y no suman al valor.")).toBeInTheDocument();
     });
 
@@ -558,7 +561,7 @@ describe("la pantalla de caducidades", () => {
         expect(await screen.findByText("Nada caducado ni por caducar en ese plazo.")).toBeInTheDocument();
         expect(screen.queryByText(/no suman al valor/)).not.toBeInTheDocument();
         // Sin nada caducado, el cero no va en rojo: no hay nada que hacer.
-        expect(within(screen.getByText("Ya caducado").parentElement!).getByText("0 uds. · $0.00 a coste")).not.toHaveClass("text-danger");
+        expect(within(screen.getByText("Ya caducado").parentElement!).getByText("0 lotes · 0 uds. · $0.00 a coste")).not.toHaveClass("text-danger");
     });
 
     it("con varios almacenes, la fila dice en cuál está y se puede filtrar por uno", async () => {
@@ -622,6 +625,34 @@ describe("la ficha del producto", () => {
 
         expect(ficha.queryByText(/caducad/)).not.toBeInTheDocument();
         expect(ficha.queryByText("Lotes, por orden de salida")).not.toBeInTheDocument();
+    });
+
+    it("AUD-019 — tras escanear, la ficha ofrece mover el stock de lo escaneado y escanear otro", async () => {
+        const user = userEvent.setup();
+        const mover = vi.fn();
+        const otro = vi.fn();
+        const cerrar = vi.fn();
+        const producto = conCifras({ tracksLots: false });
+        renderWithProviders(
+            <ProductDetailModal product={producto} onClose={cerrar} onEdit={vi.fn()} onRegisterMovement={mover} onScanAnother={otro} />,
+        );
+        const ficha = within(screen.getByRole("dialog"));
+
+        // Antes eran cuatro pasos: cerrar, buscar en la tabla, seleccionar y «Movimiento manual».
+        await user.click(ficha.getByRole("button", { name: "Registrar movimiento" }));
+        expect(cerrar).toHaveBeenCalled();
+        expect(mover).toHaveBeenCalledWith(producto);
+
+        await user.click(ficha.getByRole("button", { name: "Escanear otro" }));
+        expect(otro).toHaveBeenCalled();
+    });
+
+    it("AUD-019 — abierta desde otro sitio, la ficha no ofrece las acciones del escáner", () => {
+        renderWithProviders(<ProductDetailModal product={conCifras({ tracksLots: false })} onClose={vi.fn()} onEdit={vi.fn()} />);
+        const ficha = within(screen.getByRole("dialog"));
+
+        expect(ficha.queryByRole("button", { name: "Registrar movimiento" })).not.toBeInTheDocument();
+        expect(ficha.queryByRole("button", { name: "Escanear otro" })).not.toBeInTheDocument();
     });
 
     it("con varios almacenes, el que tiene algo caducado dice cuánto le queda disponible", async () => {

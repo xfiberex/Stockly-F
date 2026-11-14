@@ -215,7 +215,10 @@ export default function SuppliersPage() {
                                     <td className="px-4 py-3 text-right tabular-nums text-foreground-muted whitespace-nowrap">
                                         {supplier.leadTimeDays === null ? "—" : tn("proveedores.plazoDias", supplier.leadTimeDays)}
                                     </td>
-                                    <td className="px-4 py-3 text-foreground-muted max-w-48 truncate">{supplier.notes ?? "—"}</td>
+                                    {/* AUD-019 — las notas se leen enteras: con `truncate` a 192 px se
+                                        quedaban en tres palabras, y ningún otro sitio las enseña.
+                                        `pre-line` respeta los saltos de línea que se escribieron. */}
+                                    <td className="px-4 py-3 text-foreground-muted min-w-48 max-w-xs whitespace-pre-line wrap-break-word">{supplier.notes ?? "—"}</td>
                                     {isAdmin && (
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-1">

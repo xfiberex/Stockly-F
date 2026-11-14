@@ -308,7 +308,9 @@ export function ProductTable({ products, isLoading, esperandoFiltros = false, on
                                         {isAdmin && !product.isActive && (
                                             <Button
                                                 variant="ghost"
-                                                isLoading={restoreMutation.isPending}
+                                                // AUD-019 — el spinner, solo en la fila que se restaura:
+                                                // con `isPending` a secas giraban todas las inactivas.
+                                                isLoading={restoreMutation.isPending && restoreMutation.variables === product.id}
                                                 onClick={() => restoreMutation.mutate(product.id)}
                                                 title={t("comun.restaurar")}
                                                 aria-label={t("productos.tabla.restaurarNombre", { nombre: product.name })}

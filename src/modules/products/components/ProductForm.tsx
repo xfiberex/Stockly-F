@@ -110,9 +110,6 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
     const stockInicial = Number(useWatch({ control, name: "stock" }) ?? 0);
     const caducidad   = useWatch({ control, name: "lotExpiresAt" }) ?? "";
     const pideLote    = !isEditing && llevaLotes && stockInicial > 0;
-    // Al editar, el stock de un producto que **ya** lleva lotes no se toca desde aquí: subirlo
-    // sería una entrada sin lote, y el servidor la rechaza.
-    const stockBloqueado = isEditing && product.tracksLots;
 
     const handleGenerateSku = () => {
         const removeDiacritics = (s: string) =>
@@ -162,11 +159,10 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
             const costPrice = formData.costPrice ?? (product.costPrice !== null ? "" : undefined);
             // T5-08 — el código viaja siempre al editar: vacío es **quitarlo**, igual que el coste.
             const barcode = formData.barcode?.trim() ?? "";
-            // T5-15 — el total de un producto con lotes no viaja: no se edita aquí, y mandar el que
-            // se cargó al abrir el formulario deshacería lo que se haya vendido entretanto.
-            const stock = stockBloqueado ? undefined : normalized.stock;
+            // AUD-019 — el stock no viaja al editar: ya no se cambia desde aquí (ver el campo).
+            // Mandar el que se cargó al abrir deshacería además lo vendido entretanto (T5-15).
             updateMutation.mutate(
-                { id: product.id, dto: { ...normalized, stock, barcode, costPrice, tagIds: selectedTagIds, removeImage } },
+                { id: product.id, dto: { ...normalized, stock: undefined, barcode, costPrice, tagIds: selectedTagIds, removeImage } },
                 { onSuccess: () => { onClose(); reset({}); setRemoveImage(false); setSelectedTagIds([]); } },
             );
         } else {
@@ -262,16 +258,24 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
                         {...register("costPrice")}
                     />
                 </div>
+                {/*
+                  AUD-019 — «Stock inicial» solo al crear. Al editar, el campo enseñaba el total
+                  de hoy con el rótulo de inicial, y cambiarlo creaba un ajuste sin motivo en el
+                  almacén predeterminado: el formulario de datos del producto movía inventario
+                  sin decirlo. Ahora el stock se lee aquí y se mueve con un movimiento, que dice
+                  por qué cambió y en qué almacén —y, con lotes, de qué lote—.
+                */}
                 <div className="grid grid-cols-2 gap-3">
-                    <Input
-                        id="stock"
-                        label={t("productos.campo.stockInicial")}
-                        type="number"
-                        placeholder={t("productos.form.ejemploCero")}
-                        error={te(errors.stock?.message)}
-                        disabled={stockBloqueado}
-                        {...register("stock")}
-                    />
+                    {!isEditing && (
+                        <Input
+                            id="stock"
+                            label={t("productos.campo.stockInicial")}
+                            type="number"
+                            placeholder={t("productos.form.ejemploCero")}
+                            error={te(errors.stock?.message)}
+                            {...register("stock")}
+                        />
+                    )}
                     <Input
                         id="minStock"
                         label={t("productos.campo.stockMinimoAlerta")}
@@ -281,14 +285,15 @@ export function ProductForm({ isOpen, onClose, product, codigoInicial }: Product
                         {...register("minStock")}
                     />
                 </div>
-                {almacen.hayVarios && (
-                    isEditing ? (
-                        <p className="-mt-2 text-xs text-foreground-muted">{t("productos.form.stockEsTotal")}</p>
-                    ) : (
+                {isEditing ? (
+                    <p className="-mt-2 text-xs text-foreground-muted">
+                        {t("productos.form.stockSeMueve", { stock: product.stock })}
+                    </p>
+                ) : (
+                    almacen.hayVarios && (
                         <SelectorDeAlmacen label={t("productos.form.almacenInicial")} value={almacen.warehouseId} onChange={almacen.setWarehouseId} />
                     )
                 )}
-                {stockBloqueado && <p className="-mt-2 text-xs text-foreground-muted">{t("productos.form.stockConLotes")}</p>}
                 <div className="flex flex-col gap-1">
                     <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                         <input type="checkbox" className="h-4 w-4" {...register("tracksLots")} />

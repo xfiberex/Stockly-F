@@ -5,6 +5,7 @@ import { useAbcSummary } from "@/modules/reports/hooks/useReports";
 import type { AbcClass } from "@/modules/reports/types/reports.types";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FunnelIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/components/Button";
 import { cn } from "@/shared/lib/cn";
@@ -20,29 +21,42 @@ interface ProductFiltersProps {
         abcClass?: AbcClass;
         warehouseId?: string;
     }) => void;
-    /**
-     * AUD-008, paso 9 — abrir con «Todos» en el estado en vez de «Activos»: «Total de
-     * productos» del panel cuenta también los inactivos (`?activos=todos`).
-     */
-    conInactivos?: boolean;
 }
 
 const CLASES_ABC: AbcClass[] = ["A", "B", "C"];
 
-export function ProductFilters({ onFilterChange, conInactivos = false }: ProductFiltersProps) {
+/**
+ * AUD-019 — los filtros viven en la URL. Se perdían al ir a los movimientos de un producto y
+ * volver, y no se podía pasar a nadie una lista ya filtrada. Nombres en español, como los de
+ * Ventas y la Bitácora. El estado sale de aquí con un valor por defecto que **no** se escribe:
+ * `activos` solo aparece cuando no es «Activos» (`todos` o `inactivos`), que es además lo que
+ * ya mandaba el panel para «Total de productos» (AUD-008, `?activos=todos`).
+ */
+const PARAMETRO = { buscar: "buscar", categoria: "categoria", etiqueta: "etiqueta", abc: "abc", almacen: "almacen", activos: "activos" } as const;
+
+function estadoDeLaUrl(valor: string | null): "true" | "false" | "" {
+    return valor === "todos" ? "" : valor === "inactivos" ? "false" : "true";
+}
+
+export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
     const { t } = useT();
-    const [search, setSearch] = useState("");
-    const [categoryId, setCategoryId] = useState("");
-    const [tagId, setTagId] = useState("");
-    const [activeFilter, setActiveFilter] = useState<"true" | "false" | "">(conInactivos ? "" : "true");
-    const [abcClass, setAbcClass] = useState<AbcClass | "">("");
+    const [params, setParams] = useSearchParams();
+    // Solo al montar: después manda el estado, y la URL lo sigue.
+    const [search, setSearch] = useState(() => params.get(PARAMETRO.buscar) ?? "");
+    const [categoryId, setCategoryId] = useState(() => params.get(PARAMETRO.categoria) ?? "");
+    const [tagId, setTagId] = useState(() => params.get(PARAMETRO.etiqueta) ?? "");
+    const [activeFilter, setActiveFilter] = useState(() => estadoDeLaUrl(params.get(PARAMETRO.activos)));
+    const [abcClass, setAbcClass] = useState<AbcClass | "">(() => {
+        const clase = params.get(PARAMETRO.abc) as AbcClass | null;
+        return clase && CLASES_ABC.includes(clase) ? clase : "";
+    });
     // T5-14 — los productos con existencias en un almacén.
-    const [warehouseId, setWarehouseId] = useState("");
+    const [warehouseId, setWarehouseId] = useState(() => params.get(PARAMETRO.almacen) ?? "");
     // AUD-013 — en el móvil los desplegables van plegados: seis controles a lo alto empujaban la
     // primera fila de la tabla hasta el pliegue (y≈770 de 844). El buscador se queda a la vista.
     const [desplegados, setDesplegados] = useState(false);
     const activos = [categoryId, tagId, abcClass, warehouseId].filter(Boolean).length
-        + (activeFilter !== (conInactivos ? "" : "true") ? 1 : 0);
+        + (activeFilter !== "true" ? 1 : 0);
 
     const debouncedSearch = useDebounce(search, 400);
     const { data: categories = [] } = useCategories();
@@ -81,6 +95,27 @@ export function ProductFilters({ onFilterChange, conInactivos = false }: Product
             warehouseId: warehouseId || undefined,
         });
     }, [debouncedSearch, categoryId, tagId, activeFilter, abcClass, warehouseId, onFilterChange]);
+
+    // La URL sigue al estado, con `replace`: cada letra del buscador no es una entrada del
+    // historial, y «Atrás» tiene que llevar a la pantalla anterior, no al filtro anterior. Se
+    // conservan los parámetros ajenos (`aviso`, `escanear`), que son de la página.
+    useEffect(() => {
+        setParams(
+            (actuales) => {
+                const siguientes = new URLSearchParams(actuales);
+                const poner = (nombre: string, valor: string) =>
+                    valor ? siguientes.set(nombre, valor) : siguientes.delete(nombre);
+                poner(PARAMETRO.buscar, debouncedSearch);
+                poner(PARAMETRO.categoria, categoryId);
+                poner(PARAMETRO.etiqueta, tagId);
+                poner(PARAMETRO.abc, abcClass);
+                poner(PARAMETRO.almacen, warehouseId);
+                poner(PARAMETRO.activos, activeFilter === "" ? "todos" : activeFilter === "false" ? "inactivos" : "");
+                return siguientes;
+            },
+            { replace: true },
+        );
+    }, [debouncedSearch, categoryId, tagId, activeFilter, abcClass, warehouseId, setParams]);
 
     return (
         /*

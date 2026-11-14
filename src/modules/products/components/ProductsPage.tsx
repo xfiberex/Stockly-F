@@ -312,7 +312,7 @@ export default function ProductsPage() {
                 aria-label={t("productos.seleccionarArchivo")}
             />
 
-            <ProductFilters onFilterChange={handleFilterChange} conInactivos={params.get("activos") === "todos"} />
+            <ProductFilters onFilterChange={handleFilterChange} />
             {(aviso === "stockBajo" || aviso === "sinCoste") && (
                 <FiltroActivo
                     texto={t(aviso === "stockBajo" ? "filtro.stockBajo" : "filtro.sinCoste")}
@@ -414,6 +414,9 @@ export default function ProductsPage() {
                 onClose={() => setEscaneado(null)}
                 onEdit={(p) => { setEscaneado(null); handleEdit(p); }}
                 onPrintLabels={(p) => setEtiquetasDe([p])}
+                // AUD-019 — tras escanear, mover el stock de lo escaneado o pasar al siguiente.
+                onRegisterMovement={puedeMover ? (p) => setMovementProduct(p) : undefined}
+                onScanAnother={() => setEscaneando(true)}
             />
 
             <Modal

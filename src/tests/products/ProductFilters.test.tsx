@@ -1,4 +1,6 @@
-import { render, screen, act, fireEvent } from "@testing-library/react";
+import { screen, act, fireEvent } from "@testing-library/react";
+import { useLocation } from "react-router-dom";
+import { renderWithProviders } from "@/tests/utils";
 import userEvent from "@testing-library/user-event";
 import { ProductFilters } from "@/modules/products/components/ProductFilters";
 
@@ -29,13 +31,13 @@ vi.mock("@/modules/warehouses/hooks/useWarehouses", () => ({
 
 describe("ProductFilters", () => {
     it("renderiza el campo de búsqueda y los tres selects", () => {
-        render(<ProductFilters onFilterChange={vi.fn()} />);
+        renderWithProviders(<ProductFilters onFilterChange={vi.fn()} />);
         expect(screen.getByPlaceholderText(/buscar producto/i)).toBeInTheDocument();
         expect(screen.getAllByRole("combobox")).toHaveLength(3);
     });
 
     it("AUD-018 — el buscador tiene nombre accesible, no solo el texto de ayuda", () => {
-        render(<ProductFilters onFilterChange={vi.fn()} />);
+        renderWithProviders(<ProductFilters onFilterChange={vi.fn()} />);
         // Por rol y nombre, que es como lo encuentra un lector de pantalla: el `placeholder`
         // desaparece al escribir y no todos los lectores lo anuncian.
         expect(screen.getByRole("textbox", { name: "Buscar producto" })).toBeInTheDocument();
@@ -43,7 +45,7 @@ describe("ProductFilters", () => {
 
     it("filtra por clase ABC, con cuántos productos tiene cada una (T5-10)", async () => {
         const onFilterChange = vi.fn();
-        render(<ProductFilters onFilterChange={onFilterChange} />);
+        renderWithProviders(<ProductFilters onFilterChange={onFilterChange} />);
 
         const select = screen.getByRole("combobox", { name: "Filtrar por clase ABC" });
         expect(screen.getByRole("option", { name: "Clase C (90)" })).toBeInTheDocument();
@@ -57,7 +59,7 @@ describe("ProductFilters", () => {
 
     it("llama a onFilterChange en el montaje con los valores iniciales", () => {
         const onFilterChange = vi.fn();
-        render(<ProductFilters onFilterChange={onFilterChange} />);
+        renderWithProviders(<ProductFilters onFilterChange={onFilterChange} />);
         expect(onFilterChange).toHaveBeenCalledWith({
             search: undefined,
             categoryId: undefined,
@@ -70,7 +72,7 @@ describe("ProductFilters", () => {
     it("no emite la búsqueda antes de que transcurran los 400ms de debounce", async () => {
         vi.useFakeTimers();
         const onFilterChange = vi.fn();
-        render(<ProductFilters onFilterChange={onFilterChange} />);
+        renderWithProviders(<ProductFilters onFilterChange={onFilterChange} />);
         onFilterChange.mockClear();
 
         fireEvent.change(screen.getByPlaceholderText(/buscar producto/i), {
@@ -86,7 +88,7 @@ describe("ProductFilters", () => {
     it("emite la búsqueda debounced tras 400ms", async () => {
         vi.useFakeTimers();
         const onFilterChange = vi.fn();
-        render(<ProductFilters onFilterChange={onFilterChange} />);
+        renderWithProviders(<ProductFilters onFilterChange={onFilterChange} />);
         onFilterChange.mockClear();
 
         fireEvent.change(screen.getByPlaceholderText(/buscar producto/i), {
@@ -103,7 +105,7 @@ describe("ProductFilters", () => {
     it("solo emite el último valor si el usuario escribe rápido", async () => {
         vi.useFakeTimers();
         const onFilterChange = vi.fn();
-        render(<ProductFilters onFilterChange={onFilterChange} />);
+        renderWithProviders(<ProductFilters onFilterChange={onFilterChange} />);
         onFilterChange.mockClear();
 
         fireEvent.change(screen.getByPlaceholderText(/buscar producto/i), {
@@ -128,7 +130,7 @@ describe("ProductFilters", () => {
     it("emite el categoryId de la categoría seleccionada", async () => {
         const user = userEvent.setup();
         const onFilterChange = vi.fn();
-        render(<ProductFilters onFilterChange={onFilterChange} />);
+        renderWithProviders(<ProductFilters onFilterChange={onFilterChange} />);
         onFilterChange.mockClear();
 
         const [categorySelect] = screen.getAllByRole("combobox");
@@ -142,7 +144,7 @@ describe("ProductFilters", () => {
     it("emite isActive=false al seleccionar 'Solo inactivos'", async () => {
         const user = userEvent.setup();
         const onFilterChange = vi.fn();
-        render(<ProductFilters onFilterChange={onFilterChange} />);
+        renderWithProviders(<ProductFilters onFilterChange={onFilterChange} />);
         onFilterChange.mockClear();
 
         const [, statusSelect] = screen.getAllByRole("combobox");
@@ -156,7 +158,7 @@ describe("ProductFilters", () => {
     it("emite isActive=undefined al seleccionar 'Todos'", async () => {
         const user = userEvent.setup();
         const onFilterChange = vi.fn();
-        render(<ProductFilters onFilterChange={onFilterChange} />);
+        renderWithProviders(<ProductFilters onFilterChange={onFilterChange} />);
         onFilterChange.mockClear();
 
         const [, statusSelect] = screen.getAllByRole("combobox");
@@ -176,7 +178,7 @@ describe("ProductFilters", () => {
 describe("ProductFilters — plegados en el móvil (AUD-013)", () => {
     it("el botón despliega y pliega los desplegables, y dice cuántos filtros hay puestos", async () => {
         const user = userEvent.setup();
-        render(<ProductFilters onFilterChange={vi.fn()} />);
+        renderWithProviders(<ProductFilters onFilterChange={vi.fn()} />);
         const boton = screen.getByRole("button", { name: "Filtros" });
         const panel = document.getElementById("filtros-de-productos")!;
 
@@ -191,5 +193,61 @@ describe("ProductFilters — plegados en el móvil (AUD-013)", () => {
         expect(screen.getByRole("button", { name: "Filtros (1)" })).toBeInTheDocument();
         // Plegado, lo elegido sigue ahí.
         expect(screen.getByRole("combobox", { name: "Filtrar por categoría" })).toHaveValue("cat-electronica");
+    });
+});
+
+/**
+ * AUD-019 — los filtros viven en la URL: se perdían al ir a los movimientos de un producto y
+ * volver, y una lista filtrada no se podía compartir.
+ */
+describe("ProductFilters — en la URL (AUD-019)", () => {
+    /** Lo que la barra de direcciones diría. */
+    function Direccion() {
+        return <output data-testid="direccion">{useLocation().search}</output>;
+    }
+    const direccion = () => new URLSearchParams(screen.getByTestId("direccion").textContent ?? "");
+
+    it("abre con los filtros que trae la URL", () => {
+        const onFilterChange = vi.fn();
+        renderWithProviders(<ProductFilters onFilterChange={onFilterChange} />, {
+            initialRoute: "/catalog/products?buscar=Monitor&categoria=cat-electronica&abc=B&activos=inactivos",
+        });
+
+        expect(screen.getByRole("textbox", { name: "Buscar producto" })).toHaveValue("Monitor");
+        expect(onFilterChange).toHaveBeenCalledWith(
+            expect.objectContaining({ search: "Monitor", categoryId: "cat-electronica", abcClass: "B", isActive: false }),
+        );
+    });
+
+    it("`?activos=todos`, el enlace del panel, abre con «Todos»; una clase ABC inventada se ignora", () => {
+        const onFilterChange = vi.fn();
+        renderWithProviders(<ProductFilters onFilterChange={onFilterChange} />, { initialRoute: "/?activos=todos&abc=Z" });
+
+        expect(onFilterChange).toHaveBeenLastCalledWith(expect.objectContaining({ isActive: undefined, abcClass: undefined }));
+    });
+
+    it("lo que se elige queda en la URL, sin pisar los parámetros de la página", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(
+            <>
+                <ProductFilters onFilterChange={vi.fn()} />
+                <Direccion />
+            </>,
+            { initialRoute: "/catalog/products?aviso=stockBajo" },
+        );
+
+        // Con los valores por defecto no se escribe nada: «Activos» es lo que se ve sin filtro.
+        expect(direccion().get("activos")).toBeNull();
+
+        const [categoria, estado] = screen.getAllByRole("combobox");
+        await user.selectOptions(categoria!, "cat-electronica");
+        await user.selectOptions(estado!, "");
+
+        expect(direccion().get("categoria")).toBe("cat-electronica");
+        expect(direccion().get("activos")).toBe("todos");
+        expect(direccion().get("aviso")).toBe("stockBajo");
+
+        await user.selectOptions(categoria!, "");
+        expect(direccion().get("categoria")).toBeNull();
     });
 });

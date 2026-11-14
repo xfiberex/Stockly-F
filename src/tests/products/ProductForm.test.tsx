@@ -108,7 +108,20 @@ describe("ProductForm", () => {
         expect(screen.getByText("Editar producto")).toBeInTheDocument();
         expect(screen.getByLabelText("Nombre *")).toHaveValue("Teclado mecánico");
         expect(screen.getByLabelText("Precio *")).toHaveValue(49.99);
-        expect(screen.getByLabelText("Stock inicial")).toHaveValue(12);
+    });
+
+    it("AUD-019 — al editar, el stock se lee pero no se cambia: no hay campo, y no viaja", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<ProductForm isOpen onClose={vi.fn()} product={productoExistente} />);
+
+        // Antes salía «Stock inicial» con el total de hoy, y cambiarlo creaba un ajuste sin
+        // motivo en el almacén predeterminado.
+        expect(screen.queryByLabelText("Stock inicial")).not.toBeInTheDocument();
+        expect(screen.getByText(/Stock actual: 12 uds\..*regístralo como movimiento/)).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
+        await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+        expect(updateMutate.mock.calls[0][0].dto.stock).toBeUndefined();
     });
 
     it("precarga las etiquetas del producto y las envía al actualizar", async () => {
