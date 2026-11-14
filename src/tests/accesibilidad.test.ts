@@ -117,3 +117,77 @@ describe("accesibilidad (T4-09)", () => {
         expect(infractores, "Usa clasesDeBoton() en el <Link>, no un <Button> dentro").toEqual([]);
     });
 });
+
+/**
+ * Las aperturas de `<Button …>` y `<button …>` de un archivo, con sus props y su contenido.
+ *
+ * La apertura no se puede cortar en el primer `>`: las props llevan funciones flecha
+ * (`onClick={() => remove(idx)}`) y ese `>` cerraría la etiqueta a mitad. Se cuenta la
+ * profundidad de llaves y solo vale un `>` fuera de ellas.
+ */
+function botones(texto: string): Array<{ props: string; contenido: string }> {
+    const encontrados: Array<{ props: string; contenido: string }> = [];
+    const apertura = /<(Button|button)(?![A-Za-z])/g;
+
+    for (const coincidencia of texto.matchAll(apertura)) {
+        const etiqueta = coincidencia[1]!;
+        let profundidad = 0;
+        let i = coincidencia.index! + coincidencia[0].length;
+        for (; i < texto.length; i++) {
+            const caracter = texto[i];
+            if (caracter === "{") profundidad++;
+            else if (caracter === "}") profundidad--;
+            else if (caracter === ">" && profundidad === 0) break;
+        }
+        const props = texto.slice(coincidencia.index! + coincidencia[0].length, i);
+        if (props.endsWith("/")) continue;
+
+        const cierre = texto.indexOf(`</${etiqueta}>`, i);
+        encontrados.push({ props, contenido: texto.slice(i + 1, cierre) });
+    }
+
+    return encontrados;
+}
+
+describe("accesibilidad (AUD-018)", () => {
+    it("ningún botón de solo icono se queda sin `aria-label`", () => {
+        // La crítica del 2026-11-07 encontró papeleras y lápices con `title` a secas en
+        // Catálogo, Proveedores y el formulario de compra. `title` no es un nombre fiable
+        // —no llega con el teclado ni al tocar— y, repetido por fila, se anuncia igual en
+        // todas: «Editar, botón» diez veces, sin decir de qué. El nombre tiene que decir
+        // también **sobre qué** actúa (`Editar Periféricos`), y eso no lo comprueba esta
+        // guardia, sino los tests de cada pantalla; aquí se exige que exista.
+        //
+        // «Solo icono» es que, quitando los `<…Icon … />` y los comentarios, no queda nada.
+        // Un contenido condicional (`{abierto ? <XIcon/> : <BarsIcon/>}`) no cuenta: no
+        // se puede saber desde el texto, y el falso positivo enseñaría a desactivar la guardia.
+        const soloIcono = (contenido: string) =>
+            !contenido
+                .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+                .replace(/<[A-Z][A-Za-z]*Icon\b[^>]*\/>/g, "")
+                .trim();
+
+        const sinNombre = fuentes().flatMap(({ ruta, texto }) =>
+            botones(texto)
+                .filter(({ props, contenido }) => soloIcono(contenido) && !/\baria-label=/.test(props))
+                .map(({ contenido }) => `${ruta}: ${contenido.trim().slice(0, 60)}`),
+        );
+
+        expect(sinNombre).toEqual([]);
+    });
+
+    it("el acento suave solo pinta iconos; el texto en verde va con el fuerte", () => {
+        // `--color-accent` da 3,8:1 sobre blanco: vale para un borde o un icono (3:1), no
+        // para texto (4,5:1). El nombre del cliente en Ventas y en Clientes iba en
+        // `text-accent`, y la paleta ya tenía la respuesta —`accent-strong`, 5,5:1— desde
+        // T2-35. `text-accent/…` con opacidad tampoco cuenta como fuerte.
+        const enTexto = fuentes().flatMap(({ ruta, texto }) =>
+            texto
+                .split("\n")
+                .filter((linea) => /(?<![-\w])text-accent(?![-\w])/.test(linea) && !/Icon\b/.test(linea))
+                .map((linea) => `${ruta}: ${linea.trim()}`),
+        );
+
+        expect(enTexto).toEqual([]);
+    });
+});

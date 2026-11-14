@@ -10,6 +10,7 @@ import { Select } from "@/shared/components/Select";
 import { Button } from "@/shared/components/Button";
 import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
+import { BotonDeDesplegar } from "@/shared/components/BotonDeDesplegar";
 import { ESTADO_ORDEN_VENTA, buscarEstado } from "@/shared/lib/estados";
 import { EsqueletoLista } from "@/shared/components/Esqueleto";
 import { DropdownButton } from "@/shared/components/DropdownButton";
@@ -405,6 +406,11 @@ function OrderFormModal({ isOpen, onClose }: OrderFormModalProps) {
                                         variant="ghost"
                                         className={CLASES_BOTON_ICONO}
                                         disabled={fields.length === 1}
+                                        aria-label={
+                                            lineas[idx]?.productName?.trim()
+                                                ? t("ordenes.quitarLineaDe", { nombre: lineas[idx].productName.trim() })
+                                                : t("ordenes.quitarLinea", { numero: idx + 1 })
+                                        }
                                         onClick={() => remove(idx)}
                                     >
                                         <TrashIcon className="h-4 w-4 text-danger" />
@@ -633,8 +639,15 @@ export default function SaleOrdersPage() {
                                 <div className="flex items-center gap-3 min-w-0">
                                     <span className="shrink-0"><EstadoBadge estado={buscarEstado(ESTADO_ORDEN_VENTA, order.status)} /></span>
                                     <div className="min-w-0">
+                                        {/* AUD-018 — el número es el conmutador: el `div` de la
+                                            fila no se alcanza con el teclado. */}
                                         <p className="text-sm font-medium text-foreground">
-                                            {t("ventas.numero", { numero: numeroDeOrden(order) })}
+                                            <BotonDeDesplegar
+                                                abierto={expandedId === order.id}
+                                                onAlternar={() => setExpandedId(expandedId === order.id ? null : order.id)}
+                                            >
+                                                {t("ventas.numero", { numero: numeroDeOrden(order) })}
+                                            </BotonDeDesplegar>
                                         </p>
                                         <p className="text-xs text-foreground-muted">
                                             {/* T5-06 — con cliente, el nombre lleva a su ficha. El clic no
@@ -642,7 +655,7 @@ export default function SaleOrdersPage() {
                                             {order.customerId ? (
                                                 <Link
                                                     to={`/customers/${order.customerId}`}
-                                                    className="text-accent underline underline-offset-2"
+                                                    className="text-accent-strong underline underline-offset-2"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
                                                     {order.customerName ?? t("ventas.clienteSinNombre")}

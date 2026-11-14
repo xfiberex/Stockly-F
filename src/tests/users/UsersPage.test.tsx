@@ -91,7 +91,7 @@ describe("UsersPage (T2-20)", () => {
         expect(within(propia).getByText("(tú)")).toBeInTheDocument();
         // El backend responde 400; la interfaz no llega ni a pedirlo.
         expect(within(propia).getByRole("combobox")).toBeDisabled();
-        expect(within(propia).getByRole("button", { name: "Desactivar" })).toBeDisabled();
+        expect(within(propia).getByRole("button", { name: "Desactivar a Admin Principal" })).toBeDisabled();
     });
 
     it("AUD-012 — cambiar el rol pide confirmación, dice de cuál a cuál, y solo entonces llama a la API", async () => {
@@ -157,7 +157,7 @@ describe("UsersPage (T2-20)", () => {
         const user = userEvent.setup();
         renderWithProviders(<UsersPage />);
 
-        await user.click(within(fila("Laura Gómez")).getByRole("button", { name: "Desactivar" }));
+        await user.click(within(fila("Laura Gómez")).getByRole("button", { name: "Desactivar a Laura Gómez" }));
         // AUD-012 — desactivar confirma; activar, abajo, no: devuelve el acceso y no quita nada.
         expect(cambiarActivo).not.toHaveBeenCalled();
         const dialogo = screen.getByRole("dialog", { name: "Desactivar a Laura Gómez" });
@@ -169,7 +169,7 @@ describe("UsersPage (T2-20)", () => {
         renderWithProviders(<UsersPage />);
 
         const inactiva = screen.getAllByText("Laura Gómez")[1].closest("tr")!;
-        await user.click(within(inactiva).getByRole("button", { name: "Activar" }));
+        await user.click(within(inactiva).getByRole("button", { name: "Activar a Laura Gómez" }));
         expect(cambiarActivo).toHaveBeenLastCalledWith({ id: "u-1", active: true });
     });
 

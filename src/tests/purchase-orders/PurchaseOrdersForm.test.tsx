@@ -144,6 +144,21 @@ describe("PurchaseOrdersPage — formulario (T2-19)", () => {
         expect(within(dialogo).getAllByLabelText("Nombre")).toHaveLength(2);
     });
 
+    it("AUD-018 — quitar una línea dice cuál: el producto si lo tiene y, si no, su número", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<PurchaseOrdersPage />);
+        const dialogo = await abrirFormulario(user);
+
+        // Un icono de papelera sin nombre se anunciaba «botón» y nada más, en cada línea.
+        expect(within(dialogo).getByRole("button", { name: "Quitar la línea 1" })).toBeDisabled();
+
+        await elegir(user, dialogo, /Monitor LG/);
+        expect(within(dialogo).getByRole("button", { name: "Quitar la línea de Monitor LG" })).toBeInTheDocument();
+
+        await user.click(within(dialogo).getByRole("button", { name: /Agregar ítem/ }));
+        expect(within(dialogo).getByRole("button", { name: "Quitar la línea 2" })).toBeEnabled();
+    });
+
     it("un ítem sin nombre no deja enviar la orden", async () => {
         const user = userEvent.setup();
         renderWithProviders(<PurchaseOrdersPage />);
@@ -262,6 +277,24 @@ describe("PurchaseOrdersPage — estados y acciones (T2-19)", () => {
         // 4 × 450 = 1800, con el formato único de T2-44.
         expect(screen.getAllByText("$1,800.00").length).toBeGreaterThan(0);
         expect(screen.getByText("Teclado Logitech")).toBeInTheDocument();
+    });
+
+    it("AUD-018 — el número de la orden es un botón con `aria-expanded`, y se despliega con el teclado", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<PurchaseOrdersPage />);
+
+        // Antes la fila era un `div` con `onClick`: ni se enfocaba ni decía si estaba abierta.
+        const conmutador = screen.getByRole("button", { name: /^Orden #/ });
+        expect(conmutador).toHaveAttribute("aria-expanded", "false");
+
+        conmutador.focus();
+        await user.keyboard("{Enter}");
+        expect(conmutador).toHaveAttribute("aria-expanded", "true");
+        expect(screen.getByText("Teclado Logitech")).toBeInTheDocument();
+
+        await user.keyboard(" ");
+        expect(conmutador).toHaveAttribute("aria-expanded", "false");
+        expect(screen.queryByText("Teclado Logitech")).not.toBeInTheDocument();
     });
 
     it("una orden cancelada no ofrece ninguna acción", () => {

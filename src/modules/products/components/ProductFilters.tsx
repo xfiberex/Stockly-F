@@ -101,9 +101,12 @@ export function ProductFilters({ onFilterChange, conInactivos = false }: Product
          */
         <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             <div className="relative sm:col-span-2 lg:col-span-4 xl:col-span-1">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted" />
+                <MagnifyingGlassIcon aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-muted" />
+                {/* AUD-018 — el `placeholder` no es un nombre: desaparece al escribir y no todos
+                    los lectores lo leen. Sin etiqueta visible, como los demás buscadores. */}
                 <input
                     type="text"
+                    aria-label={t("productos.filtro.buscarEtiqueta")}
                     placeholder={t("productos.filtro.buscar")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}

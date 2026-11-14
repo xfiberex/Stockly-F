@@ -67,7 +67,7 @@ describe("Categorías y Marcas — el modal espera a la API (AUD-011)", () => {
         estado.falla = true;
         const user = userEvent.setup();
         renderWithProviders(<CategoriesPage />);
-        await user.click(screen.getByRole("button", { name: "Editar" }));
+        await user.click(screen.getByRole("button", { name: "Editar Periféricos" }));
         const dialogo = screen.getByRole("dialog", { name: "Editar categoría" });
         const nombre = within(dialogo).getByLabelText(/Nombre/);
         await user.clear(nombre);
@@ -84,7 +84,7 @@ describe("Categorías y Marcas — borrar confirma (AUD-012)", () => {
         const user = userEvent.setup();
         renderWithProviders(<CategoriesPage />);
 
-        await user.click(screen.getByRole("button", { name: "Eliminar" }));
+        await user.click(screen.getByRole("button", { name: "Eliminar Periféricos" }));
         expect(estado.borradas).toEqual([]);
         const dialogo = screen.getByRole("dialog", { name: "Eliminar la categoría «Periféricos»" });
         expect(within(dialogo).getByText(/se quedan sin categoría/)).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe("Categorías y Marcas — borrar confirma (AUD-012)", () => {
         const user = userEvent.setup();
         renderWithProviders(<CategoriesPage />);
 
-        await user.click(screen.getByRole("button", { name: "Eliminar" }));
+        await user.click(screen.getByRole("button", { name: "Eliminar Periféricos" }));
         await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Eliminar" }));
         expect(screen.getByRole("dialog", { name: "Eliminar la categoría «Periféricos»" })).toBeInTheDocument();
     });

@@ -46,12 +46,15 @@ cambia la aplicación entera; ese es el objetivo.
 |---|---|---|---|---|
 | `--color-primary` | `bg-primary` | `#334155` | **10.4:1** — AAA | Acción primaria |
 | `--color-accent` | `text-accent` | `#059669` | 3.8:1 | **Solo** bordes e indicadores |
-| `--color-accent-strong` | `bg-accent-strong` | `#047857` | **5.5:1** — AA | Rellenos con texto encima |
+| `--color-accent-strong` | `bg-accent-strong` · `text-accent-strong` | `#047857` | **5.5:1** — AA | Rellenos con texto encima, y texto en verde (enlaces) |
 
 > **El acento tiene dos valores a propósito.** Blanco sobre `--color-accent` da 3.77:1 y
 > **falla AA** para texto normal. El suave sirve donde el mínimo es 3:1 —bordes,
-> indicadores—; en cuanto haya texto encima, va el fuerte. Es el error fácil de esta
-> paleta.
+> indicadores, iconos—; en cuanto haya texto encima **o el texto sea verde**, va el fuerte.
+> Es el error fácil de esta paleta: el nombre del cliente en Ventas y en Clientes iba en
+> `text-accent` hasta `AUD-018`. El fuerte da ≥ 4.5:1 también sobre `surface-muted`, que
+> es el fondo de una fila al pasar por encima. **Lo vigilan** `accesibilidad.test.ts` (el
+> suave solo en iconos) y `theme.test.ts` (el contraste, en los dos temas).
 
 ### Estados
 
@@ -406,7 +409,26 @@ el **valor** —«Todas las categorías»—, no de qué es el filtro. Mirando l
 por su posición; sin mirarla, se anuncia «cuadro combinado» y se acabó.
 
 Cuando no cabe una etiqueta visible, `aria-label` desde el catálogo. Nunca una cadena a mano:
-`literales.test.ts` la caza.
+`literales.test.ts` la caza. Lo mismo vale para un buscador: el `placeholder` **no es un
+nombre** —desaparece al escribir y no todos los lectores lo anuncian—.
+
+### Lo que se despliega es un botón, y lo que se elige con pestañas es un `tablist`
+
+**Una fila que se despliega lleva un `<button aria-expanded>`**, no un `onClick` en el `div`.
+Si la cabecera de la fila contiene otros controles —el enlace al cliente, recibir, cancelar—
+no puede ser ella el botón (un botón no admite controles dentro): el conmutador es lo que
+nombra la fila, el número de la orden, con
+[`BotonDeDesplegar`](../src/shared/components/BotonDeDesplegar.tsx). El `div` sigue
+respondiendo al clic para no encoger la diana. Si la fila no tiene otros controles, la
+fila entera es el botón (Transferencias), y entonces **sin `aria-label`**: su nombre es lo
+que enseña, y un rótulo fijo callaría justo lo que distingue una fila de otra.
+
+**Unas pestañas son [`<Pestanas>`](../src/shared/components/Pestanas.tsx)**, no botones con
+un subrayado de color: `tablist`, `tab` con `aria-selected`, una sola parada de tabulador y
+las flechas para moverse. Cada panel lleva `propsDePanel()` de `shared/lib/pestanas.ts`.
+
+**Un panel que tapa la pantalla se cierra con Escape** y devuelve el foco al botón que lo
+abrió: el menú móvil, como ya hacían los desplegables de la cabecera.
 
 ### Las pantallas sin sesión también son pantallas
 
@@ -512,8 +534,11 @@ sus iconos, así que **un icono nunca se anuncia**. Lo que sí hay que poner tú
   **no se muestra en táctil**. Sirve de complemento, no de sustituto.
 
 **Lo vigila:** [`src/tests/components/iconos.test.tsx`](../src/tests/components/iconos.test.tsx)
-sobre el DOM renderizado, y las comprobaciones de nombre accesible de
-[`ProductTable.test.tsx`](../src/tests/products/ProductTable.test.tsx).
+sobre el DOM renderizado, las comprobaciones de nombre accesible de
+[`ProductTable.test.tsx`](../src/tests/products/ProductTable.test.tsx) y, desde `AUD-018`,
+[`accesibilidad.test.ts`](../src/tests/accesibilidad.test.ts): ningún `<Button>` ni
+`<button>` cuyo contenido sea solo un icono se queda sin `aria-label`. Que el nombre diga
+**la fila** lo comprueba el test de cada pantalla.
 
 ---
 

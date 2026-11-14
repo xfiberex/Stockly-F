@@ -34,6 +34,13 @@ describe("ProductFilters", () => {
         expect(screen.getAllByRole("combobox")).toHaveLength(3);
     });
 
+    it("AUD-018 — el buscador tiene nombre accesible, no solo el texto de ayuda", () => {
+        render(<ProductFilters onFilterChange={vi.fn()} />);
+        // Por rol y nombre, que es como lo encuentra un lector de pantalla: el `placeholder`
+        // desaparece al escribir y no todos los lectores lo anuncian.
+        expect(screen.getByRole("textbox", { name: "Buscar producto" })).toBeInTheDocument();
+    });
+
     it("filtra por clase ABC, con cuántos productos tiene cada una (T5-10)", async () => {
         const onFilterChange = vi.fn();
         render(<ProductFilters onFilterChange={onFilterChange} />);

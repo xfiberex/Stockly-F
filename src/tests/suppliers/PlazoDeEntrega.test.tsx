@@ -103,7 +103,7 @@ describe("Plazo de entrega del proveedor (T5-05)", () => {
         const user = userEvent.setup();
         renderWithProviders(<SuppliersPage />);
 
-        await user.click(screen.getAllByRole("button", { name: "Editar" })[0]!);
+        await user.click(screen.getByRole("button", { name: "Editar Con plazo" }));
         const campo = screen.getByLabelText("Plazo de entrega (días)");
         expect(campo).toHaveValue(3);
 

@@ -219,13 +219,21 @@ export default function SuppliersPage() {
                                     {isAdmin && (
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" onClick={() => handleOpenEdit(supplier)} title={t("comun.editar")}>
+                                                {/* AUD-018 — el nombre accesible nombra la fila: con
+                                                    `title` a secas, todas se anunciaban «Editar». */}
+                                                <Button
+                                                    variant="ghost"
+                                                    onClick={() => handleOpenEdit(supplier)}
+                                                    title={t("comun.editar")}
+                                                    aria-label={t("comun.editarNombre", { nombre: supplier.name })}
+                                                >
                                                     <PencilIcon className="h-4 w-4" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     onClick={() => setAEliminar(supplier)}
                                                     title={t("comun.eliminar")}
+                                                    aria-label={t("comun.eliminarNombre", { nombre: supplier.name })}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
                                                 </Button>

@@ -130,7 +130,7 @@ describe("StockMovementsPage — histórico paginado (T4-15)", () => {
         // diría 50 y nadie sabría que hay más.
         renderWithProviders(<StockMovementsPage />);
 
-        expect(await screen.findByRole("button", { name: "Movimientos (120)" })).toBeInTheDocument();
+        expect(await screen.findByRole("tab", { name: "Movimientos (120)", selected: true })).toBeInTheDocument();
     });
 
     it("el filtro de tipo se manda al servidor", async () => {
@@ -241,7 +241,7 @@ describe("StockMovementsPage — historial de costes (T5-01)", () => {
         const user = userEvent.setup();
         renderWithProviders(<StockMovementsPage />);
 
-        await user.click(await screen.findByRole("button", { name: "Historial de costes (25)" }));
+        await user.click(await screen.findByRole("tab", { name: "Historial de costes (25)" }));
 
         expect(await screen.findByText("Recepción de la orden #ABCDEF12")).toBeInTheDocument();
         expect(screen.getAllByText("Edición manual")).toHaveLength(19);
@@ -253,7 +253,7 @@ describe("StockMovementsPage — historial de costes (T5-01)", () => {
         const user = userEvent.setup();
         renderWithProviders(<StockMovementsPage />);
 
-        await user.click(await screen.findByRole("button", { name: "Historial de costes (25)" }));
+        await user.click(await screen.findByRole("tab", { name: "Historial de costes (25)" }));
         await screen.findByText("Recepción de la orden #ABCDEF12");
         // Los movimientos tienen su propia paginación en otra pestaña; aquí solo está la de costes.
         await user.click(screen.getByRole("button", { name: "Siguiente" }));
@@ -267,7 +267,7 @@ describe("StockMovementsPage — historial de costes (T5-01)", () => {
         const user = userEvent.setup();
         renderWithProviders(<StockMovementsPage />);
 
-        await user.click(await screen.findByRole("button", { name: "Historial de costes (0)" }));
+        await user.click(await screen.findByRole("tab", { name: "Historial de costes (0)" }));
 
         expect(await screen.findByText(/Aún no hay cambios de coste/)).toBeInTheDocument();
     });

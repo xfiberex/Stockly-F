@@ -1,5 +1,5 @@
 import { conSimboloDeMoneda, formatearImporte } from "@/shared/lib/moneda";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeftIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import {
@@ -12,6 +12,9 @@ import { TIPO_MOVIMIENTO, ACTIVIDAD } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
 import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
+import { Pestanas } from "@/shared/components/Pestanas";
+import { CLASES_PANEL_DE_PESTANA, propsDePanel } from "@/shared/lib/pestanas";
+import { cn } from "@/shared/lib/cn";
 import { useStockMovements } from "@/modules/products/hooks/useStockMovements";
 import { usePriceHistory } from "@/modules/products/hooks/usePriceHistory";
 import { useCostHistory } from "@/modules/products/hooks/useCostHistory";
@@ -44,6 +47,7 @@ export default function StockMovementsPage() {
     const { hayVarios, nombreDe } = useAlmacenes();
     const [page, setPage] = useState(1);
     const [activeTab, setActiveTab] = useState<"movements" | "prices" | "costs">("movements");
+    const pestanas = useId();
     const [costPage, setCostPage] = useState(1);
 
     // T4-15 — página y filtros van al servidor. La pantalla filtraba en memoria sobre el
@@ -168,31 +172,25 @@ export default function StockMovementsPage() {
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 border-b border-border">
-                {(["movements", "prices", "costs"] as const).map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`min-h-11 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px md:pointer-fine:min-h-9 ${
-                            activeTab === tab
-                                ? "border-info text-info"
-                                : "border-transparent text-foreground-muted hover:text-foreground"
-                        }`}
-                    >
-                        {/* El recuento sale de `meta.total`, no de la página: la pestaña dice
-                            cuántos movimientos hay, no cuántos se han traído. */}
-                        {tab === "movements"
-                            ? t("movimientos.pestanaMovimientos", { cantidad: meta.total })
-                            : tab === "prices"
-                              ? t("movimientos.pestanaPrecios", { cantidad: priceHistory.length })
-                              : t("movimientos.pestanaCostes", { cantidad: costMeta?.total ?? 0 })}
-                    </button>
-                ))}
-            </div>
+            {/* AUD-018 — un `tablist` de verdad: antes eran tres botones sueltos, y cuál estaba
+                activa solo se veía. El recuento sale de `meta.total`, no de la página: la
+                pestaña dice cuántos movimientos hay, no cuántos se han traído. */}
+            <Pestanas
+                base={pestanas}
+                etiqueta={t("movimientos.pestanas")}
+                activa={activeTab}
+                onCambio={setActiveTab}
+                pestanas={[
+                    { valor: "movements", etiqueta: t("movimientos.pestanaMovimientos", { cantidad: meta.total }) },
+                    { valor: "prices", etiqueta: t("movimientos.pestanaPrecios", { cantidad: priceHistory.length }) },
+                    { valor: "costs", etiqueta: t("movimientos.pestanaCostes", { cantidad: costMeta?.total ?? 0 }) },
+                ]}
+            />
 
+            {/* Cada panel agrupa lo que antes era un fragmento; `space-y-8` repite dentro la
+                separación que el contenedor daba a sus hijos. */}
             {activeTab === "movements" && (
-                <>
+                <div {...propsDePanel(pestanas, "movements")} className={cn("space-y-8", CLASES_PANEL_DE_PESTANA)}>
                     {/* Gráfico de stock */}
                     {movements.length > 0 && (
                         <div className="bg-surface rounded-xl border border-border p-6">
@@ -365,11 +363,11 @@ export default function StockMovementsPage() {
                             </div>
                         </div>
                     )}
-                </>
+                </div>
             )}
 
             {activeTab === "prices" && (
-                <>
+                <div {...propsDePanel(pestanas, "prices")} className={cn("space-y-8", CLASES_PANEL_DE_PESTANA)}>
                     {priceHistory.length > 0 ? (
                         <>
                             <div className="bg-surface rounded-xl border border-border p-6">
@@ -448,14 +446,14 @@ export default function StockMovementsPage() {
                             {t("precios.sinCambios")}
                         </div>
                     )}
-                </>
+                </div>
             )}
 
             {/* T5-01 — sin gráfico, a diferencia de los precios: el histórico llega paginado,
                 y una curva dibujada con una página entera haría creer que es la serie completa
                 (la trampa de T4-15). La tabla dice lo que hay y de dónde salió cada cambio. */}
             {activeTab === "costs" && (
-                <>
+                <div {...propsDePanel(pestanas, "costs")} className={cn("space-y-8", CLASES_PANEL_DE_PESTANA)}>
                     <p className="text-sm text-foreground-muted">{t("costes.explicacion")}</p>
                     {costHistory.length > 0 && costMeta ? (
                         <>
@@ -518,7 +516,7 @@ export default function StockMovementsPage() {
                             {t("costes.sinCambios")}
                         </div>
                     )}
-                </>
+                </div>
             )}
         </div>
     );

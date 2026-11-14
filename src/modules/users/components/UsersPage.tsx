@@ -232,6 +232,9 @@ export default function UsersPage() {
                                                         disabled={isSelf || activeMutation.isPending}
                                                         onClick={() => (u.isActive ? setCambio({ tipo: "desactivar", usuario: u }) : activeMutation.mutate({ id: u.id, active: true }))}
                                                         className="text-xs px-2.5 py-1 h-auto"
+                                                        // AUD-018 — como el desplegable de rol: dice de quién es. El
+                                                        // texto visible va al principio del nombre (WCAG 2.5.3).
+                                                        aria-label={t(u.isActive ? "usuarios.desactivarA" : "usuarios.activarA", { nombre: u.name })}
                                                     >
                                                         {t(u.isActive ? "usuarios.desactivar" : "usuarios.activar")}
                                                     </Button>

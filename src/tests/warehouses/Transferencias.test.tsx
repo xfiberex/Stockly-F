@@ -88,7 +88,7 @@ describe("TransfersPage (T5-14)", () => {
     it("lista cada transferencia con su origen, su destino, quién la hizo y cuánto movió", async () => {
         renderWithProviders(<TransfersPage />);
 
-        const fila = within((await screen.findByRole("button", { name: "Ver los productos de la transferencia #ABCDEF12" })).closest("li")!);
+        const fila = within((await screen.findByRole("button", { name: /#ABCDEF12/ })).closest("li")!);
         expect(fila.getByText("Tienda Central")).toBeInTheDocument();
         expect(fila.getByText("Sucursal Norte")).toBeInTheDocument();
         expect(fila.getByText(/Transferencia #ABCDEF12 · .* · almacen@stockly\.app · Reposición del lunes/)).toBeInTheDocument();
@@ -96,10 +96,20 @@ describe("TransfersPage (T5-14)", () => {
         expect(fila.getByText("2 productos")).toBeInTheDocument();
     });
 
+    it("AUD-018 — el nombre del desplegable es lo que se ve, no un rótulo que lo tape", async () => {
+        renderWithProviders(<TransfersPage />);
+
+        // Con `aria-label` fijo, el lector anunciaba «Ver los productos de la transferencia
+        // #…» y callaba de dónde a dónde, cuándo y cuánto: lo que distingue una fila de otra.
+        const boton = await screen.findByRole("button", { name: /#ABCDEF12/ });
+        expect(boton).not.toHaveAttribute("aria-label");
+        expect(boton).toHaveAccessibleName(/^Tienda Central\s*hacia\s*Sucursal Norte.*7 uds\..*2 productos$/);
+    });
+
     it("las líneas se piden al desplegar la fila, no con la lista, y dicen lo que quedó en cada extremo", async () => {
         const user = userEvent.setup();
         renderWithProviders(<TransfersPage />);
-        const boton = await screen.findByRole("button", { name: "Ver los productos de la transferencia #ABCDEF12" });
+        const boton = await screen.findByRole("button", { name: /#ABCDEF12/ });
         expect(api.getStockTransfer).not.toHaveBeenCalled();
         expect(boton).toHaveAttribute("aria-expanded", "false");
 
@@ -210,7 +220,7 @@ describe("TransfersPage (T5-14)", () => {
         rol = quien;
         renderWithProviders(<TransfersPage />);
 
-        expect(await screen.findByRole("button", { name: "Ver los productos de la transferencia #ABCDEF12" })).toBeInTheDocument();
+        expect(await screen.findByRole("button", { name: /#ABCDEF12/ })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Nueva transferencia" })).not.toBeInTheDocument();
     });
 });

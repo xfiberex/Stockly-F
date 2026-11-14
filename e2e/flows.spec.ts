@@ -1072,7 +1072,9 @@ test.describe("Flujos que cruzan frontend y backend", () => {
             // La lista la enseña, y al desplegarla dice lo que quedó en cada extremo.
             const fila = almacen.getByRole("listitem").filter({ hasText: sucursal });
             await expect(fila.getByText("10 uds.")).toBeVisible();
-            await fila.getByRole("button", { name: /Ver los productos de la transferencia/ }).click();
+            // AUD-018 — el desplegable ya no lleva rótulo propio (su nombre es lo que se ve): se
+            // busca por lo que es, el único botón de la fila que dice si está desplegado.
+            await fila.getByRole("button", { expanded: false }).click();
             await expect(fila.getByText(`Quedan 15 en ${central.name} y 10 en ${sucursal}`)).toBeVisible();
 
             // ── Lo transferido se vende desde la sucursal, y solo eso ────────────────────────

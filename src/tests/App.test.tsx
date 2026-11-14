@@ -69,6 +69,24 @@ describe("App — menú móvil", () => {
         expect(await screen.findByText("Contenido de reportes")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Abrir menú de navegación" })).toHaveAttribute("aria-expanded", "false");
     });
+
+    it("AUD-018 — Escape lo cierra y devuelve el foco a la hamburguesa", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(layoutConEnlaceExterno());
+
+        await user.click(screen.getByRole("button", { name: "Abrir menú de navegación" }));
+        const menu = document.getElementById("mobile-menu");
+        if (!menu) throw new Error("el menú móvil no está en el DOM");
+        // Con el foco dentro del panel, que es donde lo tiene quien lo recorre con el teclado.
+        within(menu).getByRole("link", { name: "Reportes" }).focus();
+
+        await user.keyboard("{Escape}");
+
+        expect(document.getElementById("mobile-menu")).toBeNull();
+        const abrir = screen.getByRole("button", { name: "Abrir menú de navegación" });
+        expect(abrir).toHaveAttribute("aria-expanded", "false");
+        expect(abrir).toHaveFocus();
+    });
 });
 
 /**

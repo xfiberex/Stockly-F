@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Outlet, NavLink, Link, useLocation } from "react-router-dom";
 import {
     CubeIcon,
@@ -206,6 +206,26 @@ function App() {
 
     const toggleMobile = () => setOpenedAt((actual) => (actual === pathname ? null : pathname));
     const closeMobile = () => setOpenedAt(null);
+    const hamburguesa = useRef<HTMLButtonElement>(null);
+
+    /*
+     * AUD-018 — Escape cierra el panel y devuelve el foco al botón que lo abrió.
+     *
+     * Los otros dos menús de la cabecera ya lo hacían (`useMenuDesplegable`) y este no: con el
+     * teclado, la única salida era volver a tabular hasta la hamburguesa. El foco vuelve al
+     * botón porque el enlace que lo tenía desaparece con el panel, y sin eso caería al `body`.
+     */
+    useEffect(() => {
+        if (!mobileOpen) return;
+
+        const alPulsar = (e: KeyboardEvent) => {
+            if (e.key !== "Escape") return;
+            setOpenedAt(null);
+            hamburguesa.current?.focus();
+        };
+        document.addEventListener("keydown", alPulsar);
+        return () => document.removeEventListener("keydown", alPulsar);
+    }, [mobileOpen]);
 
     /*
      * Con el menú abierto, la página de detrás se queda quieta.
@@ -299,6 +319,7 @@ function App() {
                         {user && <UserMenu name={user.name} email={user.email} rol={user.role} />}
                         {/* Botón hamburguesa — solo móvil/tablet */}
                         <button
+                            ref={hamburguesa}
                             onClick={toggleMobile}
                             aria-label={mobileOpen ? t("nav.cerrarMenu") : t("nav.abrirMenu")}
                             aria-expanded={mobileOpen}

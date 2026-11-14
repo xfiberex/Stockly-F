@@ -312,6 +312,28 @@ describe("SaleOrdersPage — el rol de almacén (T5-13)", () => {
         expect(screen.queryByText(/Documento:/)).not.toBeInTheDocument();
     });
 
+    it("AUD-018 — la fila se despliega con el teclado, y el enlace al cliente no la despliega", async () => {
+        ordenes = [{ ...ORDEN_PENDIENTE, customerId: "cliente-1" }];
+        const user = userEvent.setup();
+        renderWithProviders(<SaleOrdersPage />);
+
+        const conmutador = screen.getByRole("button", { name: "Venta #000042" });
+        expect(conmutador).toHaveAttribute("aria-expanded", "false");
+
+        // El enlace es un destino, no un conmutador; y va en el acento fuerte, que llega a
+        // 4,5:1 (el suave se queda en 3,8:1 sobre blanco).
+        const enlace = screen.getByRole("link", { name: "Cliente de prueba" });
+        expect(enlace).toHaveClass("text-accent-strong");
+
+        conmutador.focus();
+        await user.keyboard("{Enter}");
+        expect(conmutador).toHaveAttribute("aria-expanded", "true");
+        expect(screen.getByRole("table")).toBeInTheDocument();
+
+        await user.keyboard("{Enter}");
+        expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    });
+
     it("un ADMIN también envía por la ruta nueva, no por el PATCH", async () => {
         rol = "ADMIN";
         ordenes = [ORDEN_PENDIENTE];

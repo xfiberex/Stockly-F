@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLongRightIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ArrowLongRightIcon, ChevronDownIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/components/Button";
 import { Input } from "@/shared/components/Input";
 import { Modal } from "@/shared/components/Modal";
@@ -230,7 +230,7 @@ export default function TransfersPage() {
             {!hayVarios && (
                 <p className="rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground-muted">
                     {t("transferencias.unSoloAlmacen")}{" "}
-                    <Link to="/warehouses" className="text-accent underline underline-offset-2">{t("ruta.almacenes")}</Link>
+                    <Link to="/warehouses" className="text-accent-strong underline underline-offset-2">{t("ruta.almacenes")}</Link>
                 </p>
             )}
 
@@ -249,11 +249,14 @@ export default function TransfersPage() {
                         const numero = numeroDeTransferencia(transferencia.id);
                         return (
                             <li key={transferencia.id} className="overflow-hidden rounded-xl border border-border bg-surface">
+                                {/* AUD-018 — sin `aria-label`: el nombre accesible es lo que
+                                    se ve. Con uno fijo («Ver los productos de…»), el lector
+                                    callaba los almacenes, la fecha y las unidades, que es justo
+                                    lo que distingue una fila de otra. */}
                                 <button
                                     type="button"
                                     aria-expanded={abierta}
-                                    aria-label={t("transferencias.verLineasDe", { numero })}
-                                    className="flex w-full flex-col gap-2 px-4 py-4 text-left transition-colors hover:bg-surface-muted sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                                    className="flex w-full flex-col gap-2 px-4 py-4 text-left transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent sm:flex-row sm:items-center sm:justify-between sm:px-5"
                                     onClick={() => setDesplegada(abierta ? null : transferencia.id)}
                                 >
                                     <div className="min-w-0">
@@ -271,9 +274,15 @@ export default function TransfersPage() {
                                             {transferencia.note ? ` · ${transferencia.note}` : ""}
                                         </p>
                                     </div>
-                                    <div className="text-xs text-foreground-muted tabular-nums sm:shrink-0 sm:text-right">
-                                        <p className="text-sm font-semibold text-foreground">{t("transferencias.unidades", { cantidad: transferencia.units })}</p>
-                                        <p>{tn("transferencias.productos", transferencia.lines)}</p>
+                                    <div className="flex items-center justify-between gap-3 sm:shrink-0">
+                                        <div className="text-xs text-foreground-muted tabular-nums sm:text-right">
+                                            <p className="text-sm font-semibold text-foreground">{t("transferencias.unidades", { cantidad: transferencia.units })}</p>
+                                            <p>{tn("transferencias.productos", transferencia.lines)}</p>
+                                        </div>
+                                        <ChevronDownIcon
+                                            aria-hidden="true"
+                                            className={cn("h-4 w-4 shrink-0 text-foreground-muted transition-transform", abierta && "rotate-180")}
+                                        />
                                     </div>
                                 </button>
                                 {abierta && <LineasDeTransferencia transferencia={transferencia} />}

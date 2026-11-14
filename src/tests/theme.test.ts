@@ -212,6 +212,17 @@ describe.each(TEMAS)("Contraste WCAG — tema %s", (tema) => {
         }
     });
 
+    it("el enlace en verde (acento fuerte) se lee sobre la fila en reposo y al pasar por encima (AUD-018)", () => {
+        // Los enlaces a la ficha del cliente viven dentro de filas con `hover:bg-surface-muted`:
+        // medir solo contra la tarjeta dejaría sin comprobar el estado en que se pulsan.
+        for (const fondo of ["color-surface", "color-surface-muted", "color-background"]) {
+            expect(
+                ratioContraste(token("color-accent-strong", tema), token(fondo, tema)),
+                `accent-strong sobre ${fondo}`,
+            ).toBeGreaterThanOrEqual(4.5);
+        }
+    });
+
     /**
      * Los rellenos llevan **`text-surface`** encima, nunca `text-white` —que no aparece
      * ni una vez en `src/`—. Por eso el par se invierte solo al cambiar de tema, y por eso

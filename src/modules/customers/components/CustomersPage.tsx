@@ -144,7 +144,7 @@ export default function CustomersPage() {
                             {clientes.map((cliente) => (
                                 <tr key={cliente.id} className="hover:bg-surface-muted transition-colors">
                                     <td className="px-4 py-3 font-medium">
-                                        <Link to={`/customers/${cliente.id}`} className="text-accent hover:underline">{cliente.name}</Link>
+                                        <Link to={`/customers/${cliente.id}`} className="text-accent-strong hover:underline">{cliente.name}</Link>
                                     </td>
                                     <td className="px-4 py-3 text-foreground-muted">{cliente.email ?? "—"}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-foreground-muted">{cliente.phone ?? "—"}</td>
