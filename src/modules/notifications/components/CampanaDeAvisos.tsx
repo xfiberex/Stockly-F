@@ -25,13 +25,23 @@ const numeroDe = (id: string) => id.slice(0, 8).toUpperCase();
 const numeroDeVenta = (aviso: Extract<Notification, { type: "SALE_UNSHIPPABLE" }>) =>
     aviso.data.orderNumber !== undefined ? escribirNumeroDeVenta(aviso.data.orderNumber) : numeroDe(aviso.entityId);
 
+/** El día de hoy en este navegador, `AAAA-MM-DD`, para comparar con una fecha de caducidad. */
+function diaDeHoy(): string {
+    const ahora = new Date();
+    const dos = (n: number) => String(n).padStart(2, "0");
+    return `${ahora.getFullYear()}-${dos(ahora.getMonth() + 1)}-${dos(ahora.getDate())}`;
+}
+
 interface Presentacion {
     Icono: ComponentType<SVGProps<SVGSVGElement>>;
     /** El color dice de qué clase es el aviso; no es la única señal: el título también lo dice. */
     tono: string;
     titulo: string;
     detalle: string;
-    /** Adónde lleva. Las órdenes no tienen página propia: se va a su listado, y el título trae el número. */
+    /**
+     * Adónde lleva. Las órdenes no tienen página propia: AUD-017 — se abre su listado ya filtrado
+     * a esa orden y desplegada, no la primera página del listado.
+     */
     destino: string;
 }
 
@@ -61,7 +71,9 @@ function presentar(aviso: Notification, { t, idioma }: Traductor): Presentacion 
                     disponible: aviso.data.available,
                     requerido: aviso.data.required,
                 }),
-                destino: "/sale-orders",
+                destino: aviso.data.orderNumber !== undefined
+                    ? `/sale-orders?numero=${aviso.data.orderNumber}&venta=${aviso.entityId}`
+                    : `/sale-orders?venta=${aviso.entityId}`,
             };
         case "PURCHASE_OVERDUE": {
             const fecha = formatearDia(idioma, aviso.data.dueDate);
@@ -72,19 +84,26 @@ function presentar(aviso: Notification, { t, idioma }: Traductor): Presentacion 
                 detalle: aviso.data.supplierName
                     ? t("avisos.compraAtrasada.detalle", { proveedor: aviso.data.supplierName, fecha })
                     : t("avisos.compraAtrasada.detalleSinProveedor", { fecha }),
-                destino: "/purchase-orders",
+                destino: `/purchase-orders?compra=${aviso.entityId}`,
             };
         }
         // T5-15 — una copia del momento: `units` es lo que quedaba al avisar. Lleva al informe,
         // que dice lo que queda ahora y dónde.
-        case "LOT_EXPIRING":
+        // AUD-017 — lo ya caducado se dice distinto (no se puede vender: hay que retirarlo), en
+        // rojo, y con los almacenes donde quedaba, que es adonde hay que ir.
+        case "LOT_EXPIRING": {
+            const caducado = aviso.data.expiresAt < diaDeHoy();
+            const fecha = formatearDia(idioma, aviso.data.expiresAt);
+            const huecos = { lote: aviso.data.lotCode, producto: aviso.data.productName, fecha, unidades: aviso.data.units };
+            const almacenes = aviso.data.warehouses?.length ? ` ${t("avisos.lote.almacenes", { almacenes: aviso.data.warehouses.join(", ") })}` : "";
             return {
                 Icono: CalendarDaysIcon,
-                tono: "bg-warning-surface text-warning",
-                titulo: t("avisos.loteCaduca.titulo", { lote: aviso.data.lotCode, producto: aviso.data.productName }),
-                detalle: t("avisos.loteCaduca.detalle", { fecha: formatearDia(idioma, aviso.data.expiresAt), unidades: aviso.data.units }),
+                tono: caducado ? "bg-danger-surface text-danger" : "bg-warning-surface text-warning",
+                titulo: t(caducado ? "avisos.loteCaducado.titulo" : "avisos.loteCaduca.titulo", huecos),
+                detalle: t(caducado ? "avisos.loteCaducado.detalle" : "avisos.loteCaduca.detalle", huecos) + almacenes,
                 destino: "/expiry",
             };
+        }
         // AUD-001 — lleva a Usuarios ya filtrado: allí se aprueba eligiendo su rol.
         case "USER_PENDING":
             return {

@@ -32,13 +32,20 @@ const cambiarRol = vi.fn();
 const cambiarActivo = vi.fn();
 const invitar = vi.fn();
 let miRol = "ADMIN";
+// AUD-017 — la consulta falló y no hay datos.
+let fallo: unknown = null;
+const reintentar = vi.fn();
 
 vi.mock("@/modules/users/hooks/useUsers", () => ({
     useUsers: (params: unknown) => {
         consultas.push(params);
         return {
-            data: { data: usuarios, meta: { total, page: 1, limit: 20, totalPages: Math.ceil(total / 20) } },
+            data: fallo ? undefined : { data: usuarios, meta: { total, page: 1, limit: 20, totalPages: Math.ceil(total / 20) } },
             isLoading: cargando,
+            error: fallo,
+            errorUpdateCount: fallo ? 1 : 0,
+            refetch: reintentar,
+            isFetching: false,
         };
     },
     useUpdateUserRole: () => ({ mutate: cambiarRol, isPending: false }),
@@ -60,6 +67,7 @@ describe("UsersPage (T2-20)", () => {
         vi.clearAllMocks();
         consultas.length = 0;
         cargando = false;
+        fallo = null;
         miRol = "ADMIN";
         usuarios = [usuario(), usuario({ id: YO, name: "Admin Principal", email: "admin@stockly.app", role: "ADMIN" })];
         total = 2;
@@ -369,5 +377,33 @@ describe("UsersPage (T2-20)", () => {
 
             expect(consultas.at(-1)).toMatchObject({ role: undefined });
         });
+    });
+});
+
+describe("UsersPage — fallo de carga y búsqueda desde la URL (AUD-017)", () => {
+    beforeEach(() => {
+        consultas.length = 0;
+        fallo = null;
+        cargando = false;
+        usuarios = [usuario()];
+        total = 1;
+    });
+
+    it("si falla la carga lo dice y deja reintentar; no se lee «No se encontraron usuarios»", async () => {
+        fallo = new Error("Network Error");
+        const user = userEvent.setup();
+        renderWithProviders(<UsersPage />);
+
+        expect(screen.getByRole("alert")).toHaveTextContent("No se pudieron cargar los usuarios");
+        expect(screen.queryByText("No se encontraron usuarios.")).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Reintentar" }));
+
+        expect(reintentar).toHaveBeenCalledTimes(1);
+    });
+
+    it("`?buscar=` abre la lista ya buscada: así enlaza la bitácora a una persona", () => {
+        renderWithProviders(<UsersPage />, { initialRoute: "/admin/users?buscar=Ana" });
+
+        expect(screen.getByRole("textbox")).toHaveValue("Ana");
     });
 });

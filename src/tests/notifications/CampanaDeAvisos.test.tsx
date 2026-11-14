@@ -124,13 +124,17 @@ describe("CampanaDeAvisos (T5-12)", () => {
             // Un aviso anterior a T6-04 no trae el correlativo: se sigue leyendo como se creó.
             const venta = within(panel).getByRole("link", { name: /La venta #ABCD1234 no se pudo enviar/ });
             expect(venta).toHaveTextContent("Teclado: hay 3 y la orden pide 5.");
-            expect(venta).toHaveAttribute("href", "/sale-orders");
-            // El que sí lo trae se nombra por él, con sus ceros.
-            expect(within(panel).getByRole("link", { name: /La venta #000123 no se pudo enviar/ })).toBeInTheDocument();
+            // AUD-017 — a esa venta, desplegada; no a la primera página de Ventas.
+            expect(venta).toHaveAttribute("href", "/sale-orders?venta=abcd1234-0000-4000-8000-000000000000");
+            // El que sí lo trae se nombra por él, con sus ceros, y su enlace filtra por el número.
+            expect(within(panel).getByRole("link", { name: /La venta #000123 no se pudo enviar/ })).toHaveAttribute(
+                "href",
+                "/sale-orders?numero=123&venta=ffff9999-0000-4000-8000-000000000000",
+            );
 
             const compra = within(panel).getByRole("link", { name: /La compra #BEEF5678 pasó su plazo de entrega/ });
             expect(compra).toHaveTextContent("Rápido SA · vencía el 23 sep 2026");
-            expect(compra).toHaveAttribute("href", "/purchase-orders");
+            expect(compra).toHaveAttribute("href", "/purchase-orders?compra=beef5678-0000-4000-8000-000000000000");
         });
 
         it("«sin leer» se dice con palabras, no solo con el punto", async () => {
@@ -157,20 +161,35 @@ describe("CampanaDeAvisos (T5-12)", () => {
             expect(within(panel).getByText("Vencía el 23 sep 2026")).toBeInTheDocument();
         });
 
-        it("un lote en plazo de aviso dice cuál, de qué producto y su fecha —sin afirmar si ya venció—, y lleva al informe (T5-15)", async () => {
+        it("un lote en plazo de aviso dice cuál, de qué producto y su fecha, y lleva al informe (T5-15)", async () => {
             servidorCon([{
                 id: "a9", type: "LOT_EXPIRING", entityId: "lote-1", readAt: null, createdAt: HACE_UN_RATO,
-                data: { productName: "Yogur", lotCode: "L-20261020", expiresAt: "2026-10-20", units: 18 },
+                data: { productName: "Yogur", lotCode: "L-20991020", expiresAt: "2099-10-20", units: 18 },
             }]);
             const user = userEvent.setup();
             renderWithProviders(<CampanaDeAvisos />);
 
             const panel = await abrir(user);
 
-            const aviso = (await within(panel).findByText("Revisa la caducidad del lote L-20261020 de Yogur")).closest("a")!;
+            const aviso = (await within(panel).findByText("Revisa la caducidad del lote L-20991020 de Yogur")).closest("a")!;
             // El día que dice el aviso es el del lote, no el anterior: es un día, no un instante.
-            expect(within(aviso).getByText("Fecha de caducidad: 20 oct 2026 · 18 uds. en el almacén")).toBeInTheDocument();
+            expect(within(aviso).getByText("Fecha de caducidad: 20 oct 2099 · 18 uds. en el almacén")).toBeInTheDocument();
             expect(aviso).toHaveAttribute("href", "/expiry");
+        });
+
+        it("un lote ya caducado se dice distinto, en rojo, y con los almacenes donde quedaba (AUD-017)", async () => {
+            servidorCon([{
+                id: "a11", type: "LOT_EXPIRING", entityId: "lote-2", readAt: null, createdAt: HACE_UN_RATO,
+                data: { productName: "Yogur", lotCode: "L-20200101", expiresAt: "2020-01-01", units: 3, warehouses: ["Principal", "Sucursal Norte"] },
+            }]);
+            const user = userEvent.setup();
+            renderWithProviders(<CampanaDeAvisos />);
+
+            const panel = await abrir(user);
+
+            const aviso = (await within(panel).findByText("Lote L-20200101 de Yogur caducado: retíralo")).closest("a")!;
+            expect(within(aviso).getByText("Caducó el 01 ene 2020 · quedaban 3 uds. En Principal, Sucursal Norte.")).toBeInTheDocument();
+            expect(aviso.querySelector(".text-danger")).not.toBeNull();
         });
 
         it("una cuenta que espera aprobación dice quién es y lleva a Usuarios ya filtrado (AUD-001)", async () => {

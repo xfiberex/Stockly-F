@@ -1,14 +1,20 @@
-import { useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { Badge, type BadgeVariant } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Select } from "@/shared/components/Select";
+import { CampoDeFecha } from "@/shared/components/CampoDeFecha";
 import { EsqueletoTabla } from "@/shared/components/Esqueleto";
-import { useAuditLogs } from "@/modules/audit-logs/hooks/useAuditLogs";
-import type { AuditAction, AuditEntity } from "@/modules/audit-logs/types/audit-logs.types";
+import { ErrorDeCarga } from "@/shared/components/ErrorDeCarga";
+import { useFalloDeCarga } from "@/shared/hooks/useFalloDeCarga";
+import { useAuditActors, useAuditLogs } from "@/modules/audit-logs/hooks/useAuditLogs";
+import { exportAuditLogsCsv } from "@/modules/audit-logs/api/audit-logs.api";
+import { destinoDe, paresDeDetalles } from "@/modules/audit-logs/detalles";
+import type { AuditAction, AuditEntity, AuditLog, AuditLogsFilters } from "@/modules/audit-logs/types/audit-logs.types";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearFechaHora } from "@/shared/lib/fechas";
-import { CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
+import { CLASES_CONTENEDOR_DE_PAGINA, CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO } from "@/shared/lib/clasesDeEncabezado";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 
 // El color dice qué clase de acción fue: la que crea o completa algo, la que
@@ -46,15 +52,9 @@ const ACTION_VARIANTS: Record<AuditAction, BadgeVariant> = {
 };
 
 /**
- * T4-04 — las acciones y las entidades se nombran **una sola vez**.
- *
- * Antes había tres listas: las opciones del filtro de acción, las del de entidad y un
- * `ENTITY_LABELS` con nombres más cortos para la tabla («Orden compra» frente a «Orden de
- * compra»). Con dos idiomas eso son seis listas que mantener a la par, así que se quedan
- * los enums y la clave se compone: el compilador sigue exigiendo que estén todos —los
- * `Record` de color son sobre el enum— y el catálogo, que exista la traducción.
- *
- * De paso, la insignia de la tabla deja de pintar el enum en crudo («USER_ROLE_CHANGE»).
+ * T4-04 — las acciones y las entidades se nombran **una sola vez**: los enums, y la clave se
+ * compone. El compilador exige que estén todos —los `Record` de color son sobre el enum— y el
+ * catálogo, que exista la traducción.
  */
 const ACCIONES: readonly AuditAction[] = [
     "CREATE", "UPDATE", "DELETE", "RESTORE", "STOCK_MOVEMENT", "BULK_STOCK",
@@ -76,20 +76,99 @@ const ENTIDADES: readonly AuditEntity[] = [
 const claveDeAccion = (accion: AuditAction) => `auditoria.accion.${accion}` as Clave;
 const claveDeEntidad = (entidad: AuditEntity) => `auditoria.entidad.${entidad}` as Clave;
 
+const DIA = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * AUD-017 — los filtros viven en la URL (`?accion=&entidad=&usuario=&desde=&hasta=&pagina=`):
+ * recargar, volver atrás o pasar el enlace enseña la misma bitácora. Lo que no se entiende se
+ * ignora en vez de mandarlo y recibir un 400.
+ */
+function filtrosDeLaUrl(params: URLSearchParams) {
+    const accion = params.get("accion");
+    const entidad = params.get("entidad");
+    const desde = params.get("desde") ?? "";
+    const hasta = params.get("hasta") ?? "";
+    return {
+        action: ACCIONES.includes(accion as AuditAction) ? (accion as AuditAction) : undefined,
+        entity: ENTIDADES.includes(entidad as AuditEntity) ? (entidad as AuditEntity) : undefined,
+        userId: params.get("usuario") || undefined,
+        desde: DIA.test(desde) ? desde : "",
+        hasta: DIA.test(hasta) ? hasta : "",
+        pagina: Math.max(1, Number(params.get("pagina")) || 1),
+    };
+}
+
+/** El nombre de lo que se tocó, enlazado si todavía existe. */
+function Afectado({ log }: { log: AuditLog }) {
+    const { t } = useT();
+    const etiqueta = log.entityLabel && log.entity === "SaleOrder" ? `#${log.entityLabel}` : log.entityLabel;
+    const destino = log.entityId && log.entityExists ? destinoDe(log.entity, log.entityId, log.entityLabel) : null;
+    return (
+        <>
+            <span className="block text-xs text-foreground-muted">{t(claveDeEntidad(log.entity))}</span>
+            {etiqueta ? (
+                destino ? (
+                    <Link to={destino} className="font-medium text-foreground hover:text-info hover:underline">{etiqueta}</Link>
+                ) : (
+                    <span className="font-medium text-foreground">{etiqueta}</span>
+                )
+            ) : (
+                log.entityId && <span className="font-mono text-xs text-foreground-muted">#{log.entityId.slice(0, 8)}</span>
+            )}
+        </>
+    );
+}
+
+/** AUD-017 — los detalles como pares traducidos, no el JSON. */
+function Detalles({ log }: { log: AuditLog }) {
+    const traductor = useT();
+    const pares = paresDeDetalles(log.details, traductor, log.entityLabel);
+    if (pares.length === 0) return <span className="text-foreground-muted">—</span>;
+    return (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+            {pares.map(({ clave, rotulo, valor }) => (
+                <div key={clave} className="contents">
+                    <dt className="text-foreground-muted">{rotulo}</dt>
+                    <dd className="text-foreground wrap-anywhere">{valor}</dd>
+                </div>
+            ))}
+        </dl>
+    );
+}
+
 export default function AuditLogsPage() {
     const { t, idioma } = useT();
-    // El `""` es «sin filtro»; el resto solo admite valores del enum, así que un filtro
-    // mal escrito deja de compilar en vez de acabar en un 400 del backend.
-    const [action, setAction] = useState<AuditAction | "">("");
-    const [entity, setEntity] = useState<AuditEntity | "">("");
-    const [page, setPage] = useState(1);
+    const [params, setParams] = useSearchParams();
+    const { action, entity, userId, desde, hasta, pagina } = filtrosDeLaUrl(params);
+    const rangoInvalido = desde !== "" && hasta !== "" && desde > hasta;
 
-    const { data, isLoading } = useAuditLogs({
-        page,
-        limit: 50,
-        action: action || undefined,
-        entity: entity || undefined,
-    });
+    /** Cambiar un filtro vuelve a la página 1; `replace`: filtrar no llena el historial. */
+    const poner = (cambios: Record<string, string | undefined>) =>
+        setParams((actuales) => {
+            const siguientes = new URLSearchParams(actuales);
+            for (const [clave, valor] of Object.entries(cambios)) {
+                if (valor) siguientes.set(clave, valor);
+                else siguientes.delete(clave);
+            }
+            if (!("pagina" in cambios)) siguientes.delete("pagina");
+            return siguientes;
+        }, { replace: true });
+
+    const filtros: AuditLogsFilters = {
+        action,
+        entity,
+        userId,
+        // Un rango al revés no se pide: el backend respondería 400.
+        from: rangoInvalido ? undefined : desde || undefined,
+        to: rangoInvalido ? undefined : hasta || undefined,
+    };
+    const hayFiltros = Boolean(action || entity || userId || desde || hasta);
+
+    const consulta = useAuditLogs({ page: pagina, limit: 50, ...filtros });
+    const { data, isLoading, error, errorUpdateCount, refetch, isFetching } = consulta;
+    // AUD-017 — un fallo de carga no es una lista vacía: antes se leía «No hay registros».
+    const { fallo, error: motivo } = useFalloDeCarga({ data, error, errorUpdateCount });
+    const actores = useAuditActors();
 
     const logs = data?.data ?? [];
     const meta = data?.meta;
@@ -100,42 +179,81 @@ export default function AuditLogsPage() {
         { value: "", label: t("auditoria.todasLasAcciones") },
         ...ACCIONES.map((accion) => ({ value: accion, label: t(claveDeAccion(accion)) })),
     ];
-
     const ENTITY_OPTIONS = [
         { value: "", label: t("auditoria.todasLasEntidades") },
         ...ENTIDADES.map((entidad) => ({ value: entidad, label: t(claveDeEntidad(entidad)) })),
     ];
+    const USER_OPTIONS = [
+        { value: "", label: t("auditoria.todosLosUsuarios") },
+        ...(actores.data ?? []).map((a) => ({
+            value: a.userId,
+            label: a.name && a.email ? `${a.name} · ${a.email}` : (a.name ?? a.email ?? a.userId.slice(0, 8)),
+        })),
+    ];
 
     return (
         <div className={CLASES_CONTENEDOR_DE_PAGINA}>
-            <div>
-                <h1 className="text-2xl font-bold text-foreground">{t("ruta.auditoria")}</h1>
-                <p className="text-sm text-foreground-muted mt-1">{t("auditoria.subtitulo")}</p>
+            <div className={CLASES_ENCABEZADO_DE_PAGINA}>
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground">{t("ruta.auditoria")}</h1>
+                    <p className="text-sm text-foreground-muted mt-1">{t("auditoria.subtitulo")}</p>
+                </div>
+                <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
+                    {/* AUD-017 — lo que se está viendo, con sus filtros, por el endpoint (por lotes). */}
+                    <Button variant="secondary" disabled={rangoInvalido || meta?.total === 0} onClick={() => void exportAuditLogsCsv(filtros)}>
+                        <ArrowDownTrayIcon className="h-4 w-4" />
+                        {t("auditoria.exportarCsv")}
+                    </Button>
+                </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-end gap-3">
                 <div className="flex-1 min-w-44">
                     <Select
-                        aria-label={t("auditoria.todasLasAcciones")}
+                        aria-label={t("auditoria.filtrarPorUsuario")}
+                        options={USER_OPTIONS}
+                        value={userId ?? ""}
+                        onChange={(e) => poner({ usuario: e.target.value })}
+                    />
+                </div>
+                <div className="flex-1 min-w-44">
+                    <Select
+                        aria-label={t("auditoria.filtrarPorAccion")}
                         options={ACTION_OPTIONS}
-                        value={action}
-                        onChange={(e) => { setAction(e.target.value as AuditAction | ""); setPage(1); }}
+                        value={action ?? ""}
+                        onChange={(e) => poner({ accion: e.target.value })}
                     />
                 </div>
                 <div className="flex-1 min-w-44">
                     <Select
-                        aria-label={t("auditoria.todasLasEntidades")}
+                        aria-label={t("auditoria.filtrarPorEntidad")}
                         options={ENTITY_OPTIONS}
-                        value={entity}
-                        onChange={(e) => { setEntity(e.target.value as AuditEntity | ""); setPage(1); }}
+                        value={entity ?? ""}
+                        onChange={(e) => poner({ entidad: e.target.value })}
                     />
                 </div>
+                <CampoDeFecha label={t("periodo.desde")} value={desde} onChange={(e) => poner({ desde: e.target.value })} />
+                <CampoDeFecha
+                    label={t("periodo.hasta")}
+                    value={hasta}
+                    onChange={(e) => poner({ hasta: e.target.value })}
+                    error={rangoInvalido ? t("periodo.rangoInvalido") : undefined}
+                />
             </div>
 
-            {isLoading ? (
-                <EsqueletoTabla columnas={6} />
+            {fallo ? (
+                <ErrorDeCarga titulo={t("auditoria.error.titulo")} error={motivo} onReintentar={() => void refetch()} reintentando={isFetching} className="py-8" />
+            ) : isLoading ? (
+                <EsqueletoTabla columnas={5} />
             ) : logs.length === 0 ? (
-                <div className="py-16 text-center text-sm text-foreground-muted">{t("auditoria.sinRegistros")}</div>
+                <div className="py-16 text-center text-sm text-foreground-muted space-y-3">
+                    <p>{t(hayFiltros ? "auditoria.sinRegistrosConFiltros" : "auditoria.sinRegistros")}</p>
+                    {hayFiltros && (
+                        <Button variant="secondary" onClick={() => setParams({}, { replace: true })}>
+                            {t("auditoria.quitarFiltros")}
+                        </Button>
+                    )}
+                </div>
             ) : (
                 <div className="bg-surface rounded-xl border border-border overflow-hidden">
                     <div className={CLASES_TABLA_DESPLAZABLE}>
@@ -151,34 +269,20 @@ export default function AuditLogsPage() {
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {logs.map((log) => (
-                                    <tr key={log.id} className="hover:bg-surface-muted">
+                                    <tr key={log.id} className="align-top hover:bg-surface-muted">
                                         <td className="px-5 py-3">
                                             <Badge variant={ACTION_VARIANTS[log.action] ?? "neutral"}>
                                                 {t(claveDeAccion(log.action))}
                                             </Badge>
                                         </td>
-                                        <td className="px-5 py-3 text-foreground">
-                                            {t(claveDeEntidad(log.entity))}
-                                            {log.entityId && (
-                                                <span className="ml-1.5 text-xs text-foreground-muted font-mono">
-                                                    #{log.entityId.slice(0, 8)}
-                                                </span>
-                                            )}
+                                        <td className="px-5 py-3 min-w-40">
+                                            <Afectado log={log} />
                                         </td>
                                         <td className="px-5 py-3 text-foreground-muted">
                                             {log.userEmail ?? <span className="text-foreground-muted italic">{t("auditoria.sistema")}</span>}
                                         </td>
-                                        <td className="px-5 py-3">
-                                            {log.details ? (
-                                                <details className="cursor-pointer">
-                                                    <summary className="text-xs text-info hover:underline">{t("auditoria.verDetalles")}</summary>
-                                                    <pre className="mt-1 text-xs text-foreground-muted bg-surface-muted rounded p-2 max-w-xs overflow-auto">
-                                                        {JSON.stringify(log.details, null, 2)}
-                                                    </pre>
-                                                </details>
-                                            ) : (
-                                                <span className="text-foreground-muted">—</span>
-                                            )}
+                                        <td className="px-5 py-3 min-w-48">
+                                            <Detalles log={log} />
                                         </td>
                                         <td className="px-5 py-3 text-foreground-muted whitespace-nowrap">
                                             {formatearFechaHora(idioma, log.createdAt)}
@@ -193,10 +297,10 @@ export default function AuditLogsPage() {
 
             {meta && meta.totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm text-foreground-muted">
-                    <span>{t("auditoria.paginacion", { pagina: page, total: meta.totalPages, registros: meta.total })}</span>
+                    <span>{t("auditoria.paginacion", { pagina, total: meta.totalPages, registros: meta.total })}</span>
                     <div className="flex gap-2">
-                        <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>{t("comun.anterior")}</Button>
-                        <Button variant="secondary" disabled={page === meta.totalPages} onClick={() => setPage((p) => p + 1)}>{t("comun.siguiente")}</Button>
+                        <Button variant="secondary" disabled={pagina === 1} onClick={() => poner({ pagina: String(pagina - 1) })}>{t("comun.anterior")}</Button>
+                        <Button variant="secondary" disabled={pagina >= meta.totalPages} onClick={() => poner({ pagina: String(pagina + 1) })}>{t("comun.siguiente")}</Button>
                     </div>
                 </div>
             )}

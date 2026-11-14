@@ -512,7 +512,6 @@ const PAGE_SIZE = 10;
 export default function PurchaseOrdersPage() {
     const { t, tn, idioma } = useT();
     const [formOpen, setFormOpen] = useState(false);
-    const [expandedId, setExpandedId] = useState<string | null>(null);
     const [ordenACancelar, setOrdenACancelar] = useState<PurchaseOrder | null>(null);
     const [ordenARecibir, setOrdenARecibir] = useState<PurchaseOrder | null>(null);
 
@@ -530,6 +529,11 @@ export default function PurchaseOrdersPage() {
     // estado propio, así que se dice encima y se quita con un toque.
     const [params, setParams] = useSearchParams();
     const porRecibir = params.get("estado") === "porRecibir";
+    // AUD-017 — `?compra=<id>`: una orden concreta, la del aviso de compra atrasada o la de la
+    // bitácora. Se pide solo esa (en el listado por fechas, una atrasada caía varias páginas más
+    // allá) y se abre desplegada; se quita con el mismo toque que el otro filtro.
+    const compra = params.get("compra") || undefined;
+    const [expandedId, setExpandedId] = useState<string | null>(() => compra ?? null);
 
     // T5-14 — las de un almacén. Solo se ofrece, y solo se nombra en cada fila, si hay más de uno.
     const [almacenFiltrado, setAlmacenFiltrado] = useState("");
@@ -539,6 +543,7 @@ export default function PurchaseOrdersPage() {
         limit: PAGE_SIZE,
         warehouseId: almacenFiltrado || undefined,
         status: porRecibir ? POR_RECIBIR : undefined,
+        id: compra,
     });
     const orders = data?.data ?? [];
     const total = data?.meta.total ?? 0;
@@ -633,6 +638,15 @@ export default function PurchaseOrdersPage() {
                 <SelectorDeAlmacen comoFiltro etiquetaOculta value={almacenFiltrado} onChange={(id) => { setAlmacenFiltrado(id); setPage(1); }} />
             </div>
 
+            {compra && (
+                <FiltroActivo
+                    texto={t("filtro.unaCompra")}
+                    onQuitar={() => {
+                        setParams({}, { replace: true });
+                        setPage(1);
+                    }}
+                />
+            )}
             {porRecibir && (
                 <FiltroActivo
                     texto={t("filtro.porRecibir")}

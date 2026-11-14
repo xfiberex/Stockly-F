@@ -26,6 +26,8 @@ export interface PurchaseOrderQuery {
     status?: PurchaseOrderStatus | typeof POR_RECIBIR;
     /** T5-14 — solo las de ese almacén. */
     warehouseId?: string;
+    /** AUD-017 — una orden concreta: a ella llevan el aviso de compra atrasada y la bitácora. */
+    id?: string;
 }
 
 /** T5-04 — una entrega: cuánto llega de cada línea. Las que no van no reciben nada. */

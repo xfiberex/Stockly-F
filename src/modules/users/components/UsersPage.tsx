@@ -6,6 +6,8 @@ import { Button } from "@/shared/components/Button";
 import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { Select } from "@/shared/components/Select";
 import { EsqueletoTabla } from "@/shared/components/Esqueleto";
+import { ErrorDeCarga } from "@/shared/components/ErrorDeCarga";
+import { useFalloDeCarga } from "@/shared/hooks/useFalloDeCarga";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useUsers, useInviteUser, useUpdateUserRole, useSetUserActive } from "@/modules/users/hooks/useUsers";
 import { usePuede } from "@/modules/auth/hooks/usePuede";
@@ -45,11 +47,12 @@ export default function UsersPage() {
         { value: "true", label: t("usuarios.activos") },
         { value: "false", label: t("usuarios.inactivos") },
     ];
-    const [search, setSearch] = useState("");
     // AUD-001 — el filtro de rol vive en la URL: el aviso de la campana trae aquí con
     // `?role=PENDING`, también cuando la pantalla ya está abierta. Un valor que no es un rol se
     // ignora, en vez de mandarlo y recibir un 400.
     const [parametros, setParametros] = useSearchParams();
+    // AUD-017 — la bitácora enlaza a una persona con `?buscar=<nombre>`: se abre ya buscada.
+    const [search, setSearch] = useState(() => parametros.get("buscar") ?? "");
     const roleFilter = esRol(parametros.get("role")) ? parametros.get("role")! : "";
     const setRoleFilter = (rol: string) =>
         setParametros((actuales) => {
@@ -63,7 +66,7 @@ export default function UsersPage() {
 
     const debouncedSearch = useDebounce(search, 400);
 
-    const { data, isLoading } = useUsers({
+    const { data, isLoading, error, errorUpdateCount, refetch, isFetching } = useUsers({
         page,
         limit: 20,
         search: debouncedSearch || undefined,
@@ -100,6 +103,8 @@ export default function UsersPage() {
 
     const users = data?.data ?? [];
     const meta = data?.meta;
+    // AUD-017 — un fallo de carga no es una lista vacía: antes se leía «No se encontraron usuarios».
+    const { fallo, error: motivo } = useFalloDeCarga({ data, error, errorUpdateCount });
 
     return (
         <div className={CLASES_CONTENEDOR_DE_PAGINA}>
@@ -146,7 +151,9 @@ export default function UsersPage() {
                 </div>
             </div>
 
-            {isLoading ? (
+            {fallo ? (
+                <ErrorDeCarga titulo={t("usuarios.error.titulo")} error={motivo} onReintentar={() => void refetch()} reintentando={isFetching} className="py-8" />
+            ) : isLoading ? (
                 <EsqueletoTabla columnas={6} />
             ) : users.length === 0 ? (
                 <div className="py-16 text-center text-sm text-foreground-muted">{t("usuarios.sinResultados")}</div>

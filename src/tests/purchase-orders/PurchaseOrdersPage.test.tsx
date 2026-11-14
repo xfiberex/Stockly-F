@@ -124,6 +124,17 @@ describe("PurchaseOrdersPage — llegar desde el panel (AUD-008)", () => {
         expect(screen.queryByText(/Solo las compras por recibir/)).not.toBeInTheDocument();
     });
 
+    it("`?compra=<id>` pide solo esa orden y lo dice encima; quitarlo vuelve a la lista (AUD-017)", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<PurchaseOrdersPage />, { initialRoute: "/purchase-orders?compra=po-atrasada" });
+
+        expect(consultas.at(-1)).toMatchObject({ id: "po-atrasada" });
+        expect(screen.getByText(/Solo una compra/)).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Quitar filtro" }));
+        expect(consultas.at(-1)?.id).toBeUndefined();
+    });
+
     it("sin el parámetro no hay filtro ni aviso", () => {
         renderWithProviders(<PurchaseOrdersPage />);
 
