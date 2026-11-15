@@ -33,7 +33,7 @@ import { BotonDeComprobante } from "@/modules/sale-orders/components/BotonDeComp
 import { BuscadorDeCliente } from "@/modules/customers/components/BuscadorDeCliente";
 import type { CustomerListItem } from "@/modules/customers/types/customer.types";
 import type { SaleOrder, SaleOrderStatus, CreateSaleOrderDto } from "@/modules/sale-orders/types/sale-orders.types";
-import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, TruckIcon, XMarkIcon, ArrowDownTrayIcon, ViewfinderCircleIcon, EnvelopeIcon, PhoneIcon, FunnelIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearDia, formatearFecha } from "@/shared/lib/fechas";
@@ -476,6 +476,11 @@ export default function SaleOrdersPage() {
     const numeroInvalido = !SOLO_CIFRAS.test(cifras);
     const numeroBuscado = useDebounce(cifras, 300);
     const hayFiltros = estado !== "" || desde !== "" || hasta !== "" || numero !== "" || almacenFiltrado !== "" || mias;
+    // AUD-019 — en el móvil, estado, fechas y almacén van plegados, como en Productos (AUD-013):
+    // apilados ocupaban media pantalla antes de la primera venta. El número se queda a la vista,
+    // que es lo que se busca de pie con un ticket en la mano, y el botón dice cuántos hay puestos.
+    const [filtrosDesplegados, setFiltrosDesplegados] = useState(false);
+    const filtrosPlegados = [estado, desde, hasta, almacenFiltrado].filter(Boolean).length;
     // Cambiar un filtro vuelve a la página 1: la 3 de «todas» puede no existir en «enviadas».
     // Y deja la URL sin los filtros del panel: ya no son los de la lista.
     const filtrar = (cambio: () => void) => {
@@ -585,6 +590,20 @@ export default function SaleOrdersPage() {
                         onChange={(e) => filtrar(() => setNumero(e.target.value))}
                         error={numeroInvalido ? t("ventas.filtro.numeroInvalido") : undefined}
                     />
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        className="md:hidden"
+                        aria-expanded={filtrosDesplegados}
+                        aria-controls="filtros-de-ventas"
+                        onClick={() => setFiltrosDesplegados((d) => !d)}
+                    >
+                        <FunnelIcon className="h-4 w-4" />
+                        {filtrosPlegados > 0 ? t("filtro.plegadosConCantidad", { cantidad: filtrosPlegados }) : t("filtro.plegados")}
+                    </Button>
+                    {/* `contents`: siguen siendo celdas de la rejilla. Se ocultan con CSS y no se
+                        desmontan, así que plegar no borra lo elegido. */}
+                    <div id="filtros-de-ventas" className={cn("contents", !filtrosDesplegados && "max-md:hidden")}>
                     {/* Sin etiqueta visible, como el filtro de tipo de los movimientos: «Todos los
                         estados» ya dice qué es, y el nombre accesible va en `aria-label`. */}
                     <Select
@@ -609,6 +628,7 @@ export default function SaleOrdersPage() {
                         error={rangoInvalido ? t("ventas.filtro.rangoInvalido") : undefined}
                     />
                     <SelectorDeAlmacen comoFiltro etiquetaOculta value={almacenFiltrado} onChange={(id) => filtrar(() => setAlmacenFiltrado(id))} />
+                    </div>
                     {hayFiltros && (
                         <Button
                             variant="secondary"
@@ -740,8 +760,23 @@ export default function SaleOrdersPage() {
                                 <div className="border-t border-border px-5 py-4">
                                     {(order.customerEmail || order.customerPhone || order.customerDocument) && (
                                         <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-xs text-foreground-muted">
-                                            {order.customerEmail && <span>✉ {order.customerEmail}</span>}
-                                            {order.customerPhone && <span>📞 {order.customerPhone}</span>}
+                                            {/* AUD-019 — Heroicons, la única fuente de iconos, en vez de emoji:
+                                                el emoji cambia con el sistema y un lector lo leía
+                                                como «sobre» y «receptor de teléfono». */}
+                                            {order.customerEmail && (
+                                                <span className="inline-flex items-center gap-1 break-all">
+                                                    <EnvelopeIcon aria-hidden="true" className="h-4 w-4 shrink-0" />
+                                                    <span className="sr-only">{t("clientes.correo")}:</span>
+                                                    {order.customerEmail}
+                                                </span>
+                                            )}
+                                            {order.customerPhone && (
+                                                <span className="inline-flex items-center gap-1">
+                                                    <PhoneIcon aria-hidden="true" className="h-4 w-4 shrink-0" />
+                                                    <span className="sr-only">{t("clientes.telefono")}:</span>
+                                                    {order.customerPhone}
+                                                </span>
+                                            )}
                                             {order.customerDocument && (
                                                 <span>{t("ventas.documentoDe", { documento: order.customerDocument })}</span>
                                             )}

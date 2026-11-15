@@ -1,6 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { ALMACEN, EMAIL, VENDEDOR, api, apiCruda, login, stockDe, sufijo } from "./helpers";
 import { eanDePrueba, paginasComoPng, textoDelPdf } from "./etiquetas";
+import { escribirNumeroDeCompra } from "../src/shared/contratos/api.generated";
 
 // T1-23: los tres defectos funcionales de la auditoría (T0-03, T1-03 y T1-05) no
 // produjeron ni un fallo entre 379 tests, porque cada repositorio se probaba contra su
@@ -224,8 +225,9 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         const creado = (await api(page, "post", "/products", { name: producto, price: 50, stock: 0 })) as { id: string };
         const orden = (await api(page, "post", "/purchase-orders", {
             items: [{ productId: creado.id, productName: producto, quantity: PEDIDAS, unitPrice: 20 }],
-        })) as { id: string };
-        const numero = orden.id.slice(0, 8).toUpperCase();
+        })) as { id: string; number: number };
+        // AUD-019 — la compra se nombra por su correlativo, no por el principio del id.
+        const numero = escribirNumeroDeCompra(orden.number);
 
         // Llegan 60 de 100, registrados por la interfaz.
         await page.goto("/purchase-orders");
@@ -263,8 +265,9 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         const creado = (await api(page, "post", "/products", { name: producto, price: 50, stock: 0 })) as { id: string };
         const orden = (await api(page, "post", "/purchase-orders", {
             items: [{ productId: creado.id, productName: producto, quantity: 8, unitPrice: 20 }],
-        })) as { id: string };
-        const numero = orden.id.slice(0, 8).toUpperCase();
+        })) as { id: string; number: number };
+        // AUD-019 — la compra se nombra por su correlativo, no por el principio del id.
+        const numero = escribirNumeroDeCompra(orden.number);
 
         const contexto = await browser.newContext();
         const almacen = await contexto.newPage();
@@ -464,9 +467,15 @@ test.describe("Flujos que cruzan frontend y backend", () => {
 
         await incluir.check();
         await page.getByLabel(`Precio unitario de ${producto}`).fill("4.5");
-        const respuesta = page.waitForResponse((r) => r.url().includes("/purchase-orders/suggestions") && r.request().method() === "POST");
+        // AUD-019 — «Generar» pregunta antes, con el importe: 12 × 4,50 = 54,00.
         await page.getByRole("button", { name: "Generar órdenes" }).click();
+        const confirmacion = page.getByRole("dialog", { name: "Generar 1 orden de compra" });
+        await expect(confirmacion).toContainText(`E2E-prov-${marca}`);
+        await expect(confirmacion).toContainText("54.00");
+        const respuesta = page.waitForResponse((r) => r.url().includes("/purchase-orders/suggestions") && r.request().method() === "POST");
+        await confirmacion.getByRole("button", { name: "Generar órdenes" }).click();
         expect((await respuesta).status()).toBe(201);
+        await expect(confirmacion).toBeHidden();
 
         // Lo pedido ya cuenta como pendiente de recibir: la sugerencia desaparece sola.
         await expect(incluir).toBeHidden();
@@ -1154,8 +1163,9 @@ test.describe("Flujos que cruzan frontend y backend", () => {
 
         const orden = (await api(page, "post", "/purchase-orders", {
             items: [{ productId: creado.id, productName: producto, quantity: 10, unitPrice: 5 }],
-        })) as { id: string };
-        const numero = orden.id.slice(0, 8).toUpperCase();
+        })) as { id: string; number: number };
+        // AUD-019 — la compra se nombra por su correlativo, no por el principio del id.
+        const numero = escribirNumeroDeCompra(orden.number);
 
         type Lotes = { withoutLot: number; lots: Array<{ code: string; expiresAt: string; stock: number; daysLeft: number }> };
         const lotes = async () => ((await api(page, "get", `/products/${creado.id}/lots`)) as Lotes).lots.map((l) => [l.code, l.stock]);

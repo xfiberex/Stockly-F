@@ -265,6 +265,24 @@ describe("CustomerDetailPage", () => {
         expect(api.getSaleOrders).toHaveBeenCalledWith({ customerId: ANA.id, page: 1, limit: 10 });
     });
 
+    it("la columna dice «Subtotal», que es lo que es, y el número lleva a la venta desplegada (AUD-019)", async () => {
+        ficha = {
+            ...ANA,
+            summary: { orders: 1, pending: 0, shipped: 1, cancelled: 0, shippedRevenue: 20, lastOrderAt: "2026-09-01T10:00:00.000Z" },
+        };
+        ordenesDelCliente = [orden("aaaaaaaa-0000-4000-8000-000000000027", "SHIPPED", "Ana Soto", "10.00")];
+
+        renderFicha();
+
+        const historial = await screen.findByRole("region", { name: "Historial de ventas" });
+        expect(await within(historial).findByRole("columnheader", { name: "Subtotal" })).toBeInTheDocument();
+        expect(within(historial).queryByRole("columnheader", { name: "Total" })).not.toBeInTheDocument();
+        expect(within(historial).getByRole("link", { name: "Venta #000027" })).toHaveAttribute(
+            "href",
+            "/sale-orders?numero=27&venta=aaaaaaaa-0000-4000-8000-000000000027",
+        );
+    });
+
     it("cada venta enviada del historial descarga su comprobante; las que no lo tienen no llevan botón (T6-07)", async () => {
         ficha = { ...ANA, summary: { orders: 4, pending: 1, shipped: 1, cancelled: 2, shippedRevenue: 20, lastOrderAt: "2026-09-20T10:00:00.000Z" } };
         const enviada = orden("aaaaaaaa-0000-4000-8000-000000000001", "SHIPPED", "Ana", "10.00");

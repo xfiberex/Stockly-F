@@ -13,9 +13,9 @@ import {
     useUnreadCount,
 } from "@/modules/notifications/hooks/useNotifications";
 import type { Notification } from "@/modules/notifications/types/notification.types";
-import { escribirNumeroDeVenta } from "@/shared/contratos";
+import { escribirNumeroDeCompra, escribirNumeroDeVenta } from "@/shared/contratos";
 
-/** El número de una compra, como en su pantalla: los ocho primeros caracteres del id. */
+/** Cómo se nombraban ventas y compras antes de tener correlativo: los ocho primeros caracteres del id. */
 const numeroDe = (id: string) => id.slice(0, 8).toUpperCase();
 
 /**
@@ -24,6 +24,10 @@ const numeroDe = (id: string) => id.slice(0, 8).toUpperCase();
  */
 const numeroDeVenta = (aviso: Extract<Notification, { type: "SALE_UNSHIPPABLE" }>) =>
     aviso.data.orderNumber !== undefined ? escribirNumeroDeVenta(aviso.data.orderNumber) : numeroDe(aviso.entityId);
+
+/** AUD-019 — lo mismo con las compras: por su correlativo, y los avisos de antes, por el id. */
+const numeroDeCompra = (aviso: Extract<Notification, { type: "PURCHASE_OVERDUE" }>) =>
+    aviso.data.orderNumber !== undefined ? escribirNumeroDeCompra(aviso.data.orderNumber) : numeroDe(aviso.entityId);
 
 /** El día de hoy en este navegador, `AAAA-MM-DD`, para comparar con una fecha de caducidad. */
 function diaDeHoy(): string {
@@ -80,7 +84,7 @@ function presentar(aviso: Notification, { t, idioma }: Traductor): Presentacion 
             return {
                 Icono: TruckIcon,
                 tono: "bg-info-surface text-info",
-                titulo: t("avisos.compraAtrasada.titulo", { numero: numeroDe(aviso.entityId) }),
+                titulo: t("avisos.compraAtrasada.titulo", { numero: numeroDeCompra(aviso) }),
                 detalle: aviso.data.supplierName
                     ? t("avisos.compraAtrasada.detalle", { proveedor: aviso.data.supplierName, fecha })
                     : t("avisos.compraAtrasada.detalleSinProveedor", { fecha }),

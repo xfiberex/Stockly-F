@@ -90,6 +90,7 @@ function costes(page = 1, total = 25): CostHistoryResponse {
             newCost: "12.5",
             source: i === 0 && page === 1 ? ("PURCHASE_RECEIPT" as const) : ("MANUAL" as const),
             purchaseOrderId: i === 0 && page === 1 ? "abcdef12-0000-0000-0000-000000000000" : null,
+            purchaseOrderNumber: i === 0 && page === 1 ? 42 : null,
             createdAt: "2026-09-01T10:00:00Z",
         })),
         meta: { total, page, limit: 20, totalPages: Math.ceil(total / 20) },
@@ -243,7 +244,7 @@ describe("StockMovementsPage — historial de costes (T5-01)", () => {
 
         await user.click(await screen.findByRole("tab", { name: "Historial de costes (25)" }));
 
-        expect(await screen.findByText("Recepción de la orden #ABCDEF12")).toBeInTheDocument();
+        expect(await screen.findByText("Recepción de la orden #000042")).toBeInTheDocument();
         expect(screen.getAllByText("Edición manual")).toHaveLength(19);
         // El primer cambio partió de un producto sin coste: se dice, no se pinta $0.00.
         expect(screen.getAllByText("Sin coste conocido").length).toBeGreaterThan(0);
@@ -254,7 +255,7 @@ describe("StockMovementsPage — historial de costes (T5-01)", () => {
         renderWithProviders(<StockMovementsPage />);
 
         await user.click(await screen.findByRole("tab", { name: "Historial de costes (25)" }));
-        await screen.findByText("Recepción de la orden #ABCDEF12");
+        await screen.findByText("Recepción de la orden #000042");
         // Los movimientos tienen su propia paginación en otra pestaña; aquí solo está la de costes.
         await user.click(screen.getByRole("button", { name: "Siguiente" }));
 

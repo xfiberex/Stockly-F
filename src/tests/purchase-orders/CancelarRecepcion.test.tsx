@@ -16,6 +16,7 @@ import type { PurchaseOrder } from "@/modules/purchase-orders/types/purchase-ord
 
 const ORDEN_RECIBIDA = {
     id: "bbbbbbbb-1111-2222-3333-444444444444",
+    number: 7,
     supplierId: null,
     supplier: null,
     warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, status: "RECEIVED",
@@ -65,7 +66,7 @@ vi.mock("@/modules/products/hooks/useProducts", () => ({
 }));
 
 function botonCancelarRecepcion() {
-    return screen.queryByRole("button", { name: "Cancelar la orden recibida #BBBBBBBB" });
+    return screen.queryByRole("button", { name: "Cancelar la orden recibida #000007" });
 }
 
 describe("PurchaseOrdersPage — cancelar una orden ya recibida (T5-01)", () => {
@@ -90,7 +91,7 @@ describe("PurchaseOrdersPage — cancelar una orden ya recibida (T5-01)", () => 
 
         const dialogo = screen.getByRole("dialog");
         // Sin «La orden Orden #…»: la frase ya nombra la orden (visto en el navegador).
-        expect(within(dialogo).getByText(/ya fue recibida/)).toHaveTextContent(/^La orden #BBBBBBBB ya fue recibida/);
+        expect(within(dialogo).getByText(/ya fue recibida/)).toHaveTextContent(/^La orden #000007 ya fue recibida/);
         // 3 + 2 de los ítems ligados a un producto; los 9 escritos a mano no mueven stock.
         expect(within(dialogo).getByText(/Se retirarán/)).toHaveTextContent("Se retirarán 5 unidades");
         expect(within(dialogo).getByText("Teclado")).toBeInTheDocument();
@@ -168,9 +169,9 @@ describe("PurchaseOrdersPage — cancelar una orden ya recibida (T5-01)", () => 
 });
 
 describe("PurchaseOrdersPage — el rol de almacén (T5-13)", () => {
-    const PENDIENTE = { ...ORDEN_RECIBIDA, id: "cccccccc-1111-2222-3333-444444444444", status: "PENDING" as const,
+    const PENDIENTE = { ...ORDEN_RECIBIDA, id: "cccccccc-1111-2222-3333-444444444444", number: 12, status: "PENDING" as const,
         items: ORDEN_RECIBIDA.items.map((i) => ({ ...i, receivedQuantity: 0 })) };
-    const A_MEDIAS = { ...ORDEN_RECIBIDA, id: "dddddddd-1111-2222-3333-444444444444", status: "PARTIALLY_RECEIVED" as const,
+    const A_MEDIAS = { ...ORDEN_RECIBIDA, id: "dddddddd-1111-2222-3333-444444444444", number: 13, status: "PARTIALLY_RECEIVED" as const,
         items: ORDEN_RECIBIDA.items.map((i) => ({ ...i, receivedQuantity: 1 })) };
 
     beforeEach(() => {
@@ -182,11 +183,11 @@ describe("PurchaseOrdersPage — el rol de almacén (T5-13)", () => {
         ordenes = [PENDIENTE, A_MEDIAS];
         renderWithProviders(<PurchaseOrdersPage />);
 
-        expect(screen.getByRole("button", { name: "Recibir mercancía de la orden #CCCCCCCC" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Recibir mercancía de la orden #DDDDDDDD" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Recibir mercancía de la orden #000012" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Recibir mercancía de la orden #000013" })).toBeInTheDocument();
         expect(screen.queryByTitle("Cancelar orden")).not.toBeInTheDocument();
         expect(screen.queryByTitle("Eliminar")).not.toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Cancelar la orden recibida #DDDDDDDD" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Cancelar la orden recibida #000013" })).not.toBeInTheDocument();
     });
 
     it("no ve cancelar una recibida, ni crear, sugerencias o exportar", () => {
@@ -204,6 +205,6 @@ describe("PurchaseOrdersPage — el rol de almacén (T5-13)", () => {
         ordenes = [PENDIENTE];
         renderWithProviders(<PurchaseOrdersPage />);
 
-        expect(screen.queryByRole("button", { name: "Recibir mercancía de la orden #CCCCCCCC" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Recibir mercancía de la orden #000012" })).not.toBeInTheDocument();
     });
 });

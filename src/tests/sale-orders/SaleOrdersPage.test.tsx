@@ -405,3 +405,41 @@ describe("SaleOrdersPage — eliminar una pendiente confirma (AUD-012)", () => {
         expect(screen.queryByRole("dialog")).toBeNull();
     });
 });
+
+describe("SaleOrdersPage — pulido de la crítica (AUD-019)", () => {
+    beforeEach(() => {
+        rol = "ADMIN";
+    });
+
+    it("el contacto del cliente va con iconos y su nombre para el lector, no con emoji", async () => {
+        ordenes = [{ ...ORDEN_PENDIENTE, customerEmail: "ana@correo.com", customerPhone: "809-555-0101" }];
+        const user = userEvent.setup();
+        renderWithProviders(<SaleOrdersPage />);
+
+        await user.click(screen.getByText("Venta #000042"));
+
+        expect(screen.getByText("ana@correo.com")).toHaveTextContent("Correo:ana@correo.com");
+        expect(screen.getByText("809-555-0101")).toHaveTextContent("Teléfono:809-555-0101");
+        expect(document.body).not.toHaveTextContent(/✉|📞/u);
+    });
+
+    it("en el móvil, estado, fechas y almacén se pliegan tras «Filtros», que dice cuántos hay puestos; el número queda a la vista", async () => {
+        ordenes = [ORDEN_PENDIENTE];
+        const user = userEvent.setup();
+        renderWithProviders(<SaleOrdersPage />);
+
+        const boton = screen.getByRole("button", { name: "Filtros" });
+        const plegables = document.getElementById(boton.getAttribute("aria-controls")!)!;
+        expect(boton).toHaveAttribute("aria-expanded", "false");
+        expect(plegables).toHaveClass("max-md:hidden");
+        expect(plegables).toContainElement(screen.getByRole("combobox", { name: "Estado" }));
+        expect(plegables).not.toContainElement(screen.getByRole("textbox", { name: "Nº de venta" }));
+
+        await user.click(boton);
+        expect(boton).toHaveAttribute("aria-expanded", "true");
+        expect(plegables).not.toHaveClass("max-md:hidden");
+
+        await user.selectOptions(screen.getByRole("combobox", { name: "Estado" }), "PENDING");
+        expect(screen.getByRole("button", { name: "Filtros (1)" })).toBeInTheDocument();
+    });
+});

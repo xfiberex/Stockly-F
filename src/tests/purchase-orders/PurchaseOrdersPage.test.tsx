@@ -13,6 +13,7 @@ function ordenesDe(page: number, limit: number) {
     const desde = (page - 1) * limit;
     return Array.from({ length: Math.min(limit, TOTAL - desde) }, (_, i) => ({
         id: `orden-${desde + i}`,
+        number: desde + i + 1,
         supplierId: null,
         supplier: null,
         warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, status: "PENDING" as const,
@@ -68,6 +69,9 @@ describe("PurchaseOrdersPage — paginación (T2-04)", () => {
             screen.getByText((_, el) => el?.textContent === `${TOTAL} órdenes en total`),
         ).toBeInTheDocument();
         expect(screen.getAllByText(/^Orden #/)).toHaveLength(10);
+        // AUD-019 — por su correlativo, que se puede dictar; no por el principio del id.
+        expect(screen.getByRole("button", { name: "Orden #000001" })).toBeInTheDocument();
+        expect(screen.queryByText(/ORDEN-0/)).not.toBeInTheDocument();
     });
 
     it("muestra los controles con la página actual y el total de páginas", () => {

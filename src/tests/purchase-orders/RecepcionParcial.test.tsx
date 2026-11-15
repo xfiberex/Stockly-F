@@ -29,6 +29,7 @@ const item = (over: Partial<PurchaseOrder["items"][number]>) => ({
 /** 100 teclados de los que llegaron 60, 5 ratones completos y unos portes escritos a mano. */
 const A_MEDIAS = {
     id: "cccccccc-1111-2222-3333-444444444444",
+    number: 21,
     supplierId: null,
     supplier: null,
     warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, status: "PARTIALLY_RECEIVED",
@@ -86,7 +87,7 @@ vi.mock("@/modules/products/hooks/useProducts", () => ({
 async function abrirRecepcion() {
     const user = userEvent.setup();
     renderWithProviders(<PurchaseOrdersPage />);
-    await user.click(screen.getByRole("button", { name: "Recibir mercancía de la orden #CCCCCCCC" }));
+    await user.click(screen.getByRole("button", { name: "Recibir mercancía de la orden #000021" }));
     return { user, dialogo: screen.getByRole("dialog") };
 }
 
@@ -106,8 +107,8 @@ describe("PurchaseOrdersPage — recepción parcial (T5-04)", () => {
 
             expect(screen.getByText("Recibida a medias")).toBeInTheDocument();
             expect(screen.getByText("65 de 106 uds. recibidas")).toBeInTheDocument();
-            expect(screen.getByRole("button", { name: "Recibir mercancía de la orden #CCCCCCCC" })).toBeInTheDocument();
-            expect(screen.getByRole("button", { name: "Cancelar la orden recibida #CCCCCCCC" })).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Recibir mercancía de la orden #000021" })).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Cancelar la orden recibida #000021" })).toBeInTheDocument();
             expect(screen.queryByTitle("Eliminar")).not.toBeInTheDocument();
         });
 
@@ -206,7 +207,7 @@ describe("PurchaseOrdersPage — recepción parcial (T5-04)", () => {
             const user = userEvent.setup();
             renderWithProviders(<PurchaseOrdersPage />);
 
-            await user.click(screen.getByRole("button", { name: "Cancelar la orden recibida #CCCCCCCC" }));
+            await user.click(screen.getByRole("button", { name: "Cancelar la orden recibida #000021" }));
 
             const dialogo = screen.getByRole("dialog");
             expect(within(dialogo).getByText(/está recibida a medias/)).toHaveTextContent(/lo que falta ya no se recibirá/);
@@ -221,7 +222,7 @@ describe("PurchaseOrdersPage — recepción parcial (T5-04)", () => {
             const user = userEvent.setup();
             renderWithProviders(<PurchaseOrdersPage />);
 
-            await user.click(screen.getByRole("button", { name: "Cancelar la orden recibida #CCCCCCCC" }));
+            await user.click(screen.getByRole("button", { name: "Cancelar la orden recibida #000021" }));
 
             expect(within(screen.getByRole("dialog")).queryByText("Sin llegar")).not.toBeInTheDocument();
         });

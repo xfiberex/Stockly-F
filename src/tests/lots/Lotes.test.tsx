@@ -374,7 +374,7 @@ describe("recibir una compra", () => {
         quantity: 1, receivedQuantity: 0, unitPrice: "10", createdAt: "", ...over,
     });
     const ORDEN: PurchaseOrder = {
-        id: "dddddddd-1111-2222-3333-444444444444", supplierId: null, supplier: null,
+        id: "dddddddd-1111-2222-3333-444444444444", number: 3, supplierId: null, supplier: null,
         warehouseId: "w-central", warehouse: { id: "w-central", name: "Tienda Central" }, status: "PENDING", notes: null,
         items: [
             linea({ id: "yogur", productId: "p-yogur", product: { id: "p-yogur", name: "Yogur", sku: null, tracksLots: true }, productName: "Yogur", quantity: 10 }),
@@ -387,7 +387,7 @@ describe("recibir una compra", () => {
         estado.ordenes = [ORDEN];
         const user = userEvent.setup();
         renderWithProviders(<PurchaseOrdersPage />);
-        await user.click(screen.getByRole("button", { name: "Recibir mercancía de la orden #DDDDDDDD" }));
+        await user.click(screen.getByRole("button", { name: "Recibir mercancía de la orden #000003" }));
         return { user, dialogo: within(screen.getByRole("dialog")) };
     }
 

@@ -19,6 +19,7 @@ const PRODUCTOS = [
 function orden(over: Partial<PurchaseOrder> = {}): PurchaseOrder {
     return {
         id: "aaaaaaaa-1111-2222-3333-444444444444",
+        number: 42,
         supplierId: null,
         supplier: null,
         warehouseId: "almacen-1", warehouse: { id: "almacen-1", name: "Principal" }, status: "PENDING",

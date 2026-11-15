@@ -31,7 +31,7 @@ import { exportPurchaseOrdersCsv } from "@/modules/purchase-orders/api/purchase-
 import { POR_RECIBIR, type PurchaseOrder, type CreatePurchaseOrderForm, type RecepcionForm } from "@/modules/purchase-orders/types/purchase-orders.types";
 import { PlusIcon, TrashIcon, XMarkIcon, ArrowDownTrayIcon, InboxArrowDownIcon, SparklesIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { useT } from "@/shared/hooks/useIdioma";
-import { LARGO_MAXIMO_DE_CODIGO_DE_LOTE, aNumero } from "@/shared/contratos";
+import { LARGO_MAXIMO_DE_CODIGO_DE_LOTE, aNumero, escribirNumeroDeCompra } from "@/shared/contratos";
 import type { Clave } from "@/shared/i18n/traducir";
 import { formatearFecha } from "@/shared/lib/fechas";
 import { CLASES_BOTON_ICONO, clasesDeBoton } from "@/shared/lib/clasesDeBoton";
@@ -49,9 +49,12 @@ function orderTotal(order: PurchaseOrder): number {
     return order.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
 }
 
-/** El número corto con el que la orden aparece en la lista. */
-function numeroDeOrden(id: string): string {
-    return id.slice(0, 8).toUpperCase();
+/**
+ * AUD-019 — el número con el que la orden aparece en la lista, la recepción y la cancelación: su
+ * correlativo («000042»), que se puede dictar. Antes era el principio del UUID («3F9A1C0B»).
+ */
+function numeroDeOrden(orden: PurchaseOrder): string {
+    return escribirNumeroDeCompra(orden.number);
 }
 
 /**
@@ -103,7 +106,7 @@ function CancelarRecepcionModal({ orden, isPending, onConfirm, onClose }: Cancel
                             de ventas: la frase ya dice «la orden», y se leía «La orden Orden #…». */}
                         {t(
                             orden.status === "PARTIALLY_RECEIVED" ? "compras.cancelar.explicacionParcial" : "compras.cancelar.explicacion",
-                            { numero: numeroDeOrden(orden.id) },
+                            { numero: numeroDeOrden(orden) },
                         )}
                     </p>
 
@@ -221,7 +224,7 @@ function RecepcionModal({ orden, isPending, onConfirm, onClose }: RecepcionModal
                 }}
             >
                 <p className="text-sm text-foreground">
-                    {t("compras.recepcion.explicacion", { numero: numeroDeOrden(orden.id) })}
+                    {t("compras.recepcion.explicacion", { numero: numeroDeOrden(orden) })}
                 </p>
 
                 {/* AUD-013 — en el móvil, producto y «Llega ahora», sin el ancho mínimo de la tabla:
@@ -686,7 +689,7 @@ export default function PurchaseOrdersPage() {
                                                 abierto={expandedId === order.id}
                                                 onAlternar={() => setExpandedId(expandedId === order.id ? null : order.id)}
                                             >
-                                                {t("compras.numero", { numero: order.id.slice(0, 8).toUpperCase() })}
+                                                {t("compras.numero", { numero: numeroDeOrden(order) })}
                                             </BotonDeDesplegar>
                                         </p>
                                         <p className="text-xs text-foreground-muted">
@@ -717,7 +720,7 @@ export default function PurchaseOrdersPage() {
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("compras.recibir")}
-                                                    aria-label={t("compras.recibirDe", { numero: numeroDeOrden(order.id) })}
+                                                    aria-label={t("compras.recibirDe", { numero: numeroDeOrden(order) })}
                                                     onClick={() => setOrdenARecibir(order)}
                                                 >
                                                     <InboxArrowDownIcon className="h-4 w-4 text-success" />
@@ -728,7 +731,7 @@ export default function PurchaseOrdersPage() {
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("compras.cancelarOrden")}
-                                                    aria-label={t("compras.cancelarDe", { numero: numeroDeOrden(order.id) })}
+                                                    aria-label={t("compras.cancelarDe", { numero: numeroDeOrden(order) })}
                                                     onClick={() => setAccion({ tipo: "cancelar", orden: order })}
                                                 >
                                                     <XMarkIcon className="h-4 w-4 text-warning" />
@@ -739,7 +742,7 @@ export default function PurchaseOrdersPage() {
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("comun.eliminar")}
-                                                    aria-label={t("compras.eliminarDe", { numero: numeroDeOrden(order.id) })}
+                                                    aria-label={t("compras.eliminarDe", { numero: numeroDeOrden(order) })}
                                                     onClick={() => setAccion({ tipo: "eliminar", orden: order })}
                                                 >
                                                     <TrashIcon className="h-4 w-4 text-danger" />
@@ -758,7 +761,7 @@ export default function PurchaseOrdersPage() {
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("compras.recibir")}
-                                                    aria-label={t("compras.recibirDe", { numero: numeroDeOrden(order.id) })}
+                                                    aria-label={t("compras.recibirDe", { numero: numeroDeOrden(order) })}
                                                     onClick={() => setOrdenARecibir(order)}
                                                 >
                                                     <InboxArrowDownIcon className="h-4 w-4 text-success" />
@@ -769,7 +772,7 @@ export default function PurchaseOrdersPage() {
                                                     variant="ghost"
                                                     className={CLASES_BOTON_ICONO}
                                                     title={t("compras.cancelarRecibida")}
-                                                    aria-label={t("compras.cancelarRecibidaDe", { numero: numeroDeOrden(order.id) })}
+                                                    aria-label={t("compras.cancelarRecibidaDe", { numero: numeroDeOrden(order) })}
                                                     onClick={() => setOrdenACancelar(order)}
                                                 >
                                                     <XMarkIcon className="h-4 w-4 text-warning" />
@@ -865,7 +868,7 @@ export default function PurchaseOrdersPage() {
 
             <ConfirmarAccion
                 abierto={accion !== null}
-                titulo={accion ? t(accion.tipo === "cancelar" ? "compras.confirmar.cancelar.titulo" : "compras.confirmar.eliminar.titulo", { numero: numeroDeOrden(accion.orden.id) }) : ""}
+                titulo={accion ? t(accion.tipo === "cancelar" ? "compras.confirmar.cancelar.titulo" : "compras.confirmar.eliminar.titulo", { numero: numeroDeOrden(accion.orden) }) : ""}
                 confirmar={t(accion?.tipo === "eliminar" ? "comun.eliminar" : "compras.cancelarOrden")}
                 pendiente={updateMutation.isPending || deleteMutation.isPending}
                 onConfirmar={confirmarAccion}

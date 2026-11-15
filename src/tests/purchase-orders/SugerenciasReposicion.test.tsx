@@ -65,6 +65,13 @@ function pintar() {
     return { user, generar: screen.getByRole("button", { name: "Generar órdenes" }) };
 }
 
+/** AUD-019 — «Generar órdenes» ya no crea nada: abre la confirmación, que es la que genera. */
+async function generarYConfirmar(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("button", { name: "Generar órdenes" }));
+    const dialogo = screen.getByRole("dialog");
+    await user.click(within(dialogo).getByRole("button", { name: "Generar órdenes" }));
+}
+
 describe("Sugerencias de reposición (T5-05)", () => {
     beforeEach(() => {
         filas = FILAS;
@@ -106,7 +113,8 @@ describe("Sugerencias de reposición (T5-05)", () => {
         await user.clear(cantidad);
         await user.type(cantidad, "25");
         await user.click(screen.getByRole("checkbox", { name: "Incluir Arandela" }));
-        await user.click(generar);
+        expect(generar).toBeEnabled();
+        await generarYConfirmar(user);
 
         expect(generadas).toEqual([{ items: [{ productId: "tornillo", quantity: 25, unitPrice: 3.25 }] }]);
     });
@@ -122,7 +130,7 @@ describe("Sugerencias de reposición (T5-05)", () => {
 
         await user.type(screen.getByRole("spinbutton", { name: "Precio unitario de Tuerca" }), "2.5");
         expect(generar).toBeEnabled();
-        await user.click(generar);
+        await generarYConfirmar(user);
 
         expect(generadas[0]).toEqual({
             items: [
@@ -219,11 +227,74 @@ describe("Sugerencias de reposición — lo editado no se pierde (AUD-011)", () 
         );
         await user.clear(cantidad());
         await user.type(cantidad(), "30");
-        await user.click(screen.getByRole("button", { name: "Generar órdenes" }));
+        await generarYConfirmar(user);
 
         expect(generadas).toHaveLength(1);
         await user.click(screen.getByRole("link", { name: "Ir a otra pantalla" }));
         expect(await screen.findByText("Otra pantalla")).toBeInTheDocument();
         expect(screen.queryByRole("dialog")).toBeNull();
+    });
+});
+
+/**
+ * AUD-019 — se generaban órdenes de compra sin ver ningún importe. Ahora cada línea dice su
+ * subtotal, cada proveedor lo marcado, el resumen el total, y antes de crear nada una
+ * confirmación dice cuántas órdenes, a quién y por cuánto.
+ */
+describe("Sugerencias de reposición — importes antes de generar (AUD-019)", () => {
+    beforeEach(() => {
+        filas = FILAS;
+        paginas = 1;
+        generadas.length = 0;
+    });
+
+    it("cada línea dice su subtotal, y el de una sin marcar no entra en el total", () => {
+        pintar();
+
+        // 19 × 3,25 y 8 × 1. Tuerca no tiene precio: sin subtotal hasta escribirlo.
+        expect(within(screen.getByRole("row", { name: /Tornillo/ })).getByText(/61\.75/)).toBeInTheDocument();
+        expect(within(screen.getByRole("row", { name: /Arandela/ })).getByText(/8\.00/)).toBeInTheDocument();
+        expect(screen.getByText(/2 líneas marcadas · .* Total: .*69\.75\./)).toBeInTheDocument();
+    });
+
+    it("la cabecera de cada proveedor dice lo marcado de su grupo, y cambia al editar", async () => {
+        const { user } = pintar();
+
+        expect(screen.getByRole("columnheader", { name: /^Norte/ })).toHaveTextContent(/Marcado: .*61\.75/);
+        expect(screen.getByRole("columnheader", { name: /^Sur/ })).toHaveTextContent(/Marcado: .*8\.00/);
+
+        const cantidad = screen.getByRole("spinbutton", { name: "Cantidad a pedir de Tornillo" });
+        await user.clear(cantidad);
+        await user.type(cantidad, "10");
+
+        expect(screen.getByRole("columnheader", { name: /^Norte/ })).toHaveTextContent(/Marcado: .*32\.50/);
+    });
+
+    it("con una línea marcada a medio escribir no se enseña un total que solo sume las demás", async () => {
+        const { user } = pintar();
+
+        await user.click(screen.getByRole("checkbox", { name: "Incluir Tuerca" }));
+
+        expect(screen.getByRole("columnheader", { name: /^Norte/ })).not.toHaveTextContent(/Marcado/);
+        expect(screen.queryByText(/Total:/)).not.toBeInTheDocument();
+    });
+
+    it("generar pregunta antes, con cada orden, su importe y el total; Volver no crea nada", async () => {
+        const { user, generar } = pintar();
+
+        await user.click(generar);
+
+        const dialogo = screen.getByRole("dialog", { name: "Generar 2 órdenes de compra" });
+        const filasDelDialogo = within(dialogo).getAllByRole("listitem");
+        expect(filasDelDialogo.map((f) => f.textContent)).toEqual([
+            expect.stringMatching(/^Norte1 línea.*61\.75$/),
+            expect.stringMatching(/^Sur1 línea.*8\.00$/),
+            expect.stringMatching(/^Total.*69\.75$/),
+        ]);
+        expect(dialogo).toHaveTextContent("no se edita después de crearla");
+
+        await user.click(within(dialogo).getByRole("button", { name: "Volver" }));
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(generadas).toHaveLength(0);
     });
 });

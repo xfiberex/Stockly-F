@@ -412,6 +412,14 @@ Cuando no cabe una etiqueta visible, `aria-label` desde el catálogo. Nunca una 
 `literales.test.ts` la caza. Lo mismo vale para un buscador: el `placeholder` **no es un
 nombre** —desaparece al escribir y no todos los lectores lo anuncian—.
 
+**En el móvil, una barra de más de tres filtros se pliega** (Productos en `AUD-013`, Ventas en
+`AUD-019`): apilados uno por fila, empujaban la primera fila de la lista hasta el pliegue. Se
+queda a la vista **el campo que se busca de pie** —el buscador, el número de venta— y el resto va
+detrás de un botón `md:hidden` con `aria-expanded` y `aria-controls`, que dice **cuántos hay
+puestos** (`filtro.plegados` / `filtro.plegadosConCantidad`): plegada, una lista filtrada sin
+saberlo parece incompleta. El contenedor es `contents` con `max-md:hidden`, así que sus campos
+siguen siendo celdas de la rejilla, y **se ocultan, no se desmontan**: plegar no borra lo elegido.
+
 ### Lo que se despliega es un botón, y lo que se elige con pestañas es un `tablist`
 
 **Una fila que se despliega lleva un `<button aria-expanded>`**, no un `onClick` en el `div`.

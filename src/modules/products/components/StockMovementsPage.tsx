@@ -22,6 +22,7 @@ import { exportProductMovementsCsv } from "@/modules/products/api/product.api";
 import type { StockMovementType } from "@/modules/products/types/product.types";
 import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP } from "@/shared/lib/grafico";
 import { useT } from "@/shared/hooks/useIdioma";
+import { escribirNumeroDeCompra } from "@/shared/contratos";
 import { type Idioma } from "@/shared/i18n/idioma";
 // T4-15: el CSV ya no se construye aquí. El archivo lo escribe el backend, que es quien
 // puede recorrer el histórico entero por lotes.
@@ -486,8 +487,8 @@ export default function StockMovementsPage() {
                                                     <td className="px-6 py-3 text-foreground-muted text-xs">
                                                         {h.source === "MANUAL"
                                                             ? t("costes.origenManual")
-                                                            : h.purchaseOrderId
-                                                              ? t("costes.origenRecepcion", { numero: h.purchaseOrderId.slice(0, 8).toUpperCase() })
+                                                            : h.purchaseOrderNumber !== null
+                                                              ? t("costes.origenRecepcion", { numero: escribirNumeroDeCompra(h.purchaseOrderNumber) })
                                                               : t("costes.origenRecepcionSinOrden")}
                                                     </td>
                                                 </tr>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeftIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import { AvisoDeCambiosSinGuardar } from "@/shared/components/AvisoDeCambiosSinGuardar";
 import { Button } from "@/shared/components/Button";
+import { ConfirmarAccion } from "@/shared/components/ConfirmarAccion";
 import { Input } from "@/shared/components/Input";
 import { EsqueletoTabla } from "@/shared/components/Esqueleto";
 import { useT } from "@/shared/hooks/useIdioma";
@@ -13,7 +14,7 @@ import { CLASES_ENCABEZADO_DE_PAGINA, CLASES_ACCIONES_DE_ENCABEZADO, CLASES_CONT
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 import { useGenerateFromSuggestions, useReorderSuggestions } from "@/modules/purchase-orders/hooks/usePurchaseOrders";
 import { SelectorDeAlmacen } from "@/modules/warehouses/components/SelectorDeAlmacen";
-import { useAlmacenDeOperacion } from "@/modules/warehouses/hooks/useWarehouses";
+import { useAlmacenDeOperacion, useAlmacenes } from "@/modules/warehouses/hooks/useWarehouses";
 
 // Más que las diez de la lista de órdenes: aquí se revisa y se marca, y partir un mismo
 // proveedor entre páginas obliga a generar su pedido en dos órdenes.
@@ -78,6 +79,8 @@ export default function SugerenciasReposicionPage() {
     const generar = useGenerateFromSuggestions();
     // T5-14 — la sugerencia es del producto, no de un local; a qué almacén se pide se elige aquí.
     const almacen = useAlmacenDeOperacion();
+    const { activos } = useAlmacenes();
+    const [confirmando, setConfirmando] = useState(false);
 
     const filas = data?.data ?? [];
     const totalPages = data?.meta.totalPages ?? 1;
@@ -98,27 +101,49 @@ export default function SugerenciasReposicionPage() {
         const errorCantidad = !Number.isInteger(cantidad) || cantidad <= 0 ? t("reposicion.cantidadInvalida") : undefined;
         const errorPrecio = valores.precio.trim() === "" || !(precio > 0) ? t("reposicion.precioInvalido") : undefined;
         const incluida = generable && valores.incluida;
-        return { s, valores, cantidad, precio, generable, incluida, errorCantidad, errorPrecio };
+        // AUD-019 — lo que costará la línea. Solo si las dos cifras valen: con una a medio
+        // escribir, un subtotal sería un número que nadie ha pedido.
+        const subtotal = errorCantidad || errorPrecio ? null : cantidad * precio;
+        return { s, valores, cantidad, precio, generable, incluida, errorCantidad, errorPrecio, subtotal };
     });
 
     const incluidas = lineas.filter((l) => l.incluida);
     const hayErrores = incluidas.some((l) => l.errorCantidad || l.errorPrecio);
-    const proveedores = new Set(incluidas.map((l) => l.s.supplier?.id)).size;
     const porId = new Map(lineas.map((l) => [l.s.productId, l]));
+
+    // AUD-019 — lo marcado, por proveedor y con su importe: lo dicen la cabecera de cada grupo, la
+    // línea de resumen y la confirmación. Antes se generaban órdenes sin ver ningún importe. Por
+    // nombre de proveedor, que es el orden en que las crea el servidor.
+    const porProveedor = new Map<string, { nombre: string; lineas: number; importe: number }>();
+    for (const l of incluidas) {
+        const proveedor = l.s.supplier!;
+        const grupo = porProveedor.get(proveedor.id) ?? { nombre: proveedor.name, lineas: 0, importe: 0 };
+        grupo.lineas += 1;
+        grupo.importe += l.subtotal ?? 0;
+        porProveedor.set(proveedor.id, grupo);
+    }
+    const ordenesAGenerar = [...porProveedor.entries()].sort(([, a], [, b]) => a.nombre.localeCompare(b.nombre));
+    const proveedores = ordenesAGenerar.length;
+    const total = ordenesAGenerar.reduce((suma, [, orden]) => suma + orden.importe, 0);
+    // Solo con varios almacenes tiene sentido decir a cuál: con uno, es el de siempre.
+    const nombreDelAlmacen = almacen.hayVarios ? activos.find((a) => a.id === almacen.warehouseId)?.name : undefined;
 
     const confirmar = () => {
         if (incluidas.length === 0 || hayErrores) return;
         generar.mutate(
             { warehouseId: almacen.paraEnviar, items: incluidas.map((l) => ({ productId: l.s.productId, quantity: l.cantidad, unitPrice: l.precio })) },
             // Lo generado deja de sugerirse (ya es «pendiente de recibir») y sus ediciones sobran;
-            // las de otras páginas siguen siendo de alguien y se quedan.
+            // las de otras páginas siguen siendo de alguien y se quedan. El diálogo se cierra aquí
+            // y no al pulsar: si el servidor rechaza, queda abierto con su aviso delante.
             {
-                onSuccess: () =>
+                onSuccess: () => {
+                    setConfirmando(false);
                     setEdiciones((prev) => {
                         const quedan = { ...prev };
                         for (const l of incluidas) delete quedan[l.s.productId];
                         return quedan;
-                    }),
+                    });
+                },
             },
         );
     };
@@ -136,7 +161,7 @@ export default function SugerenciasReposicionPage() {
                     <p className="text-sm text-foreground-muted mt-1">{t("reposicion.subtitulo", { dias: data?.days ?? 30 })}</p>
                 </div>
                 <div className={CLASES_ACCIONES_DE_ENCABEZADO}>
-                    <Button onClick={confirmar} disabled={incluidas.length === 0 || hayErrores} isLoading={generar.isPending}>
+                    <Button onClick={() => setConfirmando(true)} disabled={incluidas.length === 0 || hayErrores}>
                         <SparklesIcon className="h-4 w-4" />
                         {t("reposicion.generar")}
                     </Button>
@@ -161,6 +186,7 @@ export default function SugerenciasReposicionPage() {
                     <p className="text-sm text-foreground-muted" aria-live="polite">
                         {tn("reposicion.marcadas", incluidas.length)}
                         {incluidas.length > 0 && <> · {tn("reposicion.seCrearan", proveedores)}</>}
+                        {incluidas.length > 0 && !hayErrores && <> {t("reposicion.totalMarcado", { importe: formatearImporte(total) })}</>}
                     </p>
 
                     <div className="bg-surface rounded-xl border border-border">
@@ -168,23 +194,31 @@ export default function SugerenciasReposicionPage() {
                             <table className={CLASES_TABLA}>
                                 <thead className="whitespace-nowrap bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                     <tr>
-                                        <th className="px-3 py-3 w-8"><span className="sr-only">{t("reposicion.generar")}</span></th>
-                                        <th className="px-3 py-3">{t("ordenes.producto")}</th>
-                                        <th className="px-3 py-3 text-right">{t("reposicion.disponible")}</th>
-                                        <th className="px-3 py-3 text-right">{t("reposicion.minimo")}</th>
-                                        <th className="px-3 py-3 text-right">{t("reposicion.pendiente")}</th>
-                                        <th className="px-3 py-3 text-right">{t("reposicion.salidasDia")}</th>
-                                        <th className="px-3 py-3 text-right">{t("reposicion.sugerido")}</th>
-                                        <th className="px-3 py-3 text-right">{t("reposicion.aPedir")}</th>
-                                        <th className="px-3 py-3 text-right">{t("ordenes.precioUnitario")}</th>
+                                        <th className="px-2 py-3 w-8"><span className="sr-only">{t("reposicion.generar")}</span></th>
+                                        <th className="px-2 py-3">{t("ordenes.producto")}</th>
+                                        <th className="px-2 py-3 text-right">{t("reposicion.disponible")}</th>
+                                        <th className="px-2 py-3 text-right">{t("reposicion.minimo")}</th>
+                                        <th className="px-2 py-3 text-right">{t("reposicion.pendiente")}</th>
+                                        <th className="px-2 py-3 text-right">{t("reposicion.salidasDia")}</th>
+                                        <th className="px-2 py-3 text-right">{t("reposicion.sugerido")}</th>
+                                        <th className="px-2 py-3 text-right">{t("reposicion.aPedir")}</th>
+                                        <th className="px-2 py-3 text-right">{t("ordenes.precioUnitario")}</th>
+                                        <th className="px-2 py-3 text-right">{t("ordenes.subtotal")}</th>
                                     </tr>
                                 </thead>
                                 {agruparPorProveedor(filas).map((grupo) => {
                                     const primera = grupo.filas[0]!;
+                                    const marcado = grupo.supplier ? porProveedor.get(grupo.supplier.id) : undefined;
+                                    // Con una línea marcada a medio escribir, el total del grupo no
+                                    // se enseña: sumaría solo las demás.
+                                    const grupoConErrores = grupo.filas.some((f) => {
+                                        const l = porId.get(f.productId)!;
+                                        return l.incluida && l.subtotal === null;
+                                    });
                                     return (
                                         <tbody key={grupo.clave} className="divide-y divide-border border-t border-border">
                                             <tr className="bg-surface-muted/60">
-                                                <th colSpan={9} scope="colgroup" className="px-3 py-2 text-left text-sm font-semibold text-foreground">
+                                                <th colSpan={10} scope="colgroup" className="px-2 py-2 text-left text-sm font-semibold text-foreground">
                                                     {grupo.supplier ? (
                                                         <>
                                                             {grupo.supplier.name}
@@ -194,6 +228,13 @@ export default function SugerenciasReposicionPage() {
                                                                     <span title={t("reposicion.plazoPorDefectoAyuda")}> ({t("reposicion.plazoPorDefecto")})</span>
                                                                 )}
                                                             </span>
+                                                            {/* Junto al nombre y no a la derecha: la tabla se desplaza a lo
+                                                                ancho, y al otro extremo de la fila quedaba fuera de la vista. */}
+                                                            {marcado && !grupoConErrores && (
+                                                                <span className="ml-3 tabular-nums">
+                                                                    {t("reposicion.totalProveedor", { importe: formatearImporte(marcado.importe) })}
+                                                                </span>
+                                                            )}
                                                         </>
                                                     ) : (
                                                         <>
@@ -207,7 +248,7 @@ export default function SugerenciasReposicionPage() {
                                                 const l = porId.get(s.productId)!;
                                                 return (
                                                     <tr key={s.productId} className={l.generable ? undefined : "text-foreground-muted"}>
-                                                        <td className="px-3 py-2">
+                                                        <td className="px-2 py-2">
                                                             {l.generable && (
                                                                 <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center md:min-h-0 md:min-w-0">
                                                                     <input
@@ -222,18 +263,18 @@ export default function SugerenciasReposicionPage() {
                                                         </td>
                                                         {/* Ancho mínimo: con nueve columnas, en móvil el nombre se quedaba en
                                                             cuatro líneas y el SKU partido por sus guiones (visto a 412 px). */}
-                                                        <td className="px-3 py-2 min-w-48">
+                                                        <td className="px-2 py-2 min-w-48">
                                                             <span className="font-medium text-foreground">{s.productName}</span>
                                                             {s.sku && <span className="block whitespace-nowrap text-xs text-foreground-muted">{s.sku}</span>}
                                                         </td>
-                                                        <td className="px-3 py-2 text-right tabular-nums">{s.availableStock}</td>
-                                                        <td className="px-3 py-2 text-right tabular-nums">{s.minStock}</td>
-                                                        <td className="px-3 py-2 text-right tabular-nums">{s.pendingReceipt}</td>
-                                                        <td className="px-3 py-2 text-right tabular-nums">{s.dailyVelocity}</td>
-                                                        <td className="px-3 py-2 text-right tabular-nums font-semibold text-foreground">{s.suggestedQuantity}</td>
-                                                        <td className="px-3 py-2 text-right">
+                                                        <td className="px-2 py-2 text-right tabular-nums">{s.availableStock}</td>
+                                                        <td className="px-2 py-2 text-right tabular-nums">{s.minStock}</td>
+                                                        <td className="px-2 py-2 text-right tabular-nums">{s.pendingReceipt}</td>
+                                                        <td className="px-2 py-2 text-right tabular-nums">{s.dailyVelocity}</td>
+                                                        <td className="px-2 py-2 text-right tabular-nums font-semibold text-foreground">{s.suggestedQuantity}</td>
+                                                        <td className="px-2 py-2 text-right">
                                                             {l.generable && (
-                                                                <div className="ml-auto w-24">
+                                                                <div className="ml-auto w-20">
                                                                     <Input
                                                                         type="number"
                                                                         inputMode="numeric"
@@ -248,9 +289,9 @@ export default function SugerenciasReposicionPage() {
                                                                 </div>
                                                             )}
                                                         </td>
-                                                        <td className="px-3 py-2 text-right">
+                                                        <td className="px-2 py-2 text-right">
                                                             {l.generable && (
-                                                                <div className="ml-auto w-28">
+                                                                <div className="ml-auto w-24">
                                                                     <Input
                                                                         type="number"
                                                                         inputMode="decimal"
@@ -270,6 +311,11 @@ export default function SugerenciasReposicionPage() {
                                                             {!l.generable && s.proposedUnitPrice !== null && (
                                                                 <span className="tabular-nums">{formatearImporte(s.proposedUnitPrice)}</span>
                                                             )}
+                                                        </td>
+                                                        {/* AUD-019 — atenuado si no está marcada: se ve lo que costaría,
+                                                            pero no entra en el total. */}
+                                                        <td className={l.incluida ? "px-2 py-2 text-right tabular-nums font-medium text-foreground" : "px-2 py-2 text-right tabular-nums text-foreground-muted"}>
+                                                            {l.generable && l.subtotal !== null && formatearImporte(l.subtotal)}
                                                         </td>
                                                     </tr>
                                                 );
@@ -298,6 +344,39 @@ export default function SugerenciasReposicionPage() {
             )}
 
             <AvisoDeCambiosSinGuardar activo={hayEdiciones} mensaje={t("reposicion.sinGuardar.aviso")} />
+
+            {/* AUD-019 — una orden de compra no se edita después de crearla: antes de que existan,
+                se dice cuántas, a quién y por cuánto. */}
+            <ConfirmarAccion
+                abierto={confirmando}
+                titulo={tn("reposicion.confirmar.titulo", proveedores)}
+                confirmar={t("reposicion.generar")}
+                peligro={false}
+                pendiente={generar.isPending}
+                onConfirmar={confirmar}
+                onCerrar={() => setConfirmando(false)}
+            >
+                <ul className="divide-y divide-border rounded-lg border border-border">
+                    {ordenesAGenerar.map(([clave, orden]) => (
+                        <li key={clave} className="flex items-baseline justify-between gap-4 px-3 py-2">
+                            <span className="min-w-0">
+                                <span className="font-medium">{orden.nombre}</span>
+                                <span className="block text-xs text-foreground-muted">{tn("reposicion.confirmar.lineas", orden.lineas)}</span>
+                            </span>
+                            <span className="shrink-0 tabular-nums">{formatearImporte(orden.importe)}</span>
+                        </li>
+                    ))}
+                    <li className="flex items-baseline justify-between gap-4 bg-surface-muted px-3 py-2 font-semibold">
+                        <span>{t("reposicion.confirmar.total")}</span>
+                        <span className="tabular-nums">{formatearImporte(total)}</span>
+                    </li>
+                </ul>
+                <p className="text-foreground-muted">
+                    {nombreDelAlmacen
+                        ? t("reposicion.confirmar.consecuenciaEn", { almacen: nombreDelAlmacen })
+                        : t("reposicion.confirmar.consecuencia")}
+                </p>
+            </ConfirmarAccion>
         </div>
     );
 }

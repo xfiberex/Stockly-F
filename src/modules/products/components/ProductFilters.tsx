@@ -160,7 +160,7 @@ export function ProductFilters({ onFilterChange }: ProductFiltersProps) {
                 onClick={() => setDesplegados((d) => !d)}
             >
                 <FunnelIcon className="h-4 w-4" />
-                {activos > 0 ? t("productos.filtro.filtrosConCantidad", { cantidad: activos }) : t("productos.filtro.filtros")}
+                {activos > 0 ? t("filtro.plegadosConCantidad", { cantidad: activos }) : t("filtro.plegados")}
             </Button>
 
             {/* `contents`: los desplegables siguen siendo celdas de la rejilla de fuera. Se

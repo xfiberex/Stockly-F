@@ -25,9 +25,10 @@ const PAGE_SIZE = 10;
 /**
  * T6-05 — el importe de cada venta en la ficha es el **subtotal**, sin impuesto, y lo manda el
  * servidor. Es el mismo criterio que «Importe enviado», justo encima: lo que el cliente ha
- * comprado, no lo que se ha recaudado de impuesto por él.
+ * comprado, no lo que se ha recaudado de impuesto por él. AUD-019 — y la columna lo dice:
+ * antes se rotulaba «Total» y no lo era.
  */
-const totalDe = (orden: SaleOrder) => orden.subtotal;
+const subtotalDe = (orden: SaleOrder) => orden.subtotal;
 
 /**
  * T5-06 — la ficha de un cliente: quién es, cuánto ha comprado y qué.
@@ -146,20 +147,28 @@ export default function CustomerDetailPage() {
                                     <th className="px-4 py-3">{t("clientes.fecha")}</th>
                                     <th className="px-4 py-3">{t("clientes.estado")}</th>
                                     <th className="px-4 py-3">{t("clientes.vendidaA")}</th>
-                                    <th className="px-4 py-3 text-right">{t("comun.total")}</th>
+                                    <th className="px-4 py-3 text-right">{t("ordenes.subtotal")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border bg-surface">
                                 {ordenes!.data.map((orden) => (
                                     <tr key={orden.id}>
-                                        <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
-                                            {t("ventas.numero", { numero: escribirNumeroDeVenta(orden.number) })}
+                                        {/* AUD-019 — el número lleva a la venta, desplegada, como desde el
+                                            panel o la campana: para ver sus líneas no había que ir
+                                            a Ventas y buscarla. */}
+                                        <td className="px-4 py-3 font-medium whitespace-nowrap">
+                                            <Link
+                                                to={`/sale-orders?numero=${orden.number}&venta=${orden.id}`}
+                                                className="text-accent-strong underline underline-offset-2"
+                                            >
+                                                {t("ventas.numero", { numero: escribirNumeroDeVenta(orden.number) })}
+                                            </Link>
                                         </td>
                                         <td className="px-1 py-1"><BotonDeComprobante orden={orden} variante="icono" /></td>
                                         <td className="px-4 py-3 text-foreground-muted whitespace-nowrap">{formatearFecha(idioma, orden.createdAt)}</td>
                                         <td className="px-4 py-3"><EstadoBadge estado={buscarEstado(ESTADO_ORDEN_VENTA, orden.status)} /></td>
                                         <td className="px-4 py-3 text-foreground-muted">{orden.customerName ?? "—"}</td>
-                                        <td className="px-4 py-3 text-right tabular-nums font-medium text-foreground">{formatearImporte(totalDe(orden))}</td>
+                                        <td className="px-4 py-3 text-right tabular-nums font-medium text-foreground">{formatearImporte(subtotalDe(orden))}</td>
                                     </tr>
                                 ))}
                             </tbody>

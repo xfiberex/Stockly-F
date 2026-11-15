@@ -38,6 +38,12 @@ const COMPRA: Notification = {
     readAt: "2026-09-29T10:00:00.000Z", createdAt: HACE_UN_RATO,
     data: { supplierName: "Rápido SA", dueDate: "2026-09-23" },
 };
+/** AUD-019 — la compra, creada ya con su correlativo. Leído, para no mover el recuento. */
+const COMPRA_NUMERADA: Notification = {
+    id: "a5", type: "PURCHASE_OVERDUE", entityId: "cafe0000-0000-4000-8000-000000000000",
+    readAt: "2026-09-29T10:00:00.000Z", createdAt: HACE_UN_RATO,
+    data: { orderNumber: 42, supplierName: "Lento SL", dueDate: "2026-09-20" },
+};
 
 /** Lo que devuelve `GET /notifications`, comprobado contra el contrato antes de usarlo de mock. */
 function lista(items: Notification[]) {
@@ -108,7 +114,7 @@ describe("CampanaDeAvisos (T5-12)", () => {
     describe("El panel", () => {
         it("se abre como diálogo, con el foco dentro, y compone cada aviso con sus huecos", async () => {
             const user = userEvent.setup();
-            servidorCon([STOCK, VENTA, VENTA_NUMERADA, COMPRA]);
+            servidorCon([STOCK, VENTA, VENTA_NUMERADA, COMPRA, COMPRA_NUMERADA]);
             renderWithProviders(<CampanaDeAvisos />);
 
             const panel = await abrir(user);
@@ -132,9 +138,15 @@ describe("CampanaDeAvisos (T5-12)", () => {
                 "/sale-orders?numero=123&venta=ffff9999-0000-4000-8000-000000000000",
             );
 
+            // Una compra anterior a AUD-019 tampoco trae el suyo.
             const compra = within(panel).getByRole("link", { name: /La compra #BEEF5678 pasó su plazo de entrega/ });
             expect(compra).toHaveTextContent("Rápido SA · vencía el 23 sep 2026");
             expect(compra).toHaveAttribute("href", "/purchase-orders?compra=beef5678-0000-4000-8000-000000000000");
+            // AUD-019 — la que sí, por su número: el que se le dicta al proveedor.
+            expect(within(panel).getByRole("link", { name: /La compra #000042 pasó su plazo de entrega/ })).toHaveAttribute(
+                "href",
+                "/purchase-orders?compra=cafe0000-0000-4000-8000-000000000000",
+            );
         });
 
         it("«sin leer» se dice con palabras, no solo con el punto", async () => {
