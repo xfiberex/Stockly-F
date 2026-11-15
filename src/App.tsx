@@ -210,7 +210,7 @@ function ListaDeSecciones({ grupos, idBase, onNavigate }: { grupos: GruposDeNav;
                                         // hueco). Peso normal, para que el grupo mande sobre lo que
                                         // tiene debajo; el activo recupera el medio, además de su
                                         // fondo, su color y `aria-current`.
-                                        cn(claseDeEnlaceDeNav(estado), "rounded-l-none pl-4.25", estado.isActive ? "font-medium" : "font-normal")
+                                        cn(claseDeEnlaceDeNav(estado), "pl-4.25", estado.isActive ? "font-medium" : "font-normal")
                                     }
                                 >
                                     {t(label)}
