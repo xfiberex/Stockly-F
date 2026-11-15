@@ -47,7 +47,8 @@ describe("Ítems de menú delimitados", () => {
         // que hereda su papel se delimitan igual.
         renderWithProviders(<UserMenuDePrueba />);
 
-        expect(screen.getAllByRole("link", { name: "Productos" })[0].className).toContain("hover:border-border");
+        // Un destino suelto: los de un grupo empiezan plegados (2026-11-15) y no se ven sin abrirlo.
+        expect(screen.getAllByRole("link", { name: "Reportes" })[0].className).toContain("hover:border-border");
     });
 
     it("los de un menú de acciones también", async () => {

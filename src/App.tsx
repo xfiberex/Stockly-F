@@ -16,6 +16,7 @@ import { useLogout } from "@/modules/auth/hooks/useLogout";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import type { Rol } from "@/shared/contratos";
 import { navegacionDe } from "@/shared/navegacion";
+import { useGruposDeNav, type GruposDeNav } from "@/shared/hooks/useGruposDeNav";
 import { InsigniaDeRol } from "@/modules/users/components/InsigniaDeRol";
 import { useSincronizarIdioma } from "@/modules/auth/hooks/useSincronizarIdioma";
 import { CampanaDeAvisos } from "@/modules/notifications/components/CampanaDeAvisos";
@@ -133,33 +134,65 @@ const claseDeEnlaceDeNav = ({ isActive }: { isActive: boolean }) =>
  * de que ahora haya un solo orden: mientras cada uno tenía el suyo, cada destino nuevo
  * había que darlo de alta dos veces y nada avisaba si se olvidaba uno.
  */
-function ListaDeSecciones({ onNavigate }: { onNavigate?: () => void }) {
+function ListaDeSecciones({ grupos, idBase, onNavigate }: { grupos: GruposDeNav; idBase: string; onNavigate?: () => void }) {
     const { t } = useT();
     const { user } = useAuth();
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-1">
             {/* AUD-016 — el menú de cada rol está escrito entero en `shared/navegacion.ts`. */}
-            {navegacionDe(user?.role).map((elemento) =>
-                elemento.kind === "link" ? (
-                    <div key={elemento.to} className="space-y-1">
-                        <NavLink to={elemento.to} end={elemento.end} onClick={onNavigate} className={claseDeEnlaceDeNav}>
+            {navegacionDe(user?.role).map((elemento) => {
+                if (elemento.kind === "link") {
+                    return (
+                        <NavLink key={elemento.to} to={elemento.to} end={elemento.end} onClick={onNavigate} className={claseDeEnlaceDeNav}>
                             <elemento.Icon className="h-4 w-4" />
                             {t(elemento.label)}
                         </NavLink>
-                    </div>
-                ) : (
+                    );
+                }
+                const abierto = grupos.estaAbierto(elemento.grupo);
+                // Cerrado, el grupo de la pantalla actual lo dice: si no, al plegarlo el menú
+                // dejaría de decir dónde se está. Color, un punto —para quien no distingue el
+                // color— y un texto para el lector de pantalla.
+                const marcaLaActual = !abierto && grupos.actual === elemento.grupo;
+                const idDeLaLista = `${idBase}-grupo-${elemento.grupo}`;
+                return (
                     <div key={elemento.grupo}>
-                        {/* El subtítulo **no es un encabezado**. Rotula un grupo de enlaces
-                            dentro de una navegación, no abre una sección de contenido:
-                            colarlo como `<h2>` lo mete en el esquema del documento y en el
-                            listado de encabezados con el que un lector de pantalla recorre
-                            la página, por delante del `<h1>` de la pantalla. */}
-                        <p className="flex items-center gap-2 px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-foreground-muted">
-                            <elemento.Icon className="h-3.5 w-3.5" />
-                            {t(elemento.label)}
-                        </p>
-                        <div className="space-y-1">
+                        {/* 2026-11-15 — el rótulo del grupo es el botón que lo pliega (revisa
+                            `T4-10`; ver `useGruposDeNav`). Sigue **sin ser un encabezado**: rotula
+                            un grupo de enlaces, no abre una sección de contenido, y como `<h2>`
+                            se colaría en el listado de encabezados por delante del `<h1>`. */}
+                        <button
+                            type="button"
+                            aria-expanded={abierto}
+                            aria-controls={idDeLaLista}
+                            onClick={() => grupos.alternar(elemento.grupo)}
+                            // La misma fila que un enlace suelto: se pulsa igual que «Panel» o
+                            // «Reportes». Sin `uppercase`, que tenía el subtítulo: Chrome calcula el
+                            // nombre accesible con la transformación aplicada y se anunciaba «ADMIN»,
+                            // que hay lectores que deletrean.
+                            className={cn(
+                                "flex w-full min-h-11 items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-left text-sm font-medium transition-colors lg:min-h-9 lg:py-1.5",
+                                "hover:border-border hover:bg-surface-muted focus-visible:border-border focus-visible:outline-none",
+                                marcaLaActual ? "text-info" : "text-foreground",
+                            )}
+                        >
+                            <elemento.Icon className="h-4 w-4 shrink-0" />
+                            <span className="flex-1">{t(elemento.label)}</span>
+                            {marcaLaActual && (
+                                <>
+                                    <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-info" />
+                                    {/* El espacio suelto separa el nombre: sin él se leía «Catálogo(contiene…».
+                                        En un contenedor flex no ocupa sitio a la vista. */}
+                                    {" "}
+                                    <span className="sr-only">{t("nav.grupoConLaActual")}</span>
+                                </>
+                            )}
+                            <ChevronDownIcon aria-hidden="true" className={cn("h-4 w-4 shrink-0 text-foreground-muted transition-transform", abierto && "rotate-180")} />
+                        </button>
+                        {/* `hidden` y no desmontar: así `aria-controls` siempre apunta a algo. Con
+                            `hidden`, los enlaces no se ven, no se tabulan y no se anuncian. */}
+                        <div id={idDeLaLista} hidden={!abierto} className="mt-1 mb-2 space-y-1">
                             {elemento.items.map(({ to, label }) => (
                                 <NavLink
                                     key={to}
@@ -181,8 +214,8 @@ function ListaDeSecciones({ onNavigate }: { onNavigate?: () => void }) {
                             ))}
                         </div>
                     </div>
-                ),
-            )}
+                );
+            })}
         </div>
     );
 }
@@ -191,6 +224,9 @@ function App() {
     const { user } = useAuth();
     const { pathname } = useLocation();
     const { t } = useT();
+    // Un solo estado para los dos envoltorios: plegar un grupo en el móvil y ensanchar la ventana
+    // no puede dejar la barra lateral con otro.
+    const grupos = useGruposDeNav(pathname);
 
     // T4-12: el idioma de la interfaz vive en el navegador, pero los correos se redactan en
     // el servidor y a veces sin nadie delante. Este hook deja allí el idioma efectivo cuando
@@ -358,7 +394,7 @@ function App() {
                         aria-label={t("nav.secciones")}
                         className="lg:hidden max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain sin-barra border-t border-border bg-surface px-4 py-3"
                     >
-                        <ListaDeSecciones onNavigate={closeMobile} />
+                        <ListaDeSecciones grupos={grupos} idBase="movil" onNavigate={closeMobile} />
                     </nav>
                 )}
             </header>
@@ -369,6 +405,8 @@ function App() {
                   Con doce módulos repartidos en tres desplegables, alcanzar la mayoría de
                   destinos costaba dos interacciones y la barra no decía dónde estabas.
                   Desplegada, cada sección está a un clic y la actual va marcada.
+                  2026-11-15 — con veinte destinos ya no cabía: los grupos se pliegan, pero el
+                  de la pantalla abierta se abre solo, así que sigue diciendo dónde estás.
 
                   `sticky top-14` la ancla justo debajo de la cabecera, y la altura restada
                   —la misma cuenta que el panel móvil— es lo que le da desplazamiento
@@ -384,7 +422,7 @@ function App() {
                     aria-label={t("nav.secciones")}
                     className="hidden lg:block sticky top-14 h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto overscroll-contain sin-barra border-r border-border bg-surface px-3 py-4"
                 >
-                    <ListaDeSecciones />
+                    <ListaDeSecciones grupos={grupos} idBase="lateral" />
                 </nav>
 
                 {/*

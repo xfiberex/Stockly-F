@@ -17,17 +17,17 @@ test.describe("Smoke: flujo principal autenticado", () => {
         await expect(page.getByRole("heading", { name: "Panel", level: 1 })).toBeVisible();
         await expect(page.getByText("Valor a precio de venta")).toBeVisible(); // T5-02 partió la tarjeta de valor en coste y venta
 
-        // Navegar al catálogo de productos
+        // Navegar al catálogo de productos. Desde el 2026-11-15 los grupos del menú empiezan
+        // plegados (revisa T4-10): primero se abre Catálogo, en el panel móvil o en la barra.
         if (esMovil(viewport?.width)) {
             await page.getByRole("button", { name: "Abrir menú de navegación" }).click();
             const menu = page.locator("#mobile-menu");
+            await menu.getByRole("button", { name: "Catálogo" }).click();
             await menu.getByRole("link", { name: "Productos", exact: true }).click();
         } else {
-            // T4-10: en escritorio ya no hay desplegable que abrir. El enlace está en la
-            // barra lateral, a un solo clic — que es exactamente lo que pedía la tarea.
-            await page.getByRole("navigation", { name: "Secciones" })
-                .getByRole("link", { name: "Productos", exact: true })
-                .click();
+            const lateral = page.getByRole("navigation", { name: "Secciones" });
+            await lateral.getByRole("button", { name: "Catálogo" }).click();
+            await lateral.getByRole("link", { name: "Productos", exact: true }).click();
         }
         await expect(page.getByRole("heading", { name: "Productos", level: 1 })).toBeVisible();
         await expect(page.getByText(/productos en total/)).toBeVisible();

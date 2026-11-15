@@ -277,6 +277,7 @@ export const en: Record<keyof typeof es, string> = {
     "nav.menuUsuario": "User menu",
     "nav.menuUsuarioDe": "{nombre} — user menu",
     "nav.secciones": "Sections",
+    "nav.grupoConLaActual": "(contains the current page)",
     "nav.abrirMenu": "Open navigation menu",
     "nav.cerrarMenu": "Close navigation menu",
     "nav.saltarAlContenido": "Skip to main content",

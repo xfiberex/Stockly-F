@@ -37,7 +37,10 @@ type Icono = ComponentType<SVGProps<SVGSVGElement>>;
 
 export type GrupoDeNav = "catalogo" | "ordenes" | "inventario" | "admin";
 
-/** T4-10 — un subtítulo con sus destinos debajo, siempre desplegado. */
+/**
+ * T4-10 — un grupo con sus destinos debajo. Desde el 2026-11-15 se pliega: empieza cerrado salvo
+ * el de la pantalla abierta (ver `useGruposDeNav`).
+ */
 export const GRUPOS: Record<GrupoDeNav, { label: Clave; Icon: Icono }> = {
     catalogo: { label: "ruta.catalogo", Icon: Squares2X2Icon },
     ordenes: { label: "nav.ordenes", Icon: ClipboardDocumentListIcon },
@@ -126,6 +129,20 @@ export const NAVEGACION_POR_ROL: Record<Rol, readonly RutaDeNav[]> = {
 export type SeccionDeNav =
     | { kind: "link"; to: RutaDeNav; label: Clave; Icon: Icono; end: boolean }
     | { kind: "group"; grupo: GrupoDeNav; label: Clave; Icon: Icono; items: { to: RutaDeNav; label: Clave }[] };
+
+/**
+ * El grupo al que pertenece la pantalla abierta, o `null` si es un destino suelto o ninguno.
+ *
+ * Con el mismo criterio que `NavLink` sin `end`: la ruta del destino **o una por debajo**, así
+ * que `/purchase-orders/suggestions` es de Órdenes y `/catalog/products/:id/movements`, de
+ * Catálogo. Es lo que abre solo ese grupo en el menú (ver `useGruposDeNav`).
+ */
+export function grupoDeRuta(pathname: string): GrupoDeNav | null {
+    for (const [to, destino] of Object.entries(DESTINOS) as [RutaDeNav, Destino][]) {
+        if ("grupo" in destino && (pathname === to || pathname.startsWith(`${to}/`))) return destino.grupo;
+    }
+    return null;
+}
 
 /** Las secciones del menú de un rol: los enlaces sueltos y los grupos, en el orden de su lista. */
 export function navegacionDe(rol: Rol | undefined): SeccionDeNav[] {

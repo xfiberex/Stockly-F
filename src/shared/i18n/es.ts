@@ -295,6 +295,7 @@ export const es = {
     // el panel de móvil—. Con dos `<nav>` en la página, uno sin nombre se anuncia
     // «navegación» a secas y no hay forma de distinguirlos en la lista de regiones.
     "nav.secciones": "Secciones",
+    "nav.grupoConLaActual": "(contiene la pantalla actual)",
     "nav.abrirMenu": "Abrir menú de navegación",
     "nav.cerrarMenu": "Cerrar menú de navegación",
     "nav.saltarAlContenido": "Saltar al contenido principal",

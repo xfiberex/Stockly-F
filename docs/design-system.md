@@ -273,18 +273,38 @@ Cuatro cosas que no son adorno:
   contenido, no cero: sin él, las tablas de `min-w-160` empujan el `<main>` fuera de la
   ventana y la página entera se desplaza a lo ancho, cabecera incluida. Es el mismo mecanismo
   del apartado «Un campo con `w-full` no reclama anchura», visto desde el otro lado.
-- **Los subtítulos de grupo son `<p>`, no encabezados.** Rotulan un grupo de enlaces, no
-  abren una sección de contenido: como `<h2>` se colarían en el listado de encabezados con el
-  que se recorre la página, por delante del `<h1>` de la pantalla.
+- **El rótulo de un grupo es un botón, no un encabezado.** Rotula un grupo de enlaces, no abre
+  una sección de contenido: como `<h2>` se colaría en el listado de encabezados con el que se
+  recorre la página, por delante del `<h1>` de la pantalla.
 
 La sección actual se marca **dos veces**: `text-info` y el `aria-current="page"` que pone
 `NavLink`. El color solo no vale (WCAG 1.4.1), y aquí quien no lo ve necesita saber en qué
 sección está tanto como quien lo ve.
 
+**Los grupos se pliegan** (decisión del propietario del 2026-11-15, que revisa `T4-10`). Con
+veinte destinos, el menú de ADMIN ya no cabía en la barra lateral de un portátil: a 1280×900,
+«Configuración» quedaba debajo del borde. T4-10 los había dejado siempre desplegados para que
+todo estuviera a un clic y el menú dijera dónde se está. Lo primero se cede —un destino de otro
+grupo cuesta un clic más— y lo segundo no, con estas reglas
+([`useGruposDeNav`](../src/shared/hooks/useGruposDeNav.ts)):
+
+- **Empiezan cerrados**, salvo los que la persona abrió a mano: se recuerdan en `localStorage`,
+  como el tema, porque es una preferencia del dispositivo.
+- **El grupo de la pantalla abierta se abre solo** en cada navegación, también desde una subruta
+  (`/purchase-orders/suggestions` es de Órdenes). Si se cierra estando en él, se respeta hasta la
+  siguiente navegación, y entonces se olvida.
+- **Cerrado, ese grupo lo dice**: `text-info`, un punto que no depende del color y un texto solo
+  para el lector («contiene la pantalla actual»).
+- **El rótulo es un `<button aria-expanded aria-controls>`** con chevron; la lista se oculta con
+  `hidden`, no se desmonta, para que `aria-controls` apunte siempre a algo.
+- **Panel, Mostrador y Reportes siguen sueltos**, a un clic: son los que más se abren.
+- **Un solo estado para los dos envoltorios**, en `App`: plegar en el móvil y ensanchar la ventana
+  no deja la barra lateral distinta.
+
 **Lo vigila:** [`navegacion.test.tsx`](../src/tests/components/navegacion.test.tsx) — el
-orden, que los dos envoltorios pinten el mismo recorrido, que no quede ningún botón en el
-lateral (un botón es la interacción de más que la tarea vino a quitar) y que la cabecera haya
-dejado de ser un landmark de navegación.
+orden, que los dos envoltorios pinten el mismo recorrido y con los mismos grupos abiertos, que
+los grupos empiecen cerrados y se abra el de la pantalla actual, lo que se recuerda y que la
+cabecera haya dejado de ser un landmark de navegación.
 
 ### El armazón de una pantalla
 
