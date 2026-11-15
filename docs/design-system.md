@@ -298,6 +298,10 @@ grupo cuesta un clic más— y lo segundo no, con estas reglas
 - **El rótulo es un `<button aria-expanded aria-controls>`** con chevron; la lista se oculta con
   `hidden`, no se desmonta, para que `aria-controls` apunte siempre a algo.
 - **Panel, Mostrador y Reportes siguen sueltos**, a un clic: son los que más se abren.
+- **Los destinos de un grupo no llevan icono** y cuelgan de una línea guía (`border-l
+  border-border`) que nace bajo el icono del grupo, con peso normal; el activo recupera el medio.
+  Iconos en los hijos serían inventados —Compra, Venta o Caducidades no tienen uno que se
+  reconozca— e igualarían hijos y padre. Sus rótulos quedan en la misma columna que el del grupo.
 - **Un solo estado para los dos envoltorios**, en `App`: plegar en el móvil y ensanchar la ventana
   no deja la barra lateral distinta.
 

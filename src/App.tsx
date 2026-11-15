@@ -192,21 +192,25 @@ function ListaDeSecciones({ grupos, idBase, onNavigate }: { grupos: GruposDeNav;
                         </button>
                         {/* `hidden` y no desmontar: así `aria-controls` siempre apunta a algo. Con
                             `hidden`, los enlaces no se ven, no se tabulan y no se anuncian. */}
-                        <div id={idDeLaLista} hidden={!abierto} className="mt-1 mb-2 space-y-1">
+                        {/* 2026-11-15 — los hijos cuelgan de una línea guía que nace bajo el icono
+                            del grupo (`ml-5`: los 12 px de relleno más medio icono), en el borde
+                            suave: ata cada destino a su grupo sin un color nuevo, que diría un
+                            estado. Sin iconos propios: Compra, Venta o Caducidades no tienen uno
+                            que se reconozca, y repetirlos igualaría hijos y padre. */}
+                        <div id={idDeLaLista} hidden={!abierto} className="mt-1 mb-2 ml-5 space-y-1 border-l border-border">
                             {elemento.items.map(({ to, label }) => (
                                 <NavLink
                                     key={to}
                                     to={to}
                                     onClick={onNavigate}
                                     className={(estado) =>
-                                        // Los destinos de un grupo no llevan icono, así que su
-                                        // texto arrancaba 26 px a la izquierda del de «Dashboard»
-                                        // y «Reportes» —el icono más su hueco—: la lista se leía
-                                        // como si los hijos fueran los de fuera. `pl-9.5` son los
-                                        // 12 px del relleno más esos 26: alinea los rótulos en
-                                        // una sola columna y deja el subtítulo mandando sobre lo
-                                        // que tiene debajo.
-                                        cn(claseDeEnlaceDeNav(estado), "pl-9.5")
+                                        // Los destinos de un grupo no llevan icono: `pl-4.25` deja su
+                                        // texto en la misma columna que el rótulo del grupo y el de
+                                        // «Panel» o «Reportes» (línea a 21 px + 17 = el icono y su
+                                        // hueco). Peso normal, para que el grupo mande sobre lo que
+                                        // tiene debajo; el activo recupera el medio, además de su
+                                        // fondo, su color y `aria-current`.
+                                        cn(claseDeEnlaceDeNav(estado), "rounded-l-none pl-4.25", estado.isActive ? "font-medium" : "font-normal")
                                     }
                                 >
                                     {t(label)}
