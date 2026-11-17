@@ -46,6 +46,8 @@ export const downloadPeriodReport = (periodo: { from: string; to: string }, form
 export interface ConsultaDeCaducidades {
     days?: number;
     warehouseId?: string;
+    /** AUD-019 — solo lo ya caducado en la lista; el resumen no cambia. Solo admite `true`. */
+    expired?: true;
     page?: number;
     limit?: number;
 }

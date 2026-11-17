@@ -44,6 +44,8 @@ const api = vi.hoisted(() => ({
     getStockTransfers: vi.fn(),
     getStockTransfer: vi.fn(),
     createStockTransfer: vi.fn(),
+    // AUD-019 — lo que devuelve `GET /products/lookup` para cada código.
+    porCodigo: vi.fn(),
 }));
 
 let rol: Rol = "WAREHOUSE";
@@ -56,6 +58,13 @@ vi.mock("@/modules/stock-transfers/api/stock-transfers.api", () => ({
 }));
 vi.mock("@/modules/auth/hooks/useMe", () => ({ useAuth: () => ({ user: { id: "u1", name: "Luis", role: rol } }) }));
 vi.mock("@/modules/products/hooks/useProducts", () => ({ useProducts: () => ({ data: { data: [TECLADO, RATON] } }) }));
+vi.mock("@/modules/products/hooks/useBuscarPorCodigo", () => ({ useBuscarPorCodigo: () => ({ buscar: api.porCodigo, buscando: false }) }));
+// El escáner de verdad necesita cámara: aquí es un botón que «lee» el código que se le diga.
+let codigoLeido = "";
+vi.mock("@/shared/components/EscanerModal", () => ({
+    EscanerModal: ({ isOpen, onCodigo }: { isOpen: boolean; onCodigo: (codigo: string) => void }) =>
+        isOpen ? <button onClick={() => onCodigo(codigoLeido)}>leer código</button> : null,
+}));
 
 async function abrirFormulario() {
     const user = userEvent.setup();
@@ -82,6 +91,8 @@ beforeEach(() => {
         ],
     });
     api.createStockTransfer.mockReset().mockResolvedValue({ ...TRANSFERENCIA, items: [] });
+    api.porCodigo.mockReset().mockImplementation(async (codigo: string) =>
+        codigo === "TEC-1" ? TECLADO : codigo === "VIEJO" ? { ...RATON, isActive: false } : null);
 });
 
 describe("TransfersPage (T5-14)", () => {
@@ -117,7 +128,7 @@ describe("TransfersPage (T5-14)", () => {
 
         expect(boton).toHaveAttribute("aria-expanded", "true");
         expect(api.getStockTransfer).toHaveBeenCalledWith(TRANSFERENCIA.id);
-        expect(await screen.findByText("Quedan 1 en Tienda Central y 9 en Sucursal Norte")).toBeInTheDocument();
+        expect(await screen.findByText("Tras la transferencia: 1 en Tienda Central y 9 en Sucursal Norte")).toBeInTheDocument();
         expect(screen.getByText("TEC-1")).toBeInTheDocument();
         expect(screen.getByText("5 uds.")).toBeInTheDocument();
     });
@@ -222,5 +233,45 @@ describe("TransfersPage (T5-14)", () => {
 
         expect(await screen.findByRole("button", { name: /#ABCDEF12/ })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Nueva transferencia" })).not.toBeInTheDocument();
+    });
+});
+
+/** AUD-019 — pulido del bloque Inventario de la crítica del 2026-11-07. */
+describe("TransfersPage — escáner y vacíos (AUD-019)", () => {
+    async function escanear(user: ReturnType<typeof userEvent.setup>, dialogo: ReturnType<typeof within>, codigo: string) {
+        codigoLeido = codigo;
+        await user.click(dialogo.getByRole("button", { name: "Escanear" }));
+        await user.click(screen.getByRole("button", { name: "leer código" }));
+    }
+
+    it("escanear añade el producto con el disponible del origen; dos lecturas, dos unidades", async () => {
+        const { user, dialogo } = await abrirFormulario();
+
+        await escanear(user, dialogo, "TEC-1");
+        await escanear(user, dialogo, "TEC-1");
+
+        expect(dialogo.getByRole("spinbutton", { name: "Cantidad de Teclado" })).toHaveValue(2);
+        expect(dialogo.getByText("Disponible en el origen: 5")).toBeInTheDocument();
+    });
+
+    it("un código desconocido o de un producto inactivo lo dice y no añade nada", async () => {
+        const { user, dialogo } = await abrirFormulario();
+
+        await escanear(user, dialogo, "NADA");
+        expect(dialogo.getByRole("alert")).toHaveTextContent("NADA");
+        await escanear(user, dialogo, "VIEJO");
+        expect(dialogo.getByRole("alert")).toHaveTextContent("«Ratón» está inactivo y no se puede transferir.");
+        expect(dialogo.queryByRole("spinbutton")).not.toBeInTheDocument();
+    });
+
+    it("vacía por el filtro de almacén, lo dice y deja quitarlo", async () => {
+        api.lista = [];
+        const user = userEvent.setup();
+        renderWithProviders(<TransfersPage />);
+
+        await user.selectOptions(await screen.findByRole("combobox", { name: "Almacén" }), "w-norte");
+        expect(await screen.findByText("Ninguna transferencia sale de ese almacén ni entra en él.")).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Quitar los filtros" }));
+        expect(await screen.findByText("Todavía no hay transferencias.")).toBeInTheDocument();
     });
 });

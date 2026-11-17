@@ -339,7 +339,7 @@ test.describe("Flujos que cruzan frontend y backend", () => {
             // Anotado, pero el stock no se mueve hasta cerrar.
             expect(await stockDe(page, creado.id)).toBe(10);
 
-            await almacen.getByRole("button", { name: "Revisar" }).click();
+            await almacen.getByRole("tab", { name: "Revisar" }).click();
             await expect(almacen.getByRole("row", { name: new RegExp(producto) }).getByText("−2")).toBeVisible();
 
             await almacen.getByRole("button", { name: "Cerrar conteo" }).click();
@@ -1084,7 +1084,7 @@ test.describe("Flujos que cruzan frontend y backend", () => {
             // AUD-018 — el desplegable ya no lleva rótulo propio (su nombre es lo que se ve): se
             // busca por lo que es, el único botón de la fila que dice si está desplegado.
             await fila.getByRole("button", { expanded: false }).click();
-            await expect(fila.getByText(`Quedan 15 en ${central.name} y 10 en ${sucursal}`)).toBeVisible();
+            await expect(fila.getByText(`Tras la transferencia: 15 en ${central.name} y 10 en ${sucursal}`)).toBeVisible();
 
             // ── Lo transferido se vende desde la sucursal, y solo eso ────────────────────────
             await page.goto("/counter");

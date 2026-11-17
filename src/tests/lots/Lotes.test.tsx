@@ -446,7 +446,7 @@ describe("la pantalla de caducidades", () => {
     const INFORME = informeDeCaducidadesSchema.parse({
         today: "2026-10-10",
         days: 30,
-        summary: { expiredCount: 1, expiredUnits: 6, expiredCostValue: 12, expiringUnits: 18, expiringCostValue: 36, unitsWithoutCost: 4 },
+        summary: { expiredCount: 1, expiringCount: 2, expiredUnits: 6, expiredCostValue: 12, expiringUnits: 18, expiringCostValue: 36, unitsWithoutCost: 4 },
         data: [
             fila({ lotId: "l-viejo", code: "VIEJO", expiresAt: "2026-10-07", daysLeft: -3, expired: true, stock: 6, costValue: 12 }),
             fila({ lotId: "l-hoy", code: "HOY", expiresAt: "2026-10-10", daysLeft: 0, stock: 4, unitCost: null, costValue: null, productName: "Jamón", productId: "p-jamon" }),
@@ -554,8 +554,40 @@ describe("la pantalla de caducidades", () => {
         expect(await screen.findByRole("button", { name: /^Dar de baja el lote VIEJO/ })).toBeInTheDocument();
     });
 
+    it("AUD-019 — «Solo lo ya caducado» lo filtra el servidor y vive en la URL; el resumen no cambia", async () => {
+        // Lo que respondería el servidor con `expired=true`: la lista, solo lo caducado; el
+        // resumen, el de todo el plazo (contrato). «Caduca en el plazo» sale de `expiringCount`.
+        estado.informe = { ...INFORME, data: [INFORME.data[0]!], meta: { ...INFORME.meta, total: 1 } };
+        renderWithProviders(<CaducidadesPage />, { initialRoute: "/expiry?caducado=1&dias=7" });
+
+        await waitFor(() => expect(estado.consultas.at(-1)).toMatchObject({ days: 7, expired: true }));
+        expect(screen.getByRole("checkbox", { name: "Solo lo ya caducado" })).toBeChecked();
+        expect(within((await screen.findByText("Caduca en el plazo")).parentElement!).getByText("2 lotes · 18 uds. · $36.00 a coste")).toBeInTheDocument();
+    });
+
+    it("AUD-019 — marcar y desmarcar «Solo lo ya caducado» cambia la consulta y vuelve a la página 1", async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<CaducidadesPage />);
+
+        await user.click(await screen.findByRole("checkbox", { name: "Solo lo ya caducado" }));
+        await waitFor(() => expect(estado.consultas.at(-1)).toMatchObject({ expired: true, page: 1 }));
+        await user.click(screen.getByRole("checkbox", { name: "Solo lo ya caducado" }));
+        await waitFor(() => expect(estado.consultas.at(-1)?.expired).toBeUndefined());
+    });
+
+    it("AUD-019 — vacía con «Solo lo ya caducado», lo dice así y deja quitar el filtro", async () => {
+        estado.informe = { ...INFORME, data: [], meta: { ...INFORME.meta, total: 0 } };
+        const user = userEvent.setup();
+        renderWithProviders(<CaducidadesPage />, { initialRoute: "/expiry?caducado=1" });
+
+        expect(await screen.findByText("No queda nada caducado por dar de baja.")).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Quitar los filtros" }));
+        expect(await screen.findByText("Nada caducado ni por caducar en ese plazo.")).toBeInTheDocument();
+        expect(screen.getByRole("checkbox", { name: "Solo lo ya caducado" })).not.toBeChecked();
+    });
+
     it("sin nada que enseñar lo dice", async () => {
-        estado.informe = { ...INFORME, data: [], meta: { ...INFORME.meta, total: 0 }, summary: { expiredCount: 0, expiredUnits: 0, expiredCostValue: 0, expiringUnits: 0, expiringCostValue: 0, unitsWithoutCost: 0 } };
+        estado.informe = { ...INFORME, data: [], meta: { ...INFORME.meta, total: 0 }, summary: { expiredCount: 0, expiringCount: 0, expiredUnits: 0, expiredCostValue: 0, expiringUnits: 0, expiringCostValue: 0, unitsWithoutCost: 0 } };
         renderWithProviders(<CaducidadesPage />);
 
         expect(await screen.findByText("Nada caducado ni por caducar en ese plazo.")).toBeInTheDocument();

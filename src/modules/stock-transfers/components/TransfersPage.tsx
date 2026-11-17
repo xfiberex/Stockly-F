@@ -1,7 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLongRightIcon, ChevronDownIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ArrowLongRightIcon, ChevronDownIcon, PlusIcon, TrashIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/components/Button";
+import { EscanerModal } from "@/shared/components/EscanerModal";
+import { VacioDeLista } from "@/shared/components/VacioDeLista";
+import { useBuscarPorCodigo } from "@/modules/products/hooks/useBuscarPorCodigo";
 import { Input } from "@/shared/components/Input";
 import { Modal } from "@/shared/components/Modal";
 import { Spinner } from "@/shared/components/Spinner";
@@ -63,6 +66,26 @@ function NuevaTransferencia({ onClose }: { onClose: () => void }) {
         setLineas((actuales) => actuales.map((l) => (l.producto.id === id ? { ...l, cantidad } : l)));
     const quitar = (id: string) => setLineas((actuales) => actuales.filter((l) => l.producto.id !== id));
 
+    // AUD-019 — escanear, como en una venta o un conteo: quien transfiere está delante de la caja con
+    // el móvil, y buscar por nombre cada producto era lo único que no se podía hacer con el lector.
+    // `GET /products/lookup` trae el desglose por almacén, que es lo que la línea necesita.
+    const [escaneando, setEscaneando] = useState(false);
+    const [avisoDeEscaneo, setAvisoDeEscaneo] = useState<string | null>(null);
+    const { buscar, buscando } = useBuscarPorCodigo();
+    const alEscanear = async (codigo: string) => {
+        setEscaneando(false);
+        const producto = await buscar(codigo);
+        if (producto === undefined) return;
+        if (producto === null) return setAvisoDeEscaneo(t("escaner.desconocido", { codigo }));
+        if (!producto.isActive) return setAvisoDeEscaneo(t("transferencias.escaneoInactivo", { nombre: producto.name }));
+        const yaEsta = lineas.some((l) => l.producto.id === producto.id);
+        if (!yaEsta && lineas.length >= MAXIMO_DE_LINEAS_DE_TRANSFERENCIA) {
+            return setAvisoDeEscaneo(t("transferencias.maximoDeLineas", { maximo: MAXIMO_DE_LINEAS_DE_TRANSFERENCIA }));
+        }
+        setAvisoDeEscaneo(null);
+        anadir(producto);
+    };
+
     const cantidadValida = (l: Linea) => Number.isInteger(l.cantidad) && l.cantidad >= 1;
     const seExcede = (l: Linea) => l.cantidad > disponibleEn(l.producto, origen);
     const sePuede = origen !== "" && destino !== "" && origen !== destino && lineas.length > 0 && lineas.every((l) => cantidadValida(l) && !seExcede(l));
@@ -90,7 +113,16 @@ function NuevaTransferencia({ onClose }: { onClose: () => void }) {
                 </div>
                 <Input label={t("transferencias.nota")} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
 
-                <BuscadorDeProducto seleccionado={null} onSeleccionar={anadir} warehouseId={origen} />
+                <div className="flex items-end gap-2">
+                    <div className="min-w-0 flex-1">
+                        <BuscadorDeProducto seleccionado={null} onSeleccionar={anadir} warehouseId={origen} />
+                    </div>
+                    <Button type="button" variant="secondary" onClick={() => setEscaneando(true)} isLoading={buscando}>
+                        <ViewfinderCircleIcon className="h-4 w-4" />
+                        {t("escaner.escanear")}
+                    </Button>
+                </div>
+                {avisoDeEscaneo && <p role="alert" className="text-sm text-danger">{avisoDeEscaneo}</p>}
 
                 {lineas.length === 0 ? (
                     <p className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-foreground-muted">
@@ -150,6 +182,8 @@ function NuevaTransferencia({ onClose }: { onClose: () => void }) {
                     <Button type="submit" disabled={!sePuede} isLoading={crear.isPending}>{t("transferencias.transferir")}</Button>
                 </div>
             </form>
+            {/* Fuera del `<form>`: el escáner lleva el suyo, y su envío subiría hasta este. */}
+            <EscanerModal isOpen={escaneando} onClose={() => setEscaneando(false)} onCodigo={alEscanear} />
         </Modal>
     );
 }
@@ -171,8 +205,10 @@ function LineasDeTransferencia({ transferencia }: { transferencia: StockTransfer
                     </div>
                     <div className="text-xs text-foreground-muted tabular-nums sm:text-right">
                         <p className="text-sm font-semibold text-foreground">{t("transferencias.unidades", { cantidad: item.quantity })}</p>
+                        {/* AUD-019 — es una foto de **aquel momento**: «Quedan 4» se leía como el stock de
+                            hoy, y en una transferencia de hace un mes ya no lo es. */}
                         <p>
-                            {t("transferencias.quedan", {
+                            {t("transferencias.trasLaTransferencia", {
                                 origen: transferencia.fromWarehouse.name,
                                 enOrigen: item.fromStockAfter,
                                 destino: transferencia.toWarehouse.name,
@@ -241,7 +277,10 @@ export default function TransfersPage() {
             {isLoading ? (
                 <EsqueletoLista />
             ) : transferencias.length === 0 ? (
-                <div className="py-16 text-center text-sm text-foreground-muted">{t("transferencias.vacio")}</div>
+                <VacioDeLista
+                    texto={t(almacen ? "transferencias.sinResultados" : "transferencias.vacio")}
+                    onQuitarFiltros={almacen ? () => { setAlmacen(""); setPage(1); } : undefined}
+                />
             ) : (
                 <ul className="space-y-3">
                     {transferencias.map((transferencia) => {

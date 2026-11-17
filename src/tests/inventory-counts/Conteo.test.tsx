@@ -53,6 +53,7 @@ const LINEAS: InventoryCountLine[] = [
 
 let rol: Rol = "WAREHOUSE";
 let conteo: InventoryCount = CONTEO;
+let listaDeConteos: InventoryCount[] = [CONTEO];
 const consultas: InventoryCountLinesQuery[] = [];
 const anotadas: unknown[] = [];
 const cierres: string[] = [];
@@ -63,11 +64,11 @@ vi.mock("@/modules/auth/hooks/useMe", () => ({
 }));
 
 vi.mock("@/modules/catalog/hooks/useCategories", () => ({
-    useCategories: () => ({ data: [{ id: "cat", name: "Periféricos" }] }),
+    useCategories: () => ({ data: [{ id: "cat", name: "Periféricos" }, { id: "cat-2", name: "Cables" }] }),
 }));
 
 vi.mock("@/modules/inventory-counts/hooks/useInventoryCounts", () => ({
-    useInventoryCounts: () => ({ data: { data: [CONTEO], meta: { total: 1, page: 1, limit: 20, totalPages: 1 } }, isLoading: false }),
+    useInventoryCounts: () => ({ data: { data: listaDeConteos, meta: { total: listaDeConteos.length, page: 1, limit: 20, totalPages: 1 } }, isLoading: false }),
     useInventoryCount: () => ({ data: conteo, isLoading: false }),
     useInventoryCountLines: (_id: string, q: InventoryCountLinesQuery) => {
         consultas.push(q);
@@ -108,6 +109,7 @@ const pantallaDeSesion = () =>
 
 beforeEach(() => {
     rol = "WAREHOUSE";
+    listaDeConteos = [CONTEO];
     conteo = CONTEO;
     consultas.length = 0;
     anotadas.length = 0;
@@ -145,7 +147,7 @@ describe("Conteo físico — la sesión (T5-07)", () => {
         const user = userEvent.setup();
         pantallaDeSesion();
 
-        await user.click(screen.getByRole("button", { name: "Revisar" }));
+        await user.click(screen.getByRole("tab", { name: "Revisar" }));
 
         expect(consultas.at(-1)).toMatchObject({ filter: "difference" });
         const fila = screen.getByRole("row", { name: /Teclado/ });
@@ -185,7 +187,7 @@ describe("Conteo físico — la sesión (T5-07)", () => {
 
         expect(screen.getByRole("columnheader", { name: "Valor a coste" })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Cerrar conteo" })).not.toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Revisar" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("tab", { name: "Revisar" })).not.toBeInTheDocument();
         expect(screen.getByText(/Cerrado el .* por almacen@stockly.app/)).toBeInTheDocument();
     });
 });
@@ -239,11 +241,28 @@ describe("Conteo físico — la lista (T5-07)", () => {
         expect(screen.getByText("2 de 3 contados")).toBeInTheDocument();
         await user.click(screen.getByRole("button", { name: "Nuevo conteo" }));
         const dialogo = screen.getByRole("dialog");
-        await user.selectOptions(within(dialogo).getByLabelText("Qué contar"), "cat");
+        await user.selectOptions(within(dialogo).getByLabelText("Qué contar"), "cat-2");
         await user.type(within(dialogo).getByLabelText("Nota (opcional)"), "Pasillo 2");
         await user.click(within(dialogo).getByRole("button", { name: "Abrir conteo" }));
 
-        expect(creados).toEqual([{ categoryId: "cat", note: "Pasillo 2" }]);
+        expect(creados).toEqual([{ categoryId: "cat-2", note: "Pasillo 2" }]);
+    });
+
+    it("AUD-019 — lo que ya está en un conteo abierto de ese almacén se marca y no se ofrece", async () => {
+        // `CONTEO` está abierto sobre «Periféricos» en el almacén predeterminado: abrir otro
+        // sobre ella, o sobre todo el catálogo, lo rechazaría el servidor con un 409.
+        const user = userEvent.setup();
+        renderWithProviders(<InventoryCountsPage />);
+        await user.click(screen.getByRole("button", { name: "Nuevo conteo" }));
+        const dialogo = screen.getByRole("dialog");
+
+        const ocupada = within(dialogo).getByRole("option", { name: "Periféricos — ya en un conteo abierto" });
+        expect(ocupada).toBeDisabled();
+        expect(within(dialogo).getByRole("option", { name: "Todo el catálogo — ya en un conteo abierto" })).toBeDisabled();
+        expect(within(dialogo).getByRole("option", { name: "Cables" })).toBeEnabled();
+        // Lo elegido de salida es la primera libre, no «todo el catálogo», que está ocupado.
+        expect(within(dialogo).getByLabelText("Qué contar")).toHaveValue("cat-2");
+        expect(within(dialogo).getByText(/ya están en un conteo abierto de este almacén/)).toBeInTheDocument();
     });
 
     it("un USER no ve «Nuevo conteo»", () => {
@@ -278,10 +297,10 @@ describe("Conteo físico — lo escrito no se pierde (AUD-011)", () => {
         pantallaDeSesion();
         escribir("3");
 
-        await user.click(screen.getByRole("button", { name: "Revisar" }));
+        await user.click(screen.getByRole("tab", { name: "Revisar" }));
         expect(screen.getByText("1 cifra sin guardar en «Contar»")).toBeInTheDocument();
 
-        await user.click(screen.getByRole("button", { name: "Contar" }));
+        await user.click(screen.getByRole("tab", { name: "Contar" }));
         expect(monitor()).toHaveValue(3);
         expect(screen.getByRole("button", { name: "Guardar (1)" })).toBeEnabled();
     });
@@ -355,5 +374,56 @@ describe("Conteo físico — lo escrito no se pierde (AUD-011)", () => {
         pantallaDeSesion();
 
         expect(sessionStorage.getItem(`stockly.conteo.${ID}`)).toBeNull();
+    });
+});
+
+/**
+ * AUD-019 — pulido del bloque Inventario de la crítica del 2026-11-07: el conteo a ciegas también en
+ * las cifras de arriba, un solo primario a la vez y la lista vacía que dice por qué.
+ */
+describe("Conteo físico — a ciegas, jerarquía y vacíos (AUD-019)", () => {
+    // Por el principio: el rótulo completo es «Sobrante (uds. · coste)». Con el texto exacto, las
+    // comprobaciones de «no está» pasarían sin mirar nada.
+    const tarjeta = (rotulo: string) => screen.queryByText(new RegExp(`^${rotulo}`));
+
+    it("mientras se cuenta solo se ve el avance; las diferencias aparecen en «Revisar»", async () => {
+        const user = userEvent.setup();
+        pantallaDeSesion();
+
+        expect(screen.getByText("2 de 3 contados")).toBeInTheDocument();
+        expect(tarjeta("Con diferencia")).not.toBeInTheDocument();
+        expect(tarjeta("Sobrante")).not.toBeInTheDocument();
+        expect(tarjeta("Faltante")).not.toBeInTheDocument();
+        expect(screen.getByText(/no se enseñan las diferencias/)).toBeInTheDocument();
+
+        await user.click(screen.getByRole("tab", { name: "Revisar" }));
+        // «Con diferencia» sale también como pestaña del filtro: se miran las dos únicas.
+        expect(tarjeta("Sobrante")).toBeInTheDocument();
+        expect(tarjeta("Faltante")).toBeInTheDocument();
+    });
+
+    it("las vistas son pestañas y un solo primario: «Guardar» al contar, «Cerrar conteo» al revisar", async () => {
+        const user = userEvent.setup();
+        pantallaDeSesion();
+
+        expect(screen.getByRole("tablist", { name: "Vista" })).toBeInTheDocument();
+        expect(screen.getByRole("tab", { name: "Contar" })).toHaveAttribute("aria-selected", "true");
+        expect(screen.getByRole("button", { name: "Cerrar conteo" })).not.toHaveClass("bg-primary");
+
+        await user.click(screen.getByRole("tab", { name: "Revisar" }));
+        expect(screen.getByRole("button", { name: "Cerrar conteo" })).toHaveClass("bg-primary");
+        // Los filtros de la revisión, también pestañas y no botones en primario.
+        expect(screen.getByRole("tab", { name: "Con diferencia" })).toHaveAttribute("aria-selected", "true");
+    });
+
+    it("una lista vacía por un filtro lo dice y deja quitarlo; sin filtros, dice que no hay ninguno", async () => {
+        listaDeConteos = [];
+        const user = userEvent.setup();
+        renderWithProviders(<InventoryCountsPage />, { initialRoute: "/inventory-counts?estado=CLOSED" });
+
+        expect(screen.getByText("Ningún conteo coincide con el filtro.")).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Quitar los filtros" }));
+        expect(screen.getByText("Todavía no hay conteos.")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Quitar los filtros" })).not.toBeInTheDocument();
     });
 });

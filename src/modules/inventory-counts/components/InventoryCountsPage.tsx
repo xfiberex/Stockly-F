@@ -7,6 +7,7 @@ import { Input } from "@/shared/components/Input";
 import { Modal } from "@/shared/components/Modal";
 import { Select } from "@/shared/components/Select";
 import { EsqueletoLista } from "@/shared/components/Esqueleto";
+import { VacioDeLista } from "@/shared/components/VacioDeLista";
 import { useT } from "@/shared/hooks/useIdioma";
 import { formatearFecha } from "@/shared/lib/fechas";
 import { ESTADO_CONTEO, buscarEstado } from "@/shared/lib/estados";
@@ -33,10 +34,32 @@ function NuevoConteo({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
     // T5-14 — se cuenta un almacén: lo esperado de cada línea es lo que hay en él.
     const almacen = useAlmacenDeOperacion();
 
+    // AUD-019 — lo que ya se está contando en ese almacén. Un producto no puede estar en dos conteos
+    // abiertos del mismo almacén, y antes eso solo se sabía al enviar (409). Se marca y no se ofrece:
+    // una categoría con conteo abierto, y el catálogo entero si hay cualquiera abierto. El servidor
+    // sigue siendo quien decide —mira producto por producto—; esto evita el viaje casi siempre.
+    const { data: abiertos } = useInventoryCounts(
+        { page: 1, limit: 100, status: "OPEN", warehouseId: almacen.warehouseId || undefined },
+        { enabled: almacen.warehouseId !== "" },
+    );
+    const enEsteAlmacen = (abiertos?.data ?? []).filter((c) => c.warehouse.id === almacen.warehouseId);
+    const delCatalogoEntero = enEsteAlmacen.find((c) => c.category === null);
+    const categoriasOcupadas = new Set(enEsteAlmacen.flatMap((c) => (c.category ? [c.category.id] : [])));
+    const ocupada = (id: string) => (id === "" ? enEsteAlmacen.length > 0 : delCatalogoEntero !== undefined || categoriasOcupadas.has(id));
+
+    const opciones: Array<{ value: string; label: string; disabled?: boolean }> = [
+        { value: "", label: t("conteos.todoElCatalogo") },
+        ...categorias.map((c) => ({ value: c.id, label: c.name })),
+    ].map((o) => (ocupada(o.value) ? { ...o, label: t("conteos.yaEnConteo", { nombre: o.label }), disabled: true } : o));
+    // Si lo elegido está ocupado —al principio, «todo el catálogo» con otro conteo abierto—, la
+    // primera libre. Sin ninguna libre no hay qué abrir.
+    const elegida = opciones.find((o) => o.value === categoryId && !o.disabled)?.value ?? opciones.find((o) => !o.disabled)?.value ?? null;
+
     const enviar = (e: FormEvent) => {
         e.preventDefault();
+        if (elegida === null) return;
         crear.mutate(
-            { warehouseId: almacen.paraEnviar, categoryId: categoryId || null, note: note.trim() || undefined },
+            { warehouseId: almacen.paraEnviar, categoryId: elegida || null, note: note.trim() || undefined },
             { onSuccess: (conteo) => navigate(`/inventory-counts/${conteo.id}`) },
         );
     };
@@ -47,18 +70,27 @@ function NuevoConteo({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
                 <SelectorDeAlmacen label={t("conteos.almacen")} value={almacen.warehouseId} onChange={almacen.setWarehouseId} />
                 <Select
                     label={t("conteos.categoria")}
-                    value={categoryId}
+                    value={elegida ?? ""}
                     onChange={(e) => setCategoryId(e.target.value)}
-                    options={[
-                        { value: "", label: t("conteos.todoElCatalogo") },
-                        ...categorias.map((c) => ({ value: c.id, label: c.name })),
-                    ]}
+                    options={opciones}
+                    disabled={elegida === null}
+                    aria-describedby={enEsteAlmacen.length > 0 ? "conteos-ocupados" : undefined}
                 />
+                {delCatalogoEntero ? (
+                    <p id="conteos-ocupados" className="text-sm text-warning">
+                        {t("conteos.catalogoEnteroAbierto")}{" "}
+                        <Link to={`/inventory-counts/${delCatalogoEntero.id}`} className="font-medium underline underline-offset-2">
+                            {t("conteos.verElConteo", { numero: numeroDeConteo(delCatalogoEntero.id) })}
+                        </Link>
+                    </p>
+                ) : (
+                    enEsteAlmacen.length > 0 && <p id="conteos-ocupados" className="text-xs text-foreground-muted">{t("conteos.ocupadasAyuda")}</p>
+                )}
                 <Input label={t("conteos.nota")} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
                 <p className="text-xs text-foreground-muted">{t("conteos.alcance")}</p>
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="secondary" onClick={onClose}>{t("comun.cancelar")}</Button>
-                    <Button type="submit" isLoading={crear.isPending}>{t("conteos.abrir")}</Button>
+                    <Button type="submit" isLoading={crear.isPending} disabled={elegida === null}>{t("conteos.abrir")}</Button>
                 </div>
             </form>
         </Modal>
@@ -84,6 +116,7 @@ export default function InventoryCountsPage() {
     const { hayVarios } = useAlmacenes();
 
     const { data, isLoading } = useInventoryCounts({ page, limit: PAGE_SIZE, status: status || undefined, warehouseId: almacenFiltrado || undefined });
+    const hayFiltros = status !== "" || almacenFiltrado !== "";
     const conteos = data?.data ?? [];
     const totalPages = data?.meta.totalPages ?? 1;
 
@@ -122,7 +155,10 @@ export default function InventoryCountsPage() {
             {isLoading ? (
                 <EsqueletoLista />
             ) : conteos.length === 0 ? (
-                <div className="py-16 text-center text-sm text-foreground-muted">{t("conteos.vacio")}</div>
+                <VacioDeLista
+                    texto={t(hayFiltros ? "conteos.sinResultados" : "conteos.vacio")}
+                    onQuitarFiltros={hayFiltros ? () => { setStatus(""); setAlmacenFiltrado(""); setPage(1); } : undefined}
+                />
             ) : (
                 <ul className="space-y-3">
                     {conteos.map((conteo) => (

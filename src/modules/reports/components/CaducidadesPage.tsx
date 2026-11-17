@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ArchiveBoxXMarkIcon } from "@heroicons/react/24/outline";
+import { VacioDeLista } from "@/shared/components/VacioDeLista";
 import { Badge } from "@/shared/components/Badge";
 import { Button } from "@/shared/components/Button";
 import { Modal } from "@/shared/components/Modal";
@@ -65,9 +67,26 @@ export default function CaducidadesPage() {
     const puede = usePuede();
     const { hayVarios } = useAlmacenes();
     const [page, setPage] = useState(1);
-    const [almacen, setAlmacen] = useState("");
+    // AUD-019 — los filtros viven en la URL (`?dias=`, `?almacen=`, `?caducado=1`), como los de
+    // Productos: se comparten, sobreviven a ir a un lote y volver, y el panel puede enlazar con uno.
+    // Con `replace`: cambiar de filtro no es una entrada del historial.
+    const [params, setParams] = useSearchParams();
+    const almacen = params.get("almacen") ?? "";
     // Vacío es «el plazo de Configuración»: lo decide el servidor, y la respuesta dice cuál fue.
-    const [plazo, setPlazo] = useState("");
+    const plazo = /^\d+$/.test(params.get("dias") ?? "") ? params.get("dias")! : "";
+    const soloCaducado = params.get("caducado") === "1";
+    const filtrar = (nombre: string, valor: string) => {
+        setParams(
+            (actuales) => {
+                const siguientes = new URLSearchParams(actuales);
+                if (valor) siguientes.set(nombre, valor);
+                else siguientes.delete(nombre);
+                return siguientes;
+            },
+            { replace: true },
+        );
+        setPage(1);
+    };
     const [aDarDeBaja, setADarDeBaja] = useState<ExpiryRow | null>(null);
 
     const { data, isLoading } = useExpiryReport({
@@ -75,7 +94,10 @@ export default function CaducidadesPage() {
         limit: PAGE_SIZE,
         warehouseId: almacen || undefined,
         days: plazo === "" ? undefined : Number(plazo),
+        expired: soloCaducado || undefined,
     });
+    // El plazo no cuenta como filtro que quitar: siempre hay uno, y quitarlo es volver al de Configuración.
+    const hayFiltros = almacen !== "" || soloCaducado;
     const filas = data?.data ?? [];
     const totalPages = data?.meta.totalPages ?? 1;
     const dias = data?.days;
@@ -99,12 +121,23 @@ export default function CaducidadesPage() {
                         label={t("caducidades.plazo")}
                         options={plazos.map((n) => ({ value: String(n), label: tn("caducidades.dias", n) }))}
                         value={plazo === "" ? String(dias ?? "") : plazo}
-                        onChange={(e) => { setPlazo(e.target.value); setPage(1); }}
+                        onChange={(e) => filtrar("dias", e.target.value)}
                     />
                 </div>
                 <div className="sm:w-64">
-                    <SelectorDeAlmacen comoFiltro value={almacen} onChange={(id) => { setAlmacen(id); setPage(1); }} />
+                    <SelectorDeAlmacen comoFiltro value={almacen} onChange={(id) => filtrar("almacen", id)} />
                 </div>
+                {/* AUD-019 — quien va a retirar lo vencido no necesita lo que todavía se vende. El
+                    filtro es del servidor (la lista va paginada); el resumen de abajo no cambia. */}
+                <label className="flex min-h-11 items-center gap-2 text-sm text-foreground md:pointer-fine:min-h-9">
+                    <input
+                        type="checkbox"
+                        checked={soloCaducado}
+                        onChange={(e) => filtrar("caducado", e.target.checked ? "1" : "")}
+                        className="h-4 w-4"
+                    />
+                    {t("caducidades.soloCaducado")}
+                </label>
             </div>
 
             {data && (
@@ -121,9 +154,9 @@ export default function CaducidadesPage() {
                     <div className="rounded-xl border border-border bg-surface px-4 py-3">
                         <p className="text-xs font-medium uppercase tracking-wide text-foreground-muted">{t("caducidades.porCaducar")}</p>
                         <p className="text-sm text-foreground tabular-nums">
-                            {/* AUD-019 — los que caducan en el plazo son el resto de las filas: el
-                                resumen cuenta los caducados y `meta.total`, todos. */}
-                            {tn("caducidades.lotesUnidadesYValor", data.meta.total - data.summary.expiredCount, {
+                            {/* AUD-019 — del resumen y no de `meta.total − caducados`: con «solo lo
+                                caducado», `meta` cuenta solo esas filas y aquí saldría 0. */}
+                            {tn("caducidades.lotesUnidadesYValor", data.summary.expiringCount, {
                                 unidades: data.summary.expiringUnits,
                                 valor: formatearImporte(data.summary.expiringCostValue),
                             })}
@@ -138,7 +171,10 @@ export default function CaducidadesPage() {
             {isLoading ? (
                 <EsqueletoLista />
             ) : filas.length === 0 ? (
-                <div className="py-16 text-center text-sm text-foreground-muted">{t("caducidades.vacio")}</div>
+                <VacioDeLista
+                    texto={t(soloCaducado ? "caducidades.vacioCaducado" : hayFiltros ? "caducidades.vacioConFiltro" : "caducidades.vacio")}
+                    onQuitarFiltros={hayFiltros ? () => { setParams((p) => { const s = new URLSearchParams(p); s.delete("almacen"); s.delete("caducado"); return s; }, { replace: true }); setPage(1); } : undefined}
+                />
             ) : (
                 <ul className="space-y-3">
                     {filas.map((fila) => (

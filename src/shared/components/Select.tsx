@@ -8,7 +8,9 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
     placeholder?: string;
     // `readonly` y `value: string`: el componente solo recorre la lista, así que exigir un
     // array mutable obligaba a quien tipa sus opciones contra un enum (T4-01) a copiarlo.
-    options: ReadonlyArray<{ value: string; label: string }>;
+    // `disabled` (AUD-019): la opción se ve pero no se puede elegir, como una categoría que ya está
+    // en otro conteo abierto. Lo que el servidor rechazaría no se ofrece (design-system §8).
+    options: ReadonlyArray<{ value: string; label: string; disabled?: boolean }>;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
@@ -51,7 +53,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                     >
                         {placeholder && <option value="">{placeholder}</option>}
                         {options.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
+                            <option key={opt.value} value={opt.value} disabled={opt.disabled}>
                                 {opt.label}
                             </option>
                         ))}

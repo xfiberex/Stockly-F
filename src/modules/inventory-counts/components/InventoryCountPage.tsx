@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeftIcon, CheckIcon, ViewfinderCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { AvisoDeCambiosSinGuardar } from "@/shared/components/AvisoDeCambiosSinGuardar";
@@ -7,6 +7,8 @@ import { EscanerModal } from "@/shared/components/EscanerModal";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { Modal } from "@/shared/components/Modal";
 import { Paginacion } from "@/shared/components/Paginacion";
+import { Pestanas } from "@/shared/components/Pestanas";
+import { CLASES_PANEL_DE_PESTANA, propsDePanel } from "@/shared/lib/pestanas";
 import { EsqueletoTabla, EsqueletoPagina } from "@/shared/components/Esqueleto";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useEstadoDeSesion } from "@/shared/hooks/useEstadoDeSesion";
@@ -239,6 +241,7 @@ function Captura({
 /** Lo anotado frente a lo esperado, y en una sesión cerrada lo que se aplicó y a qué coste. */
 function Revision({ conteo }: { conteo: InventoryCount }) {
     const { t } = useT();
+    const base = useId();
     const [filtro, setFiltro] = useState<InventoryCountLineFilter>("difference");
     const [page, setPage] = useState(1);
     const { data, isLoading } = useInventoryCountLines(conteo.id, { page, limit: PAGE_SIZE, filter: filtro });
@@ -247,19 +250,19 @@ function Revision({ conteo }: { conteo: InventoryCount }) {
 
     return (
         <section className="bg-surface rounded-xl border border-border">
-            <div role="group" aria-label={t("conteos.filtroLineas")} className="flex flex-wrap gap-2 p-4">
-                {(Object.keys(ROTULO_DE_FILTRO) as InventoryCountLineFilter[]).map((f) => (
-                    <Button
-                        key={f}
-                        variant={filtro === f ? "primary" : "secondary"}
-                        aria-pressed={filtro === f}
-                        onClick={() => { setFiltro(f); setPage(1); }}
-                    >
-                        {t(ROTULO_DE_FILTRO[f])}
-                    </Button>
-                ))}
+            {/* AUD-019 — pestañas y no tres botones con el elegido en primario: filtran la misma
+                lista, y un primario por filtro competía con «Cerrar conteo», que es la acción. */}
+            <div className="px-4 pt-2">
+                <Pestanas
+                    base={base}
+                    etiqueta={t("conteos.filtroLineas")}
+                    activa={filtro}
+                    onCambio={(f) => { setFiltro(f); setPage(1); }}
+                    pestanas={(Object.keys(ROTULO_DE_FILTRO) as InventoryCountLineFilter[]).map((f) => ({ valor: f, etiqueta: t(ROTULO_DE_FILTRO[f]) }))}
+                />
             </div>
 
+            <div {...propsDePanel(base, filtro)} className={cn("pt-3", CLASES_PANEL_DE_PESTANA)}>
             {isLoading ? (
                 <EsqueletoTabla columnas={5} sinTarjeta />
             ) : lineas.length === 0 ? (
@@ -308,6 +311,7 @@ function Revision({ conteo }: { conteo: InventoryCount }) {
                 </div>
             )}
             <Paginacion page={page} totalPages={data?.meta.totalPages ?? 1} onPage={setPage} />
+            </div>
         </section>
     );
 }
@@ -323,6 +327,7 @@ export default function InventoryCountPage() {
     const { hayVarios } = useAlmacenes();
     const { data: conteo, isLoading } = useInventoryCount(id);
     const [vista, setVista] = useState<"contar" | "revisar">("contar");
+    const baseDeVistas = useId();
     const [confirmar, setConfirmar] = useState<"cerrar" | "cancelar" | null>(null);
     const cerrar = useCloseInventoryCount(id);
     const cancelar = useCancelInventoryCount(id);
@@ -364,12 +369,20 @@ export default function InventoryCountPage() {
     const puedeContar = abierta && puede("PATCH /inventory-counts/:id/lines");
     const { summary } = conteo;
     const vistaActual = puedeContar ? vista : "revisar";
+    // AUD-019 — **a ciegas también en las cifras**. La tabla de «Contar» ya no enseñaba el stock del
+    // sistema, pero las tarjetas de arriba sí decían cuántas líneas diferían y cuánto sobraba o
+    // faltaba: quien cuenta podía ir corrigiendo hacia ese número. Mientras se cuenta, solo el avance.
+    const aCiegas = vistaActual === "contar";
 
     const tarjetas: Array<{ label: string; value: string | number; tono?: string }> = [
         { label: t("conteos.tarjeta.contados"), value: t("conteos.progreso", { contados: summary.counted, total: summary.lines }) },
-        { label: t("conteos.tarjeta.conDiferencia"), value: summary.withDifference },
-        { label: t("conteos.tarjeta.sobrante"), value: `+${summary.unitsOver} · ${formatearImporte(summary.valueOver)}`, tono: "text-success" },
-        { label: t("conteos.tarjeta.faltante"), value: `−${summary.unitsShort} · ${formatearImporte(summary.valueShort)}`, tono: "text-danger" },
+        ...(aCiegas
+            ? []
+            : [
+                  { label: t("conteos.tarjeta.conDiferencia"), value: summary.withDifference },
+                  { label: t("conteos.tarjeta.sobrante"), value: `+${summary.unitsOver} · ${formatearImporte(summary.valueOver)}`, tono: "text-success" },
+                  { label: t("conteos.tarjeta.faltante"), value: `−${summary.unitsShort} · ${formatearImporte(summary.valueShort)}`, tono: "text-danger" },
+              ]),
     ];
 
     return (
@@ -412,8 +425,11 @@ export default function InventoryCountPage() {
                                 {t("conteos.cancelar")}
                             </Button>
                         )}
+                        {/* AUD-019 — primario solo en «Revisar»: mientras se cuenta, lo que se
+                            hace es guardar, y dos primarios a la vez no dicen cuál toca. Se cierra
+                            después de mirar las diferencias, que es donde está. */}
                         {puede("POST /inventory-counts/:id/close") && (
-                            <Button onClick={() => setConfirmar("cerrar")} disabled={summary.counted === 0}>
+                            <Button variant={vistaActual === "contar" ? "secondary" : "primary"} onClick={() => setConfirmar("cerrar")} disabled={summary.counted === 0}>
                                 <CheckIcon className="h-4 w-4" />
                                 {t("conteos.cerrar")}
                             </Button>
@@ -429,20 +445,28 @@ export default function InventoryCountPage() {
                         <p className="text-xs text-foreground-muted leading-tight">{label}</p>
                     </div>
                 ))}
+                {aCiegas && (
+                    <p className="col-span-1 self-center text-xs text-foreground-muted lg:col-span-3">{t("conteos.aCiegas")}</p>
+                )}
             </div>
-            {summary.linesWithoutCost > 0 && (
+            {!aCiegas && summary.linesWithoutCost > 0 && (
                 <p className="text-xs text-foreground-muted">{tn("conteos.sinCoste", summary.linesWithoutCost)}</p>
             )}
 
+            {/* AUD-019 — un `tablist`, no dos botones con el elegido en primario: es elegir qué se
+                ve, y el primario queda para la acción («Guardar» o «Cerrar conteo»). */}
             {puedeContar && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <div role="group" aria-label={t("conteos.vista")} className="flex gap-2">
-                        {(["contar", "revisar"] as const).map((v) => (
-                            <Button key={v} variant={vista === v ? "primary" : "secondary"} aria-pressed={vista === v} onClick={() => setVista(v)}>
-                                {t(v === "contar" ? "conteos.vistaContar" : "conteos.vistaRevisar")}
-                            </Button>
-                        ))}
-                    </div>
+                <div className="space-y-2">
+                    <Pestanas
+                        base={baseDeVistas}
+                        etiqueta={t("conteos.vista")}
+                        activa={vista}
+                        onCambio={setVista}
+                        pestanas={[
+                            { valor: "contar", etiqueta: t("conteos.vistaContar") },
+                            { valor: "revisar", etiqueta: t("conteos.vistaRevisar") },
+                        ]}
+                    />
                     {/* En «Revisar» no está el botón de guardar: que se sepa que algo espera allí. */}
                     {vistaActual === "revisar" && pendientes.length > 0 && (
                         <p className="text-sm font-medium text-warning">{tn("conteos.sinGuardar.pendientes", pendientes.length)}</p>
@@ -450,18 +474,20 @@ export default function InventoryCountPage() {
                 </div>
             )}
 
-            {vistaActual === "contar" ? (
-                <Captura
-                    id={conteo.id}
-                    cifras={cifras}
-                    onCifra={anotarCifra}
-                    pendientes={pendientes.length}
-                    onGuardar={guardar}
-                    guardando={anotar.isPending}
-                />
-            ) : (
-                <Revision conteo={conteo} />
-            )}
+            <div {...(puedeContar ? propsDePanel(baseDeVistas, vistaActual) : {})} className={cn(puedeContar && CLASES_PANEL_DE_PESTANA)}>
+                {vistaActual === "contar" ? (
+                    <Captura
+                        id={conteo.id}
+                        cifras={cifras}
+                        onCifra={anotarCifra}
+                        pendientes={pendientes.length}
+                        onGuardar={guardar}
+                        guardando={anotar.isPending}
+                    />
+                ) : (
+                    <Revision conteo={conteo} />
+                )}
+            </div>
 
             {/* Recargar no pierde nada (las cifras están en la pestaña); irse a otra pantalla
                 sí las deja atrás, y eso se pregunta. */}

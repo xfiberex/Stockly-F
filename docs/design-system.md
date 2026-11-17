@@ -673,6 +673,15 @@ de que la pantalla se anunció.
 **Con datos ya en pantalla, un fallo no los borra.** Se quedan y se avisa de que son los de antes
 —«No se pudo actualizar: son los datos de las 14:32»—, con el mismo «Reintentar».
 
+### Vaciar: decir por qué
+
+**Una lista vacía por un filtro no dice «Todavía no hay…»** (`AUD-019`). Con `?estado=CLOSED` y
+ningún conteo cerrado, Conteos aseguraba que no había conteos, y los había.
+[`VacioDeLista`](../src/shared/components/VacioDeLista.tsx) recibe el texto que toca —vacía de
+verdad, o vacía con este filtro— y, si hay filtros puestos, «Quitar los filtros» al lado del
+mensaje: la salida está donde se lee el problema, no arriba entre los desplegables. Un filtro que
+siempre tiene valor (el plazo de Caducidades) no cuenta como algo que quitar.
+
 ### No perder lo escrito
 
 **Lo que alguien escribe solo se pierde si lo decide.** La crítica del 2026-11-07 encontró cinco
