@@ -297,7 +297,7 @@ export const en: Record<keyof typeof es, string> = {
 
     // ── 404 ──────────────────────────────────────────────────────────────────
     "noEncontrada.detalle": "The page you are looking for does not exist.",
-    "noEncontrada.volver": "Back to Dashboard",
+    "noEncontrada.volver": "Back to home",
 
     // ── Form validation ──────────────────────────────────────────────────────
     "validacion.nombreRequerido": "Name is required",
@@ -462,8 +462,12 @@ export const en: Record<keyof typeof es, string> = {
     "configuracion.impuestoInvalido": "A percentage between 0 and 100, with at most two decimals.",
     "configuracion.moneda.largo": "Enter between 1 and 5 characters.",
     "configuracion.moneda.caracteres": "Only unaccented letters, $ / . and the signs € £ ¥ ¢ ƒ. For example: RD$.",
+    "configuracion.zona.buscar": "Search for a city or an offset, like UTC−4",
+    "configuracion.zona.lista": "Time zones",
+    "configuracion.zona.ninguna": "No time zone matches “{texto}”. Try the name of a city.",
     "configuracion.logo.titulo": "Logo",
     "configuracion.logo.descripcion": "Shown on the sales receipts. JPG, PNG or WebP, up to 2 MB.",
+    "configuracion.logo.alInstante": "It is saved as soon as you choose the file, without “Save changes”.",
     "configuracion.logo.alt": "Business logo",
     "configuracion.logo.subir": "Upload logo",
     "configuracion.logo.cambiar": "Change logo",

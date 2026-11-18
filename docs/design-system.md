@@ -181,6 +181,12 @@ Las tablas llevan `font-variant-numeric: tabular-nums` por regla de elemento, no
 celda: una tabla de inventario existe para comparar cifras en vertical, y las cifras
 proporcionales de Inter desalinean las columnas. Cualquier tabla nueva nace alineada.
 
+**Sin palabras sueltas al final de línea** (`AUD-019`): párrafos, elementos de lista y
+etiquetas cortan con `text-wrap-style: pretty`, y `h1` a `h3` con `balance`, por regla de
+elemento en `index.css`. Es la propiedad larga a propósito: el atajo `text-wrap` pondría también
+`text-wrap-mode: wrap` y desharía un `truncate`. No hace falta escribir `text-pretty` en cada
+párrafo; sí sirve para un `div` o un `span` que hagan de párrafo.
+
 **Lo vigila:** [`src/tests/tipografia.test.ts`](../src/tests/tipografia.test.ts) comprueba
 que los pesos declarados y los importados no se desalineen en ninguna de las dos
 direcciones.
@@ -468,6 +474,10 @@ Las siete de autenticación y el 404 no pasan por `App.tsx`, así que **no hered
 — y hasta T4-09 no tenían ningún landmark. Lighthouse lo marcaba en el login, que es la
 primera pantalla del producto. Su marco es
 [`CLASES_MARCO_CENTRADO`](../src/shared/lib/clasesDeMarco.ts), y el elemento es `<main>`.
+
+**La 404 se pinta en los dos lados** (`AUD-019`): fuera de la sesión, con su `<main>` y la marca;
+dentro de la aplicación (`<NotFoundPage dentroDeLaApp />`), como un bloque más del `<main>` de
+`App.tsx`, sin marca —ya está en la barra— y sin anidar un segundo landmark principal.
 
 **Un enlace metido en un párrafo lleva subrayado permanente**
 (`CLASES_ENLACE_EN_TEXTO`). Con `hover:underline` a secas, en reposo lo único que lo separa

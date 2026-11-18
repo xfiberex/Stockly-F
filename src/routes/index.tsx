@@ -150,11 +150,11 @@ export const router = createBrowserRouter([
                     { path: "tags", element: <S><TagsPage /></S> },
                 ],
             },
-            { path: "*", element: <NotFoundPage /> },
+            { path: "*", element: <NotFoundPage dentroDeLaApp /> },
         ],
     },
     {
         path: "*",
-        element: <NotFoundPage />,
+        element: <Acceso><NotFoundPage /></Acceso>,
     },
 ]);

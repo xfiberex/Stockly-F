@@ -3,12 +3,12 @@ import { z } from "zod";
 import { AvisoDeCambiosSinGuardar } from "@/shared/components/AvisoDeCambiosSinGuardar";
 import { Button } from "@/shared/components/Button";
 import { Input } from "@/shared/components/Input";
-import { Select } from "@/shared/components/Select";
 import { cn } from "@/shared/lib/cn";
 import { EsqueletoBloques } from "@/shared/components/Esqueleto";
 import { SelectorDeIdioma } from "@/modules/settings/components/SelectorDeIdioma";
 import { SelectorDeTema } from "@/modules/settings/components/SelectorDeTema";
 import { LogoDelNegocio } from "@/modules/settings/components/LogoDelNegocio";
+import { SelectorDeZonaHoraria } from "@/modules/settings/components/SelectorDeZonaHoraria";
 import { useT } from "@/shared/hooks/useIdioma";
 import { existeClave, type Clave } from "@/shared/i18n/traducir";
 import { TASA_DE_IMPUESTO_MAXIMA, esTasaDeImpuestoValida, motivoSimboloDeMonedaInvalido } from "@/shared/contratos";
@@ -30,18 +30,6 @@ function textoDeAjuste(
 ): string {
     const clave = `ajuste.${key}.${parte}`;
     return existeClave(clave) ? t(clave) : respaldo;
-}
-
-/**
- * T5-09 — las zonas horarias que conoce el navegador, para no escribir un nombre IANA a mano:
- * un error de tecleo lo rechazaría el backend, pero con una lista no llega a haberlo. La zona
- * guardada se añade si el navegador no la lista —`UTC`, por ejemplo, no sale en todos—, o el
- * desplegable enseñaría otra distinta de la que está en vigor.
- */
-function opcionesDeZona(guardada: string) {
-    const zonas = Intl.supportedValuesOf("timeZone");
-    if (!zonas.includes(guardada)) zonas.unshift(guardada);
-    return zonas.map((zona) => ({ value: zona, label: zona.replaceAll("_", " ") }));
 }
 
 /** Los `id` del título y la descripción de un ajuste: de ahí saca su nombre el control. */
@@ -184,7 +172,7 @@ export default function SettingsPage() {
                     <p id={rotulosDe(entry.key)["aria-labelledby"]} className="text-sm font-medium text-foreground">{textoDeAjuste(t, entry.key, "titulo", entry.label)}</p>
                     <p id={rotulosDe(entry.key)["aria-describedby"]} className="text-xs text-foreground-muted mt-0.5">{textoDeAjuste(t, entry.key, "descripcion", entry.description)}</p>
                 </div>
-                <div className={cn("shrink-0", esTexto && (entry.key === "currencySymbol" ? "sm:w-28" : "sm:w-72"))}>
+                <div className={cn("shrink-0", (esTexto || entry.key === "timezone") && (entry.key === "currencySymbol" ? "sm:w-28" : "sm:w-72"))}>
                     {entry.type === "boolean" ? (
                         <BooleanToggle
                             {...rotulosDe(entry.key)}
@@ -192,13 +180,11 @@ export default function SettingsPage() {
                             onChange={(value) => handleChange(entry.key, value)}
                         />
                     ) : entry.key === "timezone" ? (
-                        <Select
-                            aria-label={textoDeAjuste(t, entry.key, "titulo", entry.label)}
-                            aria-describedby={rotulosDe(entry.key)["aria-describedby"]}
-                            value={String(valorDe(entry))}
-                            options={opcionesDeZona(String(entry.value))}
-                            onChange={(e) => handleChange(entry.key, e.target.value)}
-                            className="w-full sm:w-60"
+                        <SelectorDeZonaHoraria
+                            {...rotulosDe(entry.key)}
+                            valor={String(valorDe(entry))}
+                            guardada={String(entry.value)}
+                            onChange={(zona) => handleChange(entry.key, zona)}
                         />
                     ) : entry.key === "taxRate" ? (
                         // T6-05 — con `Input` y no con el campo numérico de abajo: este puede

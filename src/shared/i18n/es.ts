@@ -315,7 +315,7 @@ export const es = {
 
     // ── Página 404 ───────────────────────────────────────────────────────────
     "noEncontrada.detalle": "La ruta que buscas no existe.",
-    "noEncontrada.volver": "Volver al Dashboard",
+    "noEncontrada.volver": "Volver al inicio",
 
     // ── Validación de formularios ────────────────────────────────────────────
     // Lo que se guarda en el esquema Zod es **la clave**, no la frase: el esquema se
@@ -487,8 +487,12 @@ export const es = {
     "configuracion.impuestoInvalido": "Un porcentaje entre 0 y 100, con dos decimales como mucho.",
     "configuracion.moneda.largo": "Escribe entre 1 y 5 caracteres.",
     "configuracion.moneda.caracteres": "Solo letras sin acento, $ / . y los signos € £ ¥ ¢ ƒ. Por ejemplo: RD$.",
+    "configuracion.zona.buscar": "Busca una ciudad o un desfase, como UTC−4",
+    "configuracion.zona.lista": "Zonas horarias",
+    "configuracion.zona.ninguna": "Ninguna zona coincide con «{texto}». Prueba con el nombre de una ciudad.",
     "configuracion.logo.titulo": "Logo",
     "configuracion.logo.descripcion": "Aparece en los comprobantes de venta. JPG, PNG o WebP de hasta 2 MB.",
+    "configuracion.logo.alInstante": "Se guarda en cuanto eliges el archivo, sin pasar por «Guardar cambios».",
     "configuracion.logo.alt": "Logo del negocio",
     "configuracion.logo.subir": "Subir logo",
     "configuracion.logo.cambiar": "Cambiar logo",

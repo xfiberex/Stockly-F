@@ -173,10 +173,11 @@ describe("SettingsPage", () => {
             renderWithProviders(<SettingsPage />);
 
             const selector = screen.getByRole("combobox", { name: "Zona horaria del negocio" });
-            expect(selector).toHaveValue("America/Santo_Domingo");
+            expect(selector).toHaveValue("America/Santo Domingo");
             expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
 
-            await user.selectOptions(selector, "America/New_York");
+            await user.click(selector);
+            await user.click(screen.getByRole("option", { name: /^America\/New York/ }));
             await user.click(screen.getByRole("button", { name: /guardar/i }));
 
             expect(mockMutate.mock.calls[0][0]).toEqual({ timezone: "America/New_York" });
@@ -187,6 +188,85 @@ describe("SettingsPage", () => {
             renderWithProviders(<SettingsPage />);
 
             expect(screen.getByRole("combobox", { name: "Zona horaria del negocio" })).toHaveValue("Etc/GMT+4");
+        });
+
+        describe("con búsqueda (AUD-019)", () => {
+            it("escribir filtra por cualquier palabra, sin tildes ni guiones bajos, y Enter elige", async () => {
+                const user = userEvent.setup();
+                settingsData = [zona];
+                renderWithProviders(<SettingsPage />);
+
+                const selector = screen.getByRole("combobox", { name: "Zona horaria del negocio" });
+                await user.click(selector);
+                // Al entrar se selecciona lo escrito: teclear lo sustituye.
+                await user.keyboard("YORK new");
+
+                const opciones = within(screen.getByRole("listbox", { name: "Zonas horarias" })).getAllByRole("option");
+                expect(opciones.map((o) => o.textContent)).toEqual([expect.stringMatching(/^America\/New York/)]);
+
+                await user.keyboard("{Enter}");
+                expect(selector).toHaveValue("America/New York");
+                expect(selector).toHaveAttribute("aria-expanded", "false");
+
+                await user.click(screen.getByRole("button", { name: /guardar/i }));
+                expect(mockMutate.mock.calls[0][0]).toEqual({ timezone: "America/New_York" });
+            });
+
+            it("cada zona dice su desfase de hoy, y se puede buscar por él", async () => {
+                const user = userEvent.setup();
+                settingsData = [zona];
+                renderWithProviders(<SettingsPage />);
+
+                await user.click(screen.getByRole("combobox", { name: "Zona horaria del negocio" }));
+                // Santo Domingo no tiene horario de verano: es UTC−4 todo el año.
+                expect(screen.getByRole("option", { name: /^America\/Santo Domingo/ })).toHaveTextContent("UTC−4");
+
+                await user.keyboard("santo utc-4");
+                expect(screen.getByRole("option", { name: /^America\/Santo Domingo/ })).toBeInTheDocument();
+            });
+
+            it("se abre por la zona puesta, marcada como elegida", async () => {
+                const user = userEvent.setup();
+                settingsData = [zona];
+                renderWithProviders(<SettingsPage />);
+
+                const selector = screen.getByRole("combobox", { name: "Zona horaria del negocio" });
+                await user.click(selector);
+
+                const puesta = screen.getByRole("option", { name: /^America\/Santo Domingo/ });
+                expect(puesta).toHaveAttribute("aria-selected", "true");
+                expect(selector).toHaveAttribute("aria-activedescendant", puesta.id);
+            });
+
+            it("Escape o salir sin elegir devuelven la zona que había, sin cambios pendientes", async () => {
+                const user = userEvent.setup();
+                settingsData = [zona];
+                renderWithProviders(<SettingsPage />);
+
+                const selector = screen.getByRole("combobox", { name: "Zona horaria del negocio" });
+                await user.click(selector);
+                await user.keyboard("madr");
+                await user.keyboard("{Escape}");
+                expect(selector).toHaveValue("America/Santo Domingo");
+
+                await user.click(selector);
+                await user.keyboard("madr");
+                await user.tab();
+                expect(selector).toHaveValue("America/Santo Domingo");
+                expect(screen.getByRole("button", { name: /guardar/i })).toBeDisabled();
+            });
+
+            it("sin coincidencias lo dice, en vez de una lista vacía", async () => {
+                const user = userEvent.setup();
+                settingsData = [zona];
+                renderWithProviders(<SettingsPage />);
+
+                await user.click(screen.getByRole("combobox", { name: "Zona horaria del negocio" }));
+                await user.keyboard("atlantida");
+
+                expect(screen.queryByRole("option")).not.toBeInTheDocument();
+                expect(screen.getByText(/Ninguna zona coincide con «atlantida»/)).toBeInTheDocument();
+            });
         });
     });
 
@@ -398,6 +478,14 @@ describe("SettingsPage", () => {
 
                 await user.click(screen.getByRole("button", { name: "Quitar logo" }));
                 expect(mockQuitarLogo).toHaveBeenCalledTimes(1);
+            });
+
+            it("avisa de que se guarda al elegirlo, atado al botón que lo sube (AUD-019)", () => {
+                renderWithProviders(<SettingsPage />);
+
+                expect(screen.getByRole("button", { name: "Subir logo" })).toHaveAccessibleDescription(
+                    "Se guarda en cuanto eliges el archivo, sin pasar por «Guardar cambios».",
+                );
             });
 
             it("elegir una imagen la sube en el acto, sin pasar por «Guardar cambios»", async () => {

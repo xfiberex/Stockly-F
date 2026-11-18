@@ -1,5 +1,5 @@
-import { useRef, type ChangeEvent } from "react";
-import { PhotoIcon } from "@heroicons/react/24/outline";
+import { useId, useRef, type ChangeEvent } from "react";
+import { BoltIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { toast } from "react-toastify";
 import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
@@ -24,6 +24,7 @@ export function LogoDelNegocio() {
     const subir = useSubirLogo();
     const quitar = useQuitarLogo();
     const archivo = useRef<HTMLInputElement>(null);
+    const idAlInstante = useId();
 
     const logoUrl = negocio?.logoUrl ?? null;
 
@@ -54,12 +55,21 @@ export function LogoDelNegocio() {
                 <div>
                     <p className="text-sm font-medium text-foreground">{t("configuracion.logo.titulo")}</p>
                     <p className="mt-0.5 text-xs text-foreground-muted">{t("configuracion.logo.descripcion")}</p>
+                    {/* AUD-019 — el resto de la tarjeta espera a «Guardar cambios», abajo; el logo
+                        no. Sin decirlo, quien subía uno lo buscaba en el recuento de pendientes o
+                        pulsaba «Descartar» creyendo deshacerlo. Va atado al botón que sube. */}
+                    {puede("PUT /settings/logo") && (
+                        <p id={idAlInstante} className="mt-1 flex items-start gap-1 text-xs text-foreground-muted">
+                            <BoltIcon className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            {t("configuracion.logo.alInstante")}
+                        </p>
+                    )}
                 </div>
             </div>
 
             <div className="flex shrink-0 gap-2">
                 {puede("PUT /settings/logo") && (
-                    <Button variant="secondary" onClick={() => archivo.current?.click()} isLoading={subir.isPending}>
+                    <Button variant="secondary" aria-describedby={idAlInstante} onClick={() => archivo.current?.click()} isLoading={subir.isPending}>
                         {logoUrl ? t("configuracion.logo.cambiar") : t("configuracion.logo.subir")}
                     </Button>
                 )}

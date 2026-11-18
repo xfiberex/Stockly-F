@@ -95,3 +95,17 @@ describe("Escala tipográfica (T2-41)", () => {
         expect(CSS).not.toMatch(/@fontsource\/inter\/\d{3}\.css/);
     });
 });
+
+describe("Cortes de línea (AUD-019)", () => {
+    // El detector marcó palabras sueltas al final de párrafos y títulos desequilibrados a 390 px.
+    // La regla va por elemento en `index.css`, así que la pantalla siguiente nace bien cortada.
+    it("los párrafos cortan con `pretty` y los títulos con `balance`", () => {
+        expect(CSS).toMatch(/@layer base\s*\{[^}]*\bp,[^{]*\{\s*text-wrap-style:\s*pretty/);
+        expect(CSS).toMatch(/h1,\s*h2,\s*h3\s*\{\s*text-wrap-style:\s*balance/);
+    });
+
+    // El atajo `text-wrap` pondría también `text-wrap-mode: wrap` y desharía un `truncate`.
+    it("se usa la propiedad larga, no el atajo `text-wrap`", () => {
+        expect(CSS).not.toMatch(/(^|[^-])text-wrap:\s*(pretty|balance)/m);
+    });
+});

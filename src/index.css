@@ -358,6 +358,35 @@ table {
 }
 
 /*
+ * Sin palabras sueltas en la última línea (AUD-019).
+ *
+ * El detector de la crítica del 2026-11-07 marcó, a 390 px, párrafos que terminaban en una
+ * palabra sola (`/sale-orders`, `/expiry`, `/settings`, `/profile`) y dos títulos de `/reports`
+ * con una línea larga y otra de una palabra. Arreglarlo pantalla a pantalla con `text-pretty`
+ * dejaba fuera la siguiente: va aquí, por elemento, como las cifras tabulares de arriba.
+ *
+ * Es `text-wrap-style` y no el atajo `text-wrap`, que pone también `text-wrap-mode: wrap`: con
+ * la propiedad larga solo se decide **dónde** se corta, nunca **si** se corta, y un `truncate` o
+ * un `whitespace-nowrap` siguen mandando. En `@layer base` para que cualquier `text-balance` o
+ * `text-pretty` puntual la gane. Un navegador que no la conozca corta como siempre.
+ */
+@layer base {
+  p,
+  li,
+  dd,
+  figcaption,
+  label {
+    text-wrap-style: pretty;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap-style: balance;
+  }
+}
+
+/*
  * Esqueleto de carga (`shared/components/Esqueleto.tsx`, design-system.md §8).
  *
  * `.esqueleto` aparece a los 200 ms: una respuesta más rápida no llega a enseñarlo, y la
