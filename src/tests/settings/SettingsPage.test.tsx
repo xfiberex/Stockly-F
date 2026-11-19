@@ -256,6 +256,24 @@ describe("SettingsPage", () => {
                 expect(screen.getByRole("button", { name: /guardar/i })).toBeDisabled();
             });
 
+            it("abierta, pinta una ventana alrededor de la activa, que la sigue con las flechas", async () => {
+                const user = userEvent.setup();
+                settingsData = [zona];
+                renderWithProviders(<SettingsPage />);
+
+                const selector = screen.getByRole("combobox", { name: "Zona horaria del negocio" });
+                await user.click(selector);
+
+                // Unas 420 zonas, no todas a la vez: lo de fuera se dice y se alcanza escribiendo.
+                expect(screen.getAllByRole("option").length).toBeLessThanOrEqual(60);
+                expect(screen.getByText(/^Hay \d+ zonas más: escribe para encontrar la tuya\.$/)).toBeInTheDocument();
+
+                // Bajar más allá de la ventana la mueve: la activa siempre está pintada.
+                for (let i = 0; i < 45; i++) await user.keyboard("{ArrowDown}");
+                const activa = selector.getAttribute("aria-activedescendant")!;
+                expect(document.getElementById(activa)).toHaveAttribute("role", "option");
+            });
+
             it("sin coincidencias lo dice, en vez de una lista vacía", async () => {
                 const user = userEvent.setup();
                 settingsData = [zona];

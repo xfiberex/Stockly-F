@@ -837,7 +837,9 @@ describe("ReportsPage (T2-21)", () => {
 
             const margen = screen.getByText("Margen potencial").parentElement!;
             expect(within(margen).getByText("$650,000")).toBeInTheDocument();
-            expect(within(margen).getByText("$2,050,000 a venta − $1,400,000 a coste")).toBeInTheDocument();
+            // AUD-015, crítica de cierre — dice que es solo lo de los productos con coste: al lado,
+            // «Valor a precio de venta» es de todos, y las dos cifras «a venta» no casaban.
+            expect(within(margen).getByText("Solo los productos con coste: $2,050,000 a venta − $1,400,000 a coste")).toBeInTheDocument();
             const coste = screen.getByText("Valor a coste").parentElement!;
             expect(within(coste).getByText("Solo los productos con coste")).toBeInTheDocument();
         });
@@ -880,6 +882,86 @@ describe("ReportsPage (T2-21)", () => {
             expect(within(filas[0]!).getByRole("rowheader")).toHaveTextContent("Marzo de 2026");
             expect(filas[0]!.textContent).toBe("Marzo de 2026000");
             expect(filas[4]!.textContent).toBe("Julio de 202640150");
+        });
+    });
+
+    describe("Crítica de cierre de AUD-015", () => {
+        afterEach(() => {
+            resumen = RESUMEN;
+            fallo = null;
+            refetch.mockClear();
+        });
+
+        it("si falla sin datos, lo dice y deja reintentar: antes la página se quedaba en blanco", async () => {
+            resumen = undefined;
+            fallo = new Error("sin red");
+            const user = userEvent.setup();
+            renderWithProviders(<ReportsPage />);
+
+            expect(screen.getByRole("heading", { name: "Reportes", level: 1 })).toBeInTheDocument();
+            expect(screen.getByRole("alert")).toHaveTextContent("No se pudieron cargar los reportes");
+            await user.click(screen.getByRole("button", { name: "Reintentar" }));
+            expect(refetch).toHaveBeenCalled();
+        });
+
+        it("con datos en pantalla, un fallo al actualizar no los borra: dice de cuándo son", () => {
+            fallo = new Error("sin red");
+            renderWithProviders(<ReportsPage />);
+
+            expect(screen.getByText(/No se pudo actualizar: son los datos de las/)).toBeInTheDocument();
+            expect(screen.getByText("Total de productos")).toBeInTheDocument();
+        });
+
+        it("el % de margen dice sobre cuánto de lo vendido se calcula, en ámbar si es poco", () => {
+            renderWithProviders(<ReportsPage />);
+            // 50 000 con coste de 54 200 vendidos: el 92 %, suficiente.
+            const cobertura = screen.getByText("Sobre el 92 % de lo vendido: el resto no tiene coste");
+            expect(cobertura).not.toHaveClass("text-warning");
+        });
+
+        it("con poco vendido con coste, la cobertura sale en ámbar", () => {
+            resumen = { ...RESUMEN, margin: { ...RESUMEN.margin!, revenue: 12638, revenueWithoutCost: 20488 } };
+            renderWithProviders(<ReportsPage />);
+
+            expect(screen.getByText("Sobre el 38 % de lo vendido: el resto no tiene coste")).toHaveClass("text-warning");
+        });
+
+        it("lo que pide reponer va antes que el margen y los gráficos, y lleva a la reposición sugerida", () => {
+            renderWithProviders(<ReportsPage />);
+
+            const stockBajo = screen.getByRole("heading", { name: /stock bajo/i, level: 2 });
+            const margen = screen.getByRole("heading", { name: /Margen realizado/, level: 2 });
+            expect(stockBajo.compareDocumentPosition(margen) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            expect(screen.getByRole("link", { name: "Ver la reposición sugerida" })).toHaveAttribute("href", "/purchase-orders/suggestions");
+        });
+
+        it("la rotación enseña las diez primeras y el resto a petición", async () => {
+            const fila = RESUMEN.stockMetrics[0]!;
+            resumen = { ...RESUMEN, stockMetrics: Array.from({ length: 12 }, (_, i) => ({ ...fila, productId: `r${i}`, productName: `Producto ${i}` })) };
+            const user = userEvent.setup();
+            renderWithProviders(<ReportsPage />);
+
+            const tabla = screen.getByRole("table", { name: /Rotación/ });
+            expect(within(tabla).getAllByRole("row").slice(1)).toHaveLength(10);
+            const boton = screen.getByRole("button", { name: "Ver los 12" });
+            expect(boton).toHaveAttribute("aria-expanded", "false");
+            await user.click(boton);
+            expect(within(tabla).getAllByRole("row").slice(1)).toHaveLength(12);
+            expect(screen.getByRole("button", { name: "Ver solo los 10 primeros" })).toHaveAttribute("aria-expanded", "true");
+        });
+
+        it("las salidas se explican: no son solo ventas", () => {
+            renderWithProviders(<ReportsPage />);
+
+            expect(screen.getByText(/ventas enviadas y salidas registradas a mano/)).toBeInTheDocument();
+            expect(screen.getByText("Cuántos movimientos hubo, no cuántas unidades.")).toBeInTheDocument();
+        });
+
+        it("las tablas visibles tienen nombre", () => {
+            renderWithProviders(<ReportsPage />);
+
+            expect(screen.getByRole("table", { name: /stock bajo/i })).toBeInTheDocument();
+            expect(screen.getByRole("table", { name: /Rotación/ })).toBeInTheDocument();
         });
     });
 

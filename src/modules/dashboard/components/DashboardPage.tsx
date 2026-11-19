@@ -7,9 +7,9 @@ import { conSimboloDeMoneda, formatearImporte } from "@/shared/lib/moneda";
 import { useAtencion, useReports } from "@/modules/reports/hooks/useReports";
 import type { ReportSummary } from "@/modules/reports/types/reports.types";
 import { Barra, ZonaCargando } from "@/shared/components/Esqueleto";
-import { Spinner } from "@/shared/components/Spinner";
 import { COLOR_DE_REJILLA, ESTILO_DE_TOOLTIP, TEXTO_DE_EJE } from "@/shared/lib/grafico";
 import { useT } from "@/shared/hooks/useIdioma";
+import { ReintentoEnLinea } from "@/shared/components/ReintentoEnLinea";
 import { useFalloDeCarga, useReintentarFallidas } from "@/shared/hooks/useFalloDeCarga";
 import type { Clave } from "@/shared/i18n/traducir";
 import { CLASES_CONTENEDOR_DE_PAGINA } from "@/shared/lib/clasesDeEncabezado";
@@ -129,29 +129,6 @@ function PanelGeneral({ rol }: { rol: Rol }) {
                 data ? <ResumenDeNegocio data={data} /> : <EsqueletoResumen />
             ) : null}
         </div>
-    );
-}
-
-/**
- * El «Reintentar» que va junto a la hora cuando una actualización falla. AUD-008, paso 8: era un
- * texto de 69×20 px que no decía nada mientras trabajaba. Ahora tiene el mínimo táctil, se marca
- * ocupado con su rueda y no se desactiva —desactivado soltaría el foco—.
- */
-function ReintentoEnLinea({ onReintentar, reintentando }: { onReintentar: () => void; reintentando: boolean }) {
-    const { t } = useT();
-    return (
-        <button
-            type="button"
-            onClick={() => {
-                if (!reintentando) onReintentar();
-            }}
-            aria-busy={reintentando || undefined}
-            aria-disabled={reintentando || undefined}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg align-middle font-medium text-info hover:underline md:pointer-fine:min-h-0"
-        >
-            {reintentando && <Spinner size="sm" decorativo className="border-current border-t-transparent" />}
-            {t("errorDeCarga.reintentar")}
-        </button>
     );
 }
 

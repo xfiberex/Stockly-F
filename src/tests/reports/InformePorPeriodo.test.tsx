@@ -33,14 +33,27 @@ const INFORME: InformePorPeriodo = {
     moreProducts: false,
 };
 
-let informe: InformePorPeriodo = INFORME;
+let informe: InformePorPeriodo | undefined = INFORME;
 const consultas: ConsultaDePeriodo[] = [];
 const descargas: unknown[][] = [];
+// AUD-015 — los estados que la crítica de cierre encontró sin tratar.
+let desfasado = false;
+let falloDelPeriodo: unknown = null;
+const refetchDelPeriodo = vi.fn();
 
 vi.mock("@/modules/reports/hooks/useReports", () => ({
     usePeriodReport: (consulta: ConsultaDePeriodo) => {
         consultas.push(consulta);
-        return { data: informe, isLoading: false };
+        return {
+            data: informe,
+            isLoading: false,
+            isPlaceholderData: desfasado,
+            isError: falloDelPeriodo !== null,
+            error: falloDelPeriodo,
+            refetch: refetchDelPeriodo,
+            isFetching: false,
+            dataUpdatedAt: 0,
+        };
     },
 }));
 
@@ -74,7 +87,8 @@ describe("Ventas y compras por periodo (T5-09)", () => {
 
         expect(ultimaConsulta()).toEqual({ preset: "this-month" });
         expect(screen.getByRole("button", { name: "Este mes" })).toHaveAttribute("aria-pressed", "true");
-        expect(screen.getByText("Del 01 mar 2026 al 31 mar 2026 · zona horaria America/Santo_Domingo")).toBeInTheDocument();
+        // AUD-015 — la zona con espacios: con el guion bajo era una sola palabra que no se partía.
+        expect(screen.getByText("Del 01 mar 2026 al 31 mar 2026 · zona horaria America/Santo Domingo")).toBeInTheDocument();
     });
 
     it("un atajo pide ese atajo, no unas fechas calculadas aquí", async () => {
@@ -184,12 +198,117 @@ describe("Ventas y compras por periodo (T5-09)", () => {
             expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeDisabled();
             expect(screen.getByRole("button", { name: "Descargar PDF" })).toBeDisabled();
 
-            const aviso = screen.getByRole("status");
-            await user.click(within(aviso).getByRole("button", { name: "Mes anterior" }));
+            // El subtítulo también es una región viva: el aviso es la que trae los botones.
+            const aviso = () => screen.getAllByRole("status").find((s) => within(s).queryAllByRole("button").length > 0)!;
+            // AUD-015 — sin las seis tarjetas a cero encima del mensaje.
+            expect(screen.queryByText("Unidades vendidas")).not.toBeInTheDocument();
+            // Desactivado, el botón dice por qué.
+            expect(screen.getByRole("button", { name: "Exportar CSV" })).toHaveAccessibleDescription(/no hay nada que exportar/i);
+            await user.click(within(aviso()).getByRole("button", { name: "Mes anterior" }));
             expect(ultimaConsulta()).toEqual({ preset: "last-month" });
             // Ya en el mes anterior, no se ofrece otra vez: solo el año.
-            expect(within(screen.getByRole("status")).queryByRole("button", { name: "Mes anterior" })).not.toBeInTheDocument();
-            expect(within(screen.getByRole("status")).getByRole("button", { name: "Este año" })).toBeInTheDocument();
+            expect(within(aviso()).queryByRole("button", { name: "Mes anterior" })).not.toBeInTheDocument();
+            expect(within(aviso()).getByRole("button", { name: "Este año" })).toBeInTheDocument();
+        });
+    });
+
+    describe("Crítica de cierre de AUD-015", () => {
+        afterEach(() => {
+            informe = INFORME;
+            desfasado = false;
+            falloDelPeriodo = null;
+            refetchDelPeriodo.mockClear();
+            vi.useRealTimers();
+        });
+
+        it("sin importes (quien no es ADMIN), el informe va en unidades: ni una columna ni una tarjeta de dinero", () => {
+            const sinDinero = <T extends { salesRevenue?: number; purchaseAmount?: number }>(fila: T) => {
+                const copia = { ...fila };
+                delete copia.salesRevenue;
+                delete copia.purchaseAmount;
+                return copia;
+            };
+            informe = {
+                ...INFORME,
+                totals: sinDinero(INFORME.totals),
+                byMonth: INFORME.byMonth.map(sinDinero),
+                byCategory: INFORME.byCategory.map(sinDinero),
+                byProduct: INFORME.byProduct.map(sinDinero),
+            } as InformePorPeriodo;
+            renderWithProviders(<InformePorPeriodoPage />);
+
+            expect(screen.queryByText(/\$/)).not.toBeInTheDocument();
+            expect(screen.queryByRole("columnheader", { name: "Ventas" })).not.toBeInTheDocument();
+            expect(screen.getAllByRole("columnheader", { name: "Uds. vendidas" }).length).toBeGreaterThan(0);
+            expect(screen.getByText("Unidades vendidas")).toBeInTheDocument();
+        });
+
+        it("mientras llega el periodo pedido, lo de antes se atenúa, se dice que carga y no se exporta", () => {
+            desfasado = true;
+            const { container } = renderWithProviders(<InformePorPeriodoPage />, { initialRoute: "/reports/period?preset=this-year" });
+
+            expect(screen.getByText("Cargando el periodo elegido…")).toBeInTheDocument();
+            expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
+            const csv = screen.getByRole("button", { name: "Exportar CSV" });
+            expect(csv).toBeDisabled();
+            expect(csv).toHaveAccessibleDescription(/cuando llegue el periodo elegido/);
+            // Los campos no dicen el rango de las cifras viejas: están vacíos hasta que llegue.
+            expect(screen.getByLabelText("Desde")).toHaveValue("");
+        });
+
+        it("si falla sin nada que enseñar, lo dice y deja reintentar: no se queda en el esqueleto", async () => {
+            informe = undefined;
+            falloDelPeriodo = new Error("sin red");
+            const user = userEvent.setup();
+            renderWithProviders(<InformePorPeriodoPage />);
+
+            expect(screen.getByRole("alert")).toHaveTextContent("No se pudo cargar el informe");
+            await user.click(screen.getByRole("button", { name: "Reintentar" }));
+            expect(refetchDelPeriodo).toHaveBeenCalledTimes(1);
+        });
+
+        it("con un atajo, los campos de fecha dicen el rango que se ve", () => {
+            renderWithProviders(<InformePorPeriodoPage />);
+
+            expect(screen.getByLabelText("Desde")).toHaveValue("2026-03-01");
+            expect(screen.getByLabelText("Hasta")).toHaveValue("2026-03-31");
+        });
+
+        it("«Este año» llega hasta hoy: sin los meses que no han llegado, y el subtítulo dice «a hoy»", () => {
+            vi.useFakeTimers({ toFake: ["Date"] });
+            vi.setSystemTime(new Date("2026-11-18T16:00:00Z"));
+            const meses = Array.from({ length: 12 }, (_, i) => ({ month: `2026-${String(i + 1).padStart(2, "0")}`, ...cero }));
+            informe = { ...INFORME, from: "2026-01-01", to: "2026-12-31", preset: "this-year", byMonth: meses.map((m, i) => (i === 2 ? { ...m, salesUnits: 7 } : m)) };
+            renderWithProviders(<InformePorPeriodoPage />, { initialRoute: "/reports/period?preset=this-year" });
+
+            const filas = within(screen.getByRole("table", { name: "Por mes" })).getAllByRole("row").slice(1, -1);
+            expect(filas).toHaveLength(11);
+            expect(filas.at(-1)).toHaveTextContent("Noviembre de 2026");
+            expect(screen.getByText(/^Del 01 ene 2026 a hoy, 18 nov 2026/)).toBeInTheDocument();
+        });
+
+        it("el nombre de un producto lleva a sus movimientos; uno borrado se queda en texto", () => {
+            renderWithProviders(<InformePorPeriodoPage />);
+
+            expect(screen.getByRole("link", { name: "Auriculares" })).toHaveAttribute("href", "/catalog/products/a/movements");
+            expect(screen.queryByRole("link", { name: "Instalación" })).not.toBeInTheDocument();
+        });
+
+        it("las tablas se llaman como su sección", () => {
+            renderWithProviders(<InformePorPeriodoPage />);
+
+            for (const nombre of ["Por mes", "Por categoría", "Por producto"]) expect(screen.getByRole("table", { name: nombre })).toBeInTheDocument();
+        });
+
+        it("en el móvil, las fechas a mano van plegadas tras «Otras fechas»", async () => {
+            const user = userEvent.setup();
+            renderWithProviders(<InformePorPeriodoPage />);
+
+            const formulario = screen.getByLabelText("Desde").closest("form")!;
+            expect(formulario).toHaveClass("hidden");
+            await user.click(screen.getByRole("button", { name: "Otras fechas" }));
+            expect(formulario).toHaveClass("flex");
+            expect(screen.queryByRole("button", { name: "Otras fechas" })).not.toBeInTheDocument();
         });
     });
 

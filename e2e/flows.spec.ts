@@ -592,7 +592,9 @@ test.describe("Flujos que cruzan frontend y backend", () => {
         await expect(page.getByRole("heading", { name: "Ventas y compras por periodo", level: 1 })).toBeVisible();
         // Abre en «este mes», y el rango que enseña es el que resolvió el backend.
         await expect(page.getByRole("button", { name: "Este mes" })).toHaveAttribute("aria-pressed", "true");
-        await expect(page.getByText(/zona horaria America\/Santo_Domingo/)).toBeVisible();
+        // AUD-015 — la zona con espacios (se parte a 390 px) y, siendo «este mes», hasta hoy. El
+        // último día del mes hoy es el final del atajo, y el subtítulo dice «al …» y no «a hoy».
+        await expect(page.getByText(/(a hoy, | al ).* · zona horaria America\/Santo Domingo/)).toBeVisible();
 
         // Uds. vendidas, ventas, uds. compradas, compras.
         const fila = page.getByRole("row", { name: new RegExp(producto) });

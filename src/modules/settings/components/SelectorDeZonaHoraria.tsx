@@ -68,6 +68,14 @@ function zonasDisponibles(guardada: string): Zona[] {
  * antes hasta recargar, y eso es aceptable para elegir la zona.
  */
 const CACHE = new Map<string, Zona[]>();
+
+/**
+ * Cuántas opciones se pintan a la vez. Abierta sin texto, la lista tiene ~420 zonas, y pintarlas
+ * todas en cada apertura —y en cada tecla— era lo caro de esta pantalla (en el entorno de tests
+ * agotaba los 5 s). Se pinta una ventana alrededor de la activa, que se mueve cuando la activa
+ * sale de ella; lo de fuera se dice en una línea y se alcanza escribiendo o con las flechas.
+ */
+const VENTANA = 60;
 const SIN_ZONAS: Zona[] = [];
 
 /** `America/Santo_Domingo` → `America/Santo Domingo`. */
@@ -116,6 +124,19 @@ export function SelectorDeZonaHoraria({ valor, guardada, onChange, ...rotulos }:
     const zonas = abierto ? zonasDisponibles(guardada) : SIN_ZONAS;
     const opciones = useMemo(() => filtrar(zonas, texto ?? ""), [zonas, texto]);
     const idOpcion = (i: number) => `${id}-opcion-${i}`;
+
+    // La ventana solo se mueve cuando la activa se sale: pasar el ratón por encima cambia la activa,
+    // y si la ventana la siguiera, la lista saltaría bajo el puntero.
+    const [inicio, setInicio] = useState(0);
+    const inicioMaximo = Math.max(0, opciones.length - VENTANA);
+    const inicioValido =
+        activo < inicio || activo >= inicio + VENTANA || inicio > inicioMaximo
+            ? Math.min(inicioMaximo, Math.max(0, activo - VENTANA / 2))
+            : inicio;
+    // Estado derivado del render anterior: el patrón que React documenta para esto, sin efecto.
+    if (inicioValido !== inicio) setInicio(inicioValido);
+    const visibles = opciones.slice(inicioValido, inicioValido + VENTANA);
+    const fueraDeLaVentana = opciones.length - visibles.length;
 
     // La opción activa, a la vista: al abrir, la elegida puede estar a trescientas filas. Al abrir
     // va **centrada**, con sus vecinas a los dos lados; con «nearest» quedaba pegada al borde de
@@ -208,26 +229,37 @@ export function SelectorDeZonaHoraria({ valor, guardada, onChange, ...rotulos }:
                         {t("configuracion.zona.ninguna", { texto: texto ?? "" })}
                     </li>
                 ) : (
-                    opciones.map((zona, i) => (
-                        <li
-                            key={zona.valor}
-                            id={idOpcion(i)}
-                            role="option"
-                            aria-selected={zona.valor === valor}
-                            // `mousedown` y no `click`: el clic llega después del `blur` del campo,
-                            // que ya ha cerrado la lista.
-                            onMouseDown={(e) => { e.preventDefault(); elegir(zona); }}
-                            onMouseEnter={() => setActivo(i)}
-                            className={cn(
-                                "flex cursor-pointer items-baseline justify-between gap-3 px-3 py-2 text-sm text-foreground",
-                                i === activo && "bg-accent/10",
-                                zona.valor === valor && "font-medium",
-                            )}
-                        >
-                            <span className="min-w-0 wrap-break-word">{zona.rotulo}</span>
-                            {zona.desfase && <span className="shrink-0 text-xs tabular-nums text-foreground-muted">{zona.desfase}</span>}
-                        </li>
-                    ))
+                    <>
+                        {visibles.map((zona, posicion) => {
+                            // El índice en la lista entera: es el que llevan `activo` y el `id`.
+                            const i = inicioValido + posicion;
+                            return (
+                                <li
+                                    key={zona.valor}
+                                    id={idOpcion(i)}
+                                    role="option"
+                                    aria-selected={zona.valor === valor}
+                                    // `mousedown` y no `click`: el clic llega después del `blur` del campo,
+                                    // que ya ha cerrado la lista.
+                                    onMouseDown={(e) => { e.preventDefault(); elegir(zona); }}
+                                    onMouseEnter={() => setActivo(i)}
+                                    className={cn(
+                                        "flex cursor-pointer items-baseline justify-between gap-3 px-3 py-2 text-sm text-foreground",
+                                        i === activo && "bg-accent/10",
+                                        zona.valor === valor && "font-medium",
+                                    )}
+                                >
+                                    <span className="min-w-0 wrap-break-word">{zona.rotulo}</span>
+                                    {zona.desfase && <span className="shrink-0 text-xs tabular-nums text-foreground-muted">{zona.desfase}</span>}
+                                </li>
+                            );
+                        })}
+                        {fueraDeLaVentana > 0 && (
+                            <li role="presentation" className="px-3 py-2 text-xs text-foreground-muted">
+                                {t("configuracion.zona.mas", { cantidad: fueraDeLaVentana })}
+                            </li>
+                        )}
+                    </>
                 )}
             </ul>
         </div>
