@@ -12,7 +12,7 @@ import type {
     UpdateProfileResponse,
     UpdatePasswordResponse,
 } from "@/modules/auth/types/auth.types";
-import type { EnlaceDeRestablecer, IdiomaDeCorreo, IdiomaGuardado } from "@/shared/contratos/api.generated";
+import type { ContrasenaRestablecida, EnlaceDeRestablecer, IdiomaDeCorreo, IdiomaGuardado } from "@/shared/contratos/api.generated";
 
 export const AuthAPI = {
     register: async (form: Omit<RegisterForm, "passwordConfirmation">) => {
@@ -63,8 +63,9 @@ export const AuthAPI = {
 
     // token viene del query param ?token= del URL, no del formulario
     resetPassword: async (token: string, password: string) => {
-        const { data } = await api.post<{ message: string }>("/auth/reset-password", { token, password });
-        return data;
+        // AUD-014 — `pendingApproval`: guardada, pero la cuenta aún espera a que la aprueben.
+        const { data } = await api.post<{ message: string; data: ContrasenaRestablecida }>("/auth/reset-password", { token, password });
+        return data.data;
     },
 
     updateProfile: async (form: UpdateProfileForm) => {

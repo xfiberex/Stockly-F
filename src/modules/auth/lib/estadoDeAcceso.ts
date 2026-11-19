@@ -11,10 +11,17 @@ import { useLocation } from "react-router-dom";
  * - `aviso`: la contraseña nueva ya está guardada. Se dice en la tarjeta del login, donde se va a
  *   usar, y no en un aviso flotante que se va solo.
  */
+/**
+ * Qué se guardó. `pendiente` (AUD-014): la contraseña está guardada, pero la cuenta sigue
+ * esperando a que un ADMIN la apruebe; decir «ya puedes entrar» era prometer un rechazo.
+ */
+const AVISOS = ["restablecida", "invitacionGuardada", "pendiente"] as const;
+export type AvisoDeContrasena = (typeof AVISOS)[number];
+
 export interface EstadoDeAcceso {
     correo?: string;
     invitacion?: boolean;
-    aviso?: "restablecida" | "invitacionGuardada";
+    aviso?: AvisoDeContrasena;
 }
 
 /** El estado con el que se llegó, comprobado: `location.state` puede traer cualquier cosa. */
@@ -25,6 +32,6 @@ export function useEstadoDeAcceso(): EstadoDeAcceso {
     return {
         correo: typeof correo === "string" ? correo : undefined,
         invitacion: invitacion === true || undefined,
-        aviso: aviso === "restablecida" || aviso === "invitacionGuardada" ? aviso : undefined,
+        aviso: (AVISOS as readonly unknown[]).includes(aviso) ? (aviso as AvisoDeContrasena) : undefined,
     };
 }

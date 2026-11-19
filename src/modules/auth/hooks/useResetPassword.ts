@@ -34,8 +34,10 @@ export function useResetPassword(token: string, invitacion = false, correo?: str
 
     return useMutation({
         mutationFn: (form: ResetPasswordForm) => AuthAPI.resetPassword(token, form.password),
-        onSuccess: () => {
-            const state: EstadoDeAcceso = { aviso: invitacion ? "invitacionGuardada" : "restablecida", correo };
+        onSuccess: ({ pendingApproval }) => {
+            // AUD-014 — con la cuenta aún sin aprobar, el login no puede decir «ya puedes entrar».
+            const aviso = pendingApproval ? "pendiente" : invitacion ? "invitacionGuardada" : "restablecida";
+            const state: EstadoDeAcceso = { aviso, correo };
             navigate("/auth/login", { state });
         },
     });

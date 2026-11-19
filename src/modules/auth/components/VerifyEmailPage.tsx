@@ -68,6 +68,7 @@ export default function VerifyEmailPage() {
                 pedirOtro="/auth/resend-verification"
                 textoPedirOtro={t("auth.verificar.solicitarEnlace")}
                 explicacion={t("auth.enlace.verificar")}
+                iniciarSesionComoBoton
             />
         );
     }

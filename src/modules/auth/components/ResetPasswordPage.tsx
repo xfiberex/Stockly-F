@@ -47,6 +47,7 @@ export default function ResetPasswordPage() {
                 textoPedirOtro={t("auth.enlace.pedirRestablecer")}
                 explicacion={t("auth.enlace.invitacion")}
                 estado={{ invitacion: true }}
+                iniciarSesionComoBoton
             />
         ) : (
             <EnlaceCaducado pedirOtro="/auth/forgot-password" textoPedirOtro={t("auth.enlace.pedirRestablecer")} explicacion={t("auth.enlace.restablecer")} />

@@ -70,5 +70,10 @@ describe("VerifyEmailPage — lo que viene después (AUD-014)", () => {
         renderWithProviders(<VerifyEmailPage />, { initialRoute: "/auth/confirm-account?token=viejo" });
 
         expect(await screen.findByRole("heading", { name: "Este enlace ya no sirve", level: 1 })).toBeInTheDocument();
+        // AUD-014 — si la cuenta ya estaba confirmada, pedir otro no lleva a ninguna parte
+        // («Reenviar» no manda nada a una cuenta confirmada): el texto lo dice, sin revelar si
+        // existe, e iniciar sesión es una salida con el mismo peso.
+        expect(screen.getByText(/Si ya confirmaste tu cuenta, no necesitas otro: inicia sesión/)).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/auth/login");
     });
 });

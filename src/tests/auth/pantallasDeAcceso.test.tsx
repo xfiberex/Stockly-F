@@ -52,9 +52,12 @@ describe("Iniciar sesión (AUD-014)", () => {
         vi.mocked(AuthAPI.login).mockRejectedValue(errorDeApi(403, "ACCOUNT_PENDING_APPROVAL"));
         await entrar();
 
-        const aviso = await screen.findByRole("alert");
-        expect(aviso).toHaveTextContent(/pendiente/i);
-        expect(aviso).toHaveTextContent("Te avisaremos por correo.");
+        // AUD-014 — no es un error de nadie: un `status` informativo, no un `alert` rojo.
+        const aviso = await screen.findByRole("status");
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        expect(aviso).toHaveTextContent("Falta un paso: que un administrador apruebe tu cuenta.");
+        // Y a quién acudir si tarda, que el aviso rojo no decía.
+        expect(aviso).toHaveTextContent("Si tarda, pregunta a quien administra Stockly en tu negocio.");
     });
 
     it("sin el correo confirmado, ofrece reenviarlo", async () => {
@@ -62,7 +65,10 @@ describe("Iniciar sesión (AUD-014)", () => {
         await entrar();
 
         const aviso = await screen.findByRole("alert");
-        expect(within(aviso).getByRole("link", { name: "Reenviar el correo de confirmación" })).toHaveAttribute("href", "/auth/resend-verification");
+        const enlace = within(aviso).getByRole("link", { name: "Reenviar el correo de confirmación" });
+        expect(enlace).toHaveAttribute("href", "/auth/resend-verification");
+        // AUD-014 — va solo en su línea: 44 px en táctil, como los demás enlaces sueltos.
+        expect(enlace).toHaveClass("min-h-11");
     });
 
     it("credenciales que no casan: lo dice claro y ofrece recuperar la contraseña", async () => {
@@ -72,6 +78,8 @@ describe("Iniciar sesión (AUD-014)", () => {
         const aviso = await screen.findByRole("alert");
         expect(aviso).toHaveTextContent("El correo o la contraseña no son correctos");
         expect(within(aviso).getByRole("link", { name: "¿Olvidaste tu contraseña?" })).toHaveAttribute("href", "/auth/forgot-password");
+        // AUD-014 — medía 20 px de alto en el móvil.
+        expect(within(aviso).getByRole("link", { name: "¿Olvidaste tu contraseña?" })).toHaveClass("min-h-11");
         // Uno solo: el de debajo del campo se aparta mientras el aviso lo ofrece.
         expect(screen.getAllByRole("link", { name: "¿Olvidaste tu contraseña?" })).toHaveLength(1);
     });
@@ -144,8 +152,33 @@ describe("Registro (AUD-014)", () => {
         await user.click(screen.getByRole("button", { name: "Crear cuenta" }));
 
         expect(await screen.findByRole("heading", { name: "Revisa tu correo", level: 1 })).toBeInTheDocument();
-        const mensaje = screen.getByText(/^Te hemos enviado un correo a ana@stockly.app/);
-        await waitFor(() => expect(mensaje).toHaveFocus());
+        // AUD-014 — la dirección, en su propia línea, para ver una errata de un vistazo.
+        const correo = screen.getByText("ana@stockly.app");
+        expect(correo).toHaveClass("font-medium");
+        await waitFor(() => expect(correo.parentElement).toHaveFocus());
+    });
+
+    it("hecho, la pestaña dice «Revisa tu correo» y «Corregir el correo» vuelve al formulario con lo escrito (AUD-014)", async () => {
+        vi.mocked(AuthAPI.register).mockResolvedValue(undefined as never);
+        const user = userEvent.setup();
+        renderWithProviders(<><AnuncioDeRuta /><RegisterPage /></>, { initialRoute: "/auth/register" });
+
+        await user.type(screen.getByLabelText("Nombre"), "Ana");
+        await user.type(screen.getByLabelText("Correo electrónico"), "ana@stokly.app");
+        await user.type(screen.getByLabelText("Contraseña"), "secreta123");
+        await user.type(screen.getByLabelText("Confirmar contraseña"), "secreta123");
+        await user.click(screen.getByRole("button", { name: "Crear cuenta" }));
+
+        await screen.findByRole("heading", { name: "Revisa tu correo", level: 1 });
+        await waitFor(() => expect(document.title).toBe("Revisa tu correo · Stockly"));
+
+        await user.click(screen.getByRole("button", { name: "Corregir el correo" }));
+
+        const campo = await screen.findByLabelText("Correo electrónico");
+        expect(campo).toHaveValue("ana@stokly.app");
+        expect(screen.getByLabelText("Nombre")).toHaveValue("Ana");
+        await waitFor(() => expect(campo).toHaveFocus());
+        await waitFor(() => expect(document.title).toBe("Crear cuenta · Stockly"));
     });
 
     it("un fallo del servidor se queda en la tarjeta, con lo escrito delante", async () => {
@@ -231,8 +264,10 @@ describe("Restablecer la contraseña (AUD-014)", () => {
 
         expect(await screen.findByText(/La invitación ha caducado/)).toBeInTheDocument();
         expect(screen.queryByText(/restablecer/i)).not.toBeInTheDocument();
-        // Ya no son dos «Volver al inicio de sesión» iguales.
-        expect(screen.getAllByRole("link", { name: "Volver al inicio de sesión" })).toHaveLength(1);
+        // AUD-014 — «o ya se usó» quiere decir que la cuenta está lista: iniciar sesión es otra
+        // salida igual de válida, con forma de botón, y no la vuelta atrás.
+        expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/auth/login");
+        expect(screen.queryByRole("link", { name: "Volver al inicio de sesión" })).not.toBeInTheDocument();
 
         await user.click(screen.getByRole("link", { name: "Pedir un enlace nuevo" }));
         expect(await screen.findByRole("heading", { name: "Elegir tu contraseña", level: 1 })).toBeInTheDocument();
@@ -275,9 +310,7 @@ describe("Restablecer la contraseña (AUD-014)", () => {
 });
 
 describe("Restablecer y volver al login (AUD-014)", () => {
-    it("el éxito se dice en la tarjeta del login, con el correo ya puesto", async () => {
-        vi.mocked(AuthAPI.checkResetToken).mockResolvedValue({ email: "ana@stockly.app" });
-        vi.mocked(AuthAPI.resetPassword).mockResolvedValue(undefined as never);
+    async function restablecer() {
         const user = userEvent.setup();
         renderWithProviders(
             <Routes>
@@ -290,9 +323,25 @@ describe("Restablecer y volver al login (AUD-014)", () => {
         await user.type(await screen.findByLabelText("Nueva contraseña"), "nueva12345");
         await user.type(screen.getByLabelText("Confirmar contraseña"), "nueva12345");
         await user.click(screen.getByRole("button", { name: "Restablecer contraseña" }));
+    }
+
+    it("el éxito se dice en la tarjeta del login, con el correo ya puesto", async () => {
+        vi.mocked(AuthAPI.checkResetToken).mockResolvedValue({ email: "ana@stockly.app" });
+        vi.mocked(AuthAPI.resetPassword).mockResolvedValue({ pendingApproval: false });
+        await restablecer();
 
         expect(await screen.findByRole("status")).toHaveTextContent("Contraseña restablecida. Ya puedes entrar con la nueva.");
         expect(screen.getByLabelText("Correo electrónico")).toHaveValue("ana@stockly.app");
+    });
+
+    it("con la cuenta aún sin aprobar, no promete que ya se puede entrar (AUD-014)", async () => {
+        vi.mocked(AuthAPI.checkResetToken).mockResolvedValue({ email: "ana@stockly.app" });
+        vi.mocked(AuthAPI.resetPassword).mockResolvedValue({ pendingApproval: true });
+        await restablecer();
+
+        const aviso = await screen.findByRole("status");
+        expect(aviso).toHaveTextContent("Contraseña guardada. Podrás entrar con ella cuando un administrador apruebe tu cuenta");
+        expect(aviso).not.toHaveTextContent("Ya puedes entrar");
     });
 });
 

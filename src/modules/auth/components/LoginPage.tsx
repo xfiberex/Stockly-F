@@ -32,19 +32,31 @@ export default function LoginPage() {
         <MarcoDeAcceso titulo={t("ruta.login")} subtitulo={t("auth.login.subtitulo")}>
             {/* AUD-014 — el motivo del servidor se queda en la tarjeta hasta el siguiente intento.
                 Y lo que tiene salida —confirmar el correo, una contraseña olvidada— dice cuál. */}
-            {login.isError ? (
+            {codigo === "ACCOUNT_PENDING_APPROVAL" ? (
+                // AUD-014 — esperar la aprobación no es un error: es el paso que el registro ya
+                // anunció. Se dice en tono informativo y con a quién acudir si tarda.
+                <AvisoDeAcceso tono="info">
+                    <p>{t("auth.verificar.esperaAprobacion")}</p>
+                </AvisoDeAcceso>
+            ) : login.isError ? (
                 <AvisoDeAcceso>
                     <p>{mensajeDeError(idioma, login.error)}</p>
+                    {/* AUD-014 — van solos en su línea: `CLASES_ENLACE_SUELTO`, 44 px en táctil.
+                        Con la clase de enlace en texto medían 20 px. */}
                     {codigo === "EMAIL_NOT_CONFIRMED" && (
-                        <Link to="/auth/resend-verification" state={conCorreo()} className={cn(CLASES_ENLACE_EN_TEXTO, "mt-1 inline-block")}>
+                        <Link to="/auth/resend-verification" state={conCorreo()} className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO)}>
                             {t("auth.login.reenviarEnlace")}
                         </Link>
                     )}
                     {codigo === "INVALID_CREDENTIALS" && (
-                        <Link to="/auth/forgot-password" state={conCorreo()} className={cn(CLASES_ENLACE_EN_TEXTO, "mt-1 inline-block")}>
+                        <Link to="/auth/forgot-password" state={conCorreo()} className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO)}>
                             {t("auth.login.olvidaste")}
                         </Link>
                     )}
+                </AvisoDeAcceso>
+            ) : aviso === "pendiente" ? (
+                <AvisoDeAcceso tono="info">
+                    <p>{t("auth.login.guardadaPendiente")}</p>
                 </AvisoDeAcceso>
             ) : (
                 aviso && (

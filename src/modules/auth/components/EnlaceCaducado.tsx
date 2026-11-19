@@ -21,12 +21,19 @@ export function EnlaceCaducado({
     textoPedirOtro,
     explicacion,
     estado,
+    iniciarSesionComoBoton = false,
 }: {
     pedirOtro: string;
     textoPedirOtro: string;
     explicacion: string;
     /** Lo que viaja a la pantalla de pedir otro (`EstadoDeAcceso`): p. ej., que viene de una invitación. */
     estado?: EstadoDeAcceso;
+    /**
+     * AUD-014 — iniciar sesión es **otra salida igual de válida**, no la vuelta atrás: un enlace
+     * de confirmación o una invitación que «ya se usó» quieren decir que la cuenta ya está lista.
+     * Entonces va como botón secundario, al lado de pedir otro, y no como enlace pequeño debajo.
+     */
+    iniciarSesionComoBoton?: boolean;
 }) {
     const { t } = useT();
     useTituloDePantalla("auth.enlace.titulo");
@@ -36,7 +43,11 @@ export function EnlaceCaducado({
             <p className="text-center text-sm text-foreground">{explicacion}</p>
             <div className="flex flex-col items-center gap-2">
                 <Link to={pedirOtro} state={estado} className={cn(clasesDeBoton("primary"), "w-full")}>{textoPedirOtro}</Link>
-                <Link to="/auth/login" className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO, "text-sm")}>{t("auth.volverAlLogin")}</Link>
+                {iniciarSesionComoBoton ? (
+                    <Link to="/auth/login" className={cn(clasesDeBoton("secondary"), "w-full")}>{t("ruta.login")}</Link>
+                ) : (
+                    <Link to="/auth/login" className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO, "text-sm")}>{t("auth.volverAlLogin")}</Link>
+                )}
             </div>
         </MarcoDeAcceso>
     );

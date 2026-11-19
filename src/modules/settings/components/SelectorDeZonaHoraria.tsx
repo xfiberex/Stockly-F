@@ -47,14 +47,32 @@ function desfaseDe(zona: string, ahora: Date): string {
  * enseñaría otra distinta de la que está en vigor.
  */
 function zonasDisponibles(guardada: string): Zona[] {
+    const enCache = CACHE.get(guardada);
+    if (enCache) return enCache;
     const nombres = Intl.supportedValuesOf("timeZone");
     if (!nombres.includes(guardada)) nombres.unshift(guardada);
     const ahora = new Date();
-    return nombres.map((valor) => {
-        const rotulo = valor.replaceAll("_", " ");
+    const zonas = nombres.map((valor) => {
+        const rotulo = rotuloDe(valor);
         const desfase = desfaseDe(valor, ahora);
         return { valor, rotulo, desfase, clave: normalizar(`${rotulo} ${desfase}`) };
     });
+    CACHE.set(guardada, zonas);
+    return zonas;
+}
+
+/**
+ * Un `Intl.DateTimeFormat` por zona son ~420 objetos: se construyen **al abrir la lista por
+ * primera vez** y valen para toda la sesión, no en cada visita a Configuración, donde casi nadie
+ * la abre. El desfase es el de ese día; una sesión que cruce un cambio de hora enseñaría el de
+ * antes hasta recargar, y eso es aceptable para elegir la zona.
+ */
+const CACHE = new Map<string, Zona[]>();
+const SIN_ZONAS: Zona[] = [];
+
+/** `America/Santo_Domingo` → `America/Santo Domingo`. */
+function rotuloDe(zona: string): string {
+    return zona.replaceAll("_", " ");
 }
 
 /** Cada palabra escrita tiene que estar en la zona, en cualquier orden: «santo america» vale. */
@@ -89,14 +107,14 @@ export function SelectorDeZonaHoraria({ valor, guardada, onChange, ...rotulos }:
     const idLista = `${id}-lista`;
     const lista = useRef<HTMLUListElement>(null);
 
-    const zonas = useMemo(() => zonasDisponibles(guardada), [guardada]);
     // `null`: no se está escribiendo, y el campo enseña la zona elegida.
     const [texto, setTexto] = useState<string | null>(null);
     const [abierto, setAbierto] = useState(false);
     const [activo, setActivo] = useState(0);
 
+    // Cerrada, la lista no hace falta: el campo solo enseña el rótulo de la elegida.
+    const zonas = abierto ? zonasDisponibles(guardada) : SIN_ZONAS;
     const opciones = useMemo(() => filtrar(zonas, texto ?? ""), [zonas, texto]);
-    const elegida = zonas.find((z) => z.valor === valor);
     const idOpcion = (i: number) => `${id}-opcion-${i}`;
 
     // La opción activa, a la vista: al abrir, la elegida puede estar a trescientas filas. Al abrir
@@ -117,7 +135,7 @@ export function SelectorDeZonaHoraria({ valor, guardada, onChange, ...rotulos }:
         recienAbierto.current = true;
         setAbierto(true);
         // Sin texto, la lista es entera: se abre por la zona que ya está puesta.
-        setActivo(Math.max(0, opciones.findIndex((z) => z.valor === valor)));
+        setActivo(Math.max(0, zonasDisponibles(guardada).findIndex((z) => z.valor === valor)));
     };
 
     const cerrar = () => {
@@ -164,7 +182,7 @@ export function SelectorDeZonaHoraria({ valor, guardada, onChange, ...rotulos }:
                 aria-activedescendant={abierto && opciones[activo] ? idOpcion(activo) : undefined}
                 {...rotulos}
                 placeholder={t("configuracion.zona.buscar")}
-                value={texto ?? elegida?.rotulo ?? valor}
+                value={texto ?? rotuloDe(valor)}
                 // Al entrar se selecciona lo escrito: teclear lo sustituye, sin borrar a mano.
                 onFocus={(e) => { e.target.select(); abrir(); }}
                 onClick={abrir}

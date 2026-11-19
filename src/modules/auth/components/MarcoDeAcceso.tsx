@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { CheckCircleIcon, CubeIcon, ExclamationTriangleIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon, ClockIcon, CubeIcon, ExclamationTriangleIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useIdioma, useT } from "@/shared/hooks/useIdioma";
 import type { Idioma } from "@/shared/i18n/idioma";
 import { cn } from "@/shared/lib/cn";
@@ -93,18 +93,31 @@ function IdiomaSinSesion() {
  * Antes salía solo en un aviso de 3 s en una esquina: «credenciales inválidas» o «pendiente de
  * aprobación» desaparecían antes de leerlos (WCAG 2.2.1), lejos del formulario.
  */
-export function AvisoDeAcceso({ children, tono = "error" }: { children: ReactNode; tono?: "error" | "exito" }) {
+export function AvisoDeAcceso({ children, tono = "error" }: { children: ReactNode; tono?: "error" | "exito" | "info" }) {
+    // AUD-014 — `info`, para lo que no es un error de nadie: la cuenta que espera a que un ADMIN
+    // la apruebe. En rojo, con triángulo y `alert` asertivo, decía «has hecho algo mal» a quien
+    // solo está en el paso que el registro le anunció. Es `status`, como el de éxito.
+    if (tono === "info") {
+        return (
+            <div role="status" className="flex gap-2 rounded-lg border border-info/30 bg-info-surface p-3 text-sm text-foreground">
+                <ClockIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-info" />
+                <div className="min-w-0 flex-1">{children}</div>
+            </div>
+        );
+    }
     // El de éxito (la contraseña nueva, ya guardada) es `status`: se anuncia sin interrumpir.
     return tono === "exito" ? (
         <div role="status" className="flex gap-2 rounded-lg border border-success/30 bg-success-surface p-3 text-sm text-foreground">
             <CheckCircleIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-            <div className="text-pretty">{children}</div>
+            <div className="min-w-0 flex-1">{children}</div>
         </div>
     ) : (
         <div role="alert" className="flex gap-2 rounded-lg border border-danger/30 bg-danger-surface p-3 text-sm text-foreground">
             <ExclamationTriangleIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
-            {/* `text-pretty`: «correctos» se quedaba sola en la segunda línea. */}
-            <div className="text-pretty">{children}</div>
+            {/* `flex-1`: sin él la caja del texto se ajustaba a su contenido y cortaba la línea a
+                media tarjeta («El correo o la contraseña no» / «son correctos»). Los párrafos
+                cortan con `pretty` por la regla de `index.css` (AUD-019). */}
+            <div className="min-w-0 flex-1">{children}</div>
         </div>
     );
 }
