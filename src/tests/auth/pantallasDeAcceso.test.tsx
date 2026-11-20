@@ -48,16 +48,38 @@ describe("Iniciar sesión (AUD-014)", () => {
         return user;
     }
 
-    it("«pendiente de aprobación» se queda en la tarjeta, y dice qué viene después", async () => {
+    it("«pendiente de aprobación» tiene pantalla propia, sin el formulario, y dice qué viene después (AUD-020)", async () => {
         vi.mocked(AuthAPI.login).mockRejectedValue(errorDeApi(403, "ACCOUNT_PENDING_APPROVAL"));
-        await entrar();
+        renderWithProviders(<><AnuncioDeRuta /><LoginPage /></>, { initialRoute: "/auth/login" });
+        const user = userEvent.setup();
+        await user.type(screen.getByLabelText("Correo electrónico"), "ana@stockly.app");
+        await user.type(screen.getByLabelText("Contraseña"), "secreta123");
+        await user.click(screen.getByRole("button", { name: "Entrar" }));
 
-        // AUD-014 — no es un error de nadie: un `status` informativo, no un `alert` rojo.
-        const aviso = await screen.findByRole("status");
+        const titulo = await screen.findByRole("heading", { name: "Tu cuenta espera aprobación", level: 1 });
+        // Llega sin que nadie lo pida: el foco va al título, y la pestaña dice lo mismo.
+        expect(titulo).toHaveFocus();
+        await waitFor(() => expect(document.title).toBe("Tu cuenta espera aprobación · Stockly"));
+
+        // No es un error de nadie: un `status` informativo, no un `alert` rojo.
+        const aviso = screen.getByRole("status");
         expect(screen.queryByRole("alert")).not.toBeInTheDocument();
         expect(aviso).toHaveTextContent("Falta un paso: que un administrador apruebe tu cuenta.");
-        // Y a quién acudir si tarda, que el aviso rojo no decía.
         expect(aviso).toHaveTextContent("Si tarda, pregunta a quien administra Stockly en tu negocio.");
+        expect(aviso).toHaveTextContent("Cuenta: ana@stockly.app");
+        // Sin el formulario que invitaba a seguir pulsando «Entrar».
+        expect(screen.queryByRole("button", { name: "Entrar" })).not.toBeInTheDocument();
+        expect(screen.queryByLabelText("Contraseña")).not.toBeInTheDocument();
+    });
+
+    it("desde la espera se vuelve al formulario con el correo escrito", async () => {
+        vi.mocked(AuthAPI.login).mockRejectedValue(errorDeApi(403, "ACCOUNT_PENDING_APPROVAL"));
+        const user = await entrar("eva@stockly.app");
+
+        await user.click(await screen.findByRole("button", { name: "Volver al inicio de sesión" }));
+        expect(screen.getByLabelText("Correo electrónico")).toHaveValue("eva@stockly.app");
+        expect(screen.getByRole("button", { name: "Entrar" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Tu cuenta espera aprobación" })).not.toBeInTheDocument();
     });
 
     it("sin el correo confirmado, ofrece reenviarlo", async () => {
@@ -280,8 +302,34 @@ describe("Restablecer la contraseña (AUD-014)", () => {
 
         expect(await screen.findByText(/^Para laura@stockly.app/)).toBeInTheDocument();
         expect(screen.getByLabelText("Contraseña", { exact: true })).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "Volver al inicio de sesión" })).toHaveAttribute("href", "/auth/login");
+        expect(screen.getByRole("link", { name: "Ya tengo contraseña: iniciar sesión" })).toHaveAttribute("href", "/auth/login");
         await waitFor(() => expect(document.title).toBe("Elige tu contraseña · Stockly"));
+    });
+
+    it("la invitación dice quién invita y a qué negocio, si el servidor lo sabe (AUD-020)", async () => {
+        vi.mocked(AuthAPI.checkResetToken).mockResolvedValue({
+            email: "laura@stockly.app",
+            invitation: { inviterName: "Ana Admin", businessName: "Ferretería López" },
+        });
+        renderWithProviders(<ResetPasswordPage />, { initialRoute: "/auth/reset-password?token=bueno&invitacion=1" });
+
+        expect(await screen.findByText("Ana Admin te ha invitado a Ferretería López.")).toBeInTheDocument();
+        // La cuenta, en su propia línea y no dentro de la frase.
+        expect(screen.getByText("Entrarás con laura@stockly.app")).toBeInTheDocument();
+        // El foco va al título, para que el lector lea quién invita antes del campo.
+        expect(screen.getByRole("heading", { name: "Elige tu contraseña", level: 1 })).toHaveFocus();
+        // Nunca estuvo en el inicio de sesión: no «vuelve».
+        expect(screen.getByRole("link", { name: "Ya tengo contraseña: iniciar sesión" })).toHaveAttribute("href", "/auth/login");
+    });
+
+    it("sin nombre de negocio, invita a su equipo, no «a Stockly»", async () => {
+        vi.mocked(AuthAPI.checkResetToken).mockResolvedValue({
+            email: "laura@stockly.app",
+            invitation: { inviterName: "Ana Admin", businessName: null },
+        });
+        renderWithProviders(<ResetPasswordPage />, { initialRoute: "/auth/reset-password?token=bueno&invitacion=1" });
+
+        expect(await screen.findByText("Ana Admin te ha invitado a su equipo en Stockly.")).toBeInTheDocument();
     });
 
     it("con el enlace bueno, el formulario lleva el correo oculto para el gestor de contraseñas", async () => {

@@ -38,7 +38,7 @@ cambia la aplicación entera; ese es el objetivo.
 | `--color-surface-muted` | `bg-surface-muted` | `#f2f3f4` | — | Cabeceras de tabla, campos, zonas secundarias |
 | `--color-border` | `border-border` | `#e6e8ea` | — | Todos los bordes |
 | `--color-foreground` | `text-foreground` | `#0f172a` | **18.1:1** — AAA | Texto principal |
-| `--color-foreground-muted` | `text-foreground-muted` | `#64748b` | **4.8:1** — AA | Metadatos, ayudas, texto secundario |
+| `--color-foreground-muted` | `text-foreground-muted` | `#5f6b7e` | **5.4:1** — AA *(4.9:1 sobre `surface-muted`)* | Metadatos, ayudas, texto secundario |
 
 ### Acción y acento
 
@@ -105,7 +105,7 @@ las 561 utilidades de color crudas.
 | `--color-surface-muted` | `#f2f3f4` | `#1e2739` | — |
 | `--color-border` | `#e6e8ea` | `#2f3a4d` | 1.47:1 *(en claro, 1.23)* |
 | `--color-foreground` | `#0f172a` | `#e6ecf5` | **14.2:1** — AAA |
-| `--color-foreground-muted` | `#64748b` | `#9aa8bd` | **7.0:1** — AAA |
+| `--color-foreground-muted` | `#5f6b7e` | `#9aa8bd` | **7.0:1** — AAA |
 | `--color-primary` | `#334155` | `#cbd5e1` | 11.4:1 como relleno |
 | `--color-accent` | `#059669` | `#10b981` | 6.7:1 |
 | `--color-success` | `#047857` | `#34d399` | 8.8:1 |

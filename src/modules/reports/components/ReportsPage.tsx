@@ -78,6 +78,18 @@ export default function ReportsPage() {
     const { t, tn, idioma } = useT();
     const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useReports();
     const [rotacionCompleta, setRotacionCompleta] = useState(false);
+    // AUD-015, crítica de cierre — el PDF lo genera el servidor y tarda: mientras, el botón gira y
+    // no admite un segundo clic (antes no daba ninguna señal y se pulsaba otra vez).
+    const [descargando, setDescargando] = useState(false);
+    const descargarPdf = async () => {
+        if (descargando) return;
+        setDescargando(true);
+        try {
+            await downloadReportPdf();
+        } finally {
+            setDescargando(false);
+        }
+    };
 
     // AUD-015, crítica de cierre — sin datos, un fallo se dice y se reintenta: antes la página se
     // quedaba en blanco (`return null`) y parecía vacía, no rota (design-system §8).
@@ -173,7 +185,7 @@ export default function ReportsPage() {
                         <CalendarDaysIcon className="h-4 w-4" aria-hidden="true" />
                         {t("reportes.porPeriodo")}
                     </Link>
-                    <Button variant="secondary" onClick={downloadReportPdf}>
+                    <Button variant="secondary" onClick={() => void descargarPdf()} isLoading={descargando}>
                         <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
                         {t("reportes.descargarPdf")}
                     </Button>

@@ -3,6 +3,7 @@ import { formatearImporte } from "@/shared/lib/moneda";
 import { useT } from "@/shared/hooks/useIdioma";
 import { CLASES_TABLA, CLASES_TABLA_DESPLAZABLE } from "@/shared/lib/clasesDeTabla";
 import { cn } from "@/shared/lib/cn";
+import { CLASES_ENLACE_SUELTO } from "@/shared/lib/clasesDeMarco";
 import type { ProfitMargin } from "@/modules/reports/types/reports.types";
 
 /** Sin ventas no hay porcentaje: se dice «—», porque un 0 % diría que se vendió sin ganar. */
@@ -57,9 +58,11 @@ export function MargenRealizado({ margen }: { margen: ProfitMargin }) {
     const hayVentas = margen.byCategory.length > 0;
 
     return (
-        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+        // AUD-015, crítica de cierre — una región con nombre, como las demás secciones de Reportes:
+        // era el único bloque que el árbol de accesibilidad no listaba.
+        <section aria-labelledby="margen-realizado" className="bg-surface rounded-xl border border-border overflow-hidden">
             <div className="px-6 py-4 border-b border-border">
-                <h2 className="text-base font-semibold text-foreground">{t("reportes.margen.titulo", { dias: margen.days })}</h2>
+                <h2 id="margen-realizado" className="text-base font-semibold text-foreground">{t("reportes.margen.titulo", { dias: margen.days })}</h2>
                 <p className="text-xs text-foreground-muted mt-0.5">{t("reportes.margen.ayuda")}</p>
                 {margen.revenueWithoutCost > 0 && (
                     <p className="text-xs text-warning mt-1">
@@ -96,7 +99,7 @@ export function MargenRealizado({ margen }: { margen: ProfitMargin }) {
                             </tbody>
                             <tfoot className="border-t border-border">
                                 <tr>
-                                    <td className="px-6 py-3 font-semibold text-foreground">{t("comun.total")}</td>
+                                    <th scope="row" className="px-6 py-3 text-left font-semibold text-foreground">{t("comun.total")}</th>
                                     <CeldasDeMargen fila={margen} destacada />
                                 </tr>
                             </tfoot>
@@ -104,10 +107,10 @@ export function MargenRealizado({ margen }: { margen: ProfitMargin }) {
                     </div>
 
                     <div className="px-6 py-4 border-y border-border">
-                        <h3 className="text-sm font-semibold text-foreground">{t("reportes.margen.topProductos")}</h3>
+                        <h3 id="margen-top-productos" className="text-sm font-semibold text-foreground">{t("reportes.margen.topProductos")}</h3>
                     </div>
                     <div className={CLASES_TABLA_DESPLAZABLE}>
-                        <table className={CLASES_TABLA}>
+                        <table className={CLASES_TABLA} aria-labelledby="margen-top-productos">
                             <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                 <tr>
                                     <th className="px-6 py-3">{t("ordenes.producto")}</th>
@@ -125,7 +128,7 @@ export function MargenRealizado({ margen }: { margen: ProfitMargin }) {
                                             {/* Un producto borrado después sigue saliendo, con el nombre que
                                                 tenía al venderse, pero ya no hay página a la que llevar. */}
                                             {p.productId ? (
-                                                <Link to={`/catalog/products/${p.productId}/movements`} className="font-medium text-foreground hover:text-info">
+                                                <Link to={`/catalog/products/${p.productId}/movements`} className={cn(CLASES_ENLACE_SUELTO, "font-medium text-foreground hover:text-info hover:underline")}>
                                                     {p.name}
                                                 </Link>
                                             ) : (
@@ -141,6 +144,6 @@ export function MargenRealizado({ margen }: { margen: ProfitMargin }) {
                     </div>
                 </>
             )}
-        </div>
+        </section>
     );
 }

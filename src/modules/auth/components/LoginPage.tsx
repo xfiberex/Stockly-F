@@ -1,9 +1,11 @@
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
+import { ClockIcon } from "@heroicons/react/24/outline";
 import { Input } from "@/shared/components/Input";
 import { Button } from "@/shared/components/Button";
 import { useT } from "@/shared/hooks/useIdioma";
+import { useTituloDePantalla } from "@/shared/hooks/useTituloDePantalla";
 import { codigoDeError, mensajeDeError } from "@/shared/lib/errorApi";
 import { loginFormSchema, type LoginForm } from "@/modules/auth/schemas/auth.schema";
 import { useLogin } from "@/modules/auth/hooks/useLogin";
@@ -11,6 +13,7 @@ import { AvisoDeAcceso, CampoDeContrasena, MarcoDeAcceso } from "@/modules/auth/
 import { useEstadoDeAcceso, type EstadoDeAcceso } from "@/modules/auth/lib/estadoDeAcceso";
 import { cn } from "@/shared/lib/cn";
 import { CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO } from "@/shared/lib/clasesDeMarco";
+import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 
 export default function LoginPage() {
     const { t, te, idioma } = useT();
@@ -27,18 +30,20 @@ export default function LoginPage() {
     // enlace se pinta antes de escribir y tiene que llevar lo último.
     const escrito = useWatch({ control, name: "email" });
     const conCorreo = (): EstadoDeAcceso => ({ correo: escrito || undefined });
+    // AUD-020 — esperar la aprobación no es un error del formulario: es el estado de la cuenta, y
+    // el formulario debajo invitaba a seguir pulsando «Entrar». Tiene pantalla propia.
+    const pendiente = codigo === "ACCOUNT_PENDING_APPROVAL";
+    useTituloDePantalla(pendiente ? "auth.pendiente.titulo" : null);
+
+    if (pendiente) {
+        return <EsperaDeAprobacion correo={login.variables?.email} onVolver={() => login.reset()} />;
+    }
 
     return (
         <MarcoDeAcceso titulo={t("ruta.login")} subtitulo={t("auth.login.subtitulo")}>
             {/* AUD-014 — el motivo del servidor se queda en la tarjeta hasta el siguiente intento.
                 Y lo que tiene salida —confirmar el correo, una contraseña olvidada— dice cuál. */}
-            {codigo === "ACCOUNT_PENDING_APPROVAL" ? (
-                // AUD-014 — esperar la aprobación no es un error: es el paso que el registro ya
-                // anunció. Se dice en tono informativo y con a quién acudir si tarda.
-                <AvisoDeAcceso tono="info">
-                    <p>{t("auth.verificar.esperaAprobacion")}</p>
-                </AvisoDeAcceso>
-            ) : login.isError ? (
+            {login.isError ? (
                 <AvisoDeAcceso>
                     <p>{mensajeDeError(idioma, login.error)}</p>
                     {/* AUD-014 — van solos en su línea: `CLASES_ENLACE_SUELTO`, 44 px en táctil.
@@ -113,6 +118,28 @@ export default function LoginPage() {
                     {t("auth.login.registrate")}
                 </Link>
             </p>
+        </MarcoDeAcceso>
+    );
+}
+
+/**
+ * AUD-020 — la cuenta existe, la contraseña es buena y el correo está confirmado: solo falta que
+ * un administrador la apruebe. Qué falta, quién lo decide y a quién preguntar, como la tarjeta de
+ * Confirmar, sin el formulario debajo. Volver deja lo escrito: `useForm` vive en `LoginPage`,
+ * que sigue montada, y los campos vuelven con sus valores.
+ */
+function EsperaDeAprobacion({ correo, onVolver }: { correo?: string; onVolver: () => void }) {
+    const { t } = useT();
+    return (
+        <MarcoDeAcceso titulo={t("auth.pendiente.titulo")} enfocarTitulo>
+            <div role="status" className="space-y-3 text-center text-sm text-foreground">
+                <ClockIcon aria-hidden="true" className="mx-auto h-10 w-10 text-info" />
+                <p>{t("auth.verificar.esperaAprobacion")}</p>
+                {correo && <p className="text-foreground-muted [overflow-wrap:anywhere]">{t("auth.pendiente.cuenta", { correo })}</p>}
+            </div>
+            <button type="button" onClick={onVolver} className={cn(clasesDeBoton("secondary"), "w-full")}>
+                {t("auth.volverAlLogin")}
+            </button>
         </MarcoDeAcceso>
     );
 }

@@ -186,8 +186,10 @@ export default function CaducidadesPage() {
                                 <p className="break-words text-sm font-medium text-foreground">{fila.productName}</p>
                                 <p className="break-words text-xs text-foreground-muted">
                                     {t("lotes.delMovimiento", { codigo: fila.code, fecha: formatearDia(idioma, fila.expiresAt) })}
-                                    {hayVarios ? ` · ${fila.warehouseName}` : ""}
-                                    {fila.sku ? ` · ${fila.sku}` : ""}
+                                    {/* AUD-019 — cada dato entero en su línea: el SKU se partía por el guion
+                                        («ALI-» / «JAM-200») a 390 px. */}
+                                    {hayVarios && <span className="whitespace-nowrap"> · {fila.warehouseName}</span>}
+                                    {fila.sku && <span className="whitespace-nowrap"> · {fila.sku}</span>}
                                 </p>
                                 <div className="mt-1">
                                     <Badge variant={tonoDeCaducidad(fila.daysLeft)}>{cuandoCaduca(traductor, fila.daysLeft)}</Badge>

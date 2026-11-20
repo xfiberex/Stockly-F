@@ -790,7 +790,9 @@ export default function PurchaseOrdersPage() {
                                         <p className="text-xs text-foreground-muted mb-3 italic">"{order.notes}"</p>
                                     )}
                                     <div className={CLASES_TABLA_DESPLAZABLE}>
-                                        <table className={CLASES_TABLA}>
+                                        {/* AUD-019 — las líneas, sin el ancho mínimo en el móvil: a 390 px cantidad, precio y subtotal
+                                            quedaban fuera de la pantalla. Cuatro columnas caben, como en `ProductTable`. */}
+                                        <table className={cn(CLASES_TABLA, "max-md:min-w-0 [&_td+td]:pl-3 [&_th+th]:pl-3")}>
                                             <thead className="text-left text-xs font-medium uppercase tracking-wide text-foreground-muted border-b border-border">
                                                 <tr>
                                                     <th className="pb-2">{t("ordenes.producto")}</th>

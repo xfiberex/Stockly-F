@@ -136,7 +136,9 @@ export default function CustomerDetailPage() {
                     <p className="py-8 text-center text-sm text-foreground-muted">{t("clientes.sinOrdenes")}</p>
                 ) : (
                     <div className={cn(CLASES_TABLA_DESPLAZABLE, "rounded-xl border border-border", isFetching && "opacity-70")}>
-                        <table className={CLASES_TABLA}>
+                        {/* AUD-019 — en el móvil, sin el ancho mínimo y sin «Fecha» ni «Vendida a»: a
+                            390 px el subtotal quedaba fuera de la pantalla, detrás del desplazamiento. */}
+                        <table className={cn(CLASES_TABLA, "max-md:min-w-0")}>
                             <thead className="bg-surface-muted text-left text-xs font-medium uppercase tracking-wide text-foreground-muted">
                                 <tr>
                                     <th className="px-4 py-3">{t("clientes.orden")}</th>
@@ -144,9 +146,9 @@ export default function CustomerDetailPage() {
                                         la segunda y no la última: a 393 px la tabla se desplaza, y al
                                         final el botón quedaba fuera de la pantalla. */}
                                     <th className="px-1 py-3"><span className="sr-only">{t("ventas.comprobante")}</span></th>
-                                    <th className="px-4 py-3">{t("clientes.fecha")}</th>
+                                    <th className="hidden px-4 py-3 md:table-cell">{t("clientes.fecha")}</th>
                                     <th className="px-4 py-3">{t("clientes.estado")}</th>
-                                    <th className="px-4 py-3">{t("clientes.vendidaA")}</th>
+                                    <th className="hidden px-4 py-3 md:table-cell">{t("clientes.vendidaA")}</th>
                                     <th className="px-4 py-3 text-right">{t("ordenes.subtotal")}</th>
                                 </tr>
                             </thead>
@@ -165,9 +167,9 @@ export default function CustomerDetailPage() {
                                             </Link>
                                         </td>
                                         <td className="px-1 py-1"><BotonDeComprobante orden={orden} variante="icono" /></td>
-                                        <td className="px-4 py-3 text-foreground-muted whitespace-nowrap">{formatearFecha(idioma, orden.createdAt)}</td>
+                                        <td className="hidden px-4 py-3 text-foreground-muted whitespace-nowrap md:table-cell">{formatearFecha(idioma, orden.createdAt)}</td>
                                         <td className="px-4 py-3"><EstadoBadge estado={buscarEstado(ESTADO_ORDEN_VENTA, orden.status)} /></td>
-                                        <td className="px-4 py-3 text-foreground-muted">{orden.customerName ?? "—"}</td>
+                                        <td className="hidden px-4 py-3 text-foreground-muted md:table-cell">{orden.customerName ?? "—"}</td>
                                         <td className="px-4 py-3 text-right tabular-nums font-medium text-foreground">{formatearImporte(subtotalDe(orden))}</td>
                                     </tr>
                                 ))}

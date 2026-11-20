@@ -92,7 +92,10 @@
 
   /* Texto */
   --color-foreground: light-dark(#0f172a, #e6ecf5);         /* 18.1:1 · 14.2:1 — AAA */
-  --color-foreground-muted: light-dark(#64748b, #9aa8bd);   /*  4.8:1 — AA · 7.0:1 — AAA */
+  /* AUD-019 — era #64748b: 4.8:1 sobre blanco, pero 4.28:1 sobre `surface-muted`, donde va en
+     las cabeceras de tabla, las insignias neutras y las cajas de ayuda. Medido solo contra blanco,
+     como le pasó a `danger`. */
+  --color-foreground-muted: light-dark(#5f6b7e, #9aa8bd);   /*  5.4:1 · 4.9:1 sobre surface-muted — AA · 7.0:1 — AAA */
 
   /*
    * Acción y acento. `--color-primary` se **aclara** en oscuro porque es un relleno que

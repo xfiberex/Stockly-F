@@ -8,7 +8,7 @@
 // Editar este archivo directamente no sirve de nada: `frescura.test.ts` compara
 // su contenido con el del backend y falla, y la próxima generación lo pisa.
 //
-// huella: c45cea71de9e5860
+// huella: e98a61bedf7dd363
 
 /**
  * T4-01 — El contrato de la API, en un solo archivo y en un solo sitio.
@@ -1470,8 +1470,17 @@ export const perfilSchema = usuarioSchema.omit({ updatedAt: true }).extend({ idi
  * `email` es el de la cuenta: la pantalla lo pone en un campo `username` oculto para que el
  * gestor de contraseñas guarde la nueva con su usuario. No revela nada a quien no lo sepa ya:
  * con ese enlace se puede cambiar la contraseña de la cuenta.
+ *
+ * AUD-020 — `invitation` solo viene si el enlace es el de una invitación todavía sin usar: la
+ * cuenta la creó alguien (`invitedById`) y aún no tiene contraseña elegida (sin verificar). Dice
+ * quién invita, por su **nombre** y no su correo (decisión del propietario: lo ve alguien que aún
+ * no tiene cuenta), y a qué negocio; `businessName` es `null` si Configuración no lo tiene. Lo
+ * decide el servidor: el `invitacion=1` del enlace solo cambia los textos de la pantalla.
  */
-export const enlaceDeRestablecerSchema = z.object({ email: z.string() });
+export const enlaceDeRestablecerSchema = z.object({
+    email: z.string(),
+    invitation: z.object({ inviterName: z.string(), businessName: z.string().nullable() }).optional(),
+});
 
 /**
  * AUD-014 — respuesta de `POST /auth/reset-password`. `pendingApproval`: la cuenta sigue

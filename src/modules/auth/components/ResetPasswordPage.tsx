@@ -66,14 +66,29 @@ export default function ResetPasswordPage() {
 
     // La invitación dice para qué cuenta es: el servidor la conoce y el invitado no tenía forma
     // de saber con qué correo entraría.
+    // AUD-020 — y quién invita y a qué negocio, si el servidor lo dice (solo en una invitación sin
+    // usar). Sin nombre de negocio en Configuración no se dice «a Stockly», que es el programa y no
+    // el negocio: «a su equipo». La cuenta va aparte, en su línea: es lo que escribirá mañana.
+    const deQuien = enlace.data?.invitation;
     const subtitulo = invitacion
-        ? correo ? t("auth.invitacion.paraCorreo", { correo }) : t("auth.invitacion.subtitulo")
+        ? deQuien
+            ? deQuien.businessName
+                ? t("auth.invitacion.deQuien", { invitador: deQuien.inviterName, negocio: deQuien.businessName })
+                : t("auth.invitacion.deQuienSinNegocio", { invitador: deQuien.inviterName })
+            : correo ? t("auth.invitacion.paraCorreo", { correo }) : t("auth.invitacion.subtitulo")
         : t("auth.restablecer.subtitulo");
 
     // Si la comprobación falla por otra cosa (sin conexión, un 500), se deja escribir: al enviar,
     // el servidor dirá lo que pase, dentro de la tarjeta.
     return (
-        <MarcoDeAcceso titulo={titulo} subtitulo={subtitulo}>
+        // AUD-020 — en una invitación, el foco va al título y no al campo: así el lector lee quién
+        // invita y con qué cuenta antes de pedir la contraseña (con el foco en el campo se los saltaba).
+        <MarcoDeAcceso titulo={titulo} subtitulo={subtitulo} enfocarTitulo={invitacion}>
+            {invitacion && deQuien && correo && (
+                <p className="text-center text-sm font-medium text-foreground [overflow-wrap:anywhere]">
+                    {t("auth.invitacion.entrarasCon", { correo })}
+                </p>
+            )}
             {reset.isError && (
                 <AvisoDeAcceso>
                     <p>{mensajeDeError(idioma, reset.error)}</p>
@@ -88,7 +103,7 @@ export default function ResetPasswordPage() {
                     // Quien llega por una invitación no tenía ninguna: «Contraseña», no «Nueva».
                     label={t(invitacion ? "auth.campo.contrasena" : "auth.campo.nuevaContrasena")}
                     autoComplete="new-password"
-                    autoFocus
+                    autoFocus={!invitacion}
                     ayuda={t("auth.ejemplo.minimo")}
                     error={te(errors.password?.message)}
                     {...register("password")}
@@ -107,8 +122,9 @@ export default function ResetPasswordPage() {
 
             {/* Una salida, como en las demás: antes este formulario no tenía ninguna. */}
             <p className="text-center text-sm">
+                {/* AUD-020 — quien llega invitado nunca estuvo en el inicio de sesión: no «vuelve». */}
                 <Link to="/auth/login" className={cn(CLASES_ENLACE_EN_TEXTO, CLASES_ENLACE_SUELTO)}>
-                    {t("auth.volverAlLogin")}
+                    {t(invitacion ? "auth.invitacion.yaTengo" : "auth.volverAlLogin")}
                 </Link>
             </p>
         </MarcoDeAcceso>

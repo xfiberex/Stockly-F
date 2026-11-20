@@ -126,6 +126,18 @@ export default function InformePorPeriodoPage() {
         setParams("preset" in nueva ? { preset: nueva.preset } : { from: nueva.from, to: nueva.to }, { replace: true });
 
     const { data, isError, error, refetch, isFetching, isPlaceholderData, dataUpdatedAt } = usePeriodReport(consulta);
+    // AUD-015, crítica de cierre — el archivo lo genera el servidor: mientras, su botón gira y
+    // ninguno de los dos admite otro clic.
+    const [descargando, setDescargando] = useState<"csv" | "pdf" | null>(null);
+    const descargar = async (formato: "csv" | "pdf") => {
+        if (!data || descargando) return;
+        setDescargando(formato);
+        try {
+            await downloadPeriodReport(data, formato);
+        } finally {
+            setDescargando(null);
+        }
+    };
     const atajoActivo = "preset" in consulta ? consulta.preset : null;
     // Lo que se ve no es lo pedido: son las cifras del periodo anterior mientras llegan las nuevas.
     const desfasado = isPlaceholderData;
@@ -222,7 +234,8 @@ export default function InformePorPeriodoPage() {
                         variant="secondary"
                         disabled={motivoSinExportar !== null}
                         aria-describedby={motivoSinExportar ? "periodo-sin-exportar" : undefined}
-                        onClick={() => data && downloadPeriodReport(data, "csv")}
+                        onClick={() => void descargar("csv")}
+                        isLoading={descargando === "csv"}
                     >
                         <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
                         {t("periodo.exportarCsv")}
@@ -231,7 +244,8 @@ export default function InformePorPeriodoPage() {
                         variant="secondary"
                         disabled={motivoSinExportar !== null}
                         aria-describedby={motivoSinExportar ? "periodo-sin-exportar" : undefined}
-                        onClick={() => data && downloadPeriodReport(data, "pdf")}
+                        onClick={() => void descargar("pdf")}
+                        isLoading={descargando === "pdf"}
                     >
                         <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
                         {t("reportes.descargarPdf")}

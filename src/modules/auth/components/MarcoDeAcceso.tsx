@@ -41,7 +41,9 @@ export function MarcoDeAcceso({
                             <span className="text-2xl font-bold text-foreground">Stockly</span>
                         </div>
                         <h1 ref={h1} tabIndex={enfocarTitulo ? -1 : undefined} className="text-xl font-bold text-foreground outline-none">{titulo}</h1>
-                        {subtitulo && <p className="mt-1 text-sm text-foreground-muted">{subtitulo}</p>}
+                        {/* AUD-020 — `overflow-wrap:anywhere`: un correo o un negocio largos se salían de la
+                            tarjeta a 390 px y daban desplazamiento lateral. */}
+                        {subtitulo && <p className="mt-1 text-sm text-foreground-muted [overflow-wrap:anywhere]">{subtitulo}</p>}
                     </div>
                     {children}
                 </div>

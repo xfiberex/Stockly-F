@@ -5,6 +5,7 @@ import { Badge } from "@/shared/components/Badge";
 import { EstadoBadge } from "@/shared/components/EstadoBadge";
 import { NIVEL_STOCK, ACTIVIDAD, nivelDeStock } from "@/shared/lib/estados";
 import { Button } from "@/shared/components/Button";
+import { cn } from "@/shared/lib/cn";
 import { clasesDeBoton } from "@/shared/lib/clasesDeBoton";
 import { useAuth } from "@/modules/auth/hooks/useMe";
 import type { Product, ProductWithAvailability } from "@/modules/products/types/product.types";
@@ -266,23 +267,29 @@ export function ProductDetailModal({ product, onClose, onEdit, onPrintLabels, on
                     movimientos» y «Editar producto» partían en dos líneas y los tres quedaban
                     de alturas distintas. La rejilla sí reparte igual, y el último botón ocupa la
                     fila entera cuando queda solo en ella —con uno o con tres—. */}
-                <div className="grid gap-2 pt-3 border-t border-border sm:grid-cols-2 sm:*:last:odd:col-span-2">
-                    {/* AUD-019 — tras escanear, lo que se venía a hacer va primero y es la
-                        acción principal; «Editar producto» pasa entonces a secundaria, para
-                        que no haya dos botones rellenos compitiendo. */}
-                    {onRegisterMovement && product.isActive && (
-                        <Button type="button" onClick={() => { onClose(); onRegisterMovement(product); }}>
-                            <ArrowsRightLeftIcon className="h-4 w-4" />
-                            {t("movimientos.registrar")}
-                        </Button>
-                    )}
-                    {onScanAnother && (
-                        <Button type="button" variant="secondary" onClick={() => { onClose(); onScanAnother(); }}>
-                            <ViewfinderCircleIcon className="h-4 w-4" />
-                            {t("escaner.otraVez")}
-                        </Button>
-                    )}
-
+                {/* AUD-019 — tras escanear, lo que se venía a hacer va primero y es la acción
+                    principal; «Editar producto» pasa entonces a secundaria, para que no haya dos
+                    botones rellenos compitiendo. Y esas dos acciones se quedan pegadas al pie del
+                    modal: a 390 px «Registrar movimiento» quedaba a 1 056 px, debajo de toda la
+                    ficha, y había que desplazar en cada escaneo. Solo esas dos: con las cinco, el
+                    pie tapaba media pantalla. `-bottom-4`/`pb-4` cubren el relleno del cuerpo. */}
+                {(onRegisterMovement || onScanAnother) && (
+                    <div className="sticky -bottom-4 z-10 -mb-4 grid gap-2 border-t border-border bg-surface pt-3 pb-4 sm:grid-cols-2 sm:*:last:odd:col-span-2">
+                        {onRegisterMovement && product.isActive && (
+                            <Button type="button" onClick={() => { onClose(); onRegisterMovement(product); }}>
+                                <ArrowsRightLeftIcon className="h-4 w-4" />
+                                {t("movimientos.registrar")}
+                            </Button>
+                        )}
+                        {onScanAnother && (
+                            <Button type="button" variant="secondary" onClick={() => { onClose(); onScanAnother(); }}>
+                                <ViewfinderCircleIcon className="h-4 w-4" />
+                                {t("escaner.otraVez")}
+                            </Button>
+                        )}
+                    </div>
+                )}
+                <div className={cn("grid gap-2 sm:grid-cols-2 sm:*:last:odd:col-span-2", onRegisterMovement || onScanAnother ? "mt-6" : "pt-3 border-t border-border")}>
                     {/* T2-14, otra vez: esto era un `<button>` dentro de un `<a>`, que es HTML
                         inválido y deja dos paradas de tabulación para una sola acción. Como
                         navega, se queda el enlace y toma prestadas las clases del botón. */}

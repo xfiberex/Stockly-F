@@ -205,6 +205,17 @@ describe.each(TEMAS)("Contraste WCAG — tema %s", (tema) => {
         }
     });
 
+    it("el texto atenuado se lee sobre las tres superficies neutras (AUD-019)", () => {
+        // Va en las cabeceras de tabla y las insignias neutras, sobre `surface-muted`. Medido
+        // solo contra la tarjeta, el gris anterior pasaba aquí y daba 4,28:1 en las cabeceras.
+        for (const fondo of ["color-background", "color-surface", "color-surface-muted"]) {
+            expect(
+                ratioContraste(token("color-foreground-muted", tema), token(fondo, tema)),
+                `foreground-muted sobre ${fondo}`,
+            ).toBeGreaterThanOrEqual(4.5);
+        }
+    });
+
     it("cada estado contrasta con su propia superficie de badge", () => {
         for (const estado of ["success", "warning", "danger", "info"]) {
             const ratio = ratioContraste(token(`color-${estado}`, tema), token(`color-${estado}-surface`, tema));

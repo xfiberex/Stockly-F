@@ -184,7 +184,9 @@ export default function InventoryCountsPage() {
                                 </div>
                                 <div className="text-xs text-foreground-muted tabular-nums sm:text-right">
                                     <p>{t("conteos.progreso", { contados: conteo.summary.counted, total: conteo.summary.lines })}</p>
-                                    <p>{tn("conteos.conDiferencia", conteo.summary.withDifference)}</p>
+                                    {/* AUD-019 — a ciegas también aquí: mientras el conteo está abierto, saber
+                                        cuántas líneas no cuadran sesga a quien sigue contando. */}
+                                    {conteo.status !== "OPEN" && <p>{tn("conteos.conDiferencia", conteo.summary.withDifference)}</p>}
                                 </div>
                             </Link>
                         </li>

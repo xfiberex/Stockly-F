@@ -426,4 +426,13 @@ describe("Conteo físico — a ciegas, jerarquía y vacíos (AUD-019)", () => {
         expect(screen.getByText("Todavía no hay conteos.")).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Quitar los filtros" })).not.toBeInTheDocument();
     });
+
+    it("la lista no dice cuántas líneas no cuadran de un conteo abierto; de uno cerrado, sí", () => {
+        listaDeConteos = [CONTEO, { ...CONTEO, id: "cerrado", status: "CLOSED", note: "Cerrado" }];
+        renderWithProviders(<InventoryCountsPage />);
+
+        expect(screen.getAllByText("2 de 3 contados")).toHaveLength(2);
+        // Solo la fila cerrada lleva el recuento de diferencias.
+        expect(screen.getAllByText("1 con diferencia")).toHaveLength(1);
+    });
 });
